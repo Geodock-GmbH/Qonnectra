@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Micropipe } from '$lib/classes/CableMicropipeManager.svelte';
 	import { onDestroy } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { page } from '$app/stores';
@@ -40,8 +41,8 @@
 		onClose = () => {},
 		onLinkageChange = () => {}
 	}: {
-		cableId: any;
-		cableName: any;
+		cableId: string;
+		cableName: string;
 		onClose?: () => void;
 		onLinkageChange?: () => void;
 	} = $props();
@@ -49,7 +50,7 @@
 	const manager = new CableMicropipeManager();
 
 	let olMap = $state<import('ol/Map').default | undefined>();
-	let dragBoxInteraction = $state<any>();
+	let dragBoxInteraction = $state<import('ol/interaction/DragBox').default | undefined>();
 	let selectionLayer = $state<VectorTileLayer | undefined>();
 	let selectedFeatureIds = $state<SvelteSet<string>>(new SvelteSet());
 	let cableRouteLayer = $state<VectorTileLayer | undefined>();
@@ -156,7 +157,7 @@
 		const selectedStyle = createSelectedStyle('#ff6600');
 		selectionLayer = new VectorTileLayer({
 			renderMode: 'vector',
-			source: (mapState.vectorTileLayer as any)?.getSource(),
+			source: mapState.vectorTileLayer?.getSource() ?? undefined,
 			style: function (feature) {
 				const featureId = String(feature.getId() || feature.get('uuid'));
 				if (featureId && selectedFeatureIds.has(featureId)) {
@@ -174,7 +175,7 @@
 		const linkedTrenchStyle = createLinkedTrenchStyle('#06b6d4');
 		cableRouteLayer = new VectorTileLayer({
 			renderMode: 'vector',
-			source: (mapState.vectorTileLayer as any)?.getSource(),
+			source: mapState.vectorTileLayer?.getSource() ?? undefined,
 			style: function (feature) {
 				const featureId = String(feature.getId() || feature.get('uuid'));
 				if (featureId && manager.linkedTrenchIds.has(featureId)) {
@@ -227,12 +228,13 @@
 			}
 		});
 
-		dragBoxInteraction = new DragBox({
+		const dragBox = new DragBox({
 			condition: shiftKeyOnly
 		});
+		dragBoxInteraction = dragBox;
 
-		dragBoxInteraction.on('boxend', () => {
-			const extent = dragBoxInteraction.getGeometry().getExtent();
+		dragBox.on('boxend', () => {
+			const extent = dragBox.getGeometry().getExtent();
 			const newSet = new SvelteSet(selectedFeatureIds);
 			const boxPixelMin = map.getPixelFromCoordinate([extent[0], extent[1]]);
 			const boxPixelMax = map.getPixelFromCoordinate([extent[2], extent[3]]);
@@ -303,7 +305,7 @@
 		return manager.selectedConduitIds.has(conduitId);
 	}
 
-	function isMicropipeSelected(micropipe: any): boolean {
+	function isMicropipeSelected(micropipe: Micropipe): boolean {
 		return (
 			manager.selectedMicropipe?.number === micropipe.number &&
 			manager.selectedMicropipe?.color_name === micropipe.color_name

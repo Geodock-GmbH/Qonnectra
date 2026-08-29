@@ -2,7 +2,7 @@ import type { Fiber } from './CableFiberDataManager.svelte';
 
 import { m } from '$lib/paraglide/messages';
 
-interface ComponentType {
+export interface ComponentType {
 	id: number;
 	component_type: string;
 	occupied_slots: number;

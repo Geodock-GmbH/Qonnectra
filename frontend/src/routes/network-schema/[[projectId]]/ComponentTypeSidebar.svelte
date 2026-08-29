@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { ActionResult } from '@sveltejs/kit';
+	import type { ComponentType } from '$lib/classes/DragDropManager.svelte';
 	import { getContext, onMount } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import {
@@ -16,6 +18,8 @@
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
 
+	import { actionData } from './attributeCardTypes';
+
 	let {
 		onDragStart = () => {},
 		onDragEnd = () => {},
@@ -23,10 +27,10 @@
 		onMobileSelect = () => {},
 		disabled = false
 	}: {
-		onDragStart?: (componentType: any) => void;
+		onDragStart?: (componentType: ComponentType) => void;
 		onDragEnd?: () => void;
 		isMobile?: boolean;
-		onMobileSelect?: (componentType: any) => void;
+		onMobileSelect?: (componentType: ComponentType) => void;
 		disabled?: boolean;
 	} = $props();
 
@@ -34,7 +38,7 @@
 
 	const resizer = new PanelResizeManager({ defaultWidth: 260, side: 'left' });
 
-	let componentTypes = $state<any[]>([]);
+	let componentTypes = $state<ComponentType[]>([]);
 	let loading = $state(true);
 	let collapsed = $state(false);
 
@@ -49,9 +53,9 @@
 				method: 'POST',
 				body: formData
 			});
-			const result = deserialize(await response.text()) as any;
+			const result = deserialize(await response.text()) as ActionResult;
 			if (result.type === 'success') {
-				componentTypes = result.data?.componentTypes || [];
+				componentTypes = (actionData(result)?.componentTypes as ComponentType[]) || [];
 			}
 		} catch (err) {
 			console.error('Error fetching component types:', err);
@@ -97,7 +101,7 @@
 		quantities = new Map(quantities);
 	}
 
-	function handleDragStart(e: DragEvent, componentType: any) {
+	function handleDragStart(e: DragEvent, componentType: ComponentType) {
 		if (disabled) {
 			e.preventDefault();
 			return;
@@ -134,7 +138,7 @@
 		onDragEnd();
 	}
 
-	function handleItemClick(componentType: any) {
+	function handleItemClick(componentType: ComponentType) {
 		if (isMobile) {
 			const count = getQuantity(componentType.id);
 			if (dragDropManager) {

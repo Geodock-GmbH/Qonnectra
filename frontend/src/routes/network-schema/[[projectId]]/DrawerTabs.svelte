@@ -435,8 +435,8 @@
 		maxHeight={1080}
 	>
 		<CableMicropipePanel
-			cableId={data.uuid || data.id}
-			cableName={data.name}
+			cableId={featureId}
+			cableName={(data.name as string) ?? ''}
 			onClose={() => (micropipePanelOpen = false)}
 			onLinkageChange={refreshCableData}
 		/>

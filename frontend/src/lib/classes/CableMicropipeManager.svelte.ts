@@ -13,7 +13,7 @@ interface Conduit {
 	has_cable_linkage: boolean;
 }
 
-interface Micropipe {
+export interface Micropipe {
 	number: number;
 	color_name: string;
 	color_hex: string;
