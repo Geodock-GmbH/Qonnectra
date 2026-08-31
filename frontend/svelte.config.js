@@ -6,5 +6,10 @@ export default {
 		experimental: {
 			remoteFunctions: true
 		}
+	},
+	compilerOptions: {
+		experimental: {
+			async: true
+		}
 	}
 };

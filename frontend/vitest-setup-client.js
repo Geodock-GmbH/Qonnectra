@@ -1,6 +1,22 @@
 import '@testing-library/jest-dom/vitest';
 
-import { vi } from 'vitest';
+import { settled, tick } from 'svelte';
+import { cleanup } from '@testing-library/svelte';
+import { afterEach, vi } from 'vitest';
+
+// With `compilerOptions.experimental.async` on, component unmount is deferred:
+// testing-library's auto-cleanup calls `unmount()` but the DOM removal and any
+// in-flight async teardown settle on a later microtask. Without awaiting that,
+// stale DOM from one test leaks into the next → `getByRole` "multiple elements"
+// and hook timeouts. This afterEach registers last, so it runs first in
+// vitest's reverse-order teardown: it settles pending async work, unmounts, and
+// waits for the deferred teardown to flush before the next test renders.
+afterEach(async () => {
+	await settled();
+	cleanup();
+	await tick();
+	await settled();
+});
 
 // The remote functions ($app/server query/command) can't load in the jsdom
 // unit-test SSR context (the SvelteKit remote plugin references build-time

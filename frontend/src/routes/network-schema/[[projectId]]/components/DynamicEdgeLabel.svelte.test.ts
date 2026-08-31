@@ -1,4 +1,5 @@
 import type { ComponentProps } from 'svelte';
+import { flushSync } from 'svelte';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -209,12 +210,21 @@ describe('DynamicEdgeLabel', () => {
 
 			const foreignObject = container.querySelector('foreignObject')!;
 
-			await fireEvent.mouseDown(foreignObject, { shiftKey: true });
+			// With async mode on, testing-library's awaited `fireEvent` resolves via
+			// `tick()`, which races requestAnimationFrame/setTimeout — both frozen by
+			// fake timers, so awaiting it here would deadlock. Dispatch natively and
+			// flush synchronously; the long-press timers advance as usual.
+			foreignObject.dispatchEvent(new MouseEvent('mousedown', { shiftKey: true, bubbles: true }));
+			flushSync();
 			vi.advanceTimersByTime(600);
-			await fireEvent.mouseUp(foreignObject, { shiftKey: true });
-			await fireEvent.click(screen.getByRole('button', { name: /tooltip/ }), {
-				shiftKey: true
-			});
+			foreignObject.dispatchEvent(new MouseEvent('mouseup', { shiftKey: true, bubbles: true }));
+			flushSync();
+			screen
+				.getByRole('button', { name: /tooltip/ })
+				.dispatchEvent(new MouseEvent('click', { shiftKey: true, bubbles: true }));
+			flushSync();
+			// `handleLabelClick` awaits `onLabelReset` on a microtask (not a timer).
+			await Promise.resolve();
 
 			expect(onPositionUpdate).not.toHaveBeenCalled();
 			expect(onLabelReset).toHaveBeenCalledWith('label-1');
