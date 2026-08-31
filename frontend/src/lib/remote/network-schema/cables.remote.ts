@@ -192,3 +192,29 @@ export const getConduitsForCable = query(v.pipe(v.string(), v.nonEmpty()), async
 export const getCableSplices = query(v.pipe(v.string(), v.nonEmpty()), async (cableUuid) => {
 	return fetchCableSplices(fetch, djangoHeaders(), API_URL, cableUuid);
 });
+
+/**
+ * Trigger a server-side recalculation of a cable's routed length.
+ * @param cableId - Cable UUID.
+ * @returns The recomputed `length` and `length_total`.
+ * @throws When the backend rejects the recalculation.
+ */
+export const recalculateCableLength = command(
+	v.pipe(v.string(), v.nonEmpty()),
+	async (cableId): Promise<{ length: number; length_total: number }> => {
+		const response = await fetch(`${API_URL}cable/${cableId}/recalculate-length/`, {
+			method: 'POST',
+			headers: djangoHeaders()
+		});
+
+		if (!response.ok) {
+			const errorData = await response.json().catch(() => ({}));
+			throw new Error(
+				errorData.detail || `HTTP ${response.status}: Failed to recalculate cable length`
+			);
+		}
+
+		const data = (await response.json()) as { length: number; length_total: number };
+		return { length: data.length, length_total: data.length_total };
+	}
+);

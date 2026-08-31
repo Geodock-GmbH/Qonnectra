@@ -868,31 +868,6 @@ describe('+page.server.js actions', () => {
 	});
 
 	// ---------------------------------------------------------------------------
-	// recalculateCableLength
-	// ---------------------------------------------------------------------------
-
-	describe('recalculateCableLength', () => {
-		test('returns length and total length', async () => {
-			mockFetch.mockResolvedValueOnce(okJson({ length: 12.5, length_total: 20 }));
-
-			const result = await runAction('recalculateCableLength', [['uuid', 'cab-1']]);
-
-			expect(result.length).toBe(12.5);
-			expect(result.length_total).toBe(20);
-			const call = mockFetch.mock.calls[0];
-			expect(call[0]).toBe('http://localhost:8000/cable/cab-1/recalculate-length/');
-			expect(call[1].method).toBe('POST');
-		});
-
-		test('returns 400 without cable id', async () => {
-			const result = await runAction('recalculateCableLength', []);
-
-			expect(result.status).toBe(400);
-			expect(mockFetch).not.toHaveBeenCalled();
-		});
-	});
-
-	// ---------------------------------------------------------------------------
 	// getFiberStatusOptions / updateFiberStatus
 	// ---------------------------------------------------------------------------
 

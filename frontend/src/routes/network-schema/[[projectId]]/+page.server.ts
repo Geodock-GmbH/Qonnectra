@@ -1802,35 +1802,6 @@ export const actions = {
 			return fail(500, { error: 'Failed to fetch linked trenches' });
 		}
 	},
-	recalculateCableLength: async ({ request, fetch, cookies }) => {
-		const headers = getAuthHeaders(cookies);
-		const formData = await request.formData();
-		const cableId = formData.get('uuid');
-
-		if (!cableId) {
-			return fail(400, { error: 'Cable ID is required' });
-		}
-
-		try {
-			const response = await fetch(`${API_URL}cable/${cableId}/recalculate-length/`, {
-				method: 'POST',
-				headers
-			});
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				return fail(response.status, {
-					error: errorData.detail || 'Failed to recalculate cable length'
-				});
-			}
-
-			const data = await response.json();
-			return { length: data.length, length_total: data.length_total };
-		} catch (err) {
-			console.error('Error recalculating cable length:', err);
-			return fail(500, { error: 'Failed to recalculate cable length' });
-		}
-	},
 	getAddressesForNode: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
 		const nodeUuid = formData.get('nodeUuid');

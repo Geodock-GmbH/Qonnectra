@@ -3,7 +3,6 @@
 	import type { SlotConfiguration } from '$lib/classes/NodeStructureContext.svelte.js';
 	import type { AttributeOptions } from '$lib/types/attributeCardTypes';
 	import { getContext, onMount } from 'svelte';
-	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import {
@@ -27,6 +26,8 @@
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { getSchemaState } from '$lib/context/networkSchemaContext';
+	import { recalculateCableLength } from '$lib/remote/network-schema/cables.remote';
+	import { getMicropipeConnectionsForCable } from '$lib/remote/network-schema/micropipes.remote';
 
 	import CableDiagramEdgeAttributeCard from './CableDiagramEdgeAttributeCard.svelte';
 	import CableDiagramEdgeHandleConfig from './CableDiagramEdgeHandleConfig.svelte';
@@ -199,25 +200,12 @@
 		if (!featureId || recalculating) return;
 		recalculating = true;
 		try {
-			const formData = new FormData();
-			formData.append('uuid', featureId);
-			const response = await fetch('?/recalculateCableLength', {
-				method: 'POST',
-				body: formData
+			await recalculateCableLength(featureId);
+			globalToaster.success({
+				title: m.message_cable_length_recalculated(),
+				duration: 3000
 			});
-			const result = deserialize(await response.text());
-			if (result.type === 'success') {
-				globalToaster.success({
-					title: m.message_cable_length_recalculated(),
-					duration: 3000
-				});
-				await refreshCableData();
-			} else {
-				globalToaster.error({
-					title: m.message_cable_length_recalculation_failed(),
-					duration: 5000
-				});
-			}
+			await refreshCableData();
 		} catch (err) {
 			console.error('Error recalculating cable length:', err);
 			void logToBackendClient({
@@ -249,20 +237,12 @@
 			const parsedData = await schemaState.loadCableDetails(featureId);
 			drawerStore.updateProps(parsedData);
 
-			const formData = new FormData();
-			formData.append('uuid', featureId);
-			const micropipeResponse = await fetch(`?/getMicropipeConnectionsForCable`, {
-				method: 'POST',
-				body: formData
-			});
-			const micropipeResult = deserialize(await micropipeResponse.text());
-			if (micropipeResult.type === 'success' && micropipeResult.data?.connections) {
-				window.dispatchEvent(
-					new CustomEvent('micropipeLinkageChanged', {
-						detail: { cableId: featureId, connections: micropipeResult.data.connections }
-					})
-				);
-			}
+			const connections = await getMicropipeConnectionsForCable(featureId);
+			window.dispatchEvent(
+				new CustomEvent('micropipeLinkageChanged', {
+					detail: { cableId: featureId, connections }
+				})
+			);
 		} catch (err) {
 			console.error('Error refreshing cable data:', err);
 			void logToBackendClient({
