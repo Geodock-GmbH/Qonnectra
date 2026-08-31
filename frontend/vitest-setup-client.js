@@ -60,7 +60,12 @@ vi.mock('$lib/remote/network-schema/nodes.remote', () => ({
 }));
 vi.mock('$lib/remote/network-schema/micropipes.remote', () => ({
 	autoLinkMicropipe: vi.fn().mockResolvedValue({ results: [], linked_count: 0 }),
-	getMicropipeConnectionsForCable: vi.fn().mockResolvedValue([])
+	getMicropipeConnectionsForCable: vi.fn().mockResolvedValue([]),
+	getLinkedTrenchesForCable: vi.fn().mockResolvedValue([]),
+	getConduitsByTrenches: vi.fn().mockResolvedValue([]),
+	getMicropipesByConduits: vi.fn().mockResolvedValue([]),
+	createMicropipeConnections: vi.fn().mockResolvedValue(undefined),
+	deleteMicropipeConnections: vi.fn().mockResolvedValue(undefined)
 }));
 vi.mock('$lib/remote/network-schema/component-types.remote', () => ({
 	getComponentTypes: vi.fn(() => ({ current: [], loading: false, error: undefined }))

@@ -4,8 +4,20 @@ import { globalToaster } from '$lib/stores/toaster';
 
 import { CableMicropipeManager } from './CableMicropipeManager.svelte';
 
-vi.mock('$app/forms', () => ({
-	deserialize: vi.fn((text: string) => JSON.parse(text))
+// Micropipe wiring runs through the remote module; mock it so the class's calls
+// are observable without a running server.
+const getLinkedTrenchesForCable = vi.fn();
+const getConduitsByTrenches = vi.fn();
+const getMicropipesByConduits = vi.fn();
+const createMicropipeConnections = vi.fn();
+const deleteMicropipeConnections = vi.fn();
+
+vi.mock('$lib/remote/network-schema/micropipes.remote', () => ({
+	getLinkedTrenchesForCable: (...a: unknown[]) => getLinkedTrenchesForCable(...a),
+	getConduitsByTrenches: (...a: unknown[]) => getConduitsByTrenches(...a),
+	getMicropipesByConduits: (...a: unknown[]) => getMicropipesByConduits(...a),
+	createMicropipeConnections: (...a: unknown[]) => createMicropipeConnections(...a),
+	deleteMicropipeConnections: (...a: unknown[]) => deleteMicropipeConnections(...a)
 }));
 
 vi.mock('$lib/paraglide/messages', () => ({
@@ -24,37 +36,31 @@ vi.mock('$lib/stores/toaster', () => ({
 	}
 }));
 
-const fetchMock = vi.fn();
-
-function actionResponse(payload: unknown) {
-	return { text: () => Promise.resolve(JSON.stringify(payload)) };
-}
-
-function mockResponsesByAction(routes: Record<string, unknown>) {
-	fetchMock.mockImplementation((url: string) => {
-		const payload = routes[url] ?? { type: 'success', data: {} };
-		return Promise.resolve(actionResponse(payload));
-	});
-}
-
 beforeEach(() => {
-	vi.stubGlobal('fetch', fetchMock);
 	vi.spyOn(console, 'error').mockImplementation(() => {});
+	getLinkedTrenchesForCable.mockResolvedValue([]);
+	getConduitsByTrenches.mockResolvedValue([]);
+	getMicropipesByConduits.mockResolvedValue([]);
+	createMicropipeConnections.mockResolvedValue(undefined);
+	deleteMicropipeConnections.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
-	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
-	fetchMock.mockReset();
+	[
+		getLinkedTrenchesForCable,
+		getConduitsByTrenches,
+		getMicropipesByConduits,
+		createMicropipeConnections,
+		deleteMicropipeConnections
+	].forEach((fn) => fn.mockReset());
 	vi.mocked(globalToaster.success).mockClear();
 	vi.mocked(globalToaster.error).mockClear();
 });
 
 describe('initialize', () => {
 	test('should reset state and load linked trenches for the cable', async () => {
-		mockResponsesByAction({
-			'?/getLinkedTrenchesForCable': { type: 'success', data: { trench_uuids: ['t1', 't2'] } }
-		});
+		getLinkedTrenchesForCable.mockResolvedValue(['t1', 't2']);
 		const manager = new CableMicropipeManager();
 		manager.step = 2;
 
@@ -65,16 +71,15 @@ describe('initialize', () => {
 		expect(manager.cableName).toBe('K-Nord');
 		expect(manager.step).toBe(1);
 		expect(manager.linkedTrenchIds.has('t1')).toBe(true);
+		expect(getLinkedTrenchesForCable).toHaveBeenCalledWith('cable-1');
 	});
 
 	test('should clear linked trenches when the fetch fails', async () => {
-		mockResponsesByAction({
-			'?/getLinkedTrenchesForCable': { type: 'failure', data: { error: 'nope' } }
-		});
+		getLinkedTrenchesForCable.mockRejectedValue(new Error('nope'));
 		const manager = new CableMicropipeManager();
 
 		manager.initialize('cable-1', 'K-Nord');
-		await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled());
+		await vi.waitFor(() => expect(getLinkedTrenchesForCable).toHaveBeenCalled());
 
 		expect(manager.linkedTrenchIds.size).toBe(0);
 	});
@@ -82,16 +87,9 @@ describe('initialize', () => {
 
 describe('handleTrenchSelection', () => {
 	test('should store the selection and fetch conduits for it', async () => {
-		mockResponsesByAction({
-			'?/getConduitsByTrenches': {
-				type: 'success',
-				data: {
-					conduits: [
-						{ uuid: 'c1', name: 'DA 50', conduit_type_name: 'Rohr', has_cable_linkage: false }
-					]
-				}
-			}
-		});
+		getConduitsByTrenches.mockResolvedValue([
+			{ uuid: 'c1', name: 'DA 50', conduit_type_name: 'Rohr', has_cable_linkage: false }
+		]);
 		const manager = new CableMicropipeManager();
 		manager.cableId = 'cable-1';
 
@@ -99,10 +97,10 @@ describe('handleTrenchSelection', () => {
 
 		expect(manager.selectedTrenchIds.size).toBe(2);
 		expect(manager.conduits).toHaveLength(1);
-
-		const body = fetchMock.mock.calls[0][1].body as FormData;
-		expect(body.get('trenchIds')).toBe('t1,t2');
-		expect(body.get('cableId')).toBe('cable-1');
+		expect(getConduitsByTrenches).toHaveBeenCalledWith({
+			trenchIds: ['t1', 't2'],
+			cableId: 'cable-1'
+		});
 	});
 
 	test('should clear conduits when no trenches are selected', async () => {
@@ -111,13 +109,11 @@ describe('handleTrenchSelection', () => {
 		await manager.handleTrenchSelection([]);
 
 		expect(manager.conduits).toEqual([]);
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(getConduitsByTrenches).not.toHaveBeenCalled();
 	});
 
 	test('should toast an error when the conduit fetch fails', async () => {
-		mockResponsesByAction({
-			'?/getConduitsByTrenches': { type: 'failure', data: { error: 'Keine Rohre' } }
-		});
+		getConduitsByTrenches.mockRejectedValue(new Error('Keine Rohre'));
 		const manager = new CableMicropipeManager();
 
 		await manager.handleTrenchSelection(['t1']);
@@ -152,12 +148,9 @@ describe('conduit selection', () => {
 
 describe('step navigation', () => {
 	test('should fetch micropipes and advance to step 2', async () => {
-		mockResponsesByAction({
-			'?/getMicropipesByConduits': {
-				type: 'success',
-				data: { micropipes: [{ number: 1, color_name: 'rot', available_in_all: true }] }
-			}
-		});
+		getMicropipesByConduits.mockResolvedValue([
+			{ number: 1, color_name: 'rot', available_in_all: true }
+		]);
 		const manager = new CableMicropipeManager();
 		manager.cableId = 'cable-1';
 		manager.toggleConduit('c1');
@@ -166,6 +159,10 @@ describe('step navigation', () => {
 
 		expect(manager.step).toBe(2);
 		expect(manager.micropipes).toHaveLength(1);
+		expect(getMicropipesByConduits).toHaveBeenCalledWith({
+			conduitIds: ['c1'],
+			cableId: 'cable-1'
+		});
 	});
 
 	test('should stay on step 1 without selected conduits', async () => {
@@ -174,7 +171,7 @@ describe('step navigation', () => {
 		await manager.goToStep2();
 
 		expect(manager.step).toBe(1);
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(getMicropipesByConduits).not.toHaveBeenCalled();
 	});
 
 	test('should return to step 1 and clear the micropipe selection', () => {
@@ -212,7 +209,6 @@ describe('selectMicropipe', () => {
 
 describe('saveLinkage', () => {
 	test('should post the linkage, toast success, refresh, and return to step 1', async () => {
-		mockResponsesByAction({});
 		const manager = new CableMicropipeManager();
 		manager.cableId = 'cable-1';
 		manager.toggleConduit('c1');
@@ -221,12 +217,12 @@ describe('saveLinkage', () => {
 
 		await manager.saveLinkage();
 
-		const saveCall = fetchMock.mock.calls.find(([url]) => url === '?/createMicropipeConnections');
-		const body = saveCall![1].body as FormData;
-		expect(body.get('cableId')).toBe('cable-1');
-		expect(body.get('micropipeNumber')).toBe('3');
-		expect(body.get('color')).toBe('blau');
-		expect(JSON.parse(body.get('conduitIds') as string)).toEqual(['c1']);
+		expect(createMicropipeConnections).toHaveBeenCalledWith({
+			cableId: 'cable-1',
+			micropipeNumber: 3,
+			color: 'blau',
+			conduitIds: ['c1']
+		});
 		expect(globalToaster.success).toHaveBeenCalled();
 		expect(manager.step).toBe(1);
 		expect(manager.saving).toBe(false);
@@ -238,13 +234,11 @@ describe('saveLinkage', () => {
 
 		await manager.saveLinkage();
 
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(createMicropipeConnections).not.toHaveBeenCalled();
 	});
 
 	test('should toast the backend error and stay on step 2', async () => {
-		mockResponsesByAction({
-			'?/createMicropipeConnections': { type: 'failure', data: { error: 'Belegt' } }
-		});
+		createMicropipeConnections.mockRejectedValue(new Error('Belegt'));
 		const manager = new CableMicropipeManager();
 		manager.cableId = 'cable-1';
 		manager.toggleConduit('c1');
@@ -262,23 +256,21 @@ describe('saveLinkage', () => {
 
 describe('removeLinkage', () => {
 	test('should delete the connections and refresh state', async () => {
-		mockResponsesByAction({});
 		const manager = new CableMicropipeManager();
 		manager.cableId = 'cable-1';
 
 		await manager.removeLinkage(4, ['c1', 'c2']);
 
-		const deleteCall = fetchMock.mock.calls.find(([url]) => url === '?/deleteMicropipeConnections');
-		const body = deleteCall![1].body as FormData;
-		expect(body.get('micropipeNumber')).toBe('4');
-		expect(JSON.parse(body.get('conduitIds') as string)).toEqual(['c1', 'c2']);
+		expect(deleteMicropipeConnections).toHaveBeenCalledWith({
+			cableId: 'cable-1',
+			micropipeNumber: 4,
+			conduitIds: ['c1', 'c2']
+		});
 		expect(globalToaster.success).toHaveBeenCalled();
 	});
 
 	test('should toast the backend error on failure', async () => {
-		mockResponsesByAction({
-			'?/deleteMicropipeConnections': { type: 'failure', data: { error: 'Nicht gefunden' } }
-		});
+		deleteMicropipeConnections.mockRejectedValue(new Error('Nicht gefunden'));
 		const manager = new CableMicropipeManager();
 		manager.cableId = 'cable-1';
 
