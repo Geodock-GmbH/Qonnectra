@@ -14,8 +14,13 @@ import { globalToaster } from '$lib/stores/toaster';
 
 import { NetworkSchemaState } from './NetworkSchemaState.svelte';
 
-vi.mock('$app/forms', () => ({
-	deserialize: vi.fn((text: string) => JSON.parse(text))
+// Node persistence runs through a remote-function command; mock the module so
+// the class's call is observable without a running server.
+const saveNodeGeometry = vi.fn();
+
+vi.mock('$lib/remote/network-schema/nodes.remote', () => ({
+	getNodeDetails: vi.fn().mockResolvedValue({}),
+	saveNodeGeometry: (...args: unknown[]) => saveNodeGeometry(...args)
 }));
 
 vi.mock('$app/state', () => ({
@@ -220,8 +225,8 @@ describe('NetworkSchemaState.transformCablesToSvelteFlowEdges', () => {
 
 	test('sorts micropipe connections and derives lowest + isConnected', () => {
 		const connections: MicropipeConnection[] = [
-			{ uuid: 'm2', number: 5 },
-			{ uuid: 'm1', number: 2 }
+			{ number: 5, color_hex: '#0000ff', color_name: 'blau' },
+			{ number: 2, color_hex: '#ff0000', color_name: 'rot' }
 		];
 		const map: MicropipeConnectionMap = { 'cable-1': connections };
 		const [edge] = state.transformCablesToSvelteFlowEdges([makeCable()], map);
@@ -416,8 +421,8 @@ describe('NetworkSchemaState update helpers', () => {
 	test('updateEdgeMicropipeConnections sorts, sets lowest and isConnected', () => {
 		state.edges = [{ id: 'e1', data: { label: 'x' } } as unknown as SvelteFlowEdge];
 		state.updateEdgeMicropipeConnections('e1', [
-			{ uuid: 'b', number: 7 },
-			{ uuid: 'a', number: 1 }
+			{ number: 7, color_hex: '#0000ff', color_name: 'blau' },
+			{ number: 1, color_hex: '#ff0000', color_name: 'rot' }
 		]);
 		const data = state.edges[0].data;
 		expect(data.lowestMicropipe?.number).toBe(1);
@@ -557,57 +562,49 @@ describe('NetworkSchemaState.handleNodeDragStop', () => {
 		state = new NetworkSchemaState();
 		state.nodes = [{ id: 'n1', position: { x: 1, y: 2 } } as SvelteFlowNode];
 		vi.clearAllMocks();
+		saveNodeGeometry.mockResolvedValue({});
 	});
 
 	test('returns early when the dragged node is unknown', async () => {
-		const fetchSpy = vi.spyOn(globalThis, 'fetch');
 		await state.handleNodeDragStop({
 			targetNode: { id: 'unknown', position: { x: 5, y: 5 } }
 		});
-		expect(fetchSpy).not.toHaveBeenCalled();
+		expect(saveNodeGeometry).not.toHaveBeenCalled();
 	});
 
-	test('posts new coordinates and toasts success', async () => {
-		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-			ok: true,
-			json: () => Promise.resolve({ type: 'success' })
-		} as unknown as Response);
-
+	test('persists new coordinates and toasts success', async () => {
 		await state.handleNodeDragStop({
 			targetNode: { id: 'n1', position: { x: 42, y: 84 } }
 		});
 
-		expect(fetchSpy).toHaveBeenCalledTimes(1);
-		const body = fetchSpy.mock.calls[0][1]?.body as FormData;
-		expect(body.get('nodeId')).toBe('n1');
-		expect(body.get('canvas_x')).toBe('42');
-		expect(body.get('canvas_y')).toBe('84');
+		expect(saveNodeGeometry).toHaveBeenCalledTimes(1);
+		expect(saveNodeGeometry).toHaveBeenCalledWith({
+			nodeId: 'n1',
+			x: 42,
+			y: 84,
+			isChildView: false
+		});
 		expect(globalToaster.success).toHaveBeenCalled();
 	});
 
-	test('posts child coordinates in child view', async () => {
+	test('persists child coordinates in child view', async () => {
 		state.isChildView = true;
-		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-			ok: true,
-			json: () => Promise.resolve({ type: 'success' })
-		} as unknown as Response);
 
 		await state.handleNodeDragStop({
 			targetNode: { id: 'n1', position: { x: 7, y: 8 } }
 		});
 
-		const body = fetchSpy.mock.calls[0][1]?.body as FormData;
-		expect(body.get('child_canvas_x')).toBe('7');
-		expect(body.get('child_canvas_y')).toBe('8');
-		expect(body.get('canvas_x')).toBeNull();
+		expect(saveNodeGeometry).toHaveBeenCalledWith({
+			nodeId: 'n1',
+			x: 7,
+			y: 8,
+			isChildView: true
+		});
 	});
 
 	test('reverts position and toasts error when the save fails', async () => {
 		const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-		vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-			ok: false,
-			json: () => Promise.resolve({ type: 'error', message: 'boom' })
-		} as unknown as Response);
+		saveNodeGeometry.mockRejectedValue(new Error('boom'));
 
 		await state.handleNodeDragStop({
 			targetNode: { id: 'n1', position: { x: 99, y: 99 } }

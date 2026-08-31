@@ -9,8 +9,14 @@ import { globalToaster } from '$lib/stores/toaster';
 
 import { NetworkSchemaState } from './NetworkSchemaState.svelte';
 
-vi.mock('$app/forms', () => ({
-	deserialize: vi.fn((text: string) => JSON.parse(text))
+// Auto-link and edge-refresh run through remote-function commands; mock the
+// module so the class's calls are observable without a running server.
+const autoLinkMicropipe = vi.fn();
+const getMicropipeConnectionsForCable = vi.fn();
+
+vi.mock('$lib/remote/network-schema/micropipes.remote', () => ({
+	autoLinkMicropipe: (...args: unknown[]) => autoLinkMicropipe(...args),
+	getMicropipeConnectionsForCable: (...args: unknown[]) => getMicropipeConnectionsForCable(...args)
 }));
 
 vi.mock('$app/state', () => ({
@@ -28,14 +34,6 @@ vi.mock('$lib/stores/toaster', () => ({
 vi.mock('$lib/utils/logToBackendClient', () => ({
 	logToBackendClient: vi.fn()
 }));
-
-interface ActionResponseData {
-	text: () => Promise<string>;
-}
-
-function actionResponse(data: Record<string, unknown>): ActionResponseData {
-	return { text: () => Promise.resolve(JSON.stringify({ type: 'success', data })) };
-}
 
 function candidate(uuid: string): MicroductCandidate {
 	return {
@@ -80,21 +78,20 @@ describe('NetworkSchemaState auto-link', () => {
 		state = new NetworkSchemaState();
 		vi.restoreAllMocks();
 		vi.clearAllMocks();
+		autoLinkMicropipe.mockResolvedValue({ results: [], linked_count: 0 });
+		getMicropipeConnectionsForCable.mockResolvedValue([]);
 	});
 
 	test('autoLinkMicropipe queues pending choice on multiple_candidates result', async () => {
 		const candidates = [candidate('md-1'), candidate('md-2')];
-		vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-			actionResponse({
-				success: true,
-				linked_count: 0,
-				needs_choice: true,
-				results: [endResult('multiple_candidates', { candidates })]
-			}) as unknown as Response
-		);
+		autoLinkMicropipe.mockResolvedValue({
+			linked_count: 0,
+			results: [endResult('multiple_candidates', { candidates })]
+		});
 
 		await state.autoLinkMicropipe('cable-1', 'Cable One');
 
+		expect(autoLinkMicropipe).toHaveBeenCalledWith({ cableId: 'cable-1' });
 		expect(state.pendingMicroductChoices).toHaveLength(1);
 		expect(state.pendingMicroductChoices[0]).toMatchObject({
 			cableId: 'cable-1',
@@ -110,30 +107,17 @@ describe('NetworkSchemaState auto-link', () => {
 			{ id: 'cable-1', source: 'a', target: 'b', type: 'x', data: {} } as unknown as SvelteFlowEdge
 		];
 		const connections = [{ number: 3, color_hex: '#0000ff', color_name: 'blau' }];
-		const fetchSpy = vi
-			.spyOn(globalThis, 'fetch')
-			.mockImplementation((url: string | URL | Request) => {
-				if (String(url).includes('autoLinkMicropipe')) {
-					return Promise.resolve(
-						actionResponse({
-							success: true,
-							linked_count: 1,
-							needs_choice: false,
-							results: [endResult('linked', { microduct: candidate('md-1') })]
-						}) as unknown as Response
-					);
-				}
-				return Promise.resolve(actionResponse({ connections }) as unknown as Response);
-			});
+		autoLinkMicropipe.mockResolvedValue({
+			linked_count: 1,
+			results: [endResult('linked', { microduct: candidate('md-1') })]
+		});
+		getMicropipeConnectionsForCable.mockResolvedValue(connections);
 
 		await state.autoLinkMicropipe('cable-1', 'Cable One');
 
 		expect(globalToaster.success).toHaveBeenCalled();
 		expect(state.pendingMicroductChoices).toHaveLength(0);
-		const refreshCall = fetchSpy.mock.calls.find((call) =>
-			String(call[0]).includes('getMicropipeConnectionsForCable')
-		);
-		expect(refreshCall).toBeDefined();
+		expect(getMicropipeConnectionsForCable).toHaveBeenCalledWith('cable-1');
 		expect((state.edges[0].data as { micropipeConnections: unknown }).micropipeConnections).toEqual(
 			connections
 		);
@@ -141,17 +125,10 @@ describe('NetworkSchemaState auto-link', () => {
 	});
 
 	test('autoLinkMicropipe stays silent on no_candidates and no_address', async () => {
-		vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-			actionResponse({
-				success: true,
-				linked_count: 0,
-				needs_choice: false,
-				results: [
-					endResult('no_candidates'),
-					endResult('no_address', { end: 'end', address: null })
-				]
-			}) as unknown as Response
-		);
+		autoLinkMicropipe.mockResolvedValue({
+			linked_count: 0,
+			results: [endResult('no_candidates'), endResult('no_address', { end: 'end', address: null })]
+		});
 
 		await state.autoLinkMicropipe('cable-1', 'Cable One');
 
@@ -160,7 +137,7 @@ describe('NetworkSchemaState auto-link', () => {
 		expect(state.pendingMicroductChoices).toHaveLength(0);
 	});
 
-	test('chooseMicroduct posts microductUuid, shifts queue and refreshes edge', async () => {
+	test('chooseMicroduct links the chosen microduct, shifts queue and refreshes edge', async () => {
 		state.pendingMicroductChoices = [
 			{
 				cableId: 'cable-1',
@@ -171,35 +148,20 @@ describe('NetworkSchemaState auto-link', () => {
 				candidates: [candidate('md-1'), candidate('md-2')]
 			} as PendingMicroductChoice
 		];
-		const fetchSpy = vi
-			.spyOn(globalThis, 'fetch')
-			.mockImplementation((url: string | URL | Request) => {
-				if (String(url).includes('autoLinkMicropipe')) {
-					return Promise.resolve(
-						actionResponse({
-							success: true,
-							status: 'linked',
-							microduct: candidate('md-2')
-						}) as unknown as Response
-					);
-				}
-				return Promise.resolve(actionResponse({ connections: [] }) as unknown as Response);
-			});
+		autoLinkMicropipe.mockResolvedValue({ microduct: candidate('md-2') });
 
 		await state.chooseMicroduct('md-2');
 
-		const linkCall = fetchSpy.mock.calls.find((call) =>
-			String(call[0]).includes('autoLinkMicropipe')
-		);
-		expect(linkCall).toBeDefined();
-		const body = linkCall?.[1]?.body as FormData;
-		expect(body.get('cableId')).toBe('cable-1');
-		expect(body.get('microductUuid')).toBe('md-2');
+		expect(autoLinkMicropipe).toHaveBeenCalledWith({
+			cableId: 'cable-1',
+			microductUuid: 'md-2'
+		});
+		expect(getMicropipeConnectionsForCable).toHaveBeenCalledWith('cable-1');
 		expect(state.pendingMicroductChoices).toHaveLength(0);
 		expect(globalToaster.success).toHaveBeenCalled();
 	});
 
-	test('dismissMicroductChoice shifts queue without POST', async () => {
+	test('dismissMicroductChoice shifts queue without a link call', async () => {
 		state.pendingMicroductChoices = [
 			{
 				cableId: 'cable-1',
@@ -210,11 +172,10 @@ describe('NetworkSchemaState auto-link', () => {
 				candidates: [candidate('md-1')]
 			} as PendingMicroductChoice
 		];
-		const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
 		state.dismissMicroductChoice();
 
 		expect(state.pendingMicroductChoices).toHaveLength(0);
-		expect(fetchSpy).not.toHaveBeenCalled();
+		expect(autoLinkMicropipe).not.toHaveBeenCalled();
 	});
 });

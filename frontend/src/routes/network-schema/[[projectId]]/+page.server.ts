@@ -363,84 +363,6 @@ export const load: PageServerLoad = async ({ fetch, cookies, url, params }) => {
  * node structures, fiber splices, micropipe connections, and related entities.
  */
 export const actions = {
-	createCable: async ({ request, cookies }) => {
-		try {
-			const formData = await request.formData();
-			const uuid = formData.get('uuid');
-			const name = formData.get('name');
-			const cable_type_id = formData.get('cable_type_id');
-			const project_id = formData.get('project_id');
-			const flag_id = formData.get('flag_id');
-			const uuid_node_start_id = formData.get('uuid_node_start_id');
-			const uuid_node_end_id = formData.get('uuid_node_end_id');
-			const handle_start = formData.get('handle_start');
-			const handle_end = formData.get('handle_end');
-			const parent_node_context_id = formData.get('parent_node_context_id');
-
-			if (!name || !cable_type_id || !project_id || !flag_id) {
-				return fail(400, {
-					error:
-						'Missing required fields: name, cable_type_id, project_id, and flag_id are required'
-				});
-			}
-
-			if (!uuid_node_start_id || !uuid_node_end_id) {
-				return fail(400, {
-					error: 'Missing required fields: uuid_node_start_id and uuid_node_end_id are required'
-				});
-			}
-
-			const headers = new Headers({
-				'Content-Type': 'application/json'
-			});
-
-			const accessToken = cookies.get('api-access-token');
-			if (accessToken) {
-				headers.append('Cookie', `api-access-token=${accessToken}`);
-			}
-
-			const backendUrl = `${API_URL}cable/`;
-
-			const requestBody: Record<string, unknown> = {
-				name,
-				cable_type_id: parseInt(String(cable_type_id)),
-				project_id: parseInt(String(project_id)),
-				flag_id: parseInt(String(flag_id)),
-				uuid_node_start_id: uuid_node_start_id,
-				uuid_node_end_id: uuid_node_end_id
-			};
-
-			if (uuid) requestBody.uuid = uuid;
-			if (handle_start) requestBody.handle_start = handle_start;
-			if (handle_end) requestBody.handle_end = handle_end;
-			if (parent_node_context_id) requestBody.parent_node_context_id = parent_node_context_id;
-
-			const response = await fetch(backendUrl, {
-				method: 'POST',
-				headers,
-				body: JSON.stringify(requestBody)
-			});
-
-			if (!response.ok) {
-				const errorText = await response.text();
-				let errorData;
-
-				try {
-					errorData = JSON.parse(errorText);
-				} catch {
-					errorData = { error: errorText || `Request failed with status: ${response.status}` };
-				}
-
-				return fail(response.status, errorData);
-			}
-
-			const cable = await response.json();
-			return { type: 'success', data: cable };
-		} catch (error) {
-			console.error('Cable POST action error:', error);
-			return fail(500, { error: 'Internal server error' });
-		}
-	},
 	updateCable: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
 		const formData = await request.formData();
@@ -840,91 +762,6 @@ export const actions = {
 		} catch (err) {
 			console.error('Error fetching cable splices:', err);
 			return fail(500, { error: 'Failed to fetch cable splices' });
-		}
-	},
-	saveNodeGeometry: async ({ request, fetch, cookies }) => {
-		const headers = getAuthHeaders(cookies);
-		const formData = await request.formData();
-
-		const nodeId = formData.get('nodeId');
-		const canvas_x_raw = formData.get('canvas_x');
-		const canvas_y_raw = formData.get('canvas_y');
-		const child_canvas_x_raw = formData.get('child_canvas_x');
-		const child_canvas_y_raw = formData.get('child_canvas_y');
-
-		if (!nodeId) {
-			return {
-				type: 'error',
-				message: 'Node ID is required'
-			};
-		}
-
-		const updatePayload: Record<string, unknown> = {};
-
-		if (canvas_x_raw != null && canvas_y_raw != null) {
-			const canvas_x = parseFloat(String(canvas_x_raw));
-			const canvas_y = parseFloat(String(canvas_y_raw));
-			if (isNaN(canvas_x) || isNaN(canvas_y)) {
-				return {
-					type: 'error',
-					message: 'Invalid canvas coordinates'
-				};
-			}
-			updatePayload.canvas_x = canvas_x;
-			updatePayload.canvas_y = canvas_y;
-		}
-
-		if (child_canvas_x_raw != null && child_canvas_y_raw != null) {
-			const child_canvas_x = parseFloat(String(child_canvas_x_raw));
-			const child_canvas_y = parseFloat(String(child_canvas_y_raw));
-			if (isNaN(child_canvas_x) || isNaN(child_canvas_y)) {
-				return {
-					type: 'error',
-					message: 'Invalid child canvas coordinates'
-				};
-			}
-			updatePayload.child_canvas_x = child_canvas_x;
-			updatePayload.child_canvas_y = child_canvas_y;
-		}
-
-		if (Object.keys(updatePayload).length === 0) {
-			return {
-				type: 'error',
-				message: 'No valid coordinates provided'
-			};
-		}
-
-		try {
-			const response = await fetch(`${API_URL}node/${nodeId}/`, {
-				method: 'PATCH',
-				credentials: 'include',
-				headers: {
-					...headers,
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(updatePayload)
-			});
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(
-					errorData.detail || `HTTP ${response.status}: Failed to update node position`
-				);
-			}
-
-			const updatedNode = await response.json();
-
-			return {
-				type: 'success',
-				message: 'Node position saved successfully',
-				node: updatedNode
-			};
-		} catch (err) {
-			console.error('Error saving node geometry:', err);
-			return {
-				type: 'error',
-				message: (err as Error).message || 'Failed to save node position'
-			};
 		}
 	},
 	getSlotConfigurations: async ({ request, fetch, cookies }) => {
@@ -2415,40 +2252,6 @@ export const actions = {
 			return fail(500, { error: 'Failed to delete connections' });
 		}
 	},
-	autoLinkMicropipe: async ({ request, fetch, cookies }) => {
-		const headers = getAuthHeaders(cookies);
-		const formData = await request.formData();
-		const cableId = formData.get('cableId');
-		const microductUuid = formData.get('microductUuid');
-
-		if (!cableId) {
-			return fail(400, { error: 'Missing required field: cableId' });
-		}
-
-		try {
-			const response = await fetch(`${API_URL}cables/${cableId}/auto-link-micropipe/`, {
-				method: 'POST',
-				headers: {
-					...headers,
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(microductUuid ? { microduct_uuid: microductUuid } : {})
-			});
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				return fail(response.status, {
-					error: errorData.detail || errorData.error || 'Failed to auto-link micropipe'
-				});
-			}
-
-			const result = await response.json();
-			return { success: true, ...result };
-		} catch (err) {
-			console.error('Error auto-linking micropipe:', err);
-			return fail(500, { error: 'Failed to auto-link micropipe' });
-		}
-	},
 	getLayerExtent: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
 		const layerType = formData.get('layerType');
@@ -2544,45 +2347,6 @@ export const actions = {
 		} catch (err) {
 			console.error('Error fetching conduits for cable:', err);
 			return fail(500, { error: 'Failed to fetch conduits' });
-		}
-	},
-	getMicropipeConnectionsForCable: async ({ request, fetch, cookies }) => {
-		const headers = getAuthHeaders(cookies);
-		const formData = await request.formData();
-		const cableId = formData.get('uuid');
-
-		if (!cableId) {
-			return fail(400, { error: 'Cable ID is required' });
-		}
-
-		try {
-			const response = await fetch(
-				`${API_URL}microduct_cable_connection/all/?uuid_cable=${cableId}`,
-				{
-					method: 'GET',
-					headers
-				}
-			);
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				return fail(response.status, {
-					error: errorData.detail || 'Failed to fetch micropipe connections'
-				});
-			}
-
-			const connections = await response.json();
-
-			const transformed = connections.map((conn: Record<string, unknown>) => ({
-				number: (conn.uuid_microduct as Record<string, unknown>)?.number,
-				color_hex: (conn.uuid_microduct as Record<string, unknown>)?.hex_code || '#64748b',
-				color_name: (conn.uuid_microduct as Record<string, unknown>)?.color
-			}));
-
-			return { connections: transformed };
-		} catch (err) {
-			console.error('Error fetching micropipe connections for cable:', err);
-			return fail(500, { error: 'Failed to fetch micropipe connections' });
 		}
 	},
 	recalculateCableLength: async ({ request, fetch, cookies }) => {

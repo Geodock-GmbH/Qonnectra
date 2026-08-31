@@ -1,5 +1,3 @@
-import type { ActionResult } from '@sveltejs/kit';
-import { deserialize } from '$app/forms';
 import { page } from '$app/state';
 
 import { m } from '$lib/paraglide/messages';
@@ -7,12 +5,16 @@ import { m } from '$lib/paraglide/messages';
 import { globalToaster } from '$lib/stores/toaster';
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
 import { trackPendingWrite } from '$lib/utils/pendingWrites';
-import { getCableDetails } from '$lib/remote/network-schema/cables.remote';
+import { createCable, getCableDetails } from '$lib/remote/network-schema/cables.remote';
 import {
 	deleteCableLabel as deleteCableLabelCommand,
 	upsertCableLabel
 } from '$lib/remote/network-schema/labels.remote';
-import { getNodeDetails } from '$lib/remote/network-schema/nodes.remote';
+import {
+	autoLinkMicropipe as autoLinkMicropipeCommand,
+	getMicropipeConnectionsForCable
+} from '$lib/remote/network-schema/micropipes.remote';
+import { getNodeDetails, saveNodeGeometry } from '$lib/remote/network-schema/nodes.remote';
 import { saveCableGeometry as saveCableGeometryCommand } from '$lib/remote/network-schema/paths.remote';
 
 export interface NodeProperties {
@@ -66,9 +68,9 @@ export interface CableData {
 }
 
 export interface MicropipeConnection {
-	uuid: string;
 	number: number;
-	color?: string;
+	color_hex: string;
+	color_name?: string | null;
 }
 
 export type MicropipeConnectionMap = Record<string, MicropipeConnection[]>;
@@ -149,7 +151,7 @@ export interface PendingMicroductChoice {
 	candidates: MicroductCandidate[];
 }
 
-interface AutoLinkEndResult {
+export interface AutoLinkEndResult {
 	status: 'linked' | 'multiple_candidates' | string;
 	microduct?: MicroductCandidate;
 	end?: string;
@@ -158,7 +160,7 @@ interface AutoLinkEndResult {
 	candidates?: MicroductCandidate[];
 }
 
-interface AutoLinkResponse {
+export interface AutoLinkResponse {
 	results?: AutoLinkEndResult[];
 	linked_count?: number;
 	microduct?: MicroductCandidate;
@@ -424,26 +426,12 @@ export class NetworkSchemaState {
 		const originalPosition = { ...originalNode.position };
 
 		try {
-			const formData = new FormData();
-			formData.append('nodeId', nodeId);
-			if (this.isChildView) {
-				formData.append('child_canvas_x', newPosition.x.toString());
-				formData.append('child_canvas_y', newPosition.y.toString());
-			} else {
-				formData.append('canvas_x', newPosition.x.toString());
-				formData.append('canvas_y', newPosition.y.toString());
-			}
-
-			const response = await fetch('?/saveNodeGeometry', {
-				method: 'POST',
-				body: formData
+			await saveNodeGeometry({
+				nodeId,
+				x: newPosition.x,
+				y: newPosition.y,
+				isChildView: this.isChildView
 			});
-
-			const result = await response.json();
-
-			if (!response.ok || result.type === 'error') {
-				throw new Error(result.message || 'Failed to save node position');
-			}
 
 			globalToaster.success({
 				title: m.title_success(),
@@ -539,37 +527,18 @@ export class NetworkSchemaState {
 		const cableUuid = crypto.randomUUID();
 
 		try {
-			const formData = new FormData();
-			formData.append('uuid', cableUuid);
-			formData.append('name', cableName);
-			formData.append('cable_type_id', this.selectedCableType?.[0]);
-			formData.append('project_id', selectedProject);
-			formData.append('flag_id', '1');
-			formData.append('uuid_node_start_id', target);
-			formData.append('uuid_node_end_id', source);
-			if (handleEnd) formData.append('handle_start', handleEnd);
-			if (handleStart) formData.append('handle_end', handleStart);
-			if (this.parentNodeContext) {
-				formData.append('parent_node_context_id', this.parentNodeContext);
-			}
-
-			const response = await fetch('?/createCable', {
-				method: 'POST',
-				body: formData
+			const cableData = await createCable({
+				uuid: cableUuid,
+				name: cableName,
+				cableTypeId: parseInt(this.selectedCableType[0], 10),
+				projectId: parseInt(selectedProject, 10),
+				flagId: 1,
+				nodeStartId: target,
+				nodeEndId: source,
+				handleStart: handleEnd ?? undefined,
+				handleEnd: handleStart ?? undefined,
+				parentNodeContextId: this.parentNodeContext ?? undefined
 			});
-
-			const result: ActionResult = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				const errorData = result.type === 'failure' ? result.data : undefined;
-				throw new Error(
-					((errorData as Record<string, unknown> | undefined)?.error as string) ||
-						'Failed to create cable'
-				);
-			}
-
-			const successData = result.type === 'success' ? result.data : undefined;
-			const cableData = (successData as Record<string, unknown> | undefined)?.data as CableData;
 
 			if (cableData.uuid !== cableUuid) {
 				console.warn(
@@ -1082,17 +1051,8 @@ export class NetworkSchemaState {
 	 */
 	async autoLinkMicropipe(cableId: string, cableName: string): Promise<void> {
 		try {
-			const formData = new FormData();
-			formData.append('cableId', cableId);
+			const data = await autoLinkMicropipeCommand({ cableId });
 
-			const response = await fetch('?/autoLinkMicropipe', {
-				method: 'POST',
-				body: formData
-			});
-			const result: ActionResult = deserialize(await response.text());
-			if (result.type !== 'success' || !result.data) return;
-
-			const data = result.data as unknown as AutoLinkResponse;
 			for (const endResult of data.results ?? []) {
 				if (endResult.status === 'linked') {
 					globalToaster.success({
@@ -1144,20 +1104,11 @@ export class NetworkSchemaState {
 		if (!choice) return;
 
 		try {
-			const formData = new FormData();
-			formData.append('cableId', choice.cableId);
-			formData.append('microductUuid', microductUuid);
-
-			const response = await fetch('?/autoLinkMicropipe', {
-				method: 'POST',
-				body: formData
+			const data = await autoLinkMicropipeCommand({
+				cableId: choice.cableId,
+				microductUuid
 			});
-			const result: ActionResult = deserialize(await response.text());
-			if (result.type !== 'success' || !result.data) {
-				throw new Error('Failed to link chosen microduct');
-			}
 
-			const data = result.data as unknown as AutoLinkResponse;
 			globalToaster.success({
 				title: m.title_success(),
 				description: m.message_auto_link_micropipe_linked({
@@ -1205,20 +1156,8 @@ export class NetworkSchemaState {
 	 */
 	async refreshEdgeMicropipes(cableId: string): Promise<void> {
 		try {
-			const formData = new FormData();
-			formData.append('uuid', cableId);
-
-			const response = await fetch('?/getMicropipeConnectionsForCable', {
-				method: 'POST',
-				body: formData
-			});
-			const result: ActionResult = deserialize(await response.text());
-			if (result.type === 'success' && result.data?.connections) {
-				this.updateEdgeMicropipeConnections(
-					cableId,
-					result.data.connections as MicropipeConnection[]
-				);
-			}
+			const connections = await getMicropipeConnectionsForCable(cableId);
+			this.updateEdgeMicropipeConnections(cableId, connections);
 		} catch (error: unknown) {
 			console.error('Error refreshing edge micropipe connections:', error);
 			void logToBackendClient({

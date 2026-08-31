@@ -932,7 +932,7 @@ describe('+page.server.js actions', () => {
 	});
 
 	// ---------------------------------------------------------------------------
-	// createMicropipeConnections / deleteMicropipeConnections / autoLinkMicropipe
+	// createMicropipeConnections / deleteMicropipeConnections
 	// ---------------------------------------------------------------------------
 
 	describe('createMicropipeConnections', () => {
@@ -993,40 +993,8 @@ describe('+page.server.js actions', () => {
 		});
 	});
 
-	describe('autoLinkMicropipe', () => {
-		test('auto-links with a specific microduct', async () => {
-			mockFetch.mockResolvedValueOnce(okJson({ linked: 1 }));
-
-			const result = await runAction('autoLinkMicropipe', [
-				['cableId', 'cab-1'],
-				['microductUuid', 'md-1']
-			]);
-
-			expect(result.success).toBe(true);
-			expect(result.linked).toBe(1);
-			const call = mockFetch.mock.calls[0];
-			expect(call[0]).toBe('http://localhost:8000/cables/cab-1/auto-link-micropipe/');
-			expect(JSON.parse(call[1].body).microduct_uuid).toBe('md-1');
-		});
-
-		test('auto-links with empty body when no microduct given', async () => {
-			mockFetch.mockResolvedValueOnce(okJson({ linked: 0 }));
-
-			await runAction('autoLinkMicropipe', [['cableId', 'cab-1']]);
-
-			expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({});
-		});
-
-		test('returns 400 without cableId', async () => {
-			const result = await runAction('autoLinkMicropipe', []);
-
-			expect(result.status).toBe(400);
-			expect(mockFetch).not.toHaveBeenCalled();
-		});
-	});
-
 	// ---------------------------------------------------------------------------
-	// getLinkedTrenchesForCable / getConduitsForCable / getMicropipeConnectionsForCable
+	// getLinkedTrenchesForCable / getConduitsForCable
 	// ---------------------------------------------------------------------------
 
 	describe('getLinkedTrenchesForCable', () => {
@@ -1061,34 +1029,6 @@ describe('+page.server.js actions', () => {
 
 		test('returns 400 without cableId', async () => {
 			const result = await runAction('getConduitsForCable', []);
-
-			expect(result.status).toBe(400);
-			expect(mockFetch).not.toHaveBeenCalled();
-		});
-	});
-
-	describe('getMicropipeConnectionsForCable', () => {
-		test('transforms microduct connection records', async () => {
-			mockFetch.mockResolvedValueOnce(
-				okJson([
-					{ uuid_microduct: { number: 3, hex_code: '#ff0000', color: 'red' } },
-					{ uuid_microduct: { number: 4, color: 'green' } }
-				])
-			);
-
-			const result = await runAction('getMicropipeConnectionsForCable', [['uuid', 'cab-1']]);
-
-			const connections = result.connections as Record<string, unknown>[];
-			expect(connections[0]).toEqual({ number: 3, color_hex: '#ff0000', color_name: 'red' });
-			// falls back to default hex when hex_code missing
-			expect(connections[1]).toEqual({ number: 4, color_hex: '#64748b', color_name: 'green' });
-			expect(mockFetch.mock.calls[0][0]).toBe(
-				'http://localhost:8000/microduct_cable_connection/all/?uuid_cable=cab-1'
-			);
-		});
-
-		test('returns 400 without cable id', async () => {
-			const result = await runAction('getMicropipeConnectionsForCable', []);
 
 			expect(result.status).toBe(400);
 			expect(mockFetch).not.toHaveBeenCalled();
