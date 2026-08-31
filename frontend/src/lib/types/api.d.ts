@@ -4,16173 +4,16173 @@
  */
 
 export interface paths {
-    "/api/v1/address/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.Address`.
-         *
-         *     Support filtering by project, flag, city, and spatial queries.
-         */
-        get: operations["address_list"];
-        put?: never;
-        /**
-         * @description CRUD operations for :model:`api.Address`.
-         *
-         *     Support filtering by project, flag, city, and spatial queries.
-         */
-        post: operations["address_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/address/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.Address`.
-         *
-         *     Support filtering by project, flag, city, and spatial queries.
-         */
-        get: operations["address_retrieve"];
-        /**
-         * @description CRUD operations for :model:`api.Address`.
-         *
-         *     Support filtering by project, flag, city, and spatial queries.
-         */
-        put: operations["address_update"];
-        post?: never;
-        /**
-         * @description CRUD operations for :model:`api.Address`.
-         *
-         *     Support filtering by project, flag, city, and spatial queries.
-         */
-        delete: operations["address_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description CRUD operations for :model:`api.Address`.
-         *
-         *     Support filtering by project, flag, city, and spatial queries.
-         */
-        patch: operations["address_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/address/{uuid}/fiber-connections/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Get all fiber connections for all residential units of this address.
-         *     Returns a dict mapping unit UUID to its fiber connections.
-         */
-        get: operations["address_fiber_connections_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/address/{uuid}/linked-trenches/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Return cable/trench geometries (EPSG:3857) connected to this address.
-         *
-         *     Uses :func:`~apps.api.services.trace_address` to resolve
-         *     fibers → cables → routed trench geometry.  Falls back to the
-         *     conduit FK chain when the trace yields no features.
-         *
-         *     Args:
-         *         request: DRF request object.
-         *         pk: Primary key (UUID) of the :model:`api.Address`.
-         *
-         *     Returns:
-         *         Response: GeoJSON FeatureCollection with LineString features.
-         */
-        get: operations["address_linked_trenches_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/address/{uuid}/regenerate-id/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Regenerate the Base32 address ID for this address. */
-        post: operations["address_regenerate_id_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/address/all/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Return addresses with server-side pagination.
-         *
-         *     Query Parameters:
-         *         project: Filter by project ID (optional).
-         *         exclude_projects: Comma-separated project IDs to exclude
-         *             (e.g. ``3,7``) (optional).
-         *         flag: Filter by flag ID.
-         *         search: Trigram fuzzy search across street, city, zip_code,
-         *             and district. Short tokens (<3 chars) fall back to icontains.
-         *         page: Page number (default: 1).
-         *         page_size: Items per page (default: 50, max: 200).
-         *
-         *     Args:
-         *         request: DRF request with the query params above.
-         *
-         *     Returns:
-         *         Response: Paginated JSON with ``results``, ``count``, ``page``,
-         *             ``page_size``, and ``total_pages``.
-         */
-        get: operations["address_all_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/area/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.Area`.
-         *
-         *     Support filtering by project, flag, and name.
-         */
-        get: operations["area_list"];
-        put?: never;
-        /**
-         * @description CRUD operations for :model:`api.Area`.
-         *
-         *     Support filtering by project, flag, and name.
-         */
-        post: operations["area_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/area/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.Area`.
-         *
-         *     Support filtering by project, flag, and name.
-         */
-        get: operations["area_retrieve"];
-        /**
-         * @description CRUD operations for :model:`api.Area`.
-         *
-         *     Support filtering by project, flag, and name.
-         */
-        put: operations["area_update"];
-        post?: never;
-        /**
-         * @description CRUD operations for :model:`api.Area`.
-         *
-         *     Support filtering by project, flag, and name.
-         */
-        delete: operations["area_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description CRUD operations for :model:`api.Area`.
-         *
-         *     Support filtering by project, flag, and name.
-         */
-        patch: operations["area_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/area/all/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Return all areas with project, flag, and fuzzy search filters.
-         *
-         *     Search uses trigram similarity on the name field combined with
-         *     an icontains fallback on the area_type name.
-         *
-         *     Args:
-         *         request: DRF request with query params ``project``,
-         *             ``exclude_projects`` (comma-separated ids to drop),
-         *             ``flag``, and ``search``.
-         *
-         *     Returns:
-         *         Response: JSON list of serialized :model:`api.Area` objects.
-         */
-        get: operations["area_all_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_area_type/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesAreaType`. */
-        get: operations["attributes_area_type_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_area_type/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesAreaType`. */
-        get: operations["attributes_area_type_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_cable_type/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesCableType`. */
-        get: operations["attributes_cable_type_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_cable_type/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesCableType`. */
-        get: operations["attributes_cable_type_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_company/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesCompany`. */
-        get: operations["attributes_company_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_company/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesCompany`. */
-        get: operations["attributes_company_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_component_structure/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Read-only ViewSet for AttributesComponentStructure model.
-         *     Returns ports (IN/OUT) for a given component type.
-         */
-        get: operations["attributes_component_structure_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_component_structure/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Read-only ViewSet for AttributesComponentStructure model.
-         *     Returns ports (IN/OUT) for a given component type.
-         */
-        get: operations["attributes_component_structure_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_component_type/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesComponentType`. */
-        get: operations["attributes_component_type_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_component_type/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesComponentType`. */
-        get: operations["attributes_component_type_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_conduit_type/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesConduitType`. */
-        get: operations["attributes_conduit_type_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_conduit_type/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesConduitType`. */
-        get: operations["attributes_conduit_type_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_construction_type/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesConstructionType`. */
-        get: operations["attributes_construction_type_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_construction_type/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesConstructionType`. */
-        get: operations["attributes_construction_type_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_fiber_color/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for active :model:`api.AttributesFiberColor` entries. */
-        get: operations["attributes_fiber_color_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_fiber_color/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for active :model:`api.AttributesFiberColor` entries. */
-        get: operations["attributes_fiber_color_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_fiber_status/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesFiberStatus`. */
-        get: operations["attributes_fiber_status_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_fiber_status/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesFiberStatus`. */
-        get: operations["attributes_fiber_status_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_microduct_color/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for active :model:`api.AttributesMicroductColor` entries. */
-        get: operations["attributes_microduct_color_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_microduct_color/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for active :model:`api.AttributesMicroductColor` entries. */
-        get: operations["attributes_microduct_color_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_microduct_status/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesMicroductStatus`. */
-        get: operations["attributes_microduct_status_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_microduct_status/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesMicroductStatus`. */
-        get: operations["attributes_microduct_status_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_network_level/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesNetworkLevel`. */
-        get: operations["attributes_network_level_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_network_level/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesNetworkLevel`. */
-        get: operations["attributes_network_level_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_node_type/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesNodeType`. */
-        get: operations["attributes_node_type_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_node_type/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesNodeType`. */
-        get: operations["attributes_node_type_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_residential_unit_status/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description ViewSet for the AttributesResidentialUnitStatus model. */
-        get: operations["attributes_residential_unit_status_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_residential_unit_status/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description ViewSet for the AttributesResidentialUnitStatus model. */
-        get: operations["attributes_residential_unit_status_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_residential_unit_type/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description ViewSet for the AttributesResidentialUnitType model. */
-        get: operations["attributes_residential_unit_type_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_residential_unit_type/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description ViewSet for the AttributesResidentialUnitType model. */
-        get: operations["attributes_residential_unit_type_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_status/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesStatus`. */
-        get: operations["attributes_status_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_status/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesStatus`. */
-        get: operations["attributes_status_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_status_development/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesStatusDevelopment`. */
-        get: operations["attributes_status_development_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_status_development/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesStatusDevelopment`. */
-        get: operations["attributes_status_development_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_surface/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesSurface`. */
-        get: operations["attributes_surface_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/attributes_surface/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.AttributesSurface`. */
-        get: operations["attributes_surface_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/app/login/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Token-based login for external apps (mobile, desktop, CLI).
-         *
-         *     Accepts username + password and returns JWT access and refresh tokens
-         *     in the response body (no cookies). External apps should store these
-         *     tokens securely and use ``Authorization: Bearer <access_token>``
-         *     for subsequent requests.
-         */
-        post: operations["auth_app_login_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/app/logout/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Logout for external apps by blacklisting the refresh token.
-         *
-         *     Accepts ``{"refresh": "<token>"}`` in the request body.
-         */
-        post: operations["auth_app_logout_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/app/token/refresh/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Refresh an access token for external apps.
-         *
-         *     Accepts ``{"refresh": "<token>"}`` in the request body and returns
-         *     a new access + refresh token pair. The old refresh token is
-         *     blacklisted automatically (rotation is enabled).
-         */
-        post: operations["auth_app_token_refresh_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/login/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Check the credentials and return the REST Token
-         *     if the credentials are valid and authenticated.
-         *     Calls Django Auth login method to register User ID
-         *     in Django session framework
-         *
-         *     Accept the following POST parameters: username, password
-         *     Return the REST Framework Token Object's key.
-         */
-        post: operations["auth_login_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/logout/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Calls Django logout method and delete the Token object
-         *     assigned to the current User object.
-         *
-         *     Accepts/Returns nothing.
-         */
-        post: operations["auth_logout_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/password/change/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Calls Django Auth SetPasswordForm save method.
-         *
-         *     Accepts the following POST parameters: new_password1, new_password2
-         *     Returns the success/fail message.
-         */
-        post: operations["auth_password_change_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/password/reset/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Calls Django Auth PasswordResetForm save method.
-         *
-         *     Accepts the following POST parameters: email
-         *     Returns the success/fail message.
-         */
-        post: operations["auth_password_reset_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/password/reset/confirm/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Password reset e-mail link is confirmed, therefore
-         *     this resets the user's password.
-         *
-         *     Accepts the following POST parameters: token, uid,
-         *         new_password1, new_password2
-         *     Returns the success/fail message.
-         */
-        post: operations["auth_password_reset_confirm_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/permissions/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Return the authenticated user's role-based permission set. */
-        get: operations["auth_permissions_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/qgis-auth/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Handle GET requests from Caddy forward_auth. */
-        get: operations["auth_qgis_auth_retrieve"];
-        put?: never;
-        /** @description Handle POST requests. */
-        post: operations["auth_qgis_auth_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/token/refresh/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Takes a refresh type JSON web token and returns an access type JSON web
-         *     token if the refresh token is valid.
-         */
-        post: operations["auth_token_refresh_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/token/verify/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Takes a token and indicates if it is valid.  This view provides no
-         *     information about a token's fitness for a particular use.
-         */
-        post: operations["auth_token_verify_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/user/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Reads and updates UserModel fields
-         *     Accepts GET, PUT, PATCH methods.
-         *
-         *     Default accepted fields: username, first_name, last_name
-         *     Default display fields: pk, username, email, first_name, last_name
-         *     Read-only fields: pk, email
-         *
-         *     Returns UserModel fields.
-         */
-        get: operations["auth_user_retrieve"];
-        /**
-         * @description Reads and updates UserModel fields
-         *     Accepts GET, PUT, PATCH methods.
-         *
-         *     Default accepted fields: username, first_name, last_name
-         *     Default display fields: pk, username, email, first_name, last_name
-         *     Read-only fields: pk, email
-         *
-         *     Returns UserModel fields.
-         */
-        put: operations["auth_user_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * @description Reads and updates UserModel fields
-         *     Accepts GET, PUT, PATCH methods.
-         *
-         *     Default accepted fields: username, first_name, last_name
-         *     Default display fields: pk, username, email, first_name, last_name
-         *     Read-only fields: pk, email
-         *
-         *     Returns UserModel fields.
-         */
-        patch: operations["auth_user_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/auth/webdav-auth/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Handle GET requests from Caddy forward_auth. */
-        get: operations["auth_webdav_auth_retrieve"];
-        put?: never;
-        /** @description Handle POST requests. */
-        post: operations["auth_webdav_auth_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cable/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.Cable`.
-         *
-         *     Support filtering by project, flag, and node with cable-at-node serialization.
-         */
-        get: operations["cable_list"];
-        put?: never;
-        /** @description Override create to add a warning when cable type has incomplete color mappings. */
-        post: operations["cable_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cable/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.Cable`.
-         *
-         *     Support filtering by project, flag, and node with cable-at-node serialization.
-         */
-        get: operations["cable_retrieve"];
-        /**
-         * @description CRUD operations for :model:`api.Cable`.
-         *
-         *     Support filtering by project, flag, and node with cable-at-node serialization.
-         */
-        put: operations["cable_update"];
-        post?: never;
-        /**
-         * @description CRUD operations for :model:`api.Cable`.
-         *
-         *     Support filtering by project, flag, and node with cable-at-node serialization.
-         */
-        delete: operations["cable_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description CRUD operations for :model:`api.Cable`.
-         *
-         *     Support filtering by project, flag, and node with cable-at-node serialization.
-         */
-        patch: operations["cable_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/cable/{uuid}/recalculate-length/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Recalculate the cable length from its micropipe connections.
-         *
-         *     Args:
-         *         request: The incoming HTTP request.
-         *         pk: Primary key of the cable to recalculate.
-         *
-         *     Returns:
-         *         Response: JSON with updated ``length`` and ``length_total``.
-         */
-        post: operations["cable_recalculate_length_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cable/all/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Returns all cables with project, flag, and search filters.
-         *     No pagination is used.
-         *
-         *     The optional ``exclude_projects`` param takes a comma-separated list
-         *     of project ids (e.g. ``?exclude_projects=3,7``) to drop from results.
-         */
-        get: operations["cable_all_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cable/at-node/{node_uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Returns all cables that start or end at the specified node. */
-        get: operations["cable_at_node_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cable/in-trench/{trench_uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Returns all cables that pass through microducts in the specified trench.
-         *
-         *     Relationship path:
-         *     Trench -> TrenchConduitConnection -> Conduit -> Microduct -> MicroductCableConnection -> Cable
-         */
-        get: operations["cable_in_trench_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cable_label/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description CRUD operations for :model:`api.CableLabel`. */
-        get: operations["cable_label_list"];
-        put?: never;
-        /** @description CRUD operations for :model:`api.CableLabel`. */
-        post: operations["cable_label_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cable_label/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description CRUD operations for :model:`api.CableLabel`. */
-        get: operations["cable_label_retrieve"];
-        /** @description CRUD operations for :model:`api.CableLabel`. */
-        put: operations["cable_label_update"];
-        post?: never;
-        /** @description CRUD operations for :model:`api.CableLabel`. */
-        delete: operations["cable_label_destroy"];
-        options?: never;
-        head?: never;
-        /** @description CRUD operations for :model:`api.CableLabel`. */
-        patch: operations["cable_label_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/cable_label/all/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Returns all cable labels with optional cable filter.
-         *     No pagination is used.
-         */
-        get: operations["cable_label_all_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cable_type_color_mapping/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.CableTypeColorMapping`. */
-        get: operations["cable_type_color_mapping_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cable_type_color_mapping/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.CableTypeColorMapping`. */
-        get: operations["cable_type_color_mapping_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cables/{cable_id}/auto-link-micropipe/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Auto-resolve microduct links for both cable ends, or link a chosen microduct.
-         *
-         *     When ``microduct_uuid`` is included in the request body, link that
-         *     specific microduct. Otherwise run automatic matching on both ends.
-         *
-         *     Args:
-         *         request: DRF request. Optional JSON body with ``microduct_uuid``.
-         *         cable_id: UUID of the :model:`api.Cable` to link.
-         *
-         *     Returns:
-         *         Response: Per-end link results or the single-link result.
-         */
-        post: operations["cables_auto_link_micropipe_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cables/{cable_id}/conduits/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Get all conduit names where the cable has micropipe connections. */
-        get: operations["cables_conduits_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cables/{cable_id}/linked-trenches/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Get all trench UUIDs where the cable has micropipe connections.
-         *     Path: Cable -> MicroductCableConnection -> Microduct -> Conduit -> TrenchConduitConnection -> Trench
-         */
-        get: operations["cables_linked_trenches_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cables/{cable_id}/micropipe-connections/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Create connections for a micropipe across multiple conduits. */
-        post: operations["cables_micropipe_connections_create"];
-        /** @description Remove connections for a micropipe across conduits. */
-        delete: operations["cables_micropipe_connections_destroy"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cables/micropipe-summary/{project_id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Get micropipe connection summary for all cables in a project.
-         *     Returns a dict mapping cable UUIDs to their connected micropipes with color info.
-         *     Used for dynamic edge coloring in the network schema diagram.
-         */
-        get: operations["cables_micropipe_summary_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/canvas-coordinates/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Check the status of canvas coordinates and sync operations.
-         *
-         *     Returns:
-         *     {
-         *         "total_nodes": int,
-         *         "nodes_with_canvas": int,
-         *         "nodes_missing_canvas": int,
-         *         "sync_needed": bool,
-         *         "sync_in_progress": bool,
-         *         "sync_status": str,
-         *         "sync_started_at": datetime,
-         *         "sync_progress": float
-         *     }
-         */
-        get: operations["canvas_coordinates_retrieve"];
-        put?: never;
-        /**
-         * @description Calculate and store canvas coordinates with concurrency control.
-         *
-         *     Expected request body:
-         *     {
-         *         "project_id": int,  # Optional: filter by project
-         *         "flag_id": int,     # Optional: filter by flag
-         *         "scale": float      # Optional: scale factor (default: 1.0)
-         *     }
-         */
-        post: operations["canvas_coordinates_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/conduit/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.Conduit`.
-         *
-         *     Support filtering by trench, project, and flag with pagination.
-         */
-        get: operations["conduit_list"];
-        put?: never;
-        /**
-         * @description CRUD operations for :model:`api.Conduit`.
-         *
-         *     Support filtering by trench, project, and flag with pagination.
-         */
-        post: operations["conduit_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/conduit/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.Conduit`.
-         *
-         *     Support filtering by trench, project, and flag with pagination.
-         */
-        get: operations["conduit_retrieve"];
-        /**
-         * @description CRUD operations for :model:`api.Conduit`.
-         *
-         *     Support filtering by trench, project, and flag with pagination.
-         */
-        put: operations["conduit_update"];
-        post?: never;
-        /**
-         * @description CRUD operations for :model:`api.Conduit`.
-         *
-         *     Support filtering by trench, project, and flag with pagination.
-         */
-        delete: operations["conduit_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description CRUD operations for :model:`api.Conduit`.
-         *
-         *     Support filtering by trench, project, and flag with pagination.
-         */
-        patch: operations["conduit_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/conduit/{id}/trenches/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Returns all trench UUIDs that contain this conduit. */
-        get: operations["conduit_trenches_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/conduit/all/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Returns conduits with server-side pagination.
-         *
-         *     Query params:
-         *     - project: Filter by project ID (optional)
-         *     - exclude_projects: Comma-separated project IDs to exclude (optional)
-         *     - flag: Filter by flag ID
-         *     - search: Search term
-         *     - page: Page number (default: 1)
-         *     - page_size: Items per page (default: 50, max: 200)
-         *     - no_pagination: Return all results without pagination (default: false)
-         */
-        get: operations["conduit_all_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/conduits/by-trenches/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Return deduplicated conduits across the given trench UUIDs. */
-        get: operations["conduits_by_trenches_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/config/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Return the storage SRID and its proj4 definition.
-         *
-         *     Args:
-         *         request: DRF request object.
-         *
-         *     Returns:
-         *         Response: JSON with ``srid`` (int) and ``proj4`` (str).
-         *             Cached for 24 hours via Cache-Control header.
-         *
-         *     Raises:
-         *         Response: 500 with error message if the configured SRID
-         *             is not a valid EPSG code.
-         */
-        get: operations["config_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/container/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for Container instances.
-         *     Supports CRUD operations and hierarchy manipulation.
-         */
-        get: operations["container_list"];
-        put?: never;
-        /**
-         * @description ViewSet for Container instances.
-         *     Supports CRUD operations and hierarchy manipulation.
-         */
-        post: operations["container_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/container-type/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Read-only ViewSet for ContainerType model.
-         *     Only returns active container types.
-         *     Admin management is done via Django Admin.
-         */
-        get: operations["container_type_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/container-type/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Read-only ViewSet for ContainerType model.
-         *     Only returns active container types.
-         *     Admin management is done via Django Admin.
-         */
-        get: operations["container_type_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/container/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for Container instances.
-         *     Supports CRUD operations and hierarchy manipulation.
-         */
-        get: operations["container_retrieve"];
-        /**
-         * @description ViewSet for Container instances.
-         *     Supports CRUD operations and hierarchy manipulation.
-         */
-        put: operations["container_update"];
-        post?: never;
-        /**
-         * @description ViewSet for Container instances.
-         *     Supports CRUD operations and hierarchy manipulation.
-         */
-        delete: operations["container_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description ViewSet for Container instances.
-         *     Supports CRUD operations and hierarchy manipulation.
-         */
-        patch: operations["container_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/container/{uuid}/move/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Move a container to a new parent or reorder within siblings.
-         *
-         *     Request body:
-         *     {
-         *         "parent_container_id": "uuid" | null,  # New parent (null for root)
-         *         "sort_order": 0  # New position among siblings
-         *     }
-         */
-        post: operations["container_move_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/container/by-node/{node_uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Get all containers for a specific node as a flat list. */
-        get: operations["container_by_node_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/container/tree/{node_uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Get the complete container hierarchy for a node.
-         *     Returns a tree structure with nested containers and slot configurations.
-         */
-        get: operations["container_tree_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/content-types/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description ViewSet for Django ContentType model. */
-        get: operations["content_types_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/content-types/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description ViewSet for Django ContentType model. */
-        get: operations["content_types_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/dashboard/statistics/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Return all dashboard statistics in a single cached response.
-         *
-         *     Args:
-         *         request: HTTP request with required ?project and optional ?flag params.
-         *
-         *     Returns:
-         *         Response: Aggregated statistics for trench, node, address, conduit, and area.
-         */
-        get: operations["dashboard_statistics_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/fault-simulation/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Run fault simulation for a given damage point.
-         *
-         *     Expect JSON body with ``point`` (``[x, y]``) and ``project_id``
-         *     (UUID string).
-         *
-         *     Returns:
-         *         Response: Simulation results on success (HTTP 200), validation
-         *             error (HTTP 400), no trench found (HTTP 404), or server
-         *             error (HTTP 500).
-         */
-        post: operations["fault_simulation_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/feature-files/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.FeatureFiles`.
-         *
-         *     Provide authenticated file downloads using Nginx X-Accel-Redirect for
-         *     secure and efficient file serving.
-         */
-        get: operations["feature_files_list"];
-        put?: never;
-        /**
-         * @description CRUD operations for :model:`api.FeatureFiles`.
-         *
-         *     Provide authenticated file downloads using Nginx X-Accel-Redirect for
-         *     secure and efficient file serving.
-         */
-        post: operations["feature_files_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/feature-files/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.FeatureFiles`.
-         *
-         *     Provide authenticated file downloads using Nginx X-Accel-Redirect for
-         *     secure and efficient file serving.
-         */
-        get: operations["feature_files_retrieve"];
-        /**
-         * @description CRUD operations for :model:`api.FeatureFiles`.
-         *
-         *     Provide authenticated file downloads using Nginx X-Accel-Redirect for
-         *     secure and efficient file serving.
-         */
-        put: operations["feature_files_update"];
-        post?: never;
-        /**
-         * @description Delete both the database record and the physical file.
-         *
-         *     This override ensures that when a FeatureFile is deleted via the API,
-         *     both the database entry and the actual file on disk are removed.
-         */
-        delete: operations["feature_files_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description CRUD operations for :model:`api.FeatureFiles`.
-         *
-         *     Provide authenticated file downloads using Nginx X-Accel-Redirect for
-         *     secure and efficient file serving.
-         */
-        patch: operations["feature_files_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/feature-files/{uuid}/download/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Download a file using X-Accel-Redirect for efficient serving.
-         *
-         *     This endpoint validates user authentication and then redirects
-         *     to Nginx's internal location for secure file serving.
-         *
-         *     In development mode (DEBUG=True), files are served directly via
-         *     Django's FileResponse since X-Accel-Redirect requires Nginx.
-         */
-        get: operations["feature_files_download_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/feature-files/{uuid}/preview/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Preview a file using X-Accel-Redirect for efficient serving.
-         *
-         *     This endpoint validates user authentication and then redirects
-         *     to Nginx's internal location for secure file serving with inline
-         *     content disposition, allowing browsers to display the file.
-         *
-         *     Only content types on ``INLINE_SAFE_MIME_TYPES`` are served inline;
-         *     anything that a browser could execute as active content (HTML, SVG,
-         *     scripts, etc.) is forced to ``attachment`` with an
-         *     ``application/octet-stream`` content type so it can never run in the
-         *     API origin where the auth cookie lives.
-         *
-         *     In development mode (DEBUG=True), files are served directly via
-         *     Django's FileResponse since X-Accel-Redirect requires Nginx.
-         */
-        get: operations["feature_files_preview_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/feature-files/{uuid}/rename/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Rename a file by updating both the filesystem and database.
-         *
-         *     This endpoint:
-         *     1. Validates the new filename
-         *     2. Physically renames the file in storage
-         *     3. Updates the database record atomically
-         *     4. Returns the updated file object
-         *
-         *     Request body:
-         *         {
-         *             "new_filename": "newname.ext"
-         *         }
-         */
-        post: operations["feature_files_rename_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/fiber/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for the Fiber model :model:`api.Fiber`.
-         *
-         *     Supports read and update operations for fiber data with filtering by cable.
-         */
-        get: operations["fiber_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/fiber-splice/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for FiberSplice model.
-         *     Manages fiber splice connections within node components.
-         *     Each splice connects fiber_a to fiber_b at a specific port number.
-         */
-        get: operations["fiber_splice_list"];
-        put?: never;
-        /**
-         * @description ViewSet for FiberSplice model.
-         *     Manages fiber splice connections within node components.
-         *     Each splice connects fiber_a to fiber_b at a specific port number.
-         */
-        post: operations["fiber_splice_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/fiber-splice/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for FiberSplice model.
-         *     Manages fiber splice connections within node components.
-         *     Each splice connects fiber_a to fiber_b at a specific port number.
-         */
-        get: operations["fiber_splice_retrieve"];
-        /**
-         * @description ViewSet for FiberSplice model.
-         *     Manages fiber splice connections within node components.
-         *     Each splice connects fiber_a to fiber_b at a specific port number.
-         */
-        put: operations["fiber_splice_update"];
-        post?: never;
-        /**
-         * @description ViewSet for FiberSplice model.
-         *     Manages fiber splice connections within node components.
-         *     Each splice connects fiber_a to fiber_b at a specific port number.
-         */
-        delete: operations["fiber_splice_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description ViewSet for FiberSplice model.
-         *     Manages fiber splice connections within node components.
-         *     Each splice connects fiber_a to fiber_b at a specific port number.
-         */
-        patch: operations["fiber_splice_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/fiber-splice/bulk-upsert/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Bulk upsert multiple fiber splices in one request.
-         *
-         *     Creates or updates fiber splices for multiple port-fiber pairs at once.
-         *     Partial success is supported - some splices can be created even if others fail.
-         *
-         *     Expects: {
-         *         "splices": [
-         *             {"node_structure_uuid": "...", "port_number": 1, "side": "a",
-         *              "fiber_uuid": "...", "cable_uuid": "..."},
-         *             {"node_structure_uuid": "...", "port_number": 2, "side": "b",
-         *              "residential_unit_uuid": "..."},
-         *             ...
-         *         ]
-         *     }
-         *
-         *     Returns: {
-         *         "created": [...],  # Successfully created/updated splices
-         *         "failed": [{"port_number": 5, "error": "..."}]  # Failed splices
-         *     }
-         */
-        post: operations["fiber_splice_bulk_upsert_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/fiber-splice/clear-port/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Clear a fiber from a specific side of a port.
-         *     If both sides become empty AND not in any merge group, delete the splice record.
-         *
-         *     If the port is merged on this side, clears the SHARED fiber for all ports
-         *     in the merge group, but keeps the merge group structure intact.
-         */
-        post: operations["fiber_splice_clear_port_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/fiber-splice/merge-ports/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Merge multiple ports into a group for a specific side (A or B).
-         *     Creates a new merge_group UUID and assigns it to the side-specific field.
-         *
-         *     Each side has its own independent merge group, allowing ports to be
-         *     merged on both sides simultaneously (e.g., splitter with merged input AND output).
-         *
-         *     If any port has an existing fiber on the merged side, it becomes the
-         *     SHARED fiber for all ports in the group. Individual fibers on the
-         *     merged side are cleared.
-         */
-        post: operations["fiber_splice_merge_ports_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/fiber-splice/unmerge-ports/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Remove specific ports from a merge group on a specific side.
-         *     Sets merge_group_a or merge_group_b to NULL for specified ports.
-         *     If only one port remains in group, unmerges that one too.
-         *
-         *     When unmerging, converts the shared fiber back to an individual fiber
-         *     on the first unmerged port, then clears shared fibers for that side only.
-         */
-        post: operations["fiber_splice_unmerge_ports_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/fiber-splice/upsert/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Create or update a fiber splice connection.
-         *     Specify which side ('a' or 'b') the fiber should be placed on.
-         *
-         *     If the port is part of a merge group on this side,
-         *     the fiber becomes a SHARED fiber for all ports in the group.
-         *
-         *     Can also connect a residential unit instead of a fiber/cable pair.
-         */
-        post: operations["fiber_splice_upsert_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/fiber-splice/upsert-merged/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Upsert fibers to a merge group on a specific side.
-         *
-         *     Behavior depends on whether the merge group is on this side:
-         *     - If dropping on the MERGED side (this side has the merge group):
-         *     Use the FIRST fiber as the shared fiber for all ports in the group
-         *     - If dropping on the OTHER side (not merged on this side):
-         *     Fill individual fibers sequentially across ports
-         */
-        post: operations["fiber_splice_upsert_merged_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/fiber-trace/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Trace fiber paths through the network and return a path tree. */
-        get: operations["fiber_trace_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/fiber-trace/summary/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Return a compact trace summary with start/end nodes and statistics. */
-        get: operations["fiber_trace_summary_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/fiber/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for the Fiber model :model:`api.Fiber`.
-         *
-         *     Supports read and update operations for fiber data with filtering by cable.
-         */
-        get: operations["fiber_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * @description ViewSet for the Fiber model :model:`api.Fiber`.
-         *
-         *     Supports read and update operations for fiber data with filtering by cable.
-         */
-        patch: operations["fiber_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/fiber/by-cable/{cable_uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Returns all fibers for a specific cable, ordered by bundle and fiber number. */
-        get: operations["fiber_by_cable_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/flags/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.Flags`. */
-        get: operations["flags_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/flags/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.Flags`. */
-        get: operations["flags_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/import/conduit/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Import conduits from an uploaded .xlsx file (max 10 MB). */
-        post: operations["import_conduit_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/layer-extent/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Returns the bounding box extent for a layer filtered by project.
-         *
-         *     Query Parameters:
-         *     - `layer`: Layer type ('trench', 'address', 'node', or 'area') - required
-         *     - `project`: Project ID to filter by - required
-         *
-         *     Returns:
-         *     - extent: [xmin, ymin, xmax, ymax] in EPSG:3857, or null if no features
-         *     - layer: The requested layer type
-         */
-        get: operations["layer_extent_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/logs/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for viewing application logs.
-         *
-         *     Only accessible to staff users (is_staff=True).
-         *     Provides filtering by date range, log level, user, source, project, and search.
-         *
-         *     Query parameters:
-         *     - level: Filter by log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-         *     - source: Filter by source (backend, frontend)
-         *     - user: Filter by user ID
-         *     - project: Filter by project ID
-         *     - search: Search in message and logger_name
-         *     - date_from: Filter logs from this date (ISO format)
-         *     - date_to: Filter logs until this date (ISO format)
-         */
-        get: operations["logs_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/logs/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for viewing application logs.
-         *
-         *     Only accessible to staff users (is_staff=True).
-         *     Provides filtering by date range, log level, user, source, project, and search.
-         *
-         *     Query parameters:
-         *     - level: Filter by log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-         *     - source: Filter by source (backend, frontend)
-         *     - user: Filter by user ID
-         *     - project: Filter by project ID
-         *     - search: Search in message and logger_name
-         *     - date_from: Filter logs from this date (ISO format)
-         *     - date_to: Filter logs until this date (ISO format)
-         */
-        get: operations["logs_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/logs/frontend/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Submit a frontend log entry. */
-        post: operations["logs_frontend_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/microduct/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.Microduct`.
-         *
-         *     Support filtering by conduit, number, color, and node.
-         */
-        get: operations["microduct_list"];
-        put?: never;
-        /**
-         * @description CRUD operations for :model:`api.Microduct`.
-         *
-         *     Support filtering by conduit, number, color, and node.
-         */
-        post: operations["microduct_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/microduct/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.Microduct`.
-         *
-         *     Support filtering by conduit, number, color, and node.
-         */
-        get: operations["microduct_retrieve"];
-        /**
-         * @description CRUD operations for :model:`api.Microduct`.
-         *
-         *     Support filtering by conduit, number, color, and node.
-         */
-        put: operations["microduct_update"];
-        post?: never;
-        /**
-         * @description CRUD operations for :model:`api.Microduct`.
-         *
-         *     Support filtering by conduit, number, color, and node.
-         */
-        delete: operations["microduct_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description CRUD operations for :model:`api.Microduct`.
-         *
-         *     Support filtering by conduit, number, color, and node.
-         */
-        patch: operations["microduct_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/microduct/all/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Returns all microducts.
-         *     No pagination is applied.
-         */
-        get: operations["microduct_all_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/microduct_cable_connection/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description CRUD operations for :model:`api.MicroductCableConnection`. */
-        get: operations["microduct_cable_connection_list"];
-        put?: never;
-        /** @description CRUD operations for :model:`api.MicroductCableConnection`. */
-        post: operations["microduct_cable_connection_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/microduct_cable_connection/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description CRUD operations for :model:`api.MicroductCableConnection`. */
-        get: operations["microduct_cable_connection_retrieve"];
-        /** @description CRUD operations for :model:`api.MicroductCableConnection`. */
-        put: operations["microduct_cable_connection_update"];
-        post?: never;
-        /** @description CRUD operations for :model:`api.MicroductCableConnection`. */
-        delete: operations["microduct_cable_connection_destroy"];
-        options?: never;
-        head?: never;
-        /** @description CRUD operations for :model:`api.MicroductCableConnection`. */
-        patch: operations["microduct_cable_connection_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/microduct_cable_connection/all/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Returns all microduct cable connections.
-         *     No pagination is used.
-         */
-        get: operations["microduct_cable_connection_all_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/microduct_connection/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description CRUD operations for :model:`api.MicroductConnection`. */
-        get: operations["microduct_connection_list"];
-        put?: never;
-        /** @description CRUD operations for :model:`api.MicroductConnection`. */
-        post: operations["microduct_connection_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/microduct_connection/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description CRUD operations for :model:`api.MicroductConnection`. */
-        get: operations["microduct_connection_retrieve"];
-        /** @description CRUD operations for :model:`api.MicroductConnection`. */
-        put: operations["microduct_connection_update"];
-        post?: never;
-        /** @description CRUD operations for :model:`api.MicroductConnection`. */
-        delete: operations["microduct_connection_destroy"];
-        options?: never;
-        head?: never;
-        /** @description CRUD operations for :model:`api.MicroductConnection`. */
-        patch: operations["microduct_connection_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/microduct_connection/all_connections/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Returns all microduct connections.
-         *     - `uuid_node`: Filter by node UUID
-         */
-        get: operations["microduct_connection_all_connections_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/micropipes/by-conduits/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Return micropipes with availability and cable connection info across conduits. */
-        get: operations["micropipes_by_conduits_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.Node`.
-         *
-         *     Support spatial queries, filtering by project, flag, and node type,
-         *     with pipe-branch and child-view modes for canvas rendering.
-         */
-        get: operations["node_list"];
-        put?: never;
-        /**
-         * @description CRUD operations for :model:`api.Node`.
-         *
-         *     Support spatial queries, filtering by project, flag, and node type,
-         *     with pipe-branch and child-view modes for canvas rendering.
-         */
-        post: operations["node_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node-export/excel/{node_uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Generate and return an Excel file for the given node's structure. */
-        get: operations["node_export_excel_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node-slot-clip-number/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for NodeSlotClipNumber model.
-         *     Manages custom clip numbers for individual slots.
-         */
-        get: operations["node_slot_clip_number_list"];
-        put?: never;
-        /**
-         * @description ViewSet for NodeSlotClipNumber model.
-         *     Manages custom clip numbers for individual slots.
-         */
-        post: operations["node_slot_clip_number_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node-slot-clip-number/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for NodeSlotClipNumber model.
-         *     Manages custom clip numbers for individual slots.
-         */
-        get: operations["node_slot_clip_number_retrieve"];
-        /**
-         * @description ViewSet for NodeSlotClipNumber model.
-         *     Manages custom clip numbers for individual slots.
-         */
-        put: operations["node_slot_clip_number_update"];
-        post?: never;
-        /**
-         * @description ViewSet for NodeSlotClipNumber model.
-         *     Manages custom clip numbers for individual slots.
-         */
-        delete: operations["node_slot_clip_number_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description ViewSet for NodeSlotClipNumber model.
-         *     Manages custom clip numbers for individual slots.
-         */
-        patch: operations["node_slot_clip_number_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/node-slot-clip-number/upsert/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Create or update a clip number for a slot. */
-        post: operations["node_slot_clip_number_upsert_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node-slot-configuration/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for the NodeSlotConfiguration model.
-         *
-         *     Manages slot configurations for nodes, allowing users to define
-         *     the total number of slots available on each side of a node.
-         */
-        get: operations["node_slot_configuration_list"];
-        put?: never;
-        /**
-         * @description ViewSet for the NodeSlotConfiguration model.
-         *
-         *     Manages slot configurations for nodes, allowing users to define
-         *     the total number of slots available on each side of a node.
-         */
-        post: operations["node_slot_configuration_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node-slot-configuration/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for the NodeSlotConfiguration model.
-         *
-         *     Manages slot configurations for nodes, allowing users to define
-         *     the total number of slots available on each side of a node.
-         */
-        get: operations["node_slot_configuration_retrieve"];
-        /**
-         * @description ViewSet for the NodeSlotConfiguration model.
-         *
-         *     Manages slot configurations for nodes, allowing users to define
-         *     the total number of slots available on each side of a node.
-         */
-        put: operations["node_slot_configuration_update"];
-        post?: never;
-        /**
-         * @description ViewSet for the NodeSlotConfiguration model.
-         *
-         *     Manages slot configurations for nodes, allowing users to define
-         *     the total number of slots available on each side of a node.
-         */
-        delete: operations["node_slot_configuration_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description ViewSet for the NodeSlotConfiguration model.
-         *
-         *     Manages slot configurations for nodes, allowing users to define
-         *     the total number of slots available on each side of a node.
-         */
-        patch: operations["node_slot_configuration_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/node-slot-configuration/{uuid}/move-to-container/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Move a slot configuration into a container or to root level.
-         *
-         *     Request body:
-         *     {
-         *         "container_id": "uuid" | null,  # Target container (null for root)
-         *         "sort_order": 0  # Position within container/root
-         *     }
-         */
-        post: operations["node_slot_configuration_move_to_container_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node-slot-configuration/by-node/{node_uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Get all slot configurations for a specific node with usage stats. */
-        get: operations["node_slot_configuration_by_node_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node-slot-divider/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for NodeSlotDivider model.
-         *     Manages horizontal divider lines between TPU slots for visual grouping.
-         */
-        get: operations["node_slot_divider_list"];
-        put?: never;
-        /**
-         * @description ViewSet for NodeSlotDivider model.
-         *     Manages horizontal divider lines between TPU slots for visual grouping.
-         */
-        post: operations["node_slot_divider_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node-slot-divider/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for NodeSlotDivider model.
-         *     Manages horizontal divider lines between TPU slots for visual grouping.
-         */
-        get: operations["node_slot_divider_retrieve"];
-        /**
-         * @description ViewSet for NodeSlotDivider model.
-         *     Manages horizontal divider lines between TPU slots for visual grouping.
-         */
-        put: operations["node_slot_divider_update"];
-        post?: never;
-        /**
-         * @description ViewSet for NodeSlotDivider model.
-         *     Manages horizontal divider lines between TPU slots for visual grouping.
-         */
-        delete: operations["node_slot_divider_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description ViewSet for NodeSlotDivider model.
-         *     Manages horizontal divider lines between TPU slots for visual grouping.
-         */
-        patch: operations["node_slot_divider_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/node-structure/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for the NodeStructure model.
-         *
-         *     Manages the structure of components within a node, including
-         *     component types, structures, and their slot positions.
-         */
-        get: operations["node_structure_list"];
-        put?: never;
-        /**
-         * @description ViewSet for the NodeStructure model.
-         *
-         *     Manages the structure of components within a node, including
-         *     component types, structures, and their slot positions.
-         */
-        post: operations["node_structure_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node-structure/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for the NodeStructure model.
-         *
-         *     Manages the structure of components within a node, including
-         *     component types, structures, and their slot positions.
-         */
-        get: operations["node_structure_retrieve"];
-        /**
-         * @description ViewSet for the NodeStructure model.
-         *
-         *     Manages the structure of components within a node, including
-         *     component types, structures, and their slot positions.
-         */
-        put: operations["node_structure_update"];
-        post?: never;
-        /**
-         * @description ViewSet for the NodeStructure model.
-         *
-         *     Manages the structure of components within a node, including
-         *     component types, structures, and their slot positions.
-         */
-        delete: operations["node_structure_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description ViewSet for the NodeStructure model.
-         *
-         *     Manages the structure of components within a node, including
-         *     component types, structures, and their slot positions.
-         */
-        patch: operations["node_structure_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/node-structure/{uuid}/move/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Move a structure to a new slot position. */
-        post: operations["node_structure_move_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node-structure/bulk-create/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Bulk create multiple node structures at consecutive slots.
-         *
-         *     Creates structures for valid slots and reports failures for occupied slots.
-         *     Partial success is allowed - some structures can be created even if others fail.
-         *
-         *     Expects: {
-         *         "node_uuid": "...",
-         *         "slot_configuration_uuid": "...",
-         *         "component_type_id": 7,
-         *         "slot_start": 5,
-         *         "count": 3,
-         *         "occupied_slots_per_component": 2
-         *     }
-         *
-         *     Returns: {
-         *         "created": [...],
-         *         "failed": [{"slot_start": 9, "slot_end": 10, "error": "..."}]
-         *     }
-         */
-        post: operations["node_structure_bulk_create_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node-structure/by-node/{node_uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Get all structures for a specific node grouped by slot configuration. */
-        get: operations["node_structure_by_node_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node-structure/summary/{node_uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Get a summary of slot usage for a node. */
-        get: operations["node_structure_summary_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node-trench-selection/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for managing node-trench selections for the pipe-branch canvas.
-         *
-         *     This tracks which trenches a user has selected to display on the pipe-branch
-         *     canvas for a given node. Selections are persisted so they auto-load when
-         *     the user returns to the same node.
-         */
-        get: operations["node_trench_selection_list"];
-        put?: never;
-        /**
-         * @description ViewSet for managing node-trench selections for the pipe-branch canvas.
-         *
-         *     This tracks which trenches a user has selected to display on the pipe-branch
-         *     canvas for a given node. Selections are persisted so they auto-load when
-         *     the user returns to the same node.
-         */
-        post: operations["node_trench_selection_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node-trench-selection/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for managing node-trench selections for the pipe-branch canvas.
-         *
-         *     This tracks which trenches a user has selected to display on the pipe-branch
-         *     canvas for a given node. Selections are persisted so they auto-load when
-         *     the user returns to the same node.
-         */
-        get: operations["node_trench_selection_retrieve"];
-        /**
-         * @description ViewSet for managing node-trench selections for the pipe-branch canvas.
-         *
-         *     This tracks which trenches a user has selected to display on the pipe-branch
-         *     canvas for a given node. Selections are persisted so they auto-load when
-         *     the user returns to the same node.
-         */
-        put: operations["node_trench_selection_update"];
-        post?: never;
-        /**
-         * @description ViewSet for managing node-trench selections for the pipe-branch canvas.
-         *
-         *     This tracks which trenches a user has selected to display on the pipe-branch
-         *     canvas for a given node. Selections are persisted so they auto-load when
-         *     the user returns to the same node.
-         */
-        delete: operations["node_trench_selection_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description ViewSet for managing node-trench selections for the pipe-branch canvas.
-         *
-         *     This tracks which trenches a user has selected to display on the pipe-branch
-         *     canvas for a given node. Selections are persisted so they auto-load when
-         *     the user returns to the same node.
-         */
-        patch: operations["node_trench_selection_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/node-trench-selection/bulk-update/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Bulk update trench selections for a node.
-         *
-         *     This replaces all existing selections for the node with the provided list.
-         *     Expects: { "node_uuid": "...", "trench_uuids": ["...", "..."] }
-         */
-        post: operations["node_trench_selection_bulk_update_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node-trench-selection/by-node/{node_uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Get all trench selections for a specific node. */
-        get: operations["node_trench_selection_by_node_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.Node`.
-         *
-         *     Support spatial queries, filtering by project, flag, and node type,
-         *     with pipe-branch and child-view modes for canvas rendering.
-         */
-        get: operations["node_retrieve"];
-        /**
-         * @description CRUD operations for :model:`api.Node`.
-         *
-         *     Support spatial queries, filtering by project, flag, and node type,
-         *     with pipe-branch and child-view modes for canvas rendering.
-         */
-        put: operations["node_update"];
-        post?: never;
-        /**
-         * @description CRUD operations for :model:`api.Node`.
-         *
-         *     Support spatial queries, filtering by project, flag, and node type,
-         *     with pipe-branch and child-view modes for canvas rendering.
-         */
-        delete: operations["node_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description CRUD operations for :model:`api.Node`.
-         *
-         *     Support spatial queries, filtering by project, flag, and node type,
-         *     with pipe-branch and child-view modes for canvas rendering.
-         */
-        patch: operations["node_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/node/{uuid}/addresses/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Get addresses linked to this node with their residential units. */
-        get: operations["node_addresses_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node/{uuid}/used-fibers/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Get fiber UUIDs that are spliced at this node, with component placement info. */
-        get: operations["node_used_fibers_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node/{uuid}/used-residential-units/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Get residential unit UUIDs that are connected in splices at this node, with component placement info. */
-        get: operations["node_used_residential_units_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node/all/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Return all nodes with project, flag, and fuzzy search filters.
-         *
-         *     Search uses trigram similarity on the name field combined with
-         *     an icontains fallback on the node_type name.
-         *
-         *     Query Parameters:
-         *         project: Filter by project ID.
-         *         exclude_projects: Comma-separated project IDs to exclude
-         *             (e.g. ``3,7``).
-         *         flag: Filter by flag ID.
-         *         group: Filter by node type group.
-         *         exclude_group: Exclude nodes by node type group.
-         *         search: Trigram fuzzy search on name, with icontains on node_type.
-         *         use_pipe_branch_settings: If ``'true'``, apply project's
-         *             pipe-branch allowed types.
-         *         include_excluded: If ``'true'``, bypass NetworkSchemaSettings
-         *             exclusions (for search).
-         *         minimal: If ``'true'``, return only uuid and name
-         *             (no geometry/relations).
-         *
-         *     If project settings are configured, excluded node types are
-         *     automatically filtered out unless an explicit ``exclude_group``
-         *     or ``include_excluded`` parameter is provided.
-         *
-         *     Args:
-         *         request: DRF request with the query params above.
-         *
-         *     Returns:
-         *         Response: GeoJSON FeatureCollection (or minimal JSON list
-         *             when ``minimal=true``).
-         */
-        get: operations["node_all_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node/count_by_city/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Returns the count of nodes grouped by city (from linked address). */
-        get: operations["node_count_by_city_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node/count_by_network_level/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Returns the count of nodes grouped by network level. */
-        get: operations["node_count_by_network_level_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node/count_by_owner/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Returns the count of nodes grouped by owner company. */
-        get: operations["node_count_by_owner_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node/count_by_status/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Returns the count of nodes grouped by status. */
-        get: operations["node_count_by_status_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node/count_of_nodes_by_type/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Returns the count of nodes by type. */
-        get: operations["node_count_of_nodes_by_type_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node/expiring_warranties/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Returns the next 5 nodes with warranties expiring soonest.
-         *     Filters out nodes with no warranty or expired warranties.
-         */
-        get: operations["node_expiring_warranties_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/node/newest_oldest_nodes/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Returns the 5 newest and 5 oldest nodes by date field. */
-        get: operations["node_newest_oldest_nodes_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ol_address_tiles/{z}/{x}/{y}.mvt": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Serves MVT tiles for OlAddress.
-         *     URL: /api/ol_address_tiles/{z}/{x}/{y}.mvt?project={project}
-         */
-        get: operations["ol_address_tiles_.mvt_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ol_area_tiles/{z}/{x}/{y}.mvt": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Serves MVT tiles for OlArea.
-         *     URL: /api/ol_area_tiles/{z}/{x}/{y}.mvt?project={project}
-         */
-        get: operations["ol_area_tiles_.mvt_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ol_node_tiles/{z}/{x}/{y}.mvt": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Serves MVT tiles for OlNode.
-         *     URL: /api/ol_node_tiles/{z}/{x}/{y}.mvt?project={project}
-         */
-        get: operations["ol_node_tiles_.mvt_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ol_trench_tiles/{z}/{x}/{y}.mvt": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Serves MVT tiles for OlTrench.
-         *     URL: /api/ol_trench_tiles/{z}/{x}/{y}.mvt?project={project}
-         */
-        get: operations["ol_trench_tiles_.mvt_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/pipeline-inquiry-areas/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.PipelineInquiryArea`.
-         *
-         *     Supports filtering by pipeline_record UUID via query parameter.
-         */
-        get: operations["pipeline_inquiry_areas_list"];
-        put?: never;
-        /**
-         * @description CRUD operations for :model:`api.PipelineInquiryArea`.
-         *
-         *     Supports filtering by pipeline_record UUID via query parameter.
-         */
-        post: operations["pipeline_inquiry_areas_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/pipeline-inquiry-areas/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.PipelineInquiryArea`.
-         *
-         *     Supports filtering by pipeline_record UUID via query parameter.
-         */
-        get: operations["pipeline_inquiry_areas_retrieve"];
-        /**
-         * @description CRUD operations for :model:`api.PipelineInquiryArea`.
-         *
-         *     Supports filtering by pipeline_record UUID via query parameter.
-         */
-        put: operations["pipeline_inquiry_areas_update"];
-        post?: never;
-        /**
-         * @description CRUD operations for :model:`api.PipelineInquiryArea`.
-         *
-         *     Supports filtering by pipeline_record UUID via query parameter.
-         */
-        delete: operations["pipeline_inquiry_areas_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description CRUD operations for :model:`api.PipelineInquiryArea`.
-         *
-         *     Supports filtering by pipeline_record UUID via query parameter.
-         */
-        patch: operations["pipeline_inquiry_areas_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/pipeline-records/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Return paginated pipeline records with optional search.
-         *
-         *     Query params:
-         *         search: Search term (optional)
-         *         page: Page number (default: 1)
-         *         page_size: Items per page (default: 50, max: 200)
-         */
-        get: operations["pipeline_records_list"];
-        put?: never;
-        /**
-         * @description CRUD operations for :model:`api.PipelineRecord`.
-         *
-         *     List action provides server-side pagination and search across
-         *     organisation, name, type_of_work, request_reason, and project.
-         */
-        post: operations["pipeline_records_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/pipeline-records/{pipeline_record_uuid}/inquiry-export/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Build and return the inquiry export ZIP.
-         *
-         *     Args:
-         *         request (Request): DRF request object.
-         *         pipeline_record_uuid (uuid.UUID): UUID of the pipeline record to export.
-         *
-         *     Returns:
-         *         HttpResponse: ZIP file download response, or 400 if no inquiry
-         *             areas exist for the record.
-         */
-        get: operations["pipeline_records_inquiry_export_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/pipeline-records/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.PipelineRecord`.
-         *
-         *     List action provides server-side pagination and search across
-         *     organisation, name, type_of_work, request_reason, and project.
-         */
-        get: operations["pipeline_records_retrieve"];
-        /**
-         * @description CRUD operations for :model:`api.PipelineRecord`.
-         *
-         *     List action provides server-side pagination and search across
-         *     organisation, name, type_of_work, request_reason, and project.
-         */
-        put: operations["pipeline_records_update"];
-        post?: never;
-        /**
-         * @description CRUD operations for :model:`api.PipelineRecord`.
-         *
-         *     List action provides server-side pagination and search across
-         *     organisation, name, type_of_work, request_reason, and project.
-         */
-        delete: operations["pipeline_records_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description CRUD operations for :model:`api.PipelineRecord`.
-         *
-         *     List action provides server-side pagination and search across
-         *     organisation, name, type_of_work, request_reason, and project.
-         */
-        patch: operations["pipeline_records_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/projects/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.Projects`. */
-        get: operations["projects_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/projects/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.Projects`. */
-        get: operations["projects_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/request-reasons/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.RequestReason`. */
-        get: operations["request_reasons_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/request-reasons/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.RequestReason`. */
-        get: operations["request_reasons_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/residential-unit/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description ViewSet for the ResidentialUnit model. */
-        get: operations["residential_unit_list"];
-        put?: never;
-        /** @description ViewSet for the ResidentialUnit model. */
-        post: operations["residential_unit_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/residential-unit/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description ViewSet for the ResidentialUnit model. */
-        get: operations["residential_unit_retrieve"];
-        /** @description ViewSet for the ResidentialUnit model. */
-        put: operations["residential_unit_update"];
-        post?: never;
-        /** @description ViewSet for the ResidentialUnit model. */
-        delete: operations["residential_unit_destroy"];
-        options?: never;
-        head?: never;
-        /** @description ViewSet for the ResidentialUnit model. */
-        patch: operations["residential_unit_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/residential-unit/{uuid}/fiber-connections/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Get all fiber connections for this residential unit.
-         *     Returns fiber details from fiber splices where this unit is connected.
-         */
-        get: operations["residential_unit_fiber_connections_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/residential-unit/{uuid}/regenerate-id/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Regenerate the Base28 residential unit ID for this unit. */
-        post: operations["residential_unit_regenerate_id_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/residential-unit/all/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Returns all residential units for an address. No pagination. */
-        get: operations["residential_unit_all_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/routing/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Calculates and returns the shortest path between two trenches.
-         *
-         *     URL: /api/routing/
-         *     Body (JSON): {
-         *         "start_trench_id": int,
-         *         "end_trench_id": int,
-         *         "project_id": int,
-         *         "tolerance": int (optional, default=1)
-         *     }
-         */
-        post: operations["routing_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/schema.gpkg": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Generate and return a GeoPackage schema, optionally filtered by ?layers. */
-        get: operations["schema.gpkg_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/signal-analysis/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Analyze signal flow through a fiber, identifying breaks and lit/dark portions. */
-        get: operations["signal_analysis_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/spatial/intersects/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Intersect the request geometry against the requested layers.
-         *
-         *     URL: /api/v1/spatial/intersects/
-         *     Body (JSON): {
-         *         "geom": GeoJSON geometry (assumed EPSG:25832 unless "srid" is set),
-         *         "layers": [str, ...]  (optional; defaults to all layers),
-         *         "project": int        (optional; scopes results to one project),
-         *         "exclude_projects": "3,7" | [3, 7]  (optional; drops these
-         *             projects; combines with "project"),
-         *         "srid": int           (optional; source SRID of "geom")
-         *     }
-         *
-         *     Returns:
-         *         Response: {
-         *             "srid": int,
-         *             "layers": {<layer>: FeatureCollection, ...},
-         *             "counts": {<layer>: int, ...},
-         *             "total": int
-         *         }
-         */
-        post: operations["spatial_intersects_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/template/conduit/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Return an Excel template for importing conduits. */
-        get: operations["template_conduit_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/trace-search/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Search across entity types and return lightweight picker results.
-         *
-         *     Address and node searches use pg_trgm trigram similarity for
-         *     fuzzy matching; cable and residential_unit use icontains.
-         *
-         *     Args:
-         *         request: DRF request with query params ``search``, ``type``,
-         *             and optional ``project``.
-         *
-         *     Returns:
-         *         Response: JSON with a ``results`` list of matching entities.
-         */
-        get: operations["trace_search_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/trench/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.Trench`.
-         *
-         *     Supports spatial queries, filtering by project and flag,
-         *     and aggregation endpoints for dashboard statistics.
-         */
-        get: operations["trench_list"];
-        put?: never;
-        /**
-         * @description CRUD operations for :model:`api.Trench`.
-         *
-         *     Supports spatial queries, filtering by project and flag,
-         *     and aggregation endpoints for dashboard statistics.
-         */
-        post: operations["trench_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/trench-conduit-canvas/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for TrenchConduitCanvas model.
-         *
-         *     Manages canvas positions for conduits in trench profile view.
-         */
-        get: operations["trench_conduit_canvas_list"];
-        put?: never;
-        /**
-         * @description ViewSet for TrenchConduitCanvas model.
-         *
-         *     Manages canvas positions for conduits in trench profile view.
-         */
-        post: operations["trench_conduit_canvas_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/trench-conduit-canvas/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for TrenchConduitCanvas model.
-         *
-         *     Manages canvas positions for conduits in trench profile view.
-         */
-        get: operations["trench_conduit_canvas_retrieve"];
-        /**
-         * @description ViewSet for TrenchConduitCanvas model.
-         *
-         *     Manages canvas positions for conduits in trench profile view.
-         */
-        put: operations["trench_conduit_canvas_update"];
-        post?: never;
-        /**
-         * @description ViewSet for TrenchConduitCanvas model.
-         *
-         *     Manages canvas positions for conduits in trench profile view.
-         */
-        delete: operations["trench_conduit_canvas_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description ViewSet for TrenchConduitCanvas model.
-         *
-         *     Manages canvas positions for conduits in trench profile view.
-         */
-        patch: operations["trench_conduit_canvas_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/trench-conduit-canvas/bulk-save/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Save multiple canvas positions at once. */
-        post: operations["trench_conduit_canvas_bulk_save_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/trench-conduit-canvas/profile/{trench_uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Get all conduits for a trench with their canvas positions and microducts. */
-        get: operations["trench_conduit_canvas_profile_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/trench/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.Trench`.
-         *
-         *     Supports spatial queries, filtering by project and flag,
-         *     and aggregation endpoints for dashboard statistics.
-         */
-        get: operations["trench_retrieve"];
-        /**
-         * @description CRUD operations for :model:`api.Trench`.
-         *
-         *     Supports spatial queries, filtering by project and flag,
-         *     and aggregation endpoints for dashboard statistics.
-         */
-        put: operations["trench_update"];
-        post?: never;
-        /**
-         * @description CRUD operations for :model:`api.Trench`.
-         *
-         *     Supports spatial queries, filtering by project and flag,
-         *     and aggregation endpoints for dashboard statistics.
-         */
-        delete: operations["trench_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description CRUD operations for :model:`api.Trench`.
-         *
-         *     Supports spatial queries, filtering by project and flag,
-         *     and aggregation endpoints for dashboard statistics.
-         */
-        patch: operations["trench_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/trench/all/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Returns all trenches with project, flag, and search filters.
-         *     No pagination is used.
-         *
-         *     The optional ``exclude_projects`` param takes a comma-separated list
-         *     of project ids (e.g. ``?exclude_projects=3,7``) to drop from results.
-         */
-        get: operations["trench_all_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/trench/average_house_connection_length/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Return average length of house-connection trenches, filterable by project and flag. */
-        get: operations["trench_average_house_connection_length_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/trench/length_by_phase/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Return trench lengths grouped by network level (phase), filterable by project and flag. */
-        get: operations["trench_length_by_phase_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/trench/length_by_status/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Return trench lengths grouped by status, filterable by project and flag. */
-        get: operations["trench_length_by_status_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/trench/length_by_types/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Get trench lengths grouped by construction type and surface.
-         *
-         *     Returns aggregated data showing total length for each combination
-         *     of construction type and surface. Allows filtering by project and flag.
-         */
-        get: operations["trench_length_by_types_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/trench/length_with_funding/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Return total length and count of funded trenches, filterable by project and flag. */
-        get: operations["trench_length_with_funding_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/trench/length_with_internal_execution/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Return total length and count of internally-executed trenches, filterable by project and flag. */
-        get: operations["trench_length_with_internal_execution_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/trench/longest_routes/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Return the N longest trenches (default 5), filterable by project and flag. */
-        get: operations["trench_longest_routes_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/trench/total_length/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Return total trench length and count, filterable by status, project, flag, surface, and construction type. */
-        get: operations["trench_total_length_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/trench_conduit_connection/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.TrenchConduitConnection`.
-         *
-         *     Manage conduit-to-trench associations with project and flag filtering.
-         */
-        get: operations["trench_conduit_connection_list"];
-        put?: never;
-        /**
-         * @description CRUD operations for :model:`api.TrenchConduitConnection`.
-         *
-         *     Manage conduit-to-trench associations with project and flag filtering.
-         */
-        post: operations["trench_conduit_connection_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/trench_conduit_connection/{uuid}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description CRUD operations for :model:`api.TrenchConduitConnection`.
-         *
-         *     Manage conduit-to-trench associations with project and flag filtering.
-         */
-        get: operations["trench_conduit_connection_retrieve"];
-        /**
-         * @description CRUD operations for :model:`api.TrenchConduitConnection`.
-         *
-         *     Manage conduit-to-trench associations with project and flag filtering.
-         */
-        put: operations["trench_conduit_connection_update"];
-        post?: never;
-        /**
-         * @description CRUD operations for :model:`api.TrenchConduitConnection`.
-         *
-         *     Manage conduit-to-trench associations with project and flag filtering.
-         */
-        delete: operations["trench_conduit_connection_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description CRUD operations for :model:`api.TrenchConduitConnection`.
-         *
-         *     Manage conduit-to-trench associations with project and flag filtering.
-         */
-        patch: operations["trench_conduit_connection_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/trench_conduit_connection/all/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Returns all trench-conduit connections with project and flag filters. */
-        get: operations["trench_conduit_connection_all_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/trenches-near-node/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Returns trenches near a node with their associated microducts.
-         *
-         *     Query Parameters:
-         *     - `node_name`: Name of the node to search around (required)
-         *     - `distance`: Distance in meters to search around the node (default: 5)
-         *     - `project`: Project ID to filter by (required)
-         *
-         *     Returns:
-         *     - List of trenches with their associated conduits and microducts
-         */
-        get: operations["trenches_near_node_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/type-of-work/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.TypeOfWork`. */
-        get: operations["type_of_work_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/type-of-work/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Read-only ViewSet for :model:`api.TypeOfWork`. */
-        get: operations["type_of_work_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/user-settings/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Return the current user's saved settings snapshot.
-         *
-         *     Args:
-         *         request: DRF request object.
-         *
-         *     Returns:
-         *         Response: JSON with ``settings`` (object, empty if unsaved) and
-         *             ``updated_at`` (ISO timestamp or ``None``).
-         */
-        get: operations["user_settings_retrieve"];
-        /**
-         * @description Create or overwrite the current user's settings snapshot.
-         *
-         *     Args:
-         *         request: DRF request object with a ``settings`` JSON object body.
-         *
-         *     Returns:
-         *         Response: the saved snapshot, or 400 on validation error.
-         */
-        put: operations["user_settings_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/valuation-rates/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Read-only ViewSet for :model:`api.ValuationCostRate`.
-         *
-         *     Cost rates are edited in the Django admin; the frontend only reads them,
-         *     filtered by ``?project=``.
-         */
-        get: operations["valuation_rates_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/valuation-rates/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Read-only ViewSet for :model:`api.ValuationCostRate`.
-         *
-         *     Cost rates are edited in the Django admin; the frontend only reads them,
-         *     filtered by ``?project=``.
-         */
-        get: operations["valuation_rates_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/valuation/calculate/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Validate the request and return the calculated valuation. */
-        post: operations["valuation_calculate_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/wfs3/{project_name}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Handle GET requests to WFS3 endpoints. */
-        get: operations["wfs3_retrieve"];
-        put?: never;
-        /** @description Handle POST requests to WFS3 endpoints (for complex queries). */
-        post: operations["wfs3_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/wfs3/{project_name}/{wfs3_path}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Handle GET requests to WFS3 endpoints. */
-        get: operations["wfs3_retrieve_2"];
-        put?: never;
-        /** @description Handle POST requests to WFS3 endpoints (for complex queries). */
-        post: operations["wfs3_create_2"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/wms-layers/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description ViewSet for WMS layers. */
-        get: operations["wms_layers_list"];
-        put?: never;
-        /** @description ViewSet for WMS layers. */
-        post: operations["wms_layers_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/wms-layers/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description ViewSet for WMS layers. */
-        get: operations["wms_layers_retrieve"];
-        /** @description ViewSet for WMS layers. */
-        put: operations["wms_layers_update"];
-        post?: never;
-        /** @description ViewSet for WMS layers. */
-        delete: operations["wms_layers_destroy"];
-        options?: never;
-        head?: never;
-        /** @description ViewSet for WMS layers. */
-        patch: operations["wms_layers_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/wms-proxy/{source_id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Proxies the WMS request to the configured upstream source; the response body and content-type mirror upstream. */
-        get: operations["wms_proxy_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/wms-sources/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for WMS sources.
-         *
-         *     Note: Project-level authorization follows existing codebase pattern where
-         *     authenticated users can access any project's data via query params.
-         *     To restrict access, implement project-level permissions at the auth layer.
-         */
-        get: operations["wms_sources_list"];
-        put?: never;
-        /**
-         * @description ViewSet for WMS sources.
-         *
-         *     Note: Project-level authorization follows existing codebase pattern where
-         *     authenticated users can access any project's data via query params.
-         *     To restrict access, implement project-level permissions at the auth layer.
-         */
-        post: operations["wms_sources_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/wms-sources/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description ViewSet for WMS sources.
-         *
-         *     Note: Project-level authorization follows existing codebase pattern where
-         *     authenticated users can access any project's data via query params.
-         *     To restrict access, implement project-level permissions at the auth layer.
-         */
-        get: operations["wms_sources_retrieve"];
-        /**
-         * @description ViewSet for WMS sources.
-         *
-         *     Note: Project-level authorization follows existing codebase pattern where
-         *     authenticated users can access any project's data via query params.
-         *     To restrict access, implement project-level permissions at the auth layer.
-         */
-        put: operations["wms_sources_update"];
-        post?: never;
-        /**
-         * @description ViewSet for WMS sources.
-         *
-         *     Note: Project-level authorization follows existing codebase pattern where
-         *     authenticated users can access any project's data via query params.
-         *     To restrict access, implement project-level permissions at the auth layer.
-         */
-        delete: operations["wms_sources_destroy"];
-        options?: never;
-        head?: never;
-        /**
-         * @description ViewSet for WMS sources.
-         *
-         *     Note: Project-level authorization follows existing codebase pattern where
-         *     authenticated users can access any project's data via query params.
-         *     To restrict access, implement project-level permissions at the auth layer.
-         */
-        patch: operations["wms_sources_partial_update"];
-        trace?: never;
-    };
-    "/api/v1/wms-sources/{id}/refresh_layers/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Refresh layers from WMS GetCapabilities. */
-        post: operations["wms_sources_refresh_layers_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/wms-sources/{id}/scan_capabilities/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Scan WMS capabilities to recommend configuration settings.
-         *
-         *     Analyzes the WMS GetCapabilities response to determine:
-         *     - Recommended minZoom for each layer based on BBOX constraints
-         *     - Supported CRS for each layer
-         *     - Service-level constraints
-         *
-         *     Returns detailed information to help configure WMS layers.
-         */
-        post: operations["wms_sources_scan_capabilities_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/wms-sources/access_token/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Get a short-lived access token for WMS tile requests.
-         *
-         *     This token can be passed as a query parameter to the WMS proxy
-         *     to authenticate tile requests that can't use cookies (due to
-         *     SameSite restrictions on cross-origin image requests).
-         *
-         *     The token includes a 'wms_only' claim to scope it specifically
-         *     for WMS proxy requests, preventing misuse on other endpoints.
-         */
-        get: operations["wms_sources_access_token_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
+	'/api/v1/address/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.Address`.
+		 *
+		 *     Support filtering by project, flag, city, and spatial queries.
+		 */
+		get: operations['address_list'];
+		put?: never;
+		/**
+		 * @description CRUD operations for :model:`api.Address`.
+		 *
+		 *     Support filtering by project, flag, city, and spatial queries.
+		 */
+		post: operations['address_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/address/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.Address`.
+		 *
+		 *     Support filtering by project, flag, city, and spatial queries.
+		 */
+		get: operations['address_retrieve'];
+		/**
+		 * @description CRUD operations for :model:`api.Address`.
+		 *
+		 *     Support filtering by project, flag, city, and spatial queries.
+		 */
+		put: operations['address_update'];
+		post?: never;
+		/**
+		 * @description CRUD operations for :model:`api.Address`.
+		 *
+		 *     Support filtering by project, flag, city, and spatial queries.
+		 */
+		delete: operations['address_destroy'];
+		options?: never;
+		head?: never;
+		/**
+		 * @description CRUD operations for :model:`api.Address`.
+		 *
+		 *     Support filtering by project, flag, city, and spatial queries.
+		 */
+		patch: operations['address_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/address/{uuid}/fiber-connections/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Get all fiber connections for all residential units of this address.
+		 *     Returns a dict mapping unit UUID to its fiber connections.
+		 */
+		get: operations['address_fiber_connections_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/address/{uuid}/linked-trenches/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Return cable/trench geometries (EPSG:3857) connected to this address.
+		 *
+		 *     Uses :func:`~apps.api.services.trace_address` to resolve
+		 *     fibers → cables → routed trench geometry.  Falls back to the
+		 *     conduit FK chain when the trace yields no features.
+		 *
+		 *     Args:
+		 *         request: DRF request object.
+		 *         pk: Primary key (UUID) of the :model:`api.Address`.
+		 *
+		 *     Returns:
+		 *         Response: GeoJSON FeatureCollection with LineString features.
+		 */
+		get: operations['address_linked_trenches_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/address/{uuid}/regenerate-id/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** @description Regenerate the Base32 address ID for this address. */
+		post: operations['address_regenerate_id_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/address/all/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Return addresses with server-side pagination.
+		 *
+		 *     Query Parameters:
+		 *         project: Filter by project ID (optional).
+		 *         exclude_projects: Comma-separated project IDs to exclude
+		 *             (e.g. ``3,7``) (optional).
+		 *         flag: Filter by flag ID.
+		 *         search: Trigram fuzzy search across street, city, zip_code,
+		 *             and district. Short tokens (<3 chars) fall back to icontains.
+		 *         page: Page number (default: 1).
+		 *         page_size: Items per page (default: 50, max: 200).
+		 *
+		 *     Args:
+		 *         request: DRF request with the query params above.
+		 *
+		 *     Returns:
+		 *         Response: Paginated JSON with ``results``, ``count``, ``page``,
+		 *             ``page_size``, and ``total_pages``.
+		 */
+		get: operations['address_all_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/area/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.Area`.
+		 *
+		 *     Support filtering by project, flag, and name.
+		 */
+		get: operations['area_list'];
+		put?: never;
+		/**
+		 * @description CRUD operations for :model:`api.Area`.
+		 *
+		 *     Support filtering by project, flag, and name.
+		 */
+		post: operations['area_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/area/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.Area`.
+		 *
+		 *     Support filtering by project, flag, and name.
+		 */
+		get: operations['area_retrieve'];
+		/**
+		 * @description CRUD operations for :model:`api.Area`.
+		 *
+		 *     Support filtering by project, flag, and name.
+		 */
+		put: operations['area_update'];
+		post?: never;
+		/**
+		 * @description CRUD operations for :model:`api.Area`.
+		 *
+		 *     Support filtering by project, flag, and name.
+		 */
+		delete: operations['area_destroy'];
+		options?: never;
+		head?: never;
+		/**
+		 * @description CRUD operations for :model:`api.Area`.
+		 *
+		 *     Support filtering by project, flag, and name.
+		 */
+		patch: operations['area_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/area/all/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Return all areas with project, flag, and fuzzy search filters.
+		 *
+		 *     Search uses trigram similarity on the name field combined with
+		 *     an icontains fallback on the area_type name.
+		 *
+		 *     Args:
+		 *         request: DRF request with query params ``project``,
+		 *             ``exclude_projects`` (comma-separated ids to drop),
+		 *             ``flag``, and ``search``.
+		 *
+		 *     Returns:
+		 *         Response: JSON list of serialized :model:`api.Area` objects.
+		 */
+		get: operations['area_all_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_area_type/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesAreaType`. */
+		get: operations['attributes_area_type_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_area_type/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesAreaType`. */
+		get: operations['attributes_area_type_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_cable_type/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesCableType`. */
+		get: operations['attributes_cable_type_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_cable_type/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesCableType`. */
+		get: operations['attributes_cable_type_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_company/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesCompany`. */
+		get: operations['attributes_company_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_company/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesCompany`. */
+		get: operations['attributes_company_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_component_structure/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Read-only ViewSet for AttributesComponentStructure model.
+		 *     Returns ports (IN/OUT) for a given component type.
+		 */
+		get: operations['attributes_component_structure_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_component_structure/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Read-only ViewSet for AttributesComponentStructure model.
+		 *     Returns ports (IN/OUT) for a given component type.
+		 */
+		get: operations['attributes_component_structure_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_component_type/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesComponentType`. */
+		get: operations['attributes_component_type_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_component_type/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesComponentType`. */
+		get: operations['attributes_component_type_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_conduit_type/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesConduitType`. */
+		get: operations['attributes_conduit_type_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_conduit_type/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesConduitType`. */
+		get: operations['attributes_conduit_type_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_construction_type/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesConstructionType`. */
+		get: operations['attributes_construction_type_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_construction_type/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesConstructionType`. */
+		get: operations['attributes_construction_type_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_fiber_color/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for active :model:`api.AttributesFiberColor` entries. */
+		get: operations['attributes_fiber_color_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_fiber_color/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for active :model:`api.AttributesFiberColor` entries. */
+		get: operations['attributes_fiber_color_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_fiber_status/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesFiberStatus`. */
+		get: operations['attributes_fiber_status_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_fiber_status/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesFiberStatus`. */
+		get: operations['attributes_fiber_status_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_microduct_color/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for active :model:`api.AttributesMicroductColor` entries. */
+		get: operations['attributes_microduct_color_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_microduct_color/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for active :model:`api.AttributesMicroductColor` entries. */
+		get: operations['attributes_microduct_color_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_microduct_status/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesMicroductStatus`. */
+		get: operations['attributes_microduct_status_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_microduct_status/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesMicroductStatus`. */
+		get: operations['attributes_microduct_status_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_network_level/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesNetworkLevel`. */
+		get: operations['attributes_network_level_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_network_level/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesNetworkLevel`. */
+		get: operations['attributes_network_level_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_node_type/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesNodeType`. */
+		get: operations['attributes_node_type_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_node_type/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesNodeType`. */
+		get: operations['attributes_node_type_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_residential_unit_status/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description ViewSet for the AttributesResidentialUnitStatus model. */
+		get: operations['attributes_residential_unit_status_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_residential_unit_status/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description ViewSet for the AttributesResidentialUnitStatus model. */
+		get: operations['attributes_residential_unit_status_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_residential_unit_type/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description ViewSet for the AttributesResidentialUnitType model. */
+		get: operations['attributes_residential_unit_type_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_residential_unit_type/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description ViewSet for the AttributesResidentialUnitType model. */
+		get: operations['attributes_residential_unit_type_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_status/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesStatus`. */
+		get: operations['attributes_status_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_status/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesStatus`. */
+		get: operations['attributes_status_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_status_development/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesStatusDevelopment`. */
+		get: operations['attributes_status_development_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_status_development/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesStatusDevelopment`. */
+		get: operations['attributes_status_development_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_surface/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesSurface`. */
+		get: operations['attributes_surface_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/attributes_surface/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.AttributesSurface`. */
+		get: operations['attributes_surface_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/auth/app/login/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Token-based login for external apps (mobile, desktop, CLI).
+		 *
+		 *     Accepts username + password and returns JWT access and refresh tokens
+		 *     in the response body (no cookies). External apps should store these
+		 *     tokens securely and use ``Authorization: Bearer <access_token>``
+		 *     for subsequent requests.
+		 */
+		post: operations['auth_app_login_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/auth/app/logout/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Logout for external apps by blacklisting the refresh token.
+		 *
+		 *     Accepts ``{"refresh": "<token>"}`` in the request body.
+		 */
+		post: operations['auth_app_logout_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/auth/app/token/refresh/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Refresh an access token for external apps.
+		 *
+		 *     Accepts ``{"refresh": "<token>"}`` in the request body and returns
+		 *     a new access + refresh token pair. The old refresh token is
+		 *     blacklisted automatically (rotation is enabled).
+		 */
+		post: operations['auth_app_token_refresh_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/auth/login/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Check the credentials and return the REST Token
+		 *     if the credentials are valid and authenticated.
+		 *     Calls Django Auth login method to register User ID
+		 *     in Django session framework
+		 *
+		 *     Accept the following POST parameters: username, password
+		 *     Return the REST Framework Token Object's key.
+		 */
+		post: operations['auth_login_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/auth/logout/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Calls Django logout method and delete the Token object
+		 *     assigned to the current User object.
+		 *
+		 *     Accepts/Returns nothing.
+		 */
+		post: operations['auth_logout_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/auth/password/change/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Calls Django Auth SetPasswordForm save method.
+		 *
+		 *     Accepts the following POST parameters: new_password1, new_password2
+		 *     Returns the success/fail message.
+		 */
+		post: operations['auth_password_change_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/auth/password/reset/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Calls Django Auth PasswordResetForm save method.
+		 *
+		 *     Accepts the following POST parameters: email
+		 *     Returns the success/fail message.
+		 */
+		post: operations['auth_password_reset_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/auth/password/reset/confirm/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Password reset e-mail link is confirmed, therefore
+		 *     this resets the user's password.
+		 *
+		 *     Accepts the following POST parameters: token, uid,
+		 *         new_password1, new_password2
+		 *     Returns the success/fail message.
+		 */
+		post: operations['auth_password_reset_confirm_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/auth/permissions/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Return the authenticated user's role-based permission set. */
+		get: operations['auth_permissions_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/auth/qgis-auth/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Handle GET requests from Caddy forward_auth. */
+		get: operations['auth_qgis_auth_retrieve'];
+		put?: never;
+		/** @description Handle POST requests. */
+		post: operations['auth_qgis_auth_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/auth/token/refresh/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Takes a refresh type JSON web token and returns an access type JSON web
+		 *     token if the refresh token is valid.
+		 */
+		post: operations['auth_token_refresh_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/auth/token/verify/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Takes a token and indicates if it is valid.  This view provides no
+		 *     information about a token's fitness for a particular use.
+		 */
+		post: operations['auth_token_verify_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/auth/user/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Reads and updates UserModel fields
+		 *     Accepts GET, PUT, PATCH methods.
+		 *
+		 *     Default accepted fields: username, first_name, last_name
+		 *     Default display fields: pk, username, email, first_name, last_name
+		 *     Read-only fields: pk, email
+		 *
+		 *     Returns UserModel fields.
+		 */
+		get: operations['auth_user_retrieve'];
+		/**
+		 * @description Reads and updates UserModel fields
+		 *     Accepts GET, PUT, PATCH methods.
+		 *
+		 *     Default accepted fields: username, first_name, last_name
+		 *     Default display fields: pk, username, email, first_name, last_name
+		 *     Read-only fields: pk, email
+		 *
+		 *     Returns UserModel fields.
+		 */
+		put: operations['auth_user_update'];
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		/**
+		 * @description Reads and updates UserModel fields
+		 *     Accepts GET, PUT, PATCH methods.
+		 *
+		 *     Default accepted fields: username, first_name, last_name
+		 *     Default display fields: pk, username, email, first_name, last_name
+		 *     Read-only fields: pk, email
+		 *
+		 *     Returns UserModel fields.
+		 */
+		patch: operations['auth_user_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/auth/webdav-auth/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Handle GET requests from Caddy forward_auth. */
+		get: operations['auth_webdav_auth_retrieve'];
+		put?: never;
+		/** @description Handle POST requests. */
+		post: operations['auth_webdav_auth_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/cable/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.Cable`.
+		 *
+		 *     Support filtering by project, flag, and node with cable-at-node serialization.
+		 */
+		get: operations['cable_list'];
+		put?: never;
+		/** @description Override create to add a warning when cable type has incomplete color mappings. */
+		post: operations['cable_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/cable/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.Cable`.
+		 *
+		 *     Support filtering by project, flag, and node with cable-at-node serialization.
+		 */
+		get: operations['cable_retrieve'];
+		/**
+		 * @description CRUD operations for :model:`api.Cable`.
+		 *
+		 *     Support filtering by project, flag, and node with cable-at-node serialization.
+		 */
+		put: operations['cable_update'];
+		post?: never;
+		/**
+		 * @description CRUD operations for :model:`api.Cable`.
+		 *
+		 *     Support filtering by project, flag, and node with cable-at-node serialization.
+		 */
+		delete: operations['cable_destroy'];
+		options?: never;
+		head?: never;
+		/**
+		 * @description CRUD operations for :model:`api.Cable`.
+		 *
+		 *     Support filtering by project, flag, and node with cable-at-node serialization.
+		 */
+		patch: operations['cable_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/cable/{uuid}/recalculate-length/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Recalculate the cable length from its micropipe connections.
+		 *
+		 *     Args:
+		 *         request: The incoming HTTP request.
+		 *         pk: Primary key of the cable to recalculate.
+		 *
+		 *     Returns:
+		 *         Response: JSON with updated ``length`` and ``length_total``.
+		 */
+		post: operations['cable_recalculate_length_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/cable/all/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Returns all cables with project, flag, and search filters.
+		 *     No pagination is used.
+		 *
+		 *     The optional ``exclude_projects`` param takes a comma-separated list
+		 *     of project ids (e.g. ``?exclude_projects=3,7``) to drop from results.
+		 */
+		get: operations['cable_all_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/cable/at-node/{node_uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Returns all cables that start or end at the specified node. */
+		get: operations['cable_at_node_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/cable/in-trench/{trench_uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Returns all cables that pass through microducts in the specified trench.
+		 *
+		 *     Relationship path:
+		 *     Trench -> TrenchConduitConnection -> Conduit -> Microduct -> MicroductCableConnection -> Cable
+		 */
+		get: operations['cable_in_trench_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/cable_label/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description CRUD operations for :model:`api.CableLabel`. */
+		get: operations['cable_label_list'];
+		put?: never;
+		/** @description CRUD operations for :model:`api.CableLabel`. */
+		post: operations['cable_label_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/cable_label/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description CRUD operations for :model:`api.CableLabel`. */
+		get: operations['cable_label_retrieve'];
+		/** @description CRUD operations for :model:`api.CableLabel`. */
+		put: operations['cable_label_update'];
+		post?: never;
+		/** @description CRUD operations for :model:`api.CableLabel`. */
+		delete: operations['cable_label_destroy'];
+		options?: never;
+		head?: never;
+		/** @description CRUD operations for :model:`api.CableLabel`. */
+		patch: operations['cable_label_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/cable_label/all/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Returns all cable labels with optional cable filter.
+		 *     No pagination is used.
+		 */
+		get: operations['cable_label_all_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/cable_type_color_mapping/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.CableTypeColorMapping`. */
+		get: operations['cable_type_color_mapping_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/cable_type_color_mapping/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.CableTypeColorMapping`. */
+		get: operations['cable_type_color_mapping_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/cables/{cable_id}/auto-link-micropipe/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Auto-resolve microduct links for both cable ends, or link a chosen microduct.
+		 *
+		 *     When ``microduct_uuid`` is included in the request body, link that
+		 *     specific microduct. Otherwise run automatic matching on both ends.
+		 *
+		 *     Args:
+		 *         request: DRF request. Optional JSON body with ``microduct_uuid``.
+		 *         cable_id: UUID of the :model:`api.Cable` to link.
+		 *
+		 *     Returns:
+		 *         Response: Per-end link results or the single-link result.
+		 */
+		post: operations['cables_auto_link_micropipe_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/cables/{cable_id}/conduits/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Get all conduit names where the cable has micropipe connections. */
+		get: operations['cables_conduits_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/cables/{cable_id}/linked-trenches/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Get all trench UUIDs where the cable has micropipe connections.
+		 *     Path: Cable -> MicroductCableConnection -> Microduct -> Conduit -> TrenchConduitConnection -> Trench
+		 */
+		get: operations['cables_linked_trenches_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/cables/{cable_id}/micropipe-connections/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** @description Create connections for a micropipe across multiple conduits. */
+		post: operations['cables_micropipe_connections_create'];
+		/** @description Remove connections for a micropipe across conduits. */
+		delete: operations['cables_micropipe_connections_destroy'];
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/cables/micropipe-summary/{project_id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Get micropipe connection summary for all cables in a project.
+		 *     Returns a dict mapping cable UUIDs to their connected micropipes with color info.
+		 *     Used for dynamic edge coloring in the network schema diagram.
+		 */
+		get: operations['cables_micropipe_summary_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/canvas-coordinates/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Check the status of canvas coordinates and sync operations.
+		 *
+		 *     Returns:
+		 *     {
+		 *         "total_nodes": int,
+		 *         "nodes_with_canvas": int,
+		 *         "nodes_missing_canvas": int,
+		 *         "sync_needed": bool,
+		 *         "sync_in_progress": bool,
+		 *         "sync_status": str,
+		 *         "sync_started_at": datetime,
+		 *         "sync_progress": float
+		 *     }
+		 */
+		get: operations['canvas_coordinates_retrieve'];
+		put?: never;
+		/**
+		 * @description Calculate and store canvas coordinates with concurrency control.
+		 *
+		 *     Expected request body:
+		 *     {
+		 *         "project_id": int,  # Optional: filter by project
+		 *         "flag_id": int,     # Optional: filter by flag
+		 *         "scale": float      # Optional: scale factor (default: 1.0)
+		 *     }
+		 */
+		post: operations['canvas_coordinates_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/conduit/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.Conduit`.
+		 *
+		 *     Support filtering by trench, project, and flag with pagination.
+		 */
+		get: operations['conduit_list'];
+		put?: never;
+		/**
+		 * @description CRUD operations for :model:`api.Conduit`.
+		 *
+		 *     Support filtering by trench, project, and flag with pagination.
+		 */
+		post: operations['conduit_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/conduit/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.Conduit`.
+		 *
+		 *     Support filtering by trench, project, and flag with pagination.
+		 */
+		get: operations['conduit_retrieve'];
+		/**
+		 * @description CRUD operations for :model:`api.Conduit`.
+		 *
+		 *     Support filtering by trench, project, and flag with pagination.
+		 */
+		put: operations['conduit_update'];
+		post?: never;
+		/**
+		 * @description CRUD operations for :model:`api.Conduit`.
+		 *
+		 *     Support filtering by trench, project, and flag with pagination.
+		 */
+		delete: operations['conduit_destroy'];
+		options?: never;
+		head?: never;
+		/**
+		 * @description CRUD operations for :model:`api.Conduit`.
+		 *
+		 *     Support filtering by trench, project, and flag with pagination.
+		 */
+		patch: operations['conduit_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/conduit/{id}/trenches/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Returns all trench UUIDs that contain this conduit. */
+		get: operations['conduit_trenches_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/conduit/all/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Returns conduits with server-side pagination.
+		 *
+		 *     Query params:
+		 *     - project: Filter by project ID (optional)
+		 *     - exclude_projects: Comma-separated project IDs to exclude (optional)
+		 *     - flag: Filter by flag ID
+		 *     - search: Search term
+		 *     - page: Page number (default: 1)
+		 *     - page_size: Items per page (default: 50, max: 200)
+		 *     - no_pagination: Return all results without pagination (default: false)
+		 */
+		get: operations['conduit_all_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/conduits/by-trenches/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Return deduplicated conduits across the given trench UUIDs. */
+		get: operations['conduits_by_trenches_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/config/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Return the storage SRID and its proj4 definition.
+		 *
+		 *     Args:
+		 *         request: DRF request object.
+		 *
+		 *     Returns:
+		 *         Response: JSON with ``srid`` (int) and ``proj4`` (str).
+		 *             Cached for 24 hours via Cache-Control header.
+		 *
+		 *     Raises:
+		 *         Response: 500 with error message if the configured SRID
+		 *             is not a valid EPSG code.
+		 */
+		get: operations['config_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/container/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for Container instances.
+		 *     Supports CRUD operations and hierarchy manipulation.
+		 */
+		get: operations['container_list'];
+		put?: never;
+		/**
+		 * @description ViewSet for Container instances.
+		 *     Supports CRUD operations and hierarchy manipulation.
+		 */
+		post: operations['container_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/container-type/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Read-only ViewSet for ContainerType model.
+		 *     Only returns active container types.
+		 *     Admin management is done via Django Admin.
+		 */
+		get: operations['container_type_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/container-type/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Read-only ViewSet for ContainerType model.
+		 *     Only returns active container types.
+		 *     Admin management is done via Django Admin.
+		 */
+		get: operations['container_type_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/container/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for Container instances.
+		 *     Supports CRUD operations and hierarchy manipulation.
+		 */
+		get: operations['container_retrieve'];
+		/**
+		 * @description ViewSet for Container instances.
+		 *     Supports CRUD operations and hierarchy manipulation.
+		 */
+		put: operations['container_update'];
+		post?: never;
+		/**
+		 * @description ViewSet for Container instances.
+		 *     Supports CRUD operations and hierarchy manipulation.
+		 */
+		delete: operations['container_destroy'];
+		options?: never;
+		head?: never;
+		/**
+		 * @description ViewSet for Container instances.
+		 *     Supports CRUD operations and hierarchy manipulation.
+		 */
+		patch: operations['container_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/container/{uuid}/move/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Move a container to a new parent or reorder within siblings.
+		 *
+		 *     Request body:
+		 *     {
+		 *         "parent_container_id": "uuid" | null,  # New parent (null for root)
+		 *         "sort_order": 0  # New position among siblings
+		 *     }
+		 */
+		post: operations['container_move_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/container/by-node/{node_uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Get all containers for a specific node as a flat list. */
+		get: operations['container_by_node_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/container/tree/{node_uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Get the complete container hierarchy for a node.
+		 *     Returns a tree structure with nested containers and slot configurations.
+		 */
+		get: operations['container_tree_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/content-types/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description ViewSet for Django ContentType model. */
+		get: operations['content_types_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/content-types/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description ViewSet for Django ContentType model. */
+		get: operations['content_types_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/dashboard/statistics/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Return all dashboard statistics in a single cached response.
+		 *
+		 *     Args:
+		 *         request: HTTP request with required ?project and optional ?flag params.
+		 *
+		 *     Returns:
+		 *         Response: Aggregated statistics for trench, node, address, conduit, and area.
+		 */
+		get: operations['dashboard_statistics_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/fault-simulation/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Run fault simulation for a given damage point.
+		 *
+		 *     Expect JSON body with ``point`` (``[x, y]``) and ``project_id``
+		 *     (UUID string).
+		 *
+		 *     Returns:
+		 *         Response: Simulation results on success (HTTP 200), validation
+		 *             error (HTTP 400), no trench found (HTTP 404), or server
+		 *             error (HTTP 500).
+		 */
+		post: operations['fault_simulation_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/feature-files/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.FeatureFiles`.
+		 *
+		 *     Provide authenticated file downloads using Nginx X-Accel-Redirect for
+		 *     secure and efficient file serving.
+		 */
+		get: operations['feature_files_list'];
+		put?: never;
+		/**
+		 * @description CRUD operations for :model:`api.FeatureFiles`.
+		 *
+		 *     Provide authenticated file downloads using Nginx X-Accel-Redirect for
+		 *     secure and efficient file serving.
+		 */
+		post: operations['feature_files_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/feature-files/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.FeatureFiles`.
+		 *
+		 *     Provide authenticated file downloads using Nginx X-Accel-Redirect for
+		 *     secure and efficient file serving.
+		 */
+		get: operations['feature_files_retrieve'];
+		/**
+		 * @description CRUD operations for :model:`api.FeatureFiles`.
+		 *
+		 *     Provide authenticated file downloads using Nginx X-Accel-Redirect for
+		 *     secure and efficient file serving.
+		 */
+		put: operations['feature_files_update'];
+		post?: never;
+		/**
+		 * @description Delete both the database record and the physical file.
+		 *
+		 *     This override ensures that when a FeatureFile is deleted via the API,
+		 *     both the database entry and the actual file on disk are removed.
+		 */
+		delete: operations['feature_files_destroy'];
+		options?: never;
+		head?: never;
+		/**
+		 * @description CRUD operations for :model:`api.FeatureFiles`.
+		 *
+		 *     Provide authenticated file downloads using Nginx X-Accel-Redirect for
+		 *     secure and efficient file serving.
+		 */
+		patch: operations['feature_files_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/feature-files/{uuid}/download/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Download a file using X-Accel-Redirect for efficient serving.
+		 *
+		 *     This endpoint validates user authentication and then redirects
+		 *     to Nginx's internal location for secure file serving.
+		 *
+		 *     In development mode (DEBUG=True), files are served directly via
+		 *     Django's FileResponse since X-Accel-Redirect requires Nginx.
+		 */
+		get: operations['feature_files_download_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/feature-files/{uuid}/preview/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Preview a file using X-Accel-Redirect for efficient serving.
+		 *
+		 *     This endpoint validates user authentication and then redirects
+		 *     to Nginx's internal location for secure file serving with inline
+		 *     content disposition, allowing browsers to display the file.
+		 *
+		 *     Only content types on ``INLINE_SAFE_MIME_TYPES`` are served inline;
+		 *     anything that a browser could execute as active content (HTML, SVG,
+		 *     scripts, etc.) is forced to ``attachment`` with an
+		 *     ``application/octet-stream`` content type so it can never run in the
+		 *     API origin where the auth cookie lives.
+		 *
+		 *     In development mode (DEBUG=True), files are served directly via
+		 *     Django's FileResponse since X-Accel-Redirect requires Nginx.
+		 */
+		get: operations['feature_files_preview_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/feature-files/{uuid}/rename/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Rename a file by updating both the filesystem and database.
+		 *
+		 *     This endpoint:
+		 *     1. Validates the new filename
+		 *     2. Physically renames the file in storage
+		 *     3. Updates the database record atomically
+		 *     4. Returns the updated file object
+		 *
+		 *     Request body:
+		 *         {
+		 *             "new_filename": "newname.ext"
+		 *         }
+		 */
+		post: operations['feature_files_rename_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/fiber/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for the Fiber model :model:`api.Fiber`.
+		 *
+		 *     Supports read and update operations for fiber data with filtering by cable.
+		 */
+		get: operations['fiber_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/fiber-splice/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for FiberSplice model.
+		 *     Manages fiber splice connections within node components.
+		 *     Each splice connects fiber_a to fiber_b at a specific port number.
+		 */
+		get: operations['fiber_splice_list'];
+		put?: never;
+		/**
+		 * @description ViewSet for FiberSplice model.
+		 *     Manages fiber splice connections within node components.
+		 *     Each splice connects fiber_a to fiber_b at a specific port number.
+		 */
+		post: operations['fiber_splice_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/fiber-splice/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for FiberSplice model.
+		 *     Manages fiber splice connections within node components.
+		 *     Each splice connects fiber_a to fiber_b at a specific port number.
+		 */
+		get: operations['fiber_splice_retrieve'];
+		/**
+		 * @description ViewSet for FiberSplice model.
+		 *     Manages fiber splice connections within node components.
+		 *     Each splice connects fiber_a to fiber_b at a specific port number.
+		 */
+		put: operations['fiber_splice_update'];
+		post?: never;
+		/**
+		 * @description ViewSet for FiberSplice model.
+		 *     Manages fiber splice connections within node components.
+		 *     Each splice connects fiber_a to fiber_b at a specific port number.
+		 */
+		delete: operations['fiber_splice_destroy'];
+		options?: never;
+		head?: never;
+		/**
+		 * @description ViewSet for FiberSplice model.
+		 *     Manages fiber splice connections within node components.
+		 *     Each splice connects fiber_a to fiber_b at a specific port number.
+		 */
+		patch: operations['fiber_splice_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/fiber-splice/bulk-upsert/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Bulk upsert multiple fiber splices in one request.
+		 *
+		 *     Creates or updates fiber splices for multiple port-fiber pairs at once.
+		 *     Partial success is supported - some splices can be created even if others fail.
+		 *
+		 *     Expects: {
+		 *         "splices": [
+		 *             {"node_structure_uuid": "...", "port_number": 1, "side": "a",
+		 *              "fiber_uuid": "...", "cable_uuid": "..."},
+		 *             {"node_structure_uuid": "...", "port_number": 2, "side": "b",
+		 *              "residential_unit_uuid": "..."},
+		 *             ...
+		 *         ]
+		 *     }
+		 *
+		 *     Returns: {
+		 *         "created": [...],  # Successfully created/updated splices
+		 *         "failed": [{"port_number": 5, "error": "..."}]  # Failed splices
+		 *     }
+		 */
+		post: operations['fiber_splice_bulk_upsert_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/fiber-splice/clear-port/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Clear a fiber from a specific side of a port.
+		 *     If both sides become empty AND not in any merge group, delete the splice record.
+		 *
+		 *     If the port is merged on this side, clears the SHARED fiber for all ports
+		 *     in the merge group, but keeps the merge group structure intact.
+		 */
+		post: operations['fiber_splice_clear_port_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/fiber-splice/merge-ports/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Merge multiple ports into a group for a specific side (A or B).
+		 *     Creates a new merge_group UUID and assigns it to the side-specific field.
+		 *
+		 *     Each side has its own independent merge group, allowing ports to be
+		 *     merged on both sides simultaneously (e.g., splitter with merged input AND output).
+		 *
+		 *     If any port has an existing fiber on the merged side, it becomes the
+		 *     SHARED fiber for all ports in the group. Individual fibers on the
+		 *     merged side are cleared.
+		 */
+		post: operations['fiber_splice_merge_ports_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/fiber-splice/unmerge-ports/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Remove specific ports from a merge group on a specific side.
+		 *     Sets merge_group_a or merge_group_b to NULL for specified ports.
+		 *     If only one port remains in group, unmerges that one too.
+		 *
+		 *     When unmerging, converts the shared fiber back to an individual fiber
+		 *     on the first unmerged port, then clears shared fibers for that side only.
+		 */
+		post: operations['fiber_splice_unmerge_ports_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/fiber-splice/upsert/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Create or update a fiber splice connection.
+		 *     Specify which side ('a' or 'b') the fiber should be placed on.
+		 *
+		 *     If the port is part of a merge group on this side,
+		 *     the fiber becomes a SHARED fiber for all ports in the group.
+		 *
+		 *     Can also connect a residential unit instead of a fiber/cable pair.
+		 */
+		post: operations['fiber_splice_upsert_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/fiber-splice/upsert-merged/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Upsert fibers to a merge group on a specific side.
+		 *
+		 *     Behavior depends on whether the merge group is on this side:
+		 *     - If dropping on the MERGED side (this side has the merge group):
+		 *     Use the FIRST fiber as the shared fiber for all ports in the group
+		 *     - If dropping on the OTHER side (not merged on this side):
+		 *     Fill individual fibers sequentially across ports
+		 */
+		post: operations['fiber_splice_upsert_merged_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/fiber-trace/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Trace fiber paths through the network and return a path tree. */
+		get: operations['fiber_trace_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/fiber-trace/summary/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Return a compact trace summary with start/end nodes and statistics. */
+		get: operations['fiber_trace_summary_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/fiber/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for the Fiber model :model:`api.Fiber`.
+		 *
+		 *     Supports read and update operations for fiber data with filtering by cable.
+		 */
+		get: operations['fiber_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		/**
+		 * @description ViewSet for the Fiber model :model:`api.Fiber`.
+		 *
+		 *     Supports read and update operations for fiber data with filtering by cable.
+		 */
+		patch: operations['fiber_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/fiber/by-cable/{cable_uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Returns all fibers for a specific cable, ordered by bundle and fiber number. */
+		get: operations['fiber_by_cable_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/flags/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.Flags`. */
+		get: operations['flags_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/flags/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.Flags`. */
+		get: operations['flags_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/import/conduit/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** @description Import conduits from an uploaded .xlsx file (max 10 MB). */
+		post: operations['import_conduit_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/layer-extent/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Returns the bounding box extent for a layer filtered by project.
+		 *
+		 *     Query Parameters:
+		 *     - `layer`: Layer type ('trench', 'address', 'node', or 'area') - required
+		 *     - `project`: Project ID to filter by - required
+		 *
+		 *     Returns:
+		 *     - extent: [xmin, ymin, xmax, ymax] in EPSG:3857, or null if no features
+		 *     - layer: The requested layer type
+		 */
+		get: operations['layer_extent_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/logs/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for viewing application logs.
+		 *
+		 *     Only accessible to staff users (is_staff=True).
+		 *     Provides filtering by date range, log level, user, source, project, and search.
+		 *
+		 *     Query parameters:
+		 *     - level: Filter by log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+		 *     - source: Filter by source (backend, frontend)
+		 *     - user: Filter by user ID
+		 *     - project: Filter by project ID
+		 *     - search: Search in message and logger_name
+		 *     - date_from: Filter logs from this date (ISO format)
+		 *     - date_to: Filter logs until this date (ISO format)
+		 */
+		get: operations['logs_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/logs/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for viewing application logs.
+		 *
+		 *     Only accessible to staff users (is_staff=True).
+		 *     Provides filtering by date range, log level, user, source, project, and search.
+		 *
+		 *     Query parameters:
+		 *     - level: Filter by log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+		 *     - source: Filter by source (backend, frontend)
+		 *     - user: Filter by user ID
+		 *     - project: Filter by project ID
+		 *     - search: Search in message and logger_name
+		 *     - date_from: Filter logs from this date (ISO format)
+		 *     - date_to: Filter logs until this date (ISO format)
+		 */
+		get: operations['logs_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/logs/frontend/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** @description Submit a frontend log entry. */
+		post: operations['logs_frontend_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/microduct/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.Microduct`.
+		 *
+		 *     Support filtering by conduit, number, color, and node.
+		 */
+		get: operations['microduct_list'];
+		put?: never;
+		/**
+		 * @description CRUD operations for :model:`api.Microduct`.
+		 *
+		 *     Support filtering by conduit, number, color, and node.
+		 */
+		post: operations['microduct_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/microduct/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.Microduct`.
+		 *
+		 *     Support filtering by conduit, number, color, and node.
+		 */
+		get: operations['microduct_retrieve'];
+		/**
+		 * @description CRUD operations for :model:`api.Microduct`.
+		 *
+		 *     Support filtering by conduit, number, color, and node.
+		 */
+		put: operations['microduct_update'];
+		post?: never;
+		/**
+		 * @description CRUD operations for :model:`api.Microduct`.
+		 *
+		 *     Support filtering by conduit, number, color, and node.
+		 */
+		delete: operations['microduct_destroy'];
+		options?: never;
+		head?: never;
+		/**
+		 * @description CRUD operations for :model:`api.Microduct`.
+		 *
+		 *     Support filtering by conduit, number, color, and node.
+		 */
+		patch: operations['microduct_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/microduct/all/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Returns all microducts.
+		 *     No pagination is applied.
+		 */
+		get: operations['microduct_all_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/microduct_cable_connection/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description CRUD operations for :model:`api.MicroductCableConnection`. */
+		get: operations['microduct_cable_connection_list'];
+		put?: never;
+		/** @description CRUD operations for :model:`api.MicroductCableConnection`. */
+		post: operations['microduct_cable_connection_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/microduct_cable_connection/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description CRUD operations for :model:`api.MicroductCableConnection`. */
+		get: operations['microduct_cable_connection_retrieve'];
+		/** @description CRUD operations for :model:`api.MicroductCableConnection`. */
+		put: operations['microduct_cable_connection_update'];
+		post?: never;
+		/** @description CRUD operations for :model:`api.MicroductCableConnection`. */
+		delete: operations['microduct_cable_connection_destroy'];
+		options?: never;
+		head?: never;
+		/** @description CRUD operations for :model:`api.MicroductCableConnection`. */
+		patch: operations['microduct_cable_connection_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/microduct_cable_connection/all/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Returns all microduct cable connections.
+		 *     No pagination is used.
+		 */
+		get: operations['microduct_cable_connection_all_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/microduct_connection/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description CRUD operations for :model:`api.MicroductConnection`. */
+		get: operations['microduct_connection_list'];
+		put?: never;
+		/** @description CRUD operations for :model:`api.MicroductConnection`. */
+		post: operations['microduct_connection_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/microduct_connection/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description CRUD operations for :model:`api.MicroductConnection`. */
+		get: operations['microduct_connection_retrieve'];
+		/** @description CRUD operations for :model:`api.MicroductConnection`. */
+		put: operations['microduct_connection_update'];
+		post?: never;
+		/** @description CRUD operations for :model:`api.MicroductConnection`. */
+		delete: operations['microduct_connection_destroy'];
+		options?: never;
+		head?: never;
+		/** @description CRUD operations for :model:`api.MicroductConnection`. */
+		patch: operations['microduct_connection_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/microduct_connection/all_connections/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Returns all microduct connections.
+		 *     - `uuid_node`: Filter by node UUID
+		 */
+		get: operations['microduct_connection_all_connections_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/micropipes/by-conduits/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Return micropipes with availability and cable connection info across conduits. */
+		get: operations['micropipes_by_conduits_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.Node`.
+		 *
+		 *     Support spatial queries, filtering by project, flag, and node type,
+		 *     with pipe-branch and child-view modes for canvas rendering.
+		 */
+		get: operations['node_list'];
+		put?: never;
+		/**
+		 * @description CRUD operations for :model:`api.Node`.
+		 *
+		 *     Support spatial queries, filtering by project, flag, and node type,
+		 *     with pipe-branch and child-view modes for canvas rendering.
+		 */
+		post: operations['node_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node-export/excel/{node_uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Generate and return an Excel file for the given node's structure. */
+		get: operations['node_export_excel_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node-slot-clip-number/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for NodeSlotClipNumber model.
+		 *     Manages custom clip numbers for individual slots.
+		 */
+		get: operations['node_slot_clip_number_list'];
+		put?: never;
+		/**
+		 * @description ViewSet for NodeSlotClipNumber model.
+		 *     Manages custom clip numbers for individual slots.
+		 */
+		post: operations['node_slot_clip_number_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node-slot-clip-number/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for NodeSlotClipNumber model.
+		 *     Manages custom clip numbers for individual slots.
+		 */
+		get: operations['node_slot_clip_number_retrieve'];
+		/**
+		 * @description ViewSet for NodeSlotClipNumber model.
+		 *     Manages custom clip numbers for individual slots.
+		 */
+		put: operations['node_slot_clip_number_update'];
+		post?: never;
+		/**
+		 * @description ViewSet for NodeSlotClipNumber model.
+		 *     Manages custom clip numbers for individual slots.
+		 */
+		delete: operations['node_slot_clip_number_destroy'];
+		options?: never;
+		head?: never;
+		/**
+		 * @description ViewSet for NodeSlotClipNumber model.
+		 *     Manages custom clip numbers for individual slots.
+		 */
+		patch: operations['node_slot_clip_number_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/node-slot-clip-number/upsert/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** @description Create or update a clip number for a slot. */
+		post: operations['node_slot_clip_number_upsert_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node-slot-configuration/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for the NodeSlotConfiguration model.
+		 *
+		 *     Manages slot configurations for nodes, allowing users to define
+		 *     the total number of slots available on each side of a node.
+		 */
+		get: operations['node_slot_configuration_list'];
+		put?: never;
+		/**
+		 * @description ViewSet for the NodeSlotConfiguration model.
+		 *
+		 *     Manages slot configurations for nodes, allowing users to define
+		 *     the total number of slots available on each side of a node.
+		 */
+		post: operations['node_slot_configuration_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node-slot-configuration/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for the NodeSlotConfiguration model.
+		 *
+		 *     Manages slot configurations for nodes, allowing users to define
+		 *     the total number of slots available on each side of a node.
+		 */
+		get: operations['node_slot_configuration_retrieve'];
+		/**
+		 * @description ViewSet for the NodeSlotConfiguration model.
+		 *
+		 *     Manages slot configurations for nodes, allowing users to define
+		 *     the total number of slots available on each side of a node.
+		 */
+		put: operations['node_slot_configuration_update'];
+		post?: never;
+		/**
+		 * @description ViewSet for the NodeSlotConfiguration model.
+		 *
+		 *     Manages slot configurations for nodes, allowing users to define
+		 *     the total number of slots available on each side of a node.
+		 */
+		delete: operations['node_slot_configuration_destroy'];
+		options?: never;
+		head?: never;
+		/**
+		 * @description ViewSet for the NodeSlotConfiguration model.
+		 *
+		 *     Manages slot configurations for nodes, allowing users to define
+		 *     the total number of slots available on each side of a node.
+		 */
+		patch: operations['node_slot_configuration_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/node-slot-configuration/{uuid}/move-to-container/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Move a slot configuration into a container or to root level.
+		 *
+		 *     Request body:
+		 *     {
+		 *         "container_id": "uuid" | null,  # Target container (null for root)
+		 *         "sort_order": 0  # Position within container/root
+		 *     }
+		 */
+		post: operations['node_slot_configuration_move_to_container_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node-slot-configuration/by-node/{node_uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Get all slot configurations for a specific node with usage stats. */
+		get: operations['node_slot_configuration_by_node_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node-slot-divider/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for NodeSlotDivider model.
+		 *     Manages horizontal divider lines between TPU slots for visual grouping.
+		 */
+		get: operations['node_slot_divider_list'];
+		put?: never;
+		/**
+		 * @description ViewSet for NodeSlotDivider model.
+		 *     Manages horizontal divider lines between TPU slots for visual grouping.
+		 */
+		post: operations['node_slot_divider_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node-slot-divider/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for NodeSlotDivider model.
+		 *     Manages horizontal divider lines between TPU slots for visual grouping.
+		 */
+		get: operations['node_slot_divider_retrieve'];
+		/**
+		 * @description ViewSet for NodeSlotDivider model.
+		 *     Manages horizontal divider lines between TPU slots for visual grouping.
+		 */
+		put: operations['node_slot_divider_update'];
+		post?: never;
+		/**
+		 * @description ViewSet for NodeSlotDivider model.
+		 *     Manages horizontal divider lines between TPU slots for visual grouping.
+		 */
+		delete: operations['node_slot_divider_destroy'];
+		options?: never;
+		head?: never;
+		/**
+		 * @description ViewSet for NodeSlotDivider model.
+		 *     Manages horizontal divider lines between TPU slots for visual grouping.
+		 */
+		patch: operations['node_slot_divider_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/node-structure/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for the NodeStructure model.
+		 *
+		 *     Manages the structure of components within a node, including
+		 *     component types, structures, and their slot positions.
+		 */
+		get: operations['node_structure_list'];
+		put?: never;
+		/**
+		 * @description ViewSet for the NodeStructure model.
+		 *
+		 *     Manages the structure of components within a node, including
+		 *     component types, structures, and their slot positions.
+		 */
+		post: operations['node_structure_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node-structure/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for the NodeStructure model.
+		 *
+		 *     Manages the structure of components within a node, including
+		 *     component types, structures, and their slot positions.
+		 */
+		get: operations['node_structure_retrieve'];
+		/**
+		 * @description ViewSet for the NodeStructure model.
+		 *
+		 *     Manages the structure of components within a node, including
+		 *     component types, structures, and their slot positions.
+		 */
+		put: operations['node_structure_update'];
+		post?: never;
+		/**
+		 * @description ViewSet for the NodeStructure model.
+		 *
+		 *     Manages the structure of components within a node, including
+		 *     component types, structures, and their slot positions.
+		 */
+		delete: operations['node_structure_destroy'];
+		options?: never;
+		head?: never;
+		/**
+		 * @description ViewSet for the NodeStructure model.
+		 *
+		 *     Manages the structure of components within a node, including
+		 *     component types, structures, and their slot positions.
+		 */
+		patch: operations['node_structure_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/node-structure/{uuid}/move/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** @description Move a structure to a new slot position. */
+		post: operations['node_structure_move_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node-structure/bulk-create/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Bulk create multiple node structures at consecutive slots.
+		 *
+		 *     Creates structures for valid slots and reports failures for occupied slots.
+		 *     Partial success is allowed - some structures can be created even if others fail.
+		 *
+		 *     Expects: {
+		 *         "node_uuid": "...",
+		 *         "slot_configuration_uuid": "...",
+		 *         "component_type_id": 7,
+		 *         "slot_start": 5,
+		 *         "count": 3,
+		 *         "occupied_slots_per_component": 2
+		 *     }
+		 *
+		 *     Returns: {
+		 *         "created": [...],
+		 *         "failed": [{"slot_start": 9, "slot_end": 10, "error": "..."}]
+		 *     }
+		 */
+		post: operations['node_structure_bulk_create_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node-structure/by-node/{node_uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Get all structures for a specific node grouped by slot configuration. */
+		get: operations['node_structure_by_node_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node-structure/summary/{node_uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Get a summary of slot usage for a node. */
+		get: operations['node_structure_summary_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node-trench-selection/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for managing node-trench selections for the pipe-branch canvas.
+		 *
+		 *     This tracks which trenches a user has selected to display on the pipe-branch
+		 *     canvas for a given node. Selections are persisted so they auto-load when
+		 *     the user returns to the same node.
+		 */
+		get: operations['node_trench_selection_list'];
+		put?: never;
+		/**
+		 * @description ViewSet for managing node-trench selections for the pipe-branch canvas.
+		 *
+		 *     This tracks which trenches a user has selected to display on the pipe-branch
+		 *     canvas for a given node. Selections are persisted so they auto-load when
+		 *     the user returns to the same node.
+		 */
+		post: operations['node_trench_selection_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node-trench-selection/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for managing node-trench selections for the pipe-branch canvas.
+		 *
+		 *     This tracks which trenches a user has selected to display on the pipe-branch
+		 *     canvas for a given node. Selections are persisted so they auto-load when
+		 *     the user returns to the same node.
+		 */
+		get: operations['node_trench_selection_retrieve'];
+		/**
+		 * @description ViewSet for managing node-trench selections for the pipe-branch canvas.
+		 *
+		 *     This tracks which trenches a user has selected to display on the pipe-branch
+		 *     canvas for a given node. Selections are persisted so they auto-load when
+		 *     the user returns to the same node.
+		 */
+		put: operations['node_trench_selection_update'];
+		post?: never;
+		/**
+		 * @description ViewSet for managing node-trench selections for the pipe-branch canvas.
+		 *
+		 *     This tracks which trenches a user has selected to display on the pipe-branch
+		 *     canvas for a given node. Selections are persisted so they auto-load when
+		 *     the user returns to the same node.
+		 */
+		delete: operations['node_trench_selection_destroy'];
+		options?: never;
+		head?: never;
+		/**
+		 * @description ViewSet for managing node-trench selections for the pipe-branch canvas.
+		 *
+		 *     This tracks which trenches a user has selected to display on the pipe-branch
+		 *     canvas for a given node. Selections are persisted so they auto-load when
+		 *     the user returns to the same node.
+		 */
+		patch: operations['node_trench_selection_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/node-trench-selection/bulk-update/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Bulk update trench selections for a node.
+		 *
+		 *     This replaces all existing selections for the node with the provided list.
+		 *     Expects: { "node_uuid": "...", "trench_uuids": ["...", "..."] }
+		 */
+		post: operations['node_trench_selection_bulk_update_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node-trench-selection/by-node/{node_uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Get all trench selections for a specific node. */
+		get: operations['node_trench_selection_by_node_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.Node`.
+		 *
+		 *     Support spatial queries, filtering by project, flag, and node type,
+		 *     with pipe-branch and child-view modes for canvas rendering.
+		 */
+		get: operations['node_retrieve'];
+		/**
+		 * @description CRUD operations for :model:`api.Node`.
+		 *
+		 *     Support spatial queries, filtering by project, flag, and node type,
+		 *     with pipe-branch and child-view modes for canvas rendering.
+		 */
+		put: operations['node_update'];
+		post?: never;
+		/**
+		 * @description CRUD operations for :model:`api.Node`.
+		 *
+		 *     Support spatial queries, filtering by project, flag, and node type,
+		 *     with pipe-branch and child-view modes for canvas rendering.
+		 */
+		delete: operations['node_destroy'];
+		options?: never;
+		head?: never;
+		/**
+		 * @description CRUD operations for :model:`api.Node`.
+		 *
+		 *     Support spatial queries, filtering by project, flag, and node type,
+		 *     with pipe-branch and child-view modes for canvas rendering.
+		 */
+		patch: operations['node_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/node/{uuid}/addresses/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Get addresses linked to this node with their residential units. */
+		get: operations['node_addresses_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node/{uuid}/used-fibers/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Get fiber UUIDs that are spliced at this node, with component placement info. */
+		get: operations['node_used_fibers_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node/{uuid}/used-residential-units/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Get residential unit UUIDs that are connected in splices at this node, with component placement info. */
+		get: operations['node_used_residential_units_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node/all/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Return all nodes with project, flag, and fuzzy search filters.
+		 *
+		 *     Search uses trigram similarity on the name field combined with
+		 *     an icontains fallback on the node_type name.
+		 *
+		 *     Query Parameters:
+		 *         project: Filter by project ID.
+		 *         exclude_projects: Comma-separated project IDs to exclude
+		 *             (e.g. ``3,7``).
+		 *         flag: Filter by flag ID.
+		 *         group: Filter by node type group.
+		 *         exclude_group: Exclude nodes by node type group.
+		 *         search: Trigram fuzzy search on name, with icontains on node_type.
+		 *         use_pipe_branch_settings: If ``'true'``, apply project's
+		 *             pipe-branch allowed types.
+		 *         include_excluded: If ``'true'``, bypass NetworkSchemaSettings
+		 *             exclusions (for search).
+		 *         minimal: If ``'true'``, return only uuid and name
+		 *             (no geometry/relations).
+		 *
+		 *     If project settings are configured, excluded node types are
+		 *     automatically filtered out unless an explicit ``exclude_group``
+		 *     or ``include_excluded`` parameter is provided.
+		 *
+		 *     Args:
+		 *         request: DRF request with the query params above.
+		 *
+		 *     Returns:
+		 *         Response: GeoJSON FeatureCollection (or minimal JSON list
+		 *             when ``minimal=true``).
+		 */
+		get: operations['node_all_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node/count_by_city/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Returns the count of nodes grouped by city (from linked address). */
+		get: operations['node_count_by_city_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node/count_by_network_level/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Returns the count of nodes grouped by network level. */
+		get: operations['node_count_by_network_level_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node/count_by_owner/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Returns the count of nodes grouped by owner company. */
+		get: operations['node_count_by_owner_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node/count_by_status/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Returns the count of nodes grouped by status. */
+		get: operations['node_count_by_status_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node/count_of_nodes_by_type/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Returns the count of nodes by type. */
+		get: operations['node_count_of_nodes_by_type_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node/expiring_warranties/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Returns the next 5 nodes with warranties expiring soonest.
+		 *     Filters out nodes with no warranty or expired warranties.
+		 */
+		get: operations['node_expiring_warranties_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/node/newest_oldest_nodes/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Returns the 5 newest and 5 oldest nodes by date field. */
+		get: operations['node_newest_oldest_nodes_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/ol_address_tiles/{z}/{x}/{y}.mvt': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Serves MVT tiles for OlAddress.
+		 *     URL: /api/ol_address_tiles/{z}/{x}/{y}.mvt?project={project}
+		 */
+		get: operations['ol_address_tiles_.mvt_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/ol_area_tiles/{z}/{x}/{y}.mvt': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Serves MVT tiles for OlArea.
+		 *     URL: /api/ol_area_tiles/{z}/{x}/{y}.mvt?project={project}
+		 */
+		get: operations['ol_area_tiles_.mvt_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/ol_node_tiles/{z}/{x}/{y}.mvt': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Serves MVT tiles for OlNode.
+		 *     URL: /api/ol_node_tiles/{z}/{x}/{y}.mvt?project={project}
+		 */
+		get: operations['ol_node_tiles_.mvt_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/ol_trench_tiles/{z}/{x}/{y}.mvt': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Serves MVT tiles for OlTrench.
+		 *     URL: /api/ol_trench_tiles/{z}/{x}/{y}.mvt?project={project}
+		 */
+		get: operations['ol_trench_tiles_.mvt_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/pipeline-inquiry-areas/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.PipelineInquiryArea`.
+		 *
+		 *     Supports filtering by pipeline_record UUID via query parameter.
+		 */
+		get: operations['pipeline_inquiry_areas_list'];
+		put?: never;
+		/**
+		 * @description CRUD operations for :model:`api.PipelineInquiryArea`.
+		 *
+		 *     Supports filtering by pipeline_record UUID via query parameter.
+		 */
+		post: operations['pipeline_inquiry_areas_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/pipeline-inquiry-areas/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.PipelineInquiryArea`.
+		 *
+		 *     Supports filtering by pipeline_record UUID via query parameter.
+		 */
+		get: operations['pipeline_inquiry_areas_retrieve'];
+		/**
+		 * @description CRUD operations for :model:`api.PipelineInquiryArea`.
+		 *
+		 *     Supports filtering by pipeline_record UUID via query parameter.
+		 */
+		put: operations['pipeline_inquiry_areas_update'];
+		post?: never;
+		/**
+		 * @description CRUD operations for :model:`api.PipelineInquiryArea`.
+		 *
+		 *     Supports filtering by pipeline_record UUID via query parameter.
+		 */
+		delete: operations['pipeline_inquiry_areas_destroy'];
+		options?: never;
+		head?: never;
+		/**
+		 * @description CRUD operations for :model:`api.PipelineInquiryArea`.
+		 *
+		 *     Supports filtering by pipeline_record UUID via query parameter.
+		 */
+		patch: operations['pipeline_inquiry_areas_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/pipeline-records/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Return paginated pipeline records with optional search.
+		 *
+		 *     Query params:
+		 *         search: Search term (optional)
+		 *         page: Page number (default: 1)
+		 *         page_size: Items per page (default: 50, max: 200)
+		 */
+		get: operations['pipeline_records_list'];
+		put?: never;
+		/**
+		 * @description CRUD operations for :model:`api.PipelineRecord`.
+		 *
+		 *     List action provides server-side pagination and search across
+		 *     organisation, name, type_of_work, request_reason, and project.
+		 */
+		post: operations['pipeline_records_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/pipeline-records/{pipeline_record_uuid}/inquiry-export/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Build and return the inquiry export ZIP.
+		 *
+		 *     Args:
+		 *         request (Request): DRF request object.
+		 *         pipeline_record_uuid (uuid.UUID): UUID of the pipeline record to export.
+		 *
+		 *     Returns:
+		 *         HttpResponse: ZIP file download response, or 400 if no inquiry
+		 *             areas exist for the record.
+		 */
+		get: operations['pipeline_records_inquiry_export_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/pipeline-records/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.PipelineRecord`.
+		 *
+		 *     List action provides server-side pagination and search across
+		 *     organisation, name, type_of_work, request_reason, and project.
+		 */
+		get: operations['pipeline_records_retrieve'];
+		/**
+		 * @description CRUD operations for :model:`api.PipelineRecord`.
+		 *
+		 *     List action provides server-side pagination and search across
+		 *     organisation, name, type_of_work, request_reason, and project.
+		 */
+		put: operations['pipeline_records_update'];
+		post?: never;
+		/**
+		 * @description CRUD operations for :model:`api.PipelineRecord`.
+		 *
+		 *     List action provides server-side pagination and search across
+		 *     organisation, name, type_of_work, request_reason, and project.
+		 */
+		delete: operations['pipeline_records_destroy'];
+		options?: never;
+		head?: never;
+		/**
+		 * @description CRUD operations for :model:`api.PipelineRecord`.
+		 *
+		 *     List action provides server-side pagination and search across
+		 *     organisation, name, type_of_work, request_reason, and project.
+		 */
+		patch: operations['pipeline_records_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/projects/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.Projects`. */
+		get: operations['projects_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/projects/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.Projects`. */
+		get: operations['projects_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/request-reasons/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.RequestReason`. */
+		get: operations['request_reasons_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/request-reasons/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.RequestReason`. */
+		get: operations['request_reasons_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/residential-unit/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description ViewSet for the ResidentialUnit model. */
+		get: operations['residential_unit_list'];
+		put?: never;
+		/** @description ViewSet for the ResidentialUnit model. */
+		post: operations['residential_unit_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/residential-unit/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description ViewSet for the ResidentialUnit model. */
+		get: operations['residential_unit_retrieve'];
+		/** @description ViewSet for the ResidentialUnit model. */
+		put: operations['residential_unit_update'];
+		post?: never;
+		/** @description ViewSet for the ResidentialUnit model. */
+		delete: operations['residential_unit_destroy'];
+		options?: never;
+		head?: never;
+		/** @description ViewSet for the ResidentialUnit model. */
+		patch: operations['residential_unit_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/residential-unit/{uuid}/fiber-connections/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Get all fiber connections for this residential unit.
+		 *     Returns fiber details from fiber splices where this unit is connected.
+		 */
+		get: operations['residential_unit_fiber_connections_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/residential-unit/{uuid}/regenerate-id/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** @description Regenerate the Base28 residential unit ID for this unit. */
+		post: operations['residential_unit_regenerate_id_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/residential-unit/all/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Returns all residential units for an address. No pagination. */
+		get: operations['residential_unit_all_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/routing/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Calculates and returns the shortest path between two trenches.
+		 *
+		 *     URL: /api/routing/
+		 *     Body (JSON): {
+		 *         "start_trench_id": int,
+		 *         "end_trench_id": int,
+		 *         "project_id": int,
+		 *         "tolerance": int (optional, default=1)
+		 *     }
+		 */
+		post: operations['routing_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/schema.gpkg': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Generate and return a GeoPackage schema, optionally filtered by ?layers. */
+		get: operations['schema.gpkg_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/signal-analysis/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Analyze signal flow through a fiber, identifying breaks and lit/dark portions. */
+		get: operations['signal_analysis_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/spatial/intersects/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Intersect the request geometry against the requested layers.
+		 *
+		 *     URL: /api/v1/spatial/intersects/
+		 *     Body (JSON): {
+		 *         "geom": GeoJSON geometry (assumed EPSG:25832 unless "srid" is set),
+		 *         "layers": [str, ...]  (optional; defaults to all layers),
+		 *         "project": int        (optional; scopes results to one project),
+		 *         "exclude_projects": "3,7" | [3, 7]  (optional; drops these
+		 *             projects; combines with "project"),
+		 *         "srid": int           (optional; source SRID of "geom")
+		 *     }
+		 *
+		 *     Returns:
+		 *         Response: {
+		 *             "srid": int,
+		 *             "layers": {<layer>: FeatureCollection, ...},
+		 *             "counts": {<layer>: int, ...},
+		 *             "total": int
+		 *         }
+		 */
+		post: operations['spatial_intersects_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/template/conduit/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Return an Excel template for importing conduits. */
+		get: operations['template_conduit_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/trace-search/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Search across entity types and return lightweight picker results.
+		 *
+		 *     Address and node searches use pg_trgm trigram similarity for
+		 *     fuzzy matching; cable and residential_unit use icontains.
+		 *
+		 *     Args:
+		 *         request: DRF request with query params ``search``, ``type``,
+		 *             and optional ``project``.
+		 *
+		 *     Returns:
+		 *         Response: JSON with a ``results`` list of matching entities.
+		 */
+		get: operations['trace_search_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/trench/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.Trench`.
+		 *
+		 *     Supports spatial queries, filtering by project and flag,
+		 *     and aggregation endpoints for dashboard statistics.
+		 */
+		get: operations['trench_list'];
+		put?: never;
+		/**
+		 * @description CRUD operations for :model:`api.Trench`.
+		 *
+		 *     Supports spatial queries, filtering by project and flag,
+		 *     and aggregation endpoints for dashboard statistics.
+		 */
+		post: operations['trench_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/trench-conduit-canvas/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for TrenchConduitCanvas model.
+		 *
+		 *     Manages canvas positions for conduits in trench profile view.
+		 */
+		get: operations['trench_conduit_canvas_list'];
+		put?: never;
+		/**
+		 * @description ViewSet for TrenchConduitCanvas model.
+		 *
+		 *     Manages canvas positions for conduits in trench profile view.
+		 */
+		post: operations['trench_conduit_canvas_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/trench-conduit-canvas/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for TrenchConduitCanvas model.
+		 *
+		 *     Manages canvas positions for conduits in trench profile view.
+		 */
+		get: operations['trench_conduit_canvas_retrieve'];
+		/**
+		 * @description ViewSet for TrenchConduitCanvas model.
+		 *
+		 *     Manages canvas positions for conduits in trench profile view.
+		 */
+		put: operations['trench_conduit_canvas_update'];
+		post?: never;
+		/**
+		 * @description ViewSet for TrenchConduitCanvas model.
+		 *
+		 *     Manages canvas positions for conduits in trench profile view.
+		 */
+		delete: operations['trench_conduit_canvas_destroy'];
+		options?: never;
+		head?: never;
+		/**
+		 * @description ViewSet for TrenchConduitCanvas model.
+		 *
+		 *     Manages canvas positions for conduits in trench profile view.
+		 */
+		patch: operations['trench_conduit_canvas_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/trench-conduit-canvas/bulk-save/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** @description Save multiple canvas positions at once. */
+		post: operations['trench_conduit_canvas_bulk_save_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/trench-conduit-canvas/profile/{trench_uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Get all conduits for a trench with their canvas positions and microducts. */
+		get: operations['trench_conduit_canvas_profile_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/trench/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.Trench`.
+		 *
+		 *     Supports spatial queries, filtering by project and flag,
+		 *     and aggregation endpoints for dashboard statistics.
+		 */
+		get: operations['trench_retrieve'];
+		/**
+		 * @description CRUD operations for :model:`api.Trench`.
+		 *
+		 *     Supports spatial queries, filtering by project and flag,
+		 *     and aggregation endpoints for dashboard statistics.
+		 */
+		put: operations['trench_update'];
+		post?: never;
+		/**
+		 * @description CRUD operations for :model:`api.Trench`.
+		 *
+		 *     Supports spatial queries, filtering by project and flag,
+		 *     and aggregation endpoints for dashboard statistics.
+		 */
+		delete: operations['trench_destroy'];
+		options?: never;
+		head?: never;
+		/**
+		 * @description CRUD operations for :model:`api.Trench`.
+		 *
+		 *     Supports spatial queries, filtering by project and flag,
+		 *     and aggregation endpoints for dashboard statistics.
+		 */
+		patch: operations['trench_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/trench/all/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Returns all trenches with project, flag, and search filters.
+		 *     No pagination is used.
+		 *
+		 *     The optional ``exclude_projects`` param takes a comma-separated list
+		 *     of project ids (e.g. ``?exclude_projects=3,7``) to drop from results.
+		 */
+		get: operations['trench_all_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/trench/average_house_connection_length/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Return average length of house-connection trenches, filterable by project and flag. */
+		get: operations['trench_average_house_connection_length_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/trench/length_by_phase/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Return trench lengths grouped by network level (phase), filterable by project and flag. */
+		get: operations['trench_length_by_phase_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/trench/length_by_status/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Return trench lengths grouped by status, filterable by project and flag. */
+		get: operations['trench_length_by_status_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/trench/length_by_types/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Get trench lengths grouped by construction type and surface.
+		 *
+		 *     Returns aggregated data showing total length for each combination
+		 *     of construction type and surface. Allows filtering by project and flag.
+		 */
+		get: operations['trench_length_by_types_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/trench/length_with_funding/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Return total length and count of funded trenches, filterable by project and flag. */
+		get: operations['trench_length_with_funding_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/trench/length_with_internal_execution/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Return total length and count of internally-executed trenches, filterable by project and flag. */
+		get: operations['trench_length_with_internal_execution_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/trench/longest_routes/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Return the N longest trenches (default 5), filterable by project and flag. */
+		get: operations['trench_longest_routes_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/trench/total_length/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Return total trench length and count, filterable by status, project, flag, surface, and construction type. */
+		get: operations['trench_total_length_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/trench_conduit_connection/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.TrenchConduitConnection`.
+		 *
+		 *     Manage conduit-to-trench associations with project and flag filtering.
+		 */
+		get: operations['trench_conduit_connection_list'];
+		put?: never;
+		/**
+		 * @description CRUD operations for :model:`api.TrenchConduitConnection`.
+		 *
+		 *     Manage conduit-to-trench associations with project and flag filtering.
+		 */
+		post: operations['trench_conduit_connection_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/trench_conduit_connection/{uuid}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description CRUD operations for :model:`api.TrenchConduitConnection`.
+		 *
+		 *     Manage conduit-to-trench associations with project and flag filtering.
+		 */
+		get: operations['trench_conduit_connection_retrieve'];
+		/**
+		 * @description CRUD operations for :model:`api.TrenchConduitConnection`.
+		 *
+		 *     Manage conduit-to-trench associations with project and flag filtering.
+		 */
+		put: operations['trench_conduit_connection_update'];
+		post?: never;
+		/**
+		 * @description CRUD operations for :model:`api.TrenchConduitConnection`.
+		 *
+		 *     Manage conduit-to-trench associations with project and flag filtering.
+		 */
+		delete: operations['trench_conduit_connection_destroy'];
+		options?: never;
+		head?: never;
+		/**
+		 * @description CRUD operations for :model:`api.TrenchConduitConnection`.
+		 *
+		 *     Manage conduit-to-trench associations with project and flag filtering.
+		 */
+		patch: operations['trench_conduit_connection_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/trench_conduit_connection/all/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Returns all trench-conduit connections with project and flag filters. */
+		get: operations['trench_conduit_connection_all_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/trenches-near-node/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Returns trenches near a node with their associated microducts.
+		 *
+		 *     Query Parameters:
+		 *     - `node_name`: Name of the node to search around (required)
+		 *     - `distance`: Distance in meters to search around the node (default: 5)
+		 *     - `project`: Project ID to filter by (required)
+		 *
+		 *     Returns:
+		 *     - List of trenches with their associated conduits and microducts
+		 */
+		get: operations['trenches_near_node_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/type-of-work/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.TypeOfWork`. */
+		get: operations['type_of_work_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/type-of-work/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Read-only ViewSet for :model:`api.TypeOfWork`. */
+		get: operations['type_of_work_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/user-settings/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Return the current user's saved settings snapshot.
+		 *
+		 *     Args:
+		 *         request: DRF request object.
+		 *
+		 *     Returns:
+		 *         Response: JSON with ``settings`` (object, empty if unsaved) and
+		 *             ``updated_at`` (ISO timestamp or ``None``).
+		 */
+		get: operations['user_settings_retrieve'];
+		/**
+		 * @description Create or overwrite the current user's settings snapshot.
+		 *
+		 *     Args:
+		 *         request: DRF request object with a ``settings`` JSON object body.
+		 *
+		 *     Returns:
+		 *         Response: the saved snapshot, or 400 on validation error.
+		 */
+		put: operations['user_settings_update'];
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/valuation-rates/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Read-only ViewSet for :model:`api.ValuationCostRate`.
+		 *
+		 *     Cost rates are edited in the Django admin; the frontend only reads them,
+		 *     filtered by ``?project=``.
+		 */
+		get: operations['valuation_rates_list'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/valuation-rates/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Read-only ViewSet for :model:`api.ValuationCostRate`.
+		 *
+		 *     Cost rates are edited in the Django admin; the frontend only reads them,
+		 *     filtered by ``?project=``.
+		 */
+		get: operations['valuation_rates_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/valuation/calculate/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** @description Validate the request and return the calculated valuation. */
+		post: operations['valuation_calculate_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/wfs3/{project_name}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Handle GET requests to WFS3 endpoints. */
+		get: operations['wfs3_retrieve'];
+		put?: never;
+		/** @description Handle POST requests to WFS3 endpoints (for complex queries). */
+		post: operations['wfs3_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/wfs3/{project_name}/{wfs3_path}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Handle GET requests to WFS3 endpoints. */
+		get: operations['wfs3_retrieve_2'];
+		put?: never;
+		/** @description Handle POST requests to WFS3 endpoints (for complex queries). */
+		post: operations['wfs3_create_2'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/wms-layers/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description ViewSet for WMS layers. */
+		get: operations['wms_layers_list'];
+		put?: never;
+		/** @description ViewSet for WMS layers. */
+		post: operations['wms_layers_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/wms-layers/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description ViewSet for WMS layers. */
+		get: operations['wms_layers_retrieve'];
+		/** @description ViewSet for WMS layers. */
+		put: operations['wms_layers_update'];
+		post?: never;
+		/** @description ViewSet for WMS layers. */
+		delete: operations['wms_layers_destroy'];
+		options?: never;
+		head?: never;
+		/** @description ViewSet for WMS layers. */
+		patch: operations['wms_layers_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/wms-proxy/{source_id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description Proxies the WMS request to the configured upstream source; the response body and content-type mirror upstream. */
+		get: operations['wms_proxy_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/wms-sources/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for WMS sources.
+		 *
+		 *     Note: Project-level authorization follows existing codebase pattern where
+		 *     authenticated users can access any project's data via query params.
+		 *     To restrict access, implement project-level permissions at the auth layer.
+		 */
+		get: operations['wms_sources_list'];
+		put?: never;
+		/**
+		 * @description ViewSet for WMS sources.
+		 *
+		 *     Note: Project-level authorization follows existing codebase pattern where
+		 *     authenticated users can access any project's data via query params.
+		 *     To restrict access, implement project-level permissions at the auth layer.
+		 */
+		post: operations['wms_sources_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/wms-sources/{id}/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description ViewSet for WMS sources.
+		 *
+		 *     Note: Project-level authorization follows existing codebase pattern where
+		 *     authenticated users can access any project's data via query params.
+		 *     To restrict access, implement project-level permissions at the auth layer.
+		 */
+		get: operations['wms_sources_retrieve'];
+		/**
+		 * @description ViewSet for WMS sources.
+		 *
+		 *     Note: Project-level authorization follows existing codebase pattern where
+		 *     authenticated users can access any project's data via query params.
+		 *     To restrict access, implement project-level permissions at the auth layer.
+		 */
+		put: operations['wms_sources_update'];
+		post?: never;
+		/**
+		 * @description ViewSet for WMS sources.
+		 *
+		 *     Note: Project-level authorization follows existing codebase pattern where
+		 *     authenticated users can access any project's data via query params.
+		 *     To restrict access, implement project-level permissions at the auth layer.
+		 */
+		delete: operations['wms_sources_destroy'];
+		options?: never;
+		head?: never;
+		/**
+		 * @description ViewSet for WMS sources.
+		 *
+		 *     Note: Project-level authorization follows existing codebase pattern where
+		 *     authenticated users can access any project's data via query params.
+		 *     To restrict access, implement project-level permissions at the auth layer.
+		 */
+		patch: operations['wms_sources_partial_update'];
+		trace?: never;
+	};
+	'/api/v1/wms-sources/{id}/refresh_layers/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** @description Refresh layers from WMS GetCapabilities. */
+		post: operations['wms_sources_refresh_layers_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/wms-sources/{id}/scan_capabilities/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * @description Scan WMS capabilities to recommend configuration settings.
+		 *
+		 *     Analyzes the WMS GetCapabilities response to determine:
+		 *     - Recommended minZoom for each layer based on BBOX constraints
+		 *     - Supported CRS for each layer
+		 *     - Service-level constraints
+		 *
+		 *     Returns detailed information to help configure WMS layers.
+		 */
+		post: operations['wms_sources_scan_capabilities_create'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/wms-sources/access_token/': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * @description Get a short-lived access token for WMS tile requests.
+		 *
+		 *     This token can be passed as a query parameter to the WMS proxy
+		 *     to authenticate tile requests that can't use cookies (due to
+		 *     SameSite restrictions on cross-origin image requests).
+		 *
+		 *     The token includes a 'wms_only' claim to scope it specifically
+		 *     for WMS proxy requests, preventing misuse on other endpoints.
+		 */
+		get: operations['wms_sources_access_token_retrieve'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        /**
-         * @description Serialize :model:`api.Address` as GeoJSON with nested attribute objects.
-         *
-         *     Geometry is validated as Point in EPSG:25832. Includes a read-only
-         *     geom_3857 field for web map display.
-         */
-        Address: {
-            type?: components["schemas"]["GisFeatureEnum"];
-            /** Format: uuid */
-            readonly id?: string;
-            geometry?: {
-                /** @enum {string} */
-                type?: "Point";
-                /**
-                 * @example [
-                 *       12.9721,
-                 *       77.5933
-                 *     ]
-                 */
-                coordinates?: number[];
-            };
-            properties?: {
-                readonly status_development?: components["schemas"]["AttributesStatusDevelopment"];
-                readonly flag?: components["schemas"]["Flags"];
-                readonly project?: components["schemas"]["Projects"];
-                /** Adress-ID */
-                id_address?: string;
-                /** Adress-ID 2 */
-                id_address_2?: string | null;
-                /** PLZ */
-                zip_code?: string;
-                /** Stadt */
-                city?: string;
-                /** Ortsteil */
-                district?: string;
-                /** Straße */
-                street?: string;
-                /** Hausnummer */
-                housenumber?: number;
-                /** Hausnummer */
-                house_number_suffix?: string;
-                /** Ausbaustatus */
-                status_development_id?: number;
-                /** Kennzeichen */
-                flag_id?: number;
-                /** Projekt */
-                project_id?: number;
-                /** @description GeoJSON geometry object (EPSG:3857). */
-                readonly geom_3857?: {
-                    type?: string;
-                    coordinates?: unknown[];
-                };
-            };
-        };
-        AddressList: {
-            type?: components["schemas"]["GisFeatureCollectionEnum"];
-            features?: components["schemas"]["Address"][];
-        };
-        AppLoginRequest: {
-            username: string;
-            password: string;
-        };
-        AppLoginResult: {
-            access: string;
-            refresh: string;
-            access_expiration: number;
-            refresh_expiration: number;
-            user: components["schemas"]["CustomUserDetails"];
-        };
-        AppLogoutRequest: {
-            refresh: string;
-        };
-        AppLogoutResult: {
-            detail: string;
-        };
-        /** @description Serialize :model:`api.Area` as GeoJSON with Polygon geometry validation. */
-        Area: {
-            type?: components["schemas"]["GisFeatureEnum"];
-            /** Format: uuid */
-            readonly id?: string;
-            geometry?: {
-                /** @enum {string} */
-                type?: "Polygon";
-                /**
-                 * @example [
-                 *       [
-                 *         [
-                 *           0,
-                 *           0
-                 *         ],
-                 *         [
-                 *           0,
-                 *           50
-                 *         ],
-                 *         [
-                 *           50,
-                 *           50
-                 *         ],
-                 *         [
-                 *           50,
-                 *           0
-                 *         ],
-                 *         [
-                 *           0,
-                 *           0
-                 *         ]
-                 *       ]
-                 *     ]
-                 */
-                coordinates?: number[][][];
-            };
-            properties?: {
-                readonly area_type?: components["schemas"]["AttributesAreaType"];
-                readonly flag?: components["schemas"]["Flags"];
-                readonly project?: components["schemas"]["Projects"];
-                /** Gebietstyp */
-                area_type_id?: number;
-                /** Kennzeichen */
-                flag_id?: number;
-                /** Projekt */
-                project_id?: number;
-                /** @description GeoJSON geometry object (EPSG:3857). */
-                readonly geom_3857?: {
-                    type?: string;
-                    coordinates?: unknown[];
-                };
-                /** Gebietname */
-                name?: string;
-            };
-        };
-        AreaList: {
-            type?: components["schemas"]["GisFeatureCollectionEnum"];
-            features?: components["schemas"]["Area"][];
-        };
-        /** @description Serialize :model:`api.AttributesAreaType` instances. */
-        AttributesAreaType: {
-            readonly id: number;
-            /** Gebietstyp */
-            area_type: string;
-        };
-        /** @description Serialize :model:`api.AttributesCableType` instances. */
-        AttributesCableType: {
-            readonly id: number;
-            /** Kabeltyp */
-            cable_type: string;
-        };
-        /** @description Serialize :model:`api.AttributesCompany` instances. */
-        AttributesCompany: {
-            readonly id: number;
-            /** Firma */
-            company: string;
-            /** Stadt */
-            city?: string | null;
-            /** Postleitzahl */
-            postal_code?: string | null;
-            /** Straße */
-            street?: string | null;
-            /** Hausnummer */
-            housenumber?: string | null;
-            /** Telefon */
-            phone?: string | null;
-            /** E-Mail */
-            email?: string | null;
-        };
-        /** @description Serialize :model:`api.AttributesComponentStructure` port definitions. */
-        AttributesComponentStructure: {
-            readonly id: number;
-            /** Komponententyp */
-            component_type: number;
-            /** In oder Out */
-            in_or_out: components["schemas"]["InOrOutEnum"];
-            port: number;
-            port_alias?: string | null;
-        };
-        /** @description Serialize :model:`api.AttributesComponentType` instances. */
-        AttributesComponentType: {
-            readonly id: number;
-            /**
-             * Komponententyp
-             * @description Der Typ der Komponente (z.B. 'Router', 'Switch', 'Access Point', etc.)
-             */
-            component_type: string;
-            /**
-             * Belegte Steckplätze
-             * @description Anzahl der von der Komponente belegten Steckplätze (Standard: 1)
-             */
-            occupied_slots?: number;
-            /**
-             * Hersteller
-             * @description Der Hersteller der Komponente
-             */
-            manufacturer?: number | null;
-        };
-        /** @description Serialize :model:`api.AttributesConduitType` instances. */
-        AttributesConduitType: {
-            readonly id: number;
-            /** Rohrtyp */
-            conduit_type: string;
-            /** Rohrzahl */
-            conduit_count: number;
-            /** Rohrtyp-Alias */
-            conduit_type_alias?: string | null;
-            /** Rohrtyp-Microduct */
-            conduit_type_microduct?: number | null;
-        };
-        /** @description Serialize :model:`api.AttributesConstructionType` instances. */
-        AttributesConstructionType: {
-            readonly id: number;
-            /** Bau-/Verlegeart */
-            construction_type: string;
-        };
-        /** @description Serialize :model:`api.AttributesFiberColor` with hex codes. */
-        AttributesFiberColor: {
-            readonly id: number;
-            /**
-             * Deutscher Name
-             * @description Deutscher Farbname (z.B., 'rot', 'rot-weiss')
-             */
-            name_de: string;
-            /**
-             * Englischer Name
-             * @description Englischer Farbname (z.B., 'red', 'red-white')
-             */
-            name_en: string;
-            /**
-             * Farbcode
-             * @description Primärer CSS-Farbcode (z.B., '#dc2626')
-             */
-            hex_code: string;
-            /**
-             * Sekundärer CSS-Farbcode
-             * @description Sekundäre Farbe für gestreifte/zweilagige Mikrorohre/Fasern (optional)
-             */
-            hex_code_secondary?: string | null;
-            /**
-             * Anzeigereihenfolge
-             * @description Reihenfolge, in der Farben in Auswahllisten angezeigt werden
-             */
-            display_order?: number;
-            /**
-             * Aktiv
-             * @description Inaktive Farben werden ausgeblendet, aber für bestehende Daten beibehalten
-             */
-            is_active?: boolean;
-            /**
-             * Beschreibung
-             * @description Optionale Notizen zu dieser Farbe
-             */
-            description?: string | null;
-        };
-        /** @description Serialize :model:`api.AttributesFiberStatus` instances. */
-        AttributesFiberStatus: {
-            readonly id: number;
-            /** Faserstatus */
-            fiber_status: string;
-        };
-        /** @description Serialize :model:`api.AttributesMicroductColor` with hex codes and layer info. */
-        AttributesMicroductColor: {
-            readonly id: number;
-            /**
-             * Deutscher Name
-             * @description Deutscher Farbname (z.B., 'rot', 'rot-weiss')
-             */
-            name_de: string;
-            /**
-             * Englischer Name
-             * @description Englischer Farbname (z.B., 'red', 'red-white')
-             */
-            name_en: string;
-            /**
-             * Farbcode
-             * @description Primärer CSS-Farbcode (z.B., '#dc2626')
-             */
-            hex_code: string;
-            /**
-             * Sekundärer CSS-Farbcode
-             * @description Sekundäre Farbe für gestreifte/zweilagige Mikrorohre/Fasern (optional)
-             */
-            hex_code_secondary?: string | null;
-            /**
-             * Anzeigereihenfolge
-             * @description Reihenfolge, in der Farben in Auswahllisten angezeigt werden
-             */
-            display_order?: number;
-            /**
-             * Aktiv
-             * @description Inaktive Farben werden ausgeblendet, aber für bestehende Daten beibehalten
-             */
-            is_active?: boolean;
-            /**
-             * Beschreibung
-             * @description Optionale Notizen zu dieser Farbe
-             */
-            description?: string | null;
-            readonly is_two_layer: string;
-        };
-        /** @description Serialize :model:`api.AttributesMicroductStatus` instances. */
-        AttributesMicroductStatus: {
-            id: number;
-            /** Mikrorohrstatus */
-            microduct_status: string;
-        };
-        /** @description Serialize :model:`api.AttributesNetworkLevel` instances. */
-        AttributesNetworkLevel: {
-            readonly id: number;
-            /** Netzebene */
-            network_level: string;
-        };
-        /** @description Serialize :model:`api.AttributesNodeType` instances. */
-        AttributesNodeType: {
-            readonly id: number;
-            /** Netzknotentyp */
-            node_type: string;
-            dimension?: string | null;
-            /** Gruppe */
-            group?: string | null;
-            /** Firma */
-            company?: string | null;
-        };
-        /** @description Serialize :model:`api.AttributesPhase` instances. */
-        AttributesPhase: {
-            readonly id: number;
-            phase: string;
-        };
-        /** @description Serialize :model:`api.AttributesResidentialUnitStatus` instances. */
-        AttributesResidentialUnitStatus: {
-            readonly id: number;
-            status: string;
-        };
-        /** @description Serialize :model:`api.AttributesResidentialUnitType` instances. */
-        AttributesResidentialUnitType: {
-            readonly id: number;
-            /** Wohnungseinheit-Typ */
-            residential_unit_type: string;
-        };
-        /** @description Serialize :model:`api.AttributesStatus` instances. */
-        AttributesStatus: {
-            readonly id: number;
-            status: string;
-        };
-        /** @description Serialize :model:`api.AttributesStatusDevelopment` instances. */
-        AttributesStatusDevelopment: {
-            readonly id: number;
-            status: string;
-        };
-        /** @description Serialize :model:`api.AttributesSurface` instances. */
-        AttributesSurface: {
-            readonly id: number;
-            /** Oberfläche */
-            surface: string;
-            /** Versiegelung */
-            sealing: boolean;
-        };
-        /**
-         * @description Serialize :model:`api.Cable` with start/end node references.
-         *
-         *     Enforces unique cable name per project. Includes computed fields
-         *     for start and end node names and diagram path data.
-         */
-        Cable: {
-            /** Format: uuid */
-            uuid?: string;
-            readonly cable_type: components["schemas"]["AttributesCableType"];
-            readonly status: components["schemas"]["AttributesStatus"];
-            readonly network_level: components["schemas"]["AttributesNetworkLevel"];
-            readonly owner: components["schemas"]["AttributesCompany"];
-            readonly constructor: components["schemas"]["AttributesCompany"];
-            readonly manufacturer: components["schemas"]["AttributesCompany"];
-            readonly project: components["schemas"]["Projects"];
-            readonly flag: components["schemas"]["Flags"];
-            /** Kabelname */
-            name: string;
-            /** Kabeltyp */
-            cable_type_id: number;
-            /** Status */
-            status_id?: number;
-            /** Netzebene */
-            network_level_id?: number;
-            /** Eigentümer */
-            owner_id?: number;
-            /** Baufirma */
-            constructor_id?: number;
-            /** Hersteller */
-            manufacturer_id?: number;
-            /**
-             * Datum
-             * Format: date
-             */
-            date?: string;
-            /**
-             * Startknoten
-             * Format: uuid
-             */
-            uuid_node_start_id: string;
-            /**
-             * Endknoten
-             * Format: uuid
-             */
-            uuid_node_end_id: string;
-            /** Projekt */
-            project_id: number;
-            /** Kennzeichen */
-            flag_id: number;
-            /**
-             * Übergeordneter Netzknoten
-             * Format: uuid
-             */
-            parent_node_context_id?: string | null;
-            /**
-             * Länge
-             * Format: double
-             */
-            length?: number;
-            /**
-             * Länge
-             * Format: double
-             */
-            length_total?: number;
-            /** Reserve am Start */
-            reserve_at_start?: number;
-            /** Reserve am Ende */
-            reserve_at_end?: number;
-            /** Reserve auf Strecke */
-            reserve_section?: number;
-            handle_start: string | null;
-            handle_end: string | null;
-            diagram_path?: unknown;
-            readonly uuid_node_start_name: string;
-            readonly uuid_node_end_name: string;
-            /**
-             * Startknoten
-             * Format: uuid
-             */
-            uuid_node_start?: string | null;
-            /**
-             * Endknoten
-             * Format: uuid
-             */
-            uuid_node_end?: string | null;
-            /**
-             * Übergeordneter Netzknoten
-             * Format: uuid
-             * @description Wenn gesetzt, wurde das Kabel in der Kindansicht dieses übergeordneten Knotens erstellt
-             */
-            parent_node_context?: string | null;
-        };
-        CableAutoLinkRequest: {
-            /**
-             * Format: uuid
-             * @description Link this specific microduct; omit to auto-match both ends.
-             */
-            microduct_uuid?: string;
-        };
-        CableConduits: {
-            conduit_names: string[];
-        };
-        /** @description Serialize :model:`api.CableLabel` positioned text labels for cables. */
-        CableLabel: {
-            /** Format: uuid */
-            uuid?: string;
-            /**
-             * Kabel
-             * Format: uuid
-             */
-            cable_id: string;
-            readonly cable: components["schemas"]["Cable"];
-            /**
-             * Label-Text
-             * @description Der Text, der auf dem Label angezeigt wird
-             */
-            text: string;
-            /**
-             * Format: double
-             * @description X-Koordinate des Labels im Diagramm-Canvas
-             */
-            position_x?: number | null;
-            /**
-             * Format: double
-             * @description Y-Koordinate des Labels im Diagramm-Canvas
-             */
-            position_y?: number | null;
-            /**
-             * Reihenfolge
-             * @description Anzeigereihenfolge, wenn mehrere Labels existieren
-             */
-            order?: number;
-            /** Format: date-time */
-            readonly created_at: string;
-            /** Format: date-time */
-            readonly updated_at: string;
-        };
-        CableLinkedTrenches: {
-            trench_uuids: string[];
-        };
-        CableMicropipeConnectRequest: {
-            micropipe_number: number;
-            color: string;
-            conduit_ids: string[];
-        };
-        CableMicropipeConnectResult: {
-            created: string[];
-            count: number;
-        };
-        CableMicropipeDisconnectResult: {
-            deleted: number;
-        };
-        /** @description Serialize :model:`api.CableTypeColorMapping` with nested color data. */
-        CableTypeColorMapping: {
-            /** Format: uuid */
-            uuid?: string;
-            /** Kabeltyp */
-            cable_type: number;
-            /**
-             * Positionstyp
-             * @description Ob diese Zuordnung für Bündel- oder Faserfarben ist
-             *
-             *     * `bundle` - Bündel
-             *     * `fiber` - Faser
-             */
-            position_type: components["schemas"]["PositionTypeEnum"];
-            /** @description Bündel/Faserpositionnummer (1-12, etc.) */
-            position: number;
-            readonly color: components["schemas"]["AttributesFiberColor"];
-            /**
-             * @description Innen oder Außen-Layer
-             *
-             *     * `inner` - Innen
-             *     * `outer` - Außen
-             */
-            layer?: components["schemas"]["LayerEnum"];
-        };
-        CanvasSyncRequest: {
-            project_id?: number;
-            flag_id?: number;
-            /**
-             * Format: double
-             * @description Scale factor (default 1.0).
-             */
-            scale?: number;
-        };
-        CanvasSyncStatus: {
-            total_nodes: number;
-            nodes_with_canvas: number;
-            nodes_missing_canvas: number;
-            sync_needed: boolean;
-            sync_in_progress: boolean;
-            sync_status: string;
-            /** Format: date-time */
-            sync_started_at: string | null;
-            /** Format: double */
-            sync_progress: number;
-            error_message: string | null;
-        };
-        /**
-         * @description Serialize :model:`api.Conduit` with nested attribute objects.
-         *
-         *     Read operations return nested serializers for FK fields.
-         *     Write operations accept PK references via write-only fields.
-         *     Enforces unique conduit name per project.
-         */
-        Conduit: {
-            /** Format: uuid */
-            readonly uuid: string;
-            readonly conduit_type: components["schemas"]["AttributesConduitType"];
-            readonly status: components["schemas"]["AttributesStatus"];
-            readonly network_level: components["schemas"]["AttributesNetworkLevel"];
-            readonly owner: components["schemas"]["AttributesCompany"];
-            readonly constructor: components["schemas"]["AttributesCompany"];
-            readonly manufacturer: components["schemas"]["AttributesCompany"];
-            readonly project: components["schemas"]["Projects"];
-            readonly flag: components["schemas"]["Flags"];
-            /** Rohrbezeichnung */
-            name: string;
-            /** Rohrtyp */
-            conduit_type_id: number;
-            /** Status */
-            status_id?: number;
-            /** Netzebene */
-            network_level_id?: number;
-            /** Eigentümer */
-            owner_id?: number;
-            /** Baufirma */
-            constructor_id?: number;
-            /** Hersteller */
-            manufacturer_id?: number;
-            /** Projekt */
-            project_id: number;
-            /** Kennzeichen */
-            flag_id: number;
-            /** Schutzrohr */
-            outer_conduit?: string;
-            /** Format: date */
-            date?: string;
-        };
-        /** @description Serializer for conduits returned when selecting by trenches. */
-        ConduitForTrenchSelection: {
-            /** Format: uuid */
-            uuid?: string;
-            /** Rohrbezeichnung */
-            name: string;
-            readonly conduit_type_name: string;
-            /**
-             * @description Check if any microducts in this conduit are linked to the context cable.
-             *
-             *     Args:
-             *         obj: Conduit instance.
-             *
-             *     Returns:
-             *         bool: True if a :model:`api.MicroductCableConnection` exists.
-             */
-            readonly has_cable_linkage: boolean;
-        };
-        ConduitImportRequest: {
-            /**
-             * Format: uri
-             * @description An .xlsx file (max 10 MB).
-             */
-            file: string;
-        };
-        ConduitImportResult: {
-            message: string;
-            created_count: number;
-            warnings?: string[];
-        };
-        Config: {
-            srid: number;
-            proj4: string;
-        };
-        ConfigError: {
-            error: string;
-        };
-        /** @description Serialize :model:`api.Container` instances with nested type and display name. */
-        Container: {
-            /** Format: uuid */
-            readonly uuid: string;
-            /** Format: uuid */
-            uuid_node_id: string;
-            readonly container_type: components["schemas"]["ContainerType"];
-            container_type_id: number;
-            /**
-             * Übergeordneter Container
-             * Format: uuid
-             * @description Der übergeordnete Container (null, wenn es sich um einen obersten Container handelt)
-             */
-            parent_container?: string | null;
-            /** Format: uuid */
-            parent_container_id?: string | null;
-            /** @description Optionale benutzerdefinierte Name für diese Container-Instanz */
-            name?: string | null;
-            /**
-             * Reihenfolge
-             * @description Reihenfolge dieses Containers unter seinen Geschwisterelementen
-             */
-            sort_order?: number;
-            /**
-             * Erweitert
-             * @description Ob dieser Container in der Benutzeroberfläche erweitert ist
-             */
-            is_expanded?: boolean;
-            readonly display_name: string;
-            /** Format: date-time */
-            readonly created_at: string;
-            /** Format: date-time */
-            readonly updated_at: string;
-        };
-        /** @description Serialize :model:`api.ContainerType` admin-defined container categories. */
-        ContainerType: {
-            readonly id: number;
-            /** @description Der Name des Container-Typs (z.B., 'MFG-Door-Left', '19-inch Rack') */
-            name: string;
-            /**
-             * Beschreibung
-             * @description Optionale Beschreibung dieses Container-Typs
-             */
-            description?: string | null;
-            /** @description Optionale Icon-Identifier für Frontend-Anzeige (z.B., 'folder', 'server') */
-            icon?: string | null;
-            /**
-             * Farbe
-             * @description Optionale hex-Farbcode für visuelle Unterscheidung (z.B., '#3B82F6')
-             */
-            color?: string | null;
-            /**
-             * Anzeigereihenfolge
-             * @description Reihenfolge, in der dieser Typ in Auswahllisten angezeigt wird
-             */
-            display_order?: number;
-            /**
-             * Aktiv
-             * @description Ob dieser Container-Typ für die Verwendung verfügbar ist
-             */
-            is_active?: boolean;
-        };
-        /** @description Serialize Django ContentType for feature file associations. */
-        ContentType: {
-            readonly id: number;
-            readonly app_label: string;
-            /** Python Modell-Klassenname */
-            readonly model: string;
-        };
-        /**
-         * @description Serialize user details including staff/superuser flags.
-         *
-         *     Override the default dj-rest-auth user serializer to expose
-         *     is_staff and is_superuser for frontend permission checks.
-         */
-        CustomUserDetails: {
-            readonly pk: number;
-            readonly username: string;
-            /** Format: email */
-            readonly email: string;
-            readonly first_name: string;
-            readonly last_name: string;
-            readonly is_staff: boolean;
-            readonly is_superuser: boolean;
-        };
-        DashboardStatistics: {
-            trench: {
-                [key: string]: unknown;
-            };
-            node: {
-                [key: string]: unknown;
-            };
-            address: {
-                [key: string]: unknown;
-            };
-            conduit: {
-                [key: string]: unknown;
-            };
-            area: {
-                [key: string]: unknown;
-            };
-        };
-        DashboardStatisticsError: {
-            error: string;
-        };
-        FaultSimulationRequest: {
-            /** @description Damage point as [x, y]. */
-            point: number[];
-            /** @description Project UUID. */
-            project_id: string;
-        };
-        /** @description Serialize :model:`api.FeatureFiles` with Nextcloud storage metadata. */
-        FeatureFiles: {
-            /** Format: uuid */
-            readonly uuid: string;
-            /**
-             * Feature-ID
-             * Format: uuid
-             */
-            object_id: string;
-            /** Feature-Typ */
-            content_type: number;
-            /**
-             * Dateipfad
-             * Format: uri
-             */
-            file_path: string;
-            /** Dateiname */
-            readonly file_name: string;
-            /** Dateityp */
-            readonly file_type: string;
-            /** Beschreibung */
-            description?: string | null;
-            /**
-             * Erstellt am
-             * Format: date-time
-             */
-            readonly created_at: string;
-        };
-        /** @description Serialize :model:`api.Fiber` with cable name and fiber status. */
-        Fiber: {
-            /** Format: uuid */
-            readonly uuid: string;
-            /**
-             * Kabel
-             * Format: uuid
-             * @description Das Kabel, zu dem die Faser gehört
-             */
-            uuid_cable: string;
-            /** Format: uuid */
-            uuid_cable_id: string;
-            readonly cable_name: string;
-            /**
-             * Nummer
-             * @description Die Bündelnummer, zu der die Faser gehört
-             */
-            bundle_number: number;
-            /**
-             * Bündelfarbe
-             * @description Die Farbe des Bündels, zu dem die Faser gehört
-             */
-            bundle_color: string;
-            /**
-             * Faser-Nummer absolut
-             * @description Die absolute Faser-Nummer, zu der die Faser gehört
-             */
-            fiber_number_absolute: number;
-            /**
-             * Faser-Nummer im Bündel
-             * @description Die Nummer der Faser im Bündel, zu dem die Faser gehört
-             */
-            fiber_number_in_bundle: number;
-            /**
-             * Faserfarbe
-             * @description Die Farbe der Faser, zu der die Faser gehört
-             */
-            fiber_color: string;
-            /**
-             * Aktiv
-             * @description Ob die Faser aktiv ist
-             */
-            active?: boolean;
-            /** @description Innen oder Außen-Layer */
-            layer?: string;
-            readonly fiber_status: components["schemas"]["AttributesFiberStatus"];
-            fiber_status_id?: number | null;
-            /** Kennzeichen */
-            flag: number;
-            /** Projekt */
-            project: number;
-        };
-        /**
-         * @description Serialize :model:`api.FiberSplice` with fiber details and merge group info.
-         *
-         *     Handle side-independent merge groups (A and B sides can be merged
-         *     independently) and shared fiber references for merged port groups.
-         *     Include residential unit endpoint details for connection tracking.
-         */
-        FiberSplice: {
-            /** Format: uuid */
-            uuid?: string;
-            /**
-             * Netzknoten-Struktur
-             * Format: uuid
-             * @description Die Komponenten-Platzierung, zu der dieser Splice gehört
-             */
-            node_structure: string;
-            /**
-             * Nummer
-             * @description Die Port-Nummer auf der Komponente (z.B., 1-12 für einen Splice-Cassette)
-             */
-            port_number: number;
-            /**
-             * Faser A
-             * Format: uuid
-             * @description Die erste Faser in dieser Splice-Verbindung
-             */
-            fiber_a?: string | null;
-            /**
-             * Kabel A
-             * Format: uuid
-             * @description Das Kabel der Faser A (denormalisiert für CASCADE-Löschen)
-             */
-            cable_a?: string | null;
-            /**
-             * Faser B
-             * Format: uuid
-             * @description Die zweite Faser in dieser Splice-Verbindung
-             */
-            fiber_b?: string | null;
-            /**
-             * Kabel B
-             * Format: uuid
-             * @description Das Kabel der Faser B (denormalisiert für CASCADE-Löschen)
-             */
-            cable_b?: string | null;
-            readonly fiber_a_details: string;
-            readonly fiber_b_details: string;
-            /**
-             * Zusammenführungsgruppe A
-             * Format: uuid
-             * @description UUID-Gruppierung von Ports auf Seite A (IN) die eine Faser teilen. Wird für asymmetrische Komponenten wie Splitter verwendet.
-             */
-            merge_group_a?: string | null;
-            /**
-             * Zusammenführungsgruppe B
-             * Format: uuid
-             * @description UUID-Gruppierung von Ports auf Seite B (OUT) die eine Faser teilen. Wird für asymmetrische Komponenten wie Splitter verwendet.
-             */
-            merge_group_b?: string | null;
-            readonly merge_group_a_info: string;
-            readonly merge_group_b_info: string;
-            /**
-             * Geteilte Faser A
-             * Format: uuid
-             * @description Geteilte Faser A für zusammengeführte Port-Gruppen (eine Faser für alle Ports in der Gruppe auf Seite A).
-             */
-            shared_fiber_a?: string | null;
-            /**
-             * Geteiltes Kabel A
-             * Format: uuid
-             * @description Das Kabel der geteilten Faser A (denormalisiert für CASCADE-Löschen).
-             */
-            shared_cable_a?: string | null;
-            /**
-             * Geteilte Faser B
-             * Format: uuid
-             * @description Geteilte Faser B für zusammengeführte Port-Gruppen (eine Faser für alle Ports in der Gruppe auf Seite B).
-             */
-            shared_fiber_b?: string | null;
-            /**
-             * Geteiltes Kabel B
-             * Format: uuid
-             * @description Das Kabel der geteilten Faser B (denormalisiert für CASCADE-Löschen).
-             */
-            shared_cable_b?: string | null;
-            /**
-             * Wohnungseinheit A
-             * Format: uuid
-             * @description Wohnungseinheit auf Seite A (Endpunkt).
-             */
-            residential_unit_a?: string | null;
-            /**
-             * Wohnungseinheit B
-             * Format: uuid
-             * @description Wohnungseinheit auf Seite B (Endpunkt).
-             */
-            residential_unit_b?: string | null;
-            readonly residential_unit_a_details: string;
-            readonly residential_unit_b_details: string;
-        };
-        /** @description Serialize :model:`api.Flags` instances. */
-        Flags: {
-            readonly id: number;
-            /** Kennzeichen */
-            flag: string;
-        };
-        FrontendLogError: {
-            error: string;
-        };
-        FrontendLogRequest: {
-            level?: components["schemas"]["FrontendLogRequestLevelEnum"];
-            message?: string;
-            path?: string;
-            extra_data?: {
-                [key: string]: unknown;
-            };
-            project?: number | null;
-        };
-        /**
-         * @description * `DEBUG` - DEBUG
-         *     * `INFO` - INFO
-         *     * `WARNING` - WARNING
-         *     * `ERROR` - ERROR
-         *     * `CRITICAL` - CRITICAL
-         * @enum {string}
-         */
-        FrontendLogRequestLevelEnum: "DEBUG" | "INFO" | "WARNING" | "ERROR" | "CRITICAL";
-        FrontendLogResult: {
-            status: string;
-        };
-        /** @enum {string} */
-        GisFeatureCollectionEnum: "FeatureCollection";
-        /** @enum {string} */
-        GisFeatureEnum: "Feature";
-        /**
-         * @description * `in` - In
-         *     * `out` - Out
-         * @enum {string}
-         */
-        InOrOutEnum: "in" | "out";
-        /** @description Serializer for JWT authentication. */
-        JWT: {
-            access: string;
-            refresh: string;
-            user: components["schemas"]["CustomUserDetails"];
-        };
-        /**
-         * @description * `inner` - Innen
-         *     * `outer` - Außen
-         * @enum {string}
-         */
-        LayerEnum: "inner" | "outer";
-        LayerExtent: {
-            /** @description [xmin, ymin, xmax, ymax] in EPSG:3857, or null. */
-            extent: number[] | null;
-            layer: string;
-        };
-        LayerExtentError: {
-            error: string;
-        };
-        /** @description Serialize :model:`api.LogEntry` with user details and project info. */
-        LogEntry: {
-            /** Format: uuid */
-            readonly uuid: string;
-            /** Format: date-time */
-            readonly timestamp: string;
-            /** Log-Level */
-            level: components["schemas"]["LogEntryLevelEnum"];
-            /** @description Name des Loggers (z.B., 'apps.api', 'frontend.auth') */
-            logger_name: string;
-            /**
-             * Nachricht
-             * @description Die Log-Nachricht
-             */
-            message: string;
-            /**
-             * Benutzer
-             * @description Benutzer, der diesem Log-Eintrag zugewiesen ist
-             */
-            user?: number | null;
-            readonly username: string | null;
-            /** Format: email */
-            readonly user_email: string | null;
-            /**
-             * Quelle
-             * @description Ob dieser Log-Eintrag vom Backend oder Frontend stammt
-             *
-             *     * `backend` - Backend
-             *     * `frontend` - Frontend
-             *     * `wfs` - WFS (QGIS Server)
-             */
-            source?: components["schemas"]["SourceEnum"];
-            /**
-             * Dateipfad
-             * @description Anfragepfad oder URL, an der der Log-Eintrag aufgetreten ist
-             */
-            path?: string | null;
-            /**
-             * Extra-Daten
-             * @description Zusätzliche Kontextdaten (Anfrage-Methode, IP, User-Agent, etc.)
-             */
-            extra_data?: unknown;
-            readonly project: components["schemas"]["Projects"];
-        };
-        /**
-         * @description * `DEBUG` - Debug
-         *     * `INFO` - Info
-         *     * `WARNING` - Warning
-         *     * `ERROR` - Error
-         *     * `CRITICAL` - Critical
-         * @enum {string}
-         */
-        LogEntryLevelEnum: "DEBUG" | "INFO" | "WARNING" | "ERROR" | "CRITICAL";
-        Login: {
-            username?: string;
-            email?: string;
-            password: string;
-        };
-        /**
-         * @description Serialize :model:`api.Microduct` with color hex codes and cable connection info.
-         *
-         *     Resolves microduct color names to hex codes via
-         *     :model:`api.AttributesMicroductColor` lookups. Supports two-layer
-         *     (striped) colors using dash-separated color names.
-         */
-        Microduct: {
-            /** Format: uuid */
-            readonly uuid: string;
-            readonly uuid_conduit: components["schemas"]["Conduit"];
-            readonly microduct_status: components["schemas"]["AttributesMicroductStatus"];
-            readonly uuid_node: components["schemas"]["Node"];
-            /** Nummer */
-            number: number;
-            /** Farbe */
-            color: string;
-            readonly hex_code: string;
-            readonly hex_code_secondary: string;
-            readonly is_two_layer: string;
-            readonly cable_connection: string;
-            /**
-             * Rohr
-             * Format: uuid
-             */
-            uuid_conduit_id: string;
-            /** Mikrorohrstatus */
-            microduct_status_id?: number | null;
-            /**
-             * Netzknoten
-             * Format: uuid
-             */
-            uuid_node_id?: string | null;
-        };
-        /** @description Serialize :model:`api.MicroductCableConnection` linking cables to microducts. */
-        MicroductCableConnection: {
-            /** Format: uuid */
-            readonly uuid: string;
-            readonly uuid_microduct: components["schemas"]["Microduct"];
-            readonly uuid_cable: components["schemas"]["Cable"];
-            /**
-             * Mikrorohr
-             * Format: uuid
-             */
-            uuid_microduct_id: string;
-            /**
-             * Kabel
-             * Format: uuid
-             */
-            uuid_cable_id: string;
-        };
-        /** @description Serialize :model:`api.MicroductConnection` between two microducts at a node. */
-        MicroductConnection: {
-            /** Format: uuid */
-            readonly uuid: string;
-            readonly uuid_microduct_from: components["schemas"]["Microduct"];
-            readonly uuid_trench_from: components["schemas"]["Trench"];
-            readonly uuid_microduct_to: components["schemas"]["Microduct"];
-            readonly uuid_trench_to: components["schemas"]["Trench"];
-            readonly uuid_node: components["schemas"]["Node"];
-            /**
-             * Mikrorohr von
-             * Format: uuid
-             */
-            uuid_microduct_from_id: string;
-            /**
-             * Graben von
-             * Format: uuid
-             */
-            uuid_trench_from_id: string;
-            /**
-             * Mikrorohr zu
-             * Format: uuid
-             */
-            uuid_microduct_to_id: string;
-            /**
-             * Graben zu
-             * Format: uuid
-             */
-            uuid_trench_to_id: string;
-            /**
-             * Netzknoten
-             * Format: uuid
-             */
-            uuid_node_id: string;
-        };
-        MicropipeByConduit: {
-            number: number;
-            color_name: string | null;
-            color_hex: string;
-            available_in: string[];
-            available_in_all: boolean;
-            linked_to_cable: boolean;
-            linked_cables: components["schemas"]["MicropipeLinkedCable"][];
-            missing_in: string[];
-            microduct_status: boolean;
-        };
-        MicropipeLinkedCable: {
-            /** Format: uuid */
-            uuid: string;
-            name: string;
-        };
-        /**
-         * @description Serialize :model:`api.Node` as GeoJSON with nested attribute objects.
-         *
-         *     Includes canvas position fields for diagram rendering and an
-         *     optional parent node reference for hierarchical node structures.
-         */
-        Node: {
-            type?: components["schemas"]["GisFeatureEnum"];
-            /** Format: uuid */
-            readonly id?: string;
-            geometry?: {
-                /** @enum {string} */
-                type?: "Point";
-                /**
-                 * @example [
-                 *       12.9721,
-                 *       77.5933
-                 *     ]
-                 */
-                coordinates?: number[];
-            };
-            properties?: {
-                readonly uuid_address?: components["schemas"]["Address"];
-                readonly node_type?: components["schemas"]["AttributesNodeType"];
-                readonly status?: components["schemas"]["AttributesStatus"];
-                readonly network_level?: components["schemas"]["AttributesNetworkLevel"];
-                readonly owner?: components["schemas"]["AttributesCompany"];
-                readonly constructor?: components["schemas"]["AttributesCompany"];
-                readonly manufacturer?: components["schemas"]["AttributesCompany"];
-                readonly project?: components["schemas"]["Projects"];
-                readonly flag?: components["schemas"]["Flags"];
-                readonly parent_node?: components["schemas"]["ParentNode"];
-                /** Netzknotenname */
-                name?: string;
-                /** Netzknotentyp */
-                node_type_id?: number;
-                /**
-                 * Adresse
-                 * Format: uuid
-                 */
-                uuid_address_id?: string | null;
-                /**
-                 * Übergeordneter Netzknoten
-                 * Format: uuid
-                 */
-                parent_node_id?: string | null;
-                /** Status */
-                status_id?: number | null;
-                /** Netzebene */
-                network_level_id?: number | null;
-                /** Eigentümer */
-                owner_id?: number | null;
-                /** Baufirma */
-                constructor_id?: number | null;
-                /** Hersteller */
-                manufacturer_id?: number | null;
-                /**
-                 * Gewährleistung
-                 * Format: date
-                 */
-                warranty?: string | null;
-                /**
-                 * Datum
-                 * Format: date
-                 */
-                date?: string | null;
-                /** @description GeoJSON geometry object (EPSG:3857). */
-                readonly geom_3857?: {
-                    type?: string;
-                    coordinates?: unknown[];
-                };
-                /** Format: double */
-                canvas_x?: number | null;
-                /** Format: double */
-                canvas_y?: number | null;
-                /**
-                 * Kind-Canvas Breite
-                 * Format: double
-                 */
-                child_canvas_x?: number | null;
-                /**
-                 * Kind-Canvas Höhe
-                 * Format: double
-                 */
-                child_canvas_y?: number | null;
-                /** Projekt */
-                project_id?: number;
-                /** Kennzeichen */
-                flag_id?: number;
-            };
-        };
-        NodeList: {
-            type?: components["schemas"]["GisFeatureCollectionEnum"];
-            features?: components["schemas"]["Node"][];
-        };
-        /** @description Serialize :model:`api.NodeSlotClipNumber` clip number assignments. */
-        NodeSlotClipNumber: {
-            /** Format: uuid */
-            readonly uuid: string;
-            /**
-             * Steckplatz-Konfiguration
-             * Format: uuid
-             * @description Die Steckplatz-Konfiguration, zu der diese Clip-Nummer gehört
-             */
-            readonly slot_configuration: string;
-            /** Format: uuid */
-            slot_configuration_id: string;
-            /**
-             * Steckplatz-Nummer
-             * @description Die Steckplatz-Nummer, zu der diese Clip-Nummer zugewiesen ist
-             */
-            slot_number: number;
-            /**
-             * Clip-Nummer
-             * @description Die benutzerdefinierte Clip-Nummer-Bezeichnung (z.B., '1', '1A', '2B')
-             */
-            clip_number: string;
-        };
-        /** @description Serialize :model:`api.NodeSlotConfiguration` with computed slot usage. */
-        NodeSlotConfiguration: {
-            /** Format: uuid */
-            readonly uuid: string;
-            readonly uuid_node: components["schemas"]["Node"];
-            /**
-             * Netzknoten
-             * Format: uuid
-             */
-            uuid_node_id: string;
-            /** Seite */
-            side: string;
-            /** Steckplätze gesamt */
-            total_slots: number;
-            readonly used_slots: string;
-            readonly free_slots: string;
-            /**
-             * Reihenfolge
-             * @description Name für diese Konfiguration
-             */
-            sort_order?: number;
-            /**
-             * Format: uuid
-             * @description Optionaler Container, zu dem diese Steckplatz-Konfiguration gehört
-             */
-            container?: string | null;
-        };
-        /** @description Serialize :model:`api.NodeSlotDivider` visual dividers between slots. */
-        NodeSlotDivider: {
-            /** Format: uuid */
-            readonly uuid: string;
-            /**
-             * Steckplatz-Konfiguration
-             * Format: uuid
-             * @description Die Steckplatz-Konfiguration, zu der dieser Divider gehört
-             */
-            readonly slot_configuration: string;
-            /** Format: uuid */
-            slot_configuration_id: string;
-            /**
-             * Nach Steckplatz
-             * @description Die Steckplatz-Nummer, nach der dieser Divider erscheint
-             */
-            after_slot: number;
-        };
-        /**
-         * @description Serialize :model:`api.NodeStructure` with component and slot configuration.
-         *
-         *     Supports both component entries and reserved/empty slot entries
-         *     distinguished by the purpose field.
-         */
-        NodeStructure: {
-            /** Format: uuid */
-            readonly uuid: string;
-            readonly uuid_node: components["schemas"]["Node"];
-            readonly slot_configuration: components["schemas"]["NodeSlotConfiguration"];
-            readonly component_type: components["schemas"]["AttributesComponentType"];
-            readonly component_structure: components["schemas"]["AttributesComponentStructure"];
-            /**
-             * Netzknoten
-             * Format: uuid
-             */
-            uuid_node_id: string;
-            /**
-             * Steckplatz-Konfiguration
-             * Format: uuid
-             */
-            slot_configuration_id: string;
-            /** Komponententyp */
-            component_type_id?: number | null;
-            /** Komponentenstruktur */
-            component_structure_id?: number | null;
-            /** Steckplatz Start */
-            slot_start: number;
-            /** Steckplatz Ende */
-            slot_end: number;
-            /** Clip-Nummer */
-            clip_number?: number | null;
-            /**
-             * Zweck
-             * @default component
-             */
-            purpose: components["schemas"]["PurposeEnum"];
-            label?: string | null;
-            readonly slot_count: string;
-            readonly side_name: string;
-        };
-        /** @description Serialize :model:`api.NodeTrenchSelection` with denormalized display names. */
-        NodeTrenchSelection: {
-            /** Format: uuid */
-            readonly uuid: string;
-            /**
-             * Netzknoten
-             * Format: uuid
-             */
-            node: string;
-            readonly node_name: string;
-            /**
-             * Graben
-             * Format: uuid
-             */
-            trench: string;
-            readonly trench_id_trench: string;
-            /**
-             * Erstellt am
-             * Format: date-time
-             */
-            readonly created_at: string;
-        };
-        PaginatedAddressList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["AddressList"];
-        };
-        PaginatedAreaList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["AreaList"];
-        };
-        PaginatedCableLabelList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["CableLabel"][];
-        };
-        PaginatedCableList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["Cable"][];
-        };
-        PaginatedConduitList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["Conduit"][];
-        };
-        PaginatedFeatureFilesList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["FeatureFiles"][];
-        };
-        PaginatedLogEntryList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["LogEntry"][];
-        };
-        PaginatedMicroductCableConnectionList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["MicroductCableConnection"][];
-        };
-        PaginatedMicroductConnectionList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["MicroductConnection"][];
-        };
-        PaginatedMicroductList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["Microduct"][];
-        };
-        PaginatedNodeList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["NodeList"];
-        };
-        PaginatedTrenchConduitList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["TrenchConduit"][];
-        };
-        PaginatedTrenchList: {
-            /** @example 123 */
-            count: number;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=4
-             */
-            next?: string | null;
-            /**
-             * Format: uri
-             * @example http://api.example.org/accounts/?page=2
-             */
-            previous?: string | null;
-            results: components["schemas"]["TrenchList"];
-        };
-        /** @description Minimal serializer for parent node references to avoid circular imports. */
-        ParentNode: {
-            /** Format: uuid */
-            uuid?: string;
-            /** Netzknotenname */
-            name: string;
-        };
-        PasswordChange: {
-            new_password1: string;
-            new_password2: string;
-        };
-        /** @description Serializer for requesting a password reset e-mail. */
-        PasswordReset: {
-            /** Format: email */
-            email: string;
-        };
-        /** @description Serializer for confirming a password reset attempt. */
-        PasswordResetConfirm: {
-            new_password1: string;
-            new_password2: string;
-            uid: string;
-            token: string;
-        };
-        /**
-         * @description Serialize :model:`api.Address` as GeoJSON with nested attribute objects.
-         *
-         *     Geometry is validated as Point in EPSG:25832. Includes a read-only
-         *     geom_3857 field for web map display.
-         */
-        PatchedAddress: {
-            type?: components["schemas"]["GisFeatureEnum"];
-            /** Format: uuid */
-            readonly id?: string;
-            geometry?: {
-                /** @enum {string} */
-                type?: "Point";
-                /**
-                 * @example [
-                 *       12.9721,
-                 *       77.5933
-                 *     ]
-                 */
-                coordinates?: number[];
-            };
-            properties?: {
-                readonly status_development?: components["schemas"]["AttributesStatusDevelopment"];
-                readonly flag?: components["schemas"]["Flags"];
-                readonly project?: components["schemas"]["Projects"];
-                /** Adress-ID */
-                id_address?: string;
-                /** Adress-ID 2 */
-                id_address_2?: string | null;
-                /** PLZ */
-                zip_code?: string;
-                /** Stadt */
-                city?: string;
-                /** Ortsteil */
-                district?: string;
-                /** Straße */
-                street?: string;
-                /** Hausnummer */
-                housenumber?: number;
-                /** Hausnummer */
-                house_number_suffix?: string;
-                /** Ausbaustatus */
-                status_development_id?: number;
-                /** Kennzeichen */
-                flag_id?: number;
-                /** Projekt */
-                project_id?: number;
-                /** @description GeoJSON geometry object (EPSG:3857). */
-                readonly geom_3857?: {
-                    type?: string;
-                    coordinates?: unknown[];
-                };
-            };
-        };
-        /** @description Serialize :model:`api.Area` as GeoJSON with Polygon geometry validation. */
-        PatchedArea: {
-            type?: components["schemas"]["GisFeatureEnum"];
-            /** Format: uuid */
-            readonly id?: string;
-            geometry?: {
-                /** @enum {string} */
-                type?: "Polygon";
-                /**
-                 * @example [
-                 *       [
-                 *         [
-                 *           0,
-                 *           0
-                 *         ],
-                 *         [
-                 *           0,
-                 *           50
-                 *         ],
-                 *         [
-                 *           50,
-                 *           50
-                 *         ],
-                 *         [
-                 *           50,
-                 *           0
-                 *         ],
-                 *         [
-                 *           0,
-                 *           0
-                 *         ]
-                 *       ]
-                 *     ]
-                 */
-                coordinates?: number[][][];
-            };
-            properties?: {
-                readonly area_type?: components["schemas"]["AttributesAreaType"];
-                readonly flag?: components["schemas"]["Flags"];
-                readonly project?: components["schemas"]["Projects"];
-                /** Gebietstyp */
-                area_type_id?: number;
-                /** Kennzeichen */
-                flag_id?: number;
-                /** Projekt */
-                project_id?: number;
-                /** @description GeoJSON geometry object (EPSG:3857). */
-                readonly geom_3857?: {
-                    type?: string;
-                    coordinates?: unknown[];
-                };
-                /** Gebietname */
-                name?: string;
-            };
-        };
-        /**
-         * @description Serialize :model:`api.Cable` with start/end node references.
-         *
-         *     Enforces unique cable name per project. Includes computed fields
-         *     for start and end node names and diagram path data.
-         */
-        PatchedCable: {
-            /** Format: uuid */
-            uuid?: string;
-            readonly cable_type?: components["schemas"]["AttributesCableType"];
-            readonly status?: components["schemas"]["AttributesStatus"];
-            readonly network_level?: components["schemas"]["AttributesNetworkLevel"];
-            readonly owner?: components["schemas"]["AttributesCompany"];
-            readonly constructor?: components["schemas"]["AttributesCompany"];
-            readonly manufacturer?: components["schemas"]["AttributesCompany"];
-            readonly project?: components["schemas"]["Projects"];
-            readonly flag?: components["schemas"]["Flags"];
-            /** Kabelname */
-            name?: string;
-            /** Kabeltyp */
-            cable_type_id?: number;
-            /** Status */
-            status_id?: number;
-            /** Netzebene */
-            network_level_id?: number;
-            /** Eigentümer */
-            owner_id?: number;
-            /** Baufirma */
-            constructor_id?: number;
-            /** Hersteller */
-            manufacturer_id?: number;
-            /**
-             * Datum
-             * Format: date
-             */
-            date?: string;
-            /**
-             * Startknoten
-             * Format: uuid
-             */
-            uuid_node_start_id?: string;
-            /**
-             * Endknoten
-             * Format: uuid
-             */
-            uuid_node_end_id?: string;
-            /** Projekt */
-            project_id?: number;
-            /** Kennzeichen */
-            flag_id?: number;
-            /**
-             * Übergeordneter Netzknoten
-             * Format: uuid
-             */
-            parent_node_context_id?: string | null;
-            /**
-             * Länge
-             * Format: double
-             */
-            length?: number;
-            /**
-             * Länge
-             * Format: double
-             */
-            length_total?: number;
-            /** Reserve am Start */
-            reserve_at_start?: number;
-            /** Reserve am Ende */
-            reserve_at_end?: number;
-            /** Reserve auf Strecke */
-            reserve_section?: number;
-            handle_start?: string | null;
-            handle_end?: string | null;
-            diagram_path?: unknown;
-            readonly uuid_node_start_name?: string;
-            readonly uuid_node_end_name?: string;
-            /**
-             * Startknoten
-             * Format: uuid
-             */
-            uuid_node_start?: string | null;
-            /**
-             * Endknoten
-             * Format: uuid
-             */
-            uuid_node_end?: string | null;
-            /**
-             * Übergeordneter Netzknoten
-             * Format: uuid
-             * @description Wenn gesetzt, wurde das Kabel in der Kindansicht dieses übergeordneten Knotens erstellt
-             */
-            parent_node_context?: string | null;
-        };
-        /** @description Serialize :model:`api.CableLabel` positioned text labels for cables. */
-        PatchedCableLabel: {
-            /** Format: uuid */
-            uuid?: string;
-            /**
-             * Kabel
-             * Format: uuid
-             */
-            cable_id?: string;
-            readonly cable?: components["schemas"]["Cable"];
-            /**
-             * Label-Text
-             * @description Der Text, der auf dem Label angezeigt wird
-             */
-            text?: string;
-            /**
-             * Format: double
-             * @description X-Koordinate des Labels im Diagramm-Canvas
-             */
-            position_x?: number | null;
-            /**
-             * Format: double
-             * @description Y-Koordinate des Labels im Diagramm-Canvas
-             */
-            position_y?: number | null;
-            /**
-             * Reihenfolge
-             * @description Anzeigereihenfolge, wenn mehrere Labels existieren
-             */
-            order?: number;
-            /** Format: date-time */
-            readonly created_at?: string;
-            /** Format: date-time */
-            readonly updated_at?: string;
-        };
-        /**
-         * @description Serialize :model:`api.Conduit` with nested attribute objects.
-         *
-         *     Read operations return nested serializers for FK fields.
-         *     Write operations accept PK references via write-only fields.
-         *     Enforces unique conduit name per project.
-         */
-        PatchedConduit: {
-            /** Format: uuid */
-            readonly uuid?: string;
-            readonly conduit_type?: components["schemas"]["AttributesConduitType"];
-            readonly status?: components["schemas"]["AttributesStatus"];
-            readonly network_level?: components["schemas"]["AttributesNetworkLevel"];
-            readonly owner?: components["schemas"]["AttributesCompany"];
-            readonly constructor?: components["schemas"]["AttributesCompany"];
-            readonly manufacturer?: components["schemas"]["AttributesCompany"];
-            readonly project?: components["schemas"]["Projects"];
-            readonly flag?: components["schemas"]["Flags"];
-            /** Rohrbezeichnung */
-            name?: string;
-            /** Rohrtyp */
-            conduit_type_id?: number;
-            /** Status */
-            status_id?: number;
-            /** Netzebene */
-            network_level_id?: number;
-            /** Eigentümer */
-            owner_id?: number;
-            /** Baufirma */
-            constructor_id?: number;
-            /** Hersteller */
-            manufacturer_id?: number;
-            /** Projekt */
-            project_id?: number;
-            /** Kennzeichen */
-            flag_id?: number;
-            /** Schutzrohr */
-            outer_conduit?: string;
-            /** Format: date */
-            date?: string;
-        };
-        /** @description Serialize :model:`api.Container` instances with nested type and display name. */
-        PatchedContainer: {
-            /** Format: uuid */
-            readonly uuid?: string;
-            /** Format: uuid */
-            uuid_node_id?: string;
-            readonly container_type?: components["schemas"]["ContainerType"];
-            container_type_id?: number;
-            /**
-             * Übergeordneter Container
-             * Format: uuid
-             * @description Der übergeordnete Container (null, wenn es sich um einen obersten Container handelt)
-             */
-            parent_container?: string | null;
-            /** Format: uuid */
-            parent_container_id?: string | null;
-            /** @description Optionale benutzerdefinierte Name für diese Container-Instanz */
-            name?: string | null;
-            /**
-             * Reihenfolge
-             * @description Reihenfolge dieses Containers unter seinen Geschwisterelementen
-             */
-            sort_order?: number;
-            /**
-             * Erweitert
-             * @description Ob dieser Container in der Benutzeroberfläche erweitert ist
-             */
-            is_expanded?: boolean;
-            readonly display_name?: string;
-            /** Format: date-time */
-            readonly created_at?: string;
-            /** Format: date-time */
-            readonly updated_at?: string;
-        };
-        /**
-         * @description Serialize user details including staff/superuser flags.
-         *
-         *     Override the default dj-rest-auth user serializer to expose
-         *     is_staff and is_superuser for frontend permission checks.
-         */
-        PatchedCustomUserDetails: {
-            readonly pk?: number;
-            readonly username?: string;
-            /** Format: email */
-            readonly email?: string;
-            readonly first_name?: string;
-            readonly last_name?: string;
-            readonly is_staff?: boolean;
-            readonly is_superuser?: boolean;
-        };
-        /** @description Serialize :model:`api.FeatureFiles` with Nextcloud storage metadata. */
-        PatchedFeatureFiles: {
-            /** Format: uuid */
-            readonly uuid?: string;
-            /**
-             * Feature-ID
-             * Format: uuid
-             */
-            object_id?: string;
-            /** Feature-Typ */
-            content_type?: number;
-            /**
-             * Dateipfad
-             * Format: uri
-             */
-            file_path?: string;
-            /** Dateiname */
-            readonly file_name?: string;
-            /** Dateityp */
-            readonly file_type?: string;
-            /** Beschreibung */
-            description?: string | null;
-            /**
-             * Erstellt am
-             * Format: date-time
-             */
-            readonly created_at?: string;
-        };
-        /** @description Serialize :model:`api.Fiber` with cable name and fiber status. */
-        PatchedFiber: {
-            /** Format: uuid */
-            readonly uuid?: string;
-            /**
-             * Kabel
-             * Format: uuid
-             * @description Das Kabel, zu dem die Faser gehört
-             */
-            uuid_cable?: string;
-            /** Format: uuid */
-            uuid_cable_id?: string;
-            readonly cable_name?: string;
-            /**
-             * Nummer
-             * @description Die Bündelnummer, zu der die Faser gehört
-             */
-            bundle_number?: number;
-            /**
-             * Bündelfarbe
-             * @description Die Farbe des Bündels, zu dem die Faser gehört
-             */
-            bundle_color?: string;
-            /**
-             * Faser-Nummer absolut
-             * @description Die absolute Faser-Nummer, zu der die Faser gehört
-             */
-            fiber_number_absolute?: number;
-            /**
-             * Faser-Nummer im Bündel
-             * @description Die Nummer der Faser im Bündel, zu dem die Faser gehört
-             */
-            fiber_number_in_bundle?: number;
-            /**
-             * Faserfarbe
-             * @description Die Farbe der Faser, zu der die Faser gehört
-             */
-            fiber_color?: string;
-            /**
-             * Aktiv
-             * @description Ob die Faser aktiv ist
-             */
-            active?: boolean;
-            /** @description Innen oder Außen-Layer */
-            layer?: string;
-            readonly fiber_status?: components["schemas"]["AttributesFiberStatus"];
-            fiber_status_id?: number | null;
-            /** Kennzeichen */
-            flag?: number;
-            /** Projekt */
-            project?: number;
-        };
-        /**
-         * @description Serialize :model:`api.FiberSplice` with fiber details and merge group info.
-         *
-         *     Handle side-independent merge groups (A and B sides can be merged
-         *     independently) and shared fiber references for merged port groups.
-         *     Include residential unit endpoint details for connection tracking.
-         */
-        PatchedFiberSplice: {
-            /** Format: uuid */
-            uuid?: string;
-            /**
-             * Netzknoten-Struktur
-             * Format: uuid
-             * @description Die Komponenten-Platzierung, zu der dieser Splice gehört
-             */
-            node_structure?: string;
-            /**
-             * Nummer
-             * @description Die Port-Nummer auf der Komponente (z.B., 1-12 für einen Splice-Cassette)
-             */
-            port_number?: number;
-            /**
-             * Faser A
-             * Format: uuid
-             * @description Die erste Faser in dieser Splice-Verbindung
-             */
-            fiber_a?: string | null;
-            /**
-             * Kabel A
-             * Format: uuid
-             * @description Das Kabel der Faser A (denormalisiert für CASCADE-Löschen)
-             */
-            cable_a?: string | null;
-            /**
-             * Faser B
-             * Format: uuid
-             * @description Die zweite Faser in dieser Splice-Verbindung
-             */
-            fiber_b?: string | null;
-            /**
-             * Kabel B
-             * Format: uuid
-             * @description Das Kabel der Faser B (denormalisiert für CASCADE-Löschen)
-             */
-            cable_b?: string | null;
-            readonly fiber_a_details?: string;
-            readonly fiber_b_details?: string;
-            /**
-             * Zusammenführungsgruppe A
-             * Format: uuid
-             * @description UUID-Gruppierung von Ports auf Seite A (IN) die eine Faser teilen. Wird für asymmetrische Komponenten wie Splitter verwendet.
-             */
-            merge_group_a?: string | null;
-            /**
-             * Zusammenführungsgruppe B
-             * Format: uuid
-             * @description UUID-Gruppierung von Ports auf Seite B (OUT) die eine Faser teilen. Wird für asymmetrische Komponenten wie Splitter verwendet.
-             */
-            merge_group_b?: string | null;
-            readonly merge_group_a_info?: string;
-            readonly merge_group_b_info?: string;
-            /**
-             * Geteilte Faser A
-             * Format: uuid
-             * @description Geteilte Faser A für zusammengeführte Port-Gruppen (eine Faser für alle Ports in der Gruppe auf Seite A).
-             */
-            shared_fiber_a?: string | null;
-            /**
-             * Geteiltes Kabel A
-             * Format: uuid
-             * @description Das Kabel der geteilten Faser A (denormalisiert für CASCADE-Löschen).
-             */
-            shared_cable_a?: string | null;
-            /**
-             * Geteilte Faser B
-             * Format: uuid
-             * @description Geteilte Faser B für zusammengeführte Port-Gruppen (eine Faser für alle Ports in der Gruppe auf Seite B).
-             */
-            shared_fiber_b?: string | null;
-            /**
-             * Geteiltes Kabel B
-             * Format: uuid
-             * @description Das Kabel der geteilten Faser B (denormalisiert für CASCADE-Löschen).
-             */
-            shared_cable_b?: string | null;
-            /**
-             * Wohnungseinheit A
-             * Format: uuid
-             * @description Wohnungseinheit auf Seite A (Endpunkt).
-             */
-            residential_unit_a?: string | null;
-            /**
-             * Wohnungseinheit B
-             * Format: uuid
-             * @description Wohnungseinheit auf Seite B (Endpunkt).
-             */
-            residential_unit_b?: string | null;
-            readonly residential_unit_a_details?: string;
-            readonly residential_unit_b_details?: string;
-        };
-        /**
-         * @description Serialize :model:`api.Microduct` with color hex codes and cable connection info.
-         *
-         *     Resolves microduct color names to hex codes via
-         *     :model:`api.AttributesMicroductColor` lookups. Supports two-layer
-         *     (striped) colors using dash-separated color names.
-         */
-        PatchedMicroduct: {
-            /** Format: uuid */
-            readonly uuid?: string;
-            readonly uuid_conduit?: components["schemas"]["Conduit"];
-            readonly microduct_status?: components["schemas"]["AttributesMicroductStatus"];
-            readonly uuid_node?: components["schemas"]["Node"];
-            /** Nummer */
-            number?: number;
-            /** Farbe */
-            color?: string;
-            readonly hex_code?: string;
-            readonly hex_code_secondary?: string;
-            readonly is_two_layer?: string;
-            readonly cable_connection?: string;
-            /**
-             * Rohr
-             * Format: uuid
-             */
-            uuid_conduit_id?: string;
-            /** Mikrorohrstatus */
-            microduct_status_id?: number | null;
-            /**
-             * Netzknoten
-             * Format: uuid
-             */
-            uuid_node_id?: string | null;
-        };
-        /** @description Serialize :model:`api.MicroductCableConnection` linking cables to microducts. */
-        PatchedMicroductCableConnection: {
-            /** Format: uuid */
-            readonly uuid?: string;
-            readonly uuid_microduct?: components["schemas"]["Microduct"];
-            readonly uuid_cable?: components["schemas"]["Cable"];
-            /**
-             * Mikrorohr
-             * Format: uuid
-             */
-            uuid_microduct_id?: string;
-            /**
-             * Kabel
-             * Format: uuid
-             */
-            uuid_cable_id?: string;
-        };
-        /** @description Serialize :model:`api.MicroductConnection` between two microducts at a node. */
-        PatchedMicroductConnection: {
-            /** Format: uuid */
-            readonly uuid?: string;
-            readonly uuid_microduct_from?: components["schemas"]["Microduct"];
-            readonly uuid_trench_from?: components["schemas"]["Trench"];
-            readonly uuid_microduct_to?: components["schemas"]["Microduct"];
-            readonly uuid_trench_to?: components["schemas"]["Trench"];
-            readonly uuid_node?: components["schemas"]["Node"];
-            /**
-             * Mikrorohr von
-             * Format: uuid
-             */
-            uuid_microduct_from_id?: string;
-            /**
-             * Graben von
-             * Format: uuid
-             */
-            uuid_trench_from_id?: string;
-            /**
-             * Mikrorohr zu
-             * Format: uuid
-             */
-            uuid_microduct_to_id?: string;
-            /**
-             * Graben zu
-             * Format: uuid
-             */
-            uuid_trench_to_id?: string;
-            /**
-             * Netzknoten
-             * Format: uuid
-             */
-            uuid_node_id?: string;
-        };
-        /**
-         * @description Serialize :model:`api.Node` as GeoJSON with nested attribute objects.
-         *
-         *     Includes canvas position fields for diagram rendering and an
-         *     optional parent node reference for hierarchical node structures.
-         */
-        PatchedNode: {
-            type?: components["schemas"]["GisFeatureEnum"];
-            /** Format: uuid */
-            readonly id?: string;
-            geometry?: {
-                /** @enum {string} */
-                type?: "Point";
-                /**
-                 * @example [
-                 *       12.9721,
-                 *       77.5933
-                 *     ]
-                 */
-                coordinates?: number[];
-            };
-            properties?: {
-                readonly uuid_address?: components["schemas"]["Address"];
-                readonly node_type?: components["schemas"]["AttributesNodeType"];
-                readonly status?: components["schemas"]["AttributesStatus"];
-                readonly network_level?: components["schemas"]["AttributesNetworkLevel"];
-                readonly owner?: components["schemas"]["AttributesCompany"];
-                readonly constructor?: components["schemas"]["AttributesCompany"];
-                readonly manufacturer?: components["schemas"]["AttributesCompany"];
-                readonly project?: components["schemas"]["Projects"];
-                readonly flag?: components["schemas"]["Flags"];
-                readonly parent_node?: components["schemas"]["ParentNode"];
-                /** Netzknotenname */
-                name?: string;
-                /** Netzknotentyp */
-                node_type_id?: number;
-                /**
-                 * Adresse
-                 * Format: uuid
-                 */
-                uuid_address_id?: string | null;
-                /**
-                 * Übergeordneter Netzknoten
-                 * Format: uuid
-                 */
-                parent_node_id?: string | null;
-                /** Status */
-                status_id?: number | null;
-                /** Netzebene */
-                network_level_id?: number | null;
-                /** Eigentümer */
-                owner_id?: number | null;
-                /** Baufirma */
-                constructor_id?: number | null;
-                /** Hersteller */
-                manufacturer_id?: number | null;
-                /**
-                 * Gewährleistung
-                 * Format: date
-                 */
-                warranty?: string | null;
-                /**
-                 * Datum
-                 * Format: date
-                 */
-                date?: string | null;
-                /** @description GeoJSON geometry object (EPSG:3857). */
-                readonly geom_3857?: {
-                    type?: string;
-                    coordinates?: unknown[];
-                };
-                /** Format: double */
-                canvas_x?: number | null;
-                /** Format: double */
-                canvas_y?: number | null;
-                /**
-                 * Kind-Canvas Breite
-                 * Format: double
-                 */
-                child_canvas_x?: number | null;
-                /**
-                 * Kind-Canvas Höhe
-                 * Format: double
-                 */
-                child_canvas_y?: number | null;
-                /** Projekt */
-                project_id?: number;
-                /** Kennzeichen */
-                flag_id?: number;
-            };
-        };
-        /** @description Serialize :model:`api.NodeSlotClipNumber` clip number assignments. */
-        PatchedNodeSlotClipNumber: {
-            /** Format: uuid */
-            readonly uuid?: string;
-            /**
-             * Steckplatz-Konfiguration
-             * Format: uuid
-             * @description Die Steckplatz-Konfiguration, zu der diese Clip-Nummer gehört
-             */
-            readonly slot_configuration?: string;
-            /** Format: uuid */
-            slot_configuration_id?: string;
-            /**
-             * Steckplatz-Nummer
-             * @description Die Steckplatz-Nummer, zu der diese Clip-Nummer zugewiesen ist
-             */
-            slot_number?: number;
-            /**
-             * Clip-Nummer
-             * @description Die benutzerdefinierte Clip-Nummer-Bezeichnung (z.B., '1', '1A', '2B')
-             */
-            clip_number?: string;
-        };
-        /** @description Serialize :model:`api.NodeSlotConfiguration` with computed slot usage. */
-        PatchedNodeSlotConfiguration: {
-            /** Format: uuid */
-            readonly uuid?: string;
-            readonly uuid_node?: components["schemas"]["Node"];
-            /**
-             * Netzknoten
-             * Format: uuid
-             */
-            uuid_node_id?: string;
-            /** Seite */
-            side?: string;
-            /** Steckplätze gesamt */
-            total_slots?: number;
-            readonly used_slots?: string;
-            readonly free_slots?: string;
-            /**
-             * Reihenfolge
-             * @description Name für diese Konfiguration
-             */
-            sort_order?: number;
-            /**
-             * Format: uuid
-             * @description Optionaler Container, zu dem diese Steckplatz-Konfiguration gehört
-             */
-            container?: string | null;
-        };
-        /** @description Serialize :model:`api.NodeSlotDivider` visual dividers between slots. */
-        PatchedNodeSlotDivider: {
-            /** Format: uuid */
-            readonly uuid?: string;
-            /**
-             * Steckplatz-Konfiguration
-             * Format: uuid
-             * @description Die Steckplatz-Konfiguration, zu der dieser Divider gehört
-             */
-            readonly slot_configuration?: string;
-            /** Format: uuid */
-            slot_configuration_id?: string;
-            /**
-             * Nach Steckplatz
-             * @description Die Steckplatz-Nummer, nach der dieser Divider erscheint
-             */
-            after_slot?: number;
-        };
-        /**
-         * @description Serialize :model:`api.NodeStructure` with component and slot configuration.
-         *
-         *     Supports both component entries and reserved/empty slot entries
-         *     distinguished by the purpose field.
-         */
-        PatchedNodeStructure: {
-            /** Format: uuid */
-            readonly uuid?: string;
-            readonly uuid_node?: components["schemas"]["Node"];
-            readonly slot_configuration?: components["schemas"]["NodeSlotConfiguration"];
-            readonly component_type?: components["schemas"]["AttributesComponentType"];
-            readonly component_structure?: components["schemas"]["AttributesComponentStructure"];
-            /**
-             * Netzknoten
-             * Format: uuid
-             */
-            uuid_node_id?: string;
-            /**
-             * Steckplatz-Konfiguration
-             * Format: uuid
-             */
-            slot_configuration_id?: string;
-            /** Komponententyp */
-            component_type_id?: number | null;
-            /** Komponentenstruktur */
-            component_structure_id?: number | null;
-            /** Steckplatz Start */
-            slot_start?: number;
-            /** Steckplatz Ende */
-            slot_end?: number;
-            /** Clip-Nummer */
-            clip_number?: number | null;
-            /**
-             * Zweck
-             * @default component
-             */
-            purpose: components["schemas"]["PurposeEnum"];
-            label?: string | null;
-            readonly slot_count?: string;
-            readonly side_name?: string;
-        };
-        /** @description Serialize :model:`api.NodeTrenchSelection` with denormalized display names. */
-        PatchedNodeTrenchSelection: {
-            /** Format: uuid */
-            readonly uuid?: string;
-            /**
-             * Netzknoten
-             * Format: uuid
-             */
-            node?: string;
-            readonly node_name?: string;
-            /**
-             * Graben
-             * Format: uuid
-             */
-            trench?: string;
-            readonly trench_id_trench?: string;
-            /**
-             * Erstellt am
-             * Format: date-time
-             */
-            readonly created_at?: string;
-        };
-        /** @description Serialize :model:`api.PipelineInquiryArea` as GeoJSON with Polygon validation. */
-        PatchedPipelineInquiryArea: {
-            type?: components["schemas"]["GisFeatureEnum"];
-            /** Format: uuid */
-            readonly id?: string;
-            geometry?: {
-                /** @enum {string} */
-                type?: "Polygon";
-                /**
-                 * @example [
-                 *       [
-                 *         [
-                 *           0,
-                 *           0
-                 *         ],
-                 *         [
-                 *           0,
-                 *           50
-                 *         ],
-                 *         [
-                 *           50,
-                 *           50
-                 *         ],
-                 *         [
-                 *           50,
-                 *           0
-                 *         ],
-                 *         [
-                 *           0,
-                 *           0
-                 *         ]
-                 *       ]
-                 *     ]
-                 */
-                coordinates?: number[][][];
-            };
-            properties?: {
-                /** Format: uuid */
-                pipeline_record?: string;
-                /** Format: uuid */
-                readonly pipeline_record_uuid?: string;
-                name?: string | null;
-                /**
-                 * Erstellt am
-                 * Format: date-time
-                 */
-                readonly created_at?: string;
-                /**
-                 * Geändert am
-                 * Format: date-time
-                 */
-                readonly modified_at?: string;
-            };
-        };
-        /**
-         * @description Serialize :model:`api.PipelineRecord` with flattened FK values.
-         *
-         *     Read operations return project_name, type_of_work and request_reason as strings.
-         *     Write operations accept project, type_of_work_value and request_reason_value (PK ints).
-         */
-        PatchedPipelineRecord: {
-            /** Format: uuid */
-            readonly uuid?: string;
-            project?: number;
-            /** @default  */
-            readonly project_name: string;
-            /** @default  */
-            readonly type_of_work: string;
-            type_of_work_value?: number | null;
-            /** @default  */
-            readonly request_reason: string;
-            request_reason_value?: number | null;
-            organisation?: string | null;
-            name?: string | null;
-            /** Telefon */
-            tel?: string | null;
-            /** Mobil */
-            mobile?: string | null;
-            /**
-             * Erstellt am
-             * Format: date-time
-             */
-            readonly created_at?: string;
-            /**
-             * Geändert am
-             * Format: date-time
-             */
-            readonly modified_at?: string;
-        };
-        /** @description Serialize :model:`api.ResidentialUnit` linked to :model:`api.Address`. */
-        PatchedResidentialUnit: {
-            /** Format: uuid */
-            readonly uuid?: string;
-            readonly residential_unit_type?: components["schemas"]["AttributesResidentialUnitType"];
-            readonly status?: components["schemas"]["AttributesResidentialUnitStatus"];
-            /**
-             * Adresse
-             * Format: uuid
-             */
-            uuid_address_id?: string;
-            /** Wohnungseinheit-Typ */
-            residential_unit_type_id?: number | null;
-            /** Status */
-            status_id?: number | null;
-            /** Wohnungseinheit-ID */
-            id_residential_unit?: string | null;
-            /** Stockwerk */
-            floor?: number | null;
-            /** Seite */
-            side?: string | null;
-            /** Gebäudeteil */
-            building_section?: string | null;
-            /** Externe ID 1 */
-            external_id_1?: string | null;
-            /** Externe ID 2 */
-            external_id_2?: string | null;
-            /** Dateiname */
-            resident_name?: string | null;
-            /**
-             * Einwohner-Erfassungsdatum
-             * Format: date
-             */
-            resident_recorded_date?: string | null;
-            /** Format: date */
-            ready_for_service?: string | null;
-            /**
-             * Adresse
-             * Format: uuid
-             */
-            readonly uuid_address?: string;
-        };
-        /**
-         * @description Serialize :model:`api.Trench` as GeoJSON with nested attribute objects.
-         *
-         *     Read operations return nested serializers for FK fields (surface,
-         *     construction_type, status, etc.). Write operations accept PK references
-         *     via write-only fields. Geometry is validated as LineString in EPSG:25832.
-         */
-        PatchedTrench: {
-            type?: components["schemas"]["GisFeatureEnum"];
-            /** Format: uuid */
-            readonly id?: string;
-            geometry?: {
-                /** @enum {string} */
-                type?: "LineString";
-                /**
-                 * @example [
-                 *       [
-                 *         22.4707,
-                 *         70.0577
-                 *       ],
-                 *       [
-                 *         12.9721,
-                 *         77.5933
-                 *       ]
-                 *     ]
-                 */
-                coordinates?: number[][];
-            };
-            properties?: {
-                readonly id_trench?: string;
-                readonly house_connection?: boolean;
-                /** Format: decimal */
-                readonly length?: string;
-                readonly surface?: components["schemas"]["AttributesSurface"];
-                readonly construction_type?: components["schemas"]["AttributesConstructionType"];
-                readonly status?: components["schemas"]["AttributesStatus"];
-                readonly phase?: components["schemas"]["AttributesPhase"];
-                readonly owner?: components["schemas"]["AttributesCompany"];
-                readonly constructor?: components["schemas"]["AttributesCompany"];
-                readonly project?: components["schemas"]["Projects"];
-                readonly flag?: components["schemas"]["Flags"];
-                /** Oberfläche */
-                surface_value?: number;
-                /** Bau-/Verlegeart */
-                construction_type_id?: number;
-                /** Bautiefe */
-                construction_depth?: number;
-                /** Baudetails */
-                construction_details?: string;
-                /** Status */
-                status_id?: number;
-                /** Phase */
-                phase_id?: number;
-                /** Eigenleistung */
-                internal_execution?: boolean;
-                /** Förderstatus */
-                funding_status?: boolean;
-                /** Eigentümer */
-                trench_owner?: number;
-                /** Firma */
-                trench_company?: number;
-                /** Baufirma */
-                trench_constructor?: number;
-                /**
-                 * Datum
-                 * Format: date
-                 */
-                date?: string;
-                /** Kommentar */
-                comment?: string;
-                /** @description GeoJSON geometry object (EPSG:3857). */
-                readonly geom_3857?: {
-                    type?: string;
-                    coordinates?: unknown[];
-                };
-                /** Projekt */
-                project_id?: number;
-                /** Kennzeichen */
-                flag_id?: number;
-            };
-        };
-        /** @description Serialize :model:`api.TrenchConduitConnection` with nested trench and conduit. */
-        PatchedTrenchConduit: {
-            /** Format: uuid */
-            readonly uuid?: string;
-            /** Graben */
-            readonly trench?: components["schemas"]["Trench"];
-            /** Rohr */
-            readonly conduit?: components["schemas"]["Conduit"];
-            /**
-             * Graben
-             * Format: uuid
-             */
-            uuid_trench?: string;
-            /**
-             * Rohr
-             * Format: uuid
-             */
-            uuid_conduit?: string;
-        };
-        /** @description Serialize :model:`api.TrenchConduitCanvas` diagram positions. */
-        PatchedTrenchConduitCanvas: {
-            /** Format: uuid */
-            readonly uuid?: string;
-            /**
-             * Graben
-             * Format: uuid
-             */
-            trench?: string;
-            /**
-             * Rohr
-             * Format: uuid
-             */
-            conduit?: string;
-            /** Format: double */
-            canvas_x?: number | null;
-            /** Format: double */
-            canvas_y?: number | null;
-            /**
-             * Canvas Breite
-             * Format: double
-             */
-            canvas_width?: number;
-            /**
-             * Canvas Höhe
-             * Format: double
-             */
-            canvas_height?: number;
-            readonly conduit_name?: string;
-            readonly conduit_type_name?: string;
-        };
-        /** @description Serialize :model:`api.WMSLayer` display settings. */
-        PatchedWMSLayer: {
-            /** Format: uuid */
-            readonly id?: string;
-            /** Layer-Name */
-            readonly name?: string;
-            /** Layer-Titel */
-            readonly title?: string;
-            /** Aktiviert */
-            is_enabled?: boolean;
-            /** Reihenfolge */
-            sort_order?: number;
-            /**
-             * Minimale Zoom-Ebene
-             * @description Minimale Zoom-Ebene (0-22)
-             */
-            min_zoom?: number;
-            /**
-             * Maximale Zoom-Ebene
-             * @description Maximale Zoom-Ebene (0-22, leer = keine Begrenzung)
-             */
-            max_zoom?: number | null;
-            /**
-             * Transparenz
-             * Format: double
-             * @description 0.0 = transparent, 1.0 = undurchsichtig
-             */
-            opacity?: number;
-        };
-        /** @description Serialize :model:`api.WMSSource` for create/update with encrypted password handling. */
-        PatchedWMSSourceCreate: {
-            /** Format: uuid */
-            readonly id?: string;
-            /** Projekt */
-            project?: number;
-            name?: string;
-            /**
-             * WMS-URL
-             * Format: uri
-             */
-            url?: string;
-            /** Benutzer */
-            username?: string;
-            password?: string;
-            /** @description Attribution-Text für PDF-Export. Leer lassen, um aus Exporten auszuschließen. */
-            attribution?: string;
-            /** Reihenfolge */
-            sort_order?: number;
-            /** Aktiv */
-            is_active?: boolean;
-        };
-        /** @description Serialize :model:`api.PipelineInquiryArea` as GeoJSON with Polygon validation. */
-        PipelineInquiryArea: {
-            type?: components["schemas"]["GisFeatureEnum"];
-            /** Format: uuid */
-            readonly id?: string;
-            geometry?: {
-                /** @enum {string} */
-                type?: "Polygon";
-                /**
-                 * @example [
-                 *       [
-                 *         [
-                 *           0,
-                 *           0
-                 *         ],
-                 *         [
-                 *           0,
-                 *           50
-                 *         ],
-                 *         [
-                 *           50,
-                 *           50
-                 *         ],
-                 *         [
-                 *           50,
-                 *           0
-                 *         ],
-                 *         [
-                 *           0,
-                 *           0
-                 *         ]
-                 *       ]
-                 *     ]
-                 */
-                coordinates?: number[][][];
-            };
-            properties?: {
-                /** Format: uuid */
-                pipeline_record?: string;
-                /** Format: uuid */
-                readonly pipeline_record_uuid?: string;
-                name?: string | null;
-                /**
-                 * Erstellt am
-                 * Format: date-time
-                 */
-                readonly created_at?: string;
-                /**
-                 * Geändert am
-                 * Format: date-time
-                 */
-                readonly modified_at?: string;
-            };
-        };
-        PipelineInquiryAreaList: {
-            type?: components["schemas"]["GisFeatureCollectionEnum"];
-            features?: components["schemas"]["PipelineInquiryArea"][];
-        };
-        /**
-         * @description Serialize :model:`api.PipelineRecord` with flattened FK values.
-         *
-         *     Read operations return project_name, type_of_work and request_reason as strings.
-         *     Write operations accept project, type_of_work_value and request_reason_value (PK ints).
-         */
-        PipelineRecord: {
-            /** Format: uuid */
-            readonly uuid: string;
-            project: number;
-            /** @default  */
-            readonly project_name: string;
-            /** @default  */
-            readonly type_of_work: string;
-            type_of_work_value?: number | null;
-            /** @default  */
-            readonly request_reason: string;
-            request_reason_value?: number | null;
-            organisation?: string | null;
-            name?: string | null;
-            /** Telefon */
-            tel?: string | null;
-            /** Mobil */
-            mobile?: string | null;
-            /**
-             * Erstellt am
-             * Format: date-time
-             */
-            readonly created_at: string;
-            /**
-             * Geändert am
-             * Format: date-time
-             */
-            readonly modified_at: string;
-        };
-        /**
-         * @description * `bundle` - Bündel
-         *     * `fiber` - Faser
-         * @enum {string}
-         */
-        PositionTypeEnum: "bundle" | "fiber";
-        /** @description Serialize :model:`api.Projects` instances. */
-        Projects: {
-            readonly id: number;
-            /** Projekt */
-            project: string;
-            /** Beschreibung */
-            description?: string | null;
-            /** Aktiv */
-            active?: boolean;
-        };
-        /**
-         * @description * `component` - Komponente
-         *     * `reserve` - Reserve
-         *     * `empty` - Leer
-         * @enum {string}
-         */
-        PurposeEnum: "component" | "reserve" | "empty";
-        QGISAuthPostResult: {
-            status: string;
-        };
-        QGISAuthResult: {
-            status: string;
-        };
-        /** @description Serialize :model:`api.RequestReason` instances. */
-        RequestReason: {
-            readonly id: number;
-            name: string;
-        };
-        /** @description Serialize :model:`api.ResidentialUnit` linked to :model:`api.Address`. */
-        ResidentialUnit: {
-            /** Format: uuid */
-            readonly uuid: string;
-            readonly residential_unit_type: components["schemas"]["AttributesResidentialUnitType"];
-            readonly status: components["schemas"]["AttributesResidentialUnitStatus"];
-            /**
-             * Adresse
-             * Format: uuid
-             */
-            uuid_address_id: string;
-            /** Wohnungseinheit-Typ */
-            residential_unit_type_id?: number | null;
-            /** Status */
-            status_id?: number | null;
-            /** Wohnungseinheit-ID */
-            id_residential_unit?: string | null;
-            /** Stockwerk */
-            floor?: number | null;
-            /** Seite */
-            side?: string | null;
-            /** Gebäudeteil */
-            building_section?: string | null;
-            /** Externe ID 1 */
-            external_id_1?: string | null;
-            /** Externe ID 2 */
-            external_id_2?: string | null;
-            /** Dateiname */
-            resident_name?: string | null;
-            /**
-             * Einwohner-Erfassungsdatum
-             * Format: date
-             */
-            resident_recorded_date?: string | null;
-            /** Format: date */
-            ready_for_service?: string | null;
-            /**
-             * Adresse
-             * Format: uuid
-             */
-            readonly uuid_address: string;
-        };
-        RestAuthDetail: {
-            readonly detail: string;
-        };
-        RoutingRequest: {
-            start_trench_id: number;
-            end_trench_id: number;
-            project_id: number;
-            /** @description Snapping tolerance (default 1). */
-            tolerance?: number;
-        };
-        /**
-         * @description * `backend` - Backend
-         *     * `frontend` - Frontend
-         *     * `wfs` - WFS (QGIS Server)
-         * @enum {string}
-         */
-        SourceEnum: "backend" | "frontend" | "wfs";
-        SpatialIntersectError: {
-            error: string;
-        };
-        SpatialIntersectRequest: {
-            /** @description GeoJSON geometry (EPSG:25832 unless 'srid' set). */
-            geom: {
-                [key: string]: unknown;
-            };
-            layers?: string[];
-            project?: number;
-            /** @description Comma-separated or list of project ids to drop. */
-            exclude_projects?: string;
-            srid?: number;
-        };
-        SpatialIntersectResult: {
-            srid: number;
-            /** @description Per-layer GeoJSON FeatureCollection. */
-            layers: {
-                [key: string]: unknown;
-            };
-            counts: {
-                [key: string]: number;
-            };
-            total: number;
-        };
-        TokenRefresh: {
-            readonly access: string;
-            refresh: string;
-        };
-        TokenVerify: {
-            token: string;
-        };
-        TraceSearchResult: {
-            /** @description Lightweight picker items; fields vary by type. */
-            results: {
-                [key: string]: unknown;
-            }[];
-        };
-        /**
-         * @description Serialize :model:`api.Trench` as GeoJSON with nested attribute objects.
-         *
-         *     Read operations return nested serializers for FK fields (surface,
-         *     construction_type, status, etc.). Write operations accept PK references
-         *     via write-only fields. Geometry is validated as LineString in EPSG:25832.
-         */
-        Trench: {
-            type?: components["schemas"]["GisFeatureEnum"];
-            /** Format: uuid */
-            readonly id?: string;
-            geometry?: {
-                /** @enum {string} */
-                type?: "LineString";
-                /**
-                 * @example [
-                 *       [
-                 *         22.4707,
-                 *         70.0577
-                 *       ],
-                 *       [
-                 *         12.9721,
-                 *         77.5933
-                 *       ]
-                 *     ]
-                 */
-                coordinates?: number[][];
-            };
-            properties?: {
-                readonly id_trench?: string;
-                readonly house_connection?: boolean;
-                /** Format: decimal */
-                readonly length?: string;
-                readonly surface?: components["schemas"]["AttributesSurface"];
-                readonly construction_type?: components["schemas"]["AttributesConstructionType"];
-                readonly status?: components["schemas"]["AttributesStatus"];
-                readonly phase?: components["schemas"]["AttributesPhase"];
-                readonly owner?: components["schemas"]["AttributesCompany"];
-                readonly constructor?: components["schemas"]["AttributesCompany"];
-                readonly project?: components["schemas"]["Projects"];
-                readonly flag?: components["schemas"]["Flags"];
-                /** Oberfläche */
-                surface_value?: number;
-                /** Bau-/Verlegeart */
-                construction_type_id?: number;
-                /** Bautiefe */
-                construction_depth?: number;
-                /** Baudetails */
-                construction_details?: string;
-                /** Status */
-                status_id?: number;
-                /** Phase */
-                phase_id?: number;
-                /** Eigenleistung */
-                internal_execution?: boolean;
-                /** Förderstatus */
-                funding_status?: boolean;
-                /** Eigentümer */
-                trench_owner?: number;
-                /** Firma */
-                trench_company?: number;
-                /** Baufirma */
-                trench_constructor?: number;
-                /**
-                 * Datum
-                 * Format: date
-                 */
-                date?: string;
-                /** Kommentar */
-                comment?: string;
-                /** @description GeoJSON geometry object (EPSG:3857). */
-                readonly geom_3857?: {
-                    type?: string;
-                    coordinates?: unknown[];
-                };
-                /** Projekt */
-                project_id?: number;
-                /** Kennzeichen */
-                flag_id?: number;
-            };
-        };
-        /** @description Serialize :model:`api.TrenchConduitConnection` with nested trench and conduit. */
-        TrenchConduit: {
-            /** Format: uuid */
-            readonly uuid: string;
-            /** Graben */
-            readonly trench: components["schemas"]["Trench"];
-            /** Rohr */
-            readonly conduit: components["schemas"]["Conduit"];
-            /**
-             * Graben
-             * Format: uuid
-             */
-            uuid_trench: string;
-            /**
-             * Rohr
-             * Format: uuid
-             */
-            uuid_conduit: string;
-        };
-        /** @description Serialize :model:`api.TrenchConduitCanvas` diagram positions. */
-        TrenchConduitCanvas: {
-            /** Format: uuid */
-            readonly uuid: string;
-            /**
-             * Graben
-             * Format: uuid
-             */
-            trench: string;
-            /**
-             * Rohr
-             * Format: uuid
-             */
-            conduit: string;
-            /** Format: double */
-            canvas_x?: number | null;
-            /** Format: double */
-            canvas_y?: number | null;
-            /**
-             * Canvas Breite
-             * Format: double
-             */
-            canvas_width?: number;
-            /**
-             * Canvas Höhe
-             * Format: double
-             */
-            canvas_height?: number;
-            readonly conduit_name: string;
-            readonly conduit_type_name: string;
-        };
-        TrenchList: {
-            type?: components["schemas"]["GisFeatureCollectionEnum"];
-            features?: components["schemas"]["Trench"][];
-        };
-        TrenchesNearNodeConduit: {
-            /** Format: uuid */
-            uuid: string;
-            name: string;
-            microducts: components["schemas"]["TrenchesNearNodeMicroduct"][];
-        };
-        TrenchesNearNodeMicroduct: {
-            /** Format: uuid */
-            uuid: string;
-            number: number;
-            color: string | null;
-            microduct_status: string | null;
-            hex_code: string | null;
-            hex_code_secondary: string | null;
-            name_de: string | null;
-            name_en: string | null;
-            is_two_layer: boolean;
-        };
-        TrenchesNearNodeResult: {
-            trenches: components["schemas"]["TrenchesNearNodeTrench"][];
-            count: number;
-            /** Format: uuid */
-            node_uuid: string;
-            node_name: string;
-            /** Format: double */
-            distance: number;
-            project_id: number;
-        };
-        TrenchesNearNodeTrench: {
-            /** Format: uuid */
-            uuid: string;
-            id_trench: string;
-            conduits: components["schemas"]["TrenchesNearNodeConduit"][];
-        };
-        /** @description Serialize :model:`api.TypeOfWork` instances. */
-        TypeOfWork: {
-            readonly id: number;
-            name: string;
-        };
-        /**
-         * @description * `per_meter` - pro Meter
-         *     * `per_piece` - Stück
-         * @enum {string}
-         */
-        UnitEnum: "per_meter" | "per_piece";
-        /**
-         * @description Serialize a user's frontend settings snapshot.
-         *
-         *     The ``settings`` field is an opaque JSON object whose shape is owned by
-         *     the frontend; only its container type is validated here.
-         */
-        UserSettings: {
-            /** @description Opaque frontend settings snapshot (localStorage key/value map). */
-            settings?: unknown;
-            /** Format: date-time */
-            readonly updated_at: string;
-        };
-        ValuationCategory: {
-            name: string;
-            unit: string;
-            /** Format: double */
-            amount: number;
-            /** Format: double */
-            quantity: number;
-            /** Format: double */
-            gp: number;
-            is_house_connection: boolean;
-        };
-        /** @description Serialize :model:`api.ValuationCostRate` cost rates. */
-        ValuationCostRate: {
-            readonly id: number;
-            /** Projekt */
-            project: number;
-            /** Kostenkategorie */
-            name: string;
-            /**
-             * Betrag
-             * Format: decimal
-             */
-            amount?: string;
-            /**
-             * Einheit
-             * @description Pro Meter wird automatisch mit der Trassenlänge multipliziert; Stück multipliziert die Anzahl des ausgewählten Netzknotentyp.
-             *
-             *     * `per_meter` - pro Meter
-             *     * `per_piece` - Stück
-             */
-            unit?: components["schemas"]["UnitEnum"];
-            /**
-             * Hausanschluss
-             * @description Wenn aktiviert, wird dieser Typ für die Berechnung 'Kosten pro Hausanschluss' verwendet.
-             */
-            is_house_connection?: boolean;
-            node_type_ids?: number[];
-        };
-        ValuationProjectionYear: {
-            year: number;
-            /** Format: double */
-            net_value: number;
-            /** Format: double */
-            increase: number;
-        };
-        /** @description Validate the input of the valuation calculation endpoint. */
-        ValuationRequest: {
-            project: number;
-            area_uuids?: string[];
-            base_year?: number | null;
-            /** Format: double */
-            annual_correction?: number | null;
-            projection_years?: number;
-        };
-        ValuationResult: {
-            categories: components["schemas"]["ValuationCategory"][];
-            /** Format: double */
-            total: number;
-            /** Format: double */
-            cost_per_house_connection: number | null;
-            /** Format: double */
-            cost_per_meter: number | null;
-            projection: components["schemas"]["ValuationProjectionYear"][] | null;
-        };
-        /** @description Serialize :model:`api.WMSLayer` display settings. */
-        WMSLayer: {
-            /** Format: uuid */
-            readonly id: string;
-            /** Layer-Name */
-            readonly name: string;
-            /** Layer-Titel */
-            readonly title: string;
-            /** Aktiviert */
-            is_enabled?: boolean;
-            /** Reihenfolge */
-            sort_order?: number;
-            /**
-             * Minimale Zoom-Ebene
-             * @description Minimale Zoom-Ebene (0-22)
-             */
-            min_zoom?: number;
-            /**
-             * Maximale Zoom-Ebene
-             * @description Maximale Zoom-Ebene (0-22, leer = keine Begrenzung)
-             */
-            max_zoom?: number | null;
-            /**
-             * Transparenz
-             * Format: double
-             * @description 0.0 = transparent, 1.0 = undurchsichtig
-             */
-            opacity?: number;
-        };
-        /** @description Serialize :model:`api.WMSSource` with nested layers for list views. */
-        WMSSource: {
-            /** Format: uuid */
-            readonly id: string;
-            name: string;
-            /**
-             * WMS-URL
-             * Format: uri
-             */
-            url: string;
-            /** @description Attribution-Text für PDF-Export. Leer lassen, um aus Exporten auszuschließen. */
-            attribution?: string;
-            /** Reihenfolge */
-            sort_order?: number;
-            /** Aktiv */
-            is_active?: boolean;
-            readonly layer_count: string;
-            readonly layers: components["schemas"]["WMSLayer"][];
-            /**
-             * Erstellt am
-             * Format: date-time
-             */
-            readonly created_at: string;
-            /**
-             * Erstellt am
-             * Format: date-time
-             */
-            readonly updated_at: string;
-        };
-        /** @description Serialize :model:`api.WMSSource` for create/update with encrypted password handling. */
-        WMSSourceCreate: {
-            /** Format: uuid */
-            readonly id: string;
-            /** Projekt */
-            project: number;
-            name: string;
-            /**
-             * WMS-URL
-             * Format: uri
-             */
-            url: string;
-            /** Benutzer */
-            username?: string;
-            password?: string;
-            /** @description Attribution-Text für PDF-Export. Leer lassen, um aus Exporten auszuschließen. */
-            attribution?: string;
-            /** Reihenfolge */
-            sort_order?: number;
-            /** Aktiv */
-            is_active?: boolean;
-        };
-        WebDAVAuthPostResult: {
-            status: string;
-        };
-        WebDAVAuthResult: {
-            status: string;
-        };
-    };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+	schemas: {
+		/**
+		 * @description Serialize :model:`api.Address` as GeoJSON with nested attribute objects.
+		 *
+		 *     Geometry is validated as Point in EPSG:25832. Includes a read-only
+		 *     geom_3857 field for web map display.
+		 */
+		Address: {
+			type?: components['schemas']['GisFeatureEnum'];
+			/** Format: uuid */
+			readonly id?: string;
+			geometry?: {
+				/** @enum {string} */
+				type?: 'Point';
+				/**
+				 * @example [
+				 *       12.9721,
+				 *       77.5933
+				 *     ]
+				 */
+				coordinates?: number[];
+			};
+			properties?: {
+				readonly status_development?: components['schemas']['AttributesStatusDevelopment'];
+				readonly flag?: components['schemas']['Flags'];
+				readonly project?: components['schemas']['Projects'];
+				/** Adress-ID */
+				id_address?: string;
+				/** Adress-ID 2 */
+				id_address_2?: string | null;
+				/** PLZ */
+				zip_code?: string;
+				/** Stadt */
+				city?: string;
+				/** Ortsteil */
+				district?: string;
+				/** Straße */
+				street?: string;
+				/** Hausnummer */
+				housenumber?: number;
+				/** Hausnummer */
+				house_number_suffix?: string;
+				/** Ausbaustatus */
+				status_development_id?: number;
+				/** Kennzeichen */
+				flag_id?: number;
+				/** Projekt */
+				project_id?: number;
+				/** @description GeoJSON geometry object (EPSG:3857). */
+				readonly geom_3857?: {
+					type?: string;
+					coordinates?: unknown[];
+				};
+			};
+		};
+		AddressList: {
+			type?: components['schemas']['GisFeatureCollectionEnum'];
+			features?: components['schemas']['Address'][];
+		};
+		AppLoginRequest: {
+			username: string;
+			password: string;
+		};
+		AppLoginResult: {
+			access: string;
+			refresh: string;
+			access_expiration: number;
+			refresh_expiration: number;
+			user: components['schemas']['CustomUserDetails'];
+		};
+		AppLogoutRequest: {
+			refresh: string;
+		};
+		AppLogoutResult: {
+			detail: string;
+		};
+		/** @description Serialize :model:`api.Area` as GeoJSON with Polygon geometry validation. */
+		Area: {
+			type?: components['schemas']['GisFeatureEnum'];
+			/** Format: uuid */
+			readonly id?: string;
+			geometry?: {
+				/** @enum {string} */
+				type?: 'Polygon';
+				/**
+				 * @example [
+				 *       [
+				 *         [
+				 *           0,
+				 *           0
+				 *         ],
+				 *         [
+				 *           0,
+				 *           50
+				 *         ],
+				 *         [
+				 *           50,
+				 *           50
+				 *         ],
+				 *         [
+				 *           50,
+				 *           0
+				 *         ],
+				 *         [
+				 *           0,
+				 *           0
+				 *         ]
+				 *       ]
+				 *     ]
+				 */
+				coordinates?: number[][][];
+			};
+			properties?: {
+				readonly area_type?: components['schemas']['AttributesAreaType'];
+				readonly flag?: components['schemas']['Flags'];
+				readonly project?: components['schemas']['Projects'];
+				/** Gebietstyp */
+				area_type_id?: number;
+				/** Kennzeichen */
+				flag_id?: number;
+				/** Projekt */
+				project_id?: number;
+				/** @description GeoJSON geometry object (EPSG:3857). */
+				readonly geom_3857?: {
+					type?: string;
+					coordinates?: unknown[];
+				};
+				/** Gebietname */
+				name?: string;
+			};
+		};
+		AreaList: {
+			type?: components['schemas']['GisFeatureCollectionEnum'];
+			features?: components['schemas']['Area'][];
+		};
+		/** @description Serialize :model:`api.AttributesAreaType` instances. */
+		AttributesAreaType: {
+			readonly id: number;
+			/** Gebietstyp */
+			area_type: string;
+		};
+		/** @description Serialize :model:`api.AttributesCableType` instances. */
+		AttributesCableType: {
+			readonly id: number;
+			/** Kabeltyp */
+			cable_type: string;
+		};
+		/** @description Serialize :model:`api.AttributesCompany` instances. */
+		AttributesCompany: {
+			readonly id: number;
+			/** Firma */
+			company: string;
+			/** Stadt */
+			city?: string | null;
+			/** Postleitzahl */
+			postal_code?: string | null;
+			/** Straße */
+			street?: string | null;
+			/** Hausnummer */
+			housenumber?: string | null;
+			/** Telefon */
+			phone?: string | null;
+			/** E-Mail */
+			email?: string | null;
+		};
+		/** @description Serialize :model:`api.AttributesComponentStructure` port definitions. */
+		AttributesComponentStructure: {
+			readonly id: number;
+			/** Komponententyp */
+			component_type: number;
+			/** In oder Out */
+			in_or_out: components['schemas']['InOrOutEnum'];
+			port: number;
+			port_alias?: string | null;
+		};
+		/** @description Serialize :model:`api.AttributesComponentType` instances. */
+		AttributesComponentType: {
+			readonly id: number;
+			/**
+			 * Komponententyp
+			 * @description Der Typ der Komponente (z.B. 'Router', 'Switch', 'Access Point', etc.)
+			 */
+			component_type: string;
+			/**
+			 * Belegte Steckplätze
+			 * @description Anzahl der von der Komponente belegten Steckplätze (Standard: 1)
+			 */
+			occupied_slots?: number;
+			/**
+			 * Hersteller
+			 * @description Der Hersteller der Komponente
+			 */
+			manufacturer?: number | null;
+		};
+		/** @description Serialize :model:`api.AttributesConduitType` instances. */
+		AttributesConduitType: {
+			readonly id: number;
+			/** Rohrtyp */
+			conduit_type: string;
+			/** Rohrzahl */
+			conduit_count: number;
+			/** Rohrtyp-Alias */
+			conduit_type_alias?: string | null;
+			/** Rohrtyp-Microduct */
+			conduit_type_microduct?: number | null;
+		};
+		/** @description Serialize :model:`api.AttributesConstructionType` instances. */
+		AttributesConstructionType: {
+			readonly id: number;
+			/** Bau-/Verlegeart */
+			construction_type: string;
+		};
+		/** @description Serialize :model:`api.AttributesFiberColor` with hex codes. */
+		AttributesFiberColor: {
+			readonly id: number;
+			/**
+			 * Deutscher Name
+			 * @description Deutscher Farbname (z.B., 'rot', 'rot-weiss')
+			 */
+			name_de: string;
+			/**
+			 * Englischer Name
+			 * @description Englischer Farbname (z.B., 'red', 'red-white')
+			 */
+			name_en: string;
+			/**
+			 * Farbcode
+			 * @description Primärer CSS-Farbcode (z.B., '#dc2626')
+			 */
+			hex_code: string;
+			/**
+			 * Sekundärer CSS-Farbcode
+			 * @description Sekundäre Farbe für gestreifte/zweilagige Mikrorohre/Fasern (optional)
+			 */
+			hex_code_secondary?: string | null;
+			/**
+			 * Anzeigereihenfolge
+			 * @description Reihenfolge, in der Farben in Auswahllisten angezeigt werden
+			 */
+			display_order?: number;
+			/**
+			 * Aktiv
+			 * @description Inaktive Farben werden ausgeblendet, aber für bestehende Daten beibehalten
+			 */
+			is_active?: boolean;
+			/**
+			 * Beschreibung
+			 * @description Optionale Notizen zu dieser Farbe
+			 */
+			description?: string | null;
+		};
+		/** @description Serialize :model:`api.AttributesFiberStatus` instances. */
+		AttributesFiberStatus: {
+			readonly id: number;
+			/** Faserstatus */
+			fiber_status: string;
+		};
+		/** @description Serialize :model:`api.AttributesMicroductColor` with hex codes and layer info. */
+		AttributesMicroductColor: {
+			readonly id: number;
+			/**
+			 * Deutscher Name
+			 * @description Deutscher Farbname (z.B., 'rot', 'rot-weiss')
+			 */
+			name_de: string;
+			/**
+			 * Englischer Name
+			 * @description Englischer Farbname (z.B., 'red', 'red-white')
+			 */
+			name_en: string;
+			/**
+			 * Farbcode
+			 * @description Primärer CSS-Farbcode (z.B., '#dc2626')
+			 */
+			hex_code: string;
+			/**
+			 * Sekundärer CSS-Farbcode
+			 * @description Sekundäre Farbe für gestreifte/zweilagige Mikrorohre/Fasern (optional)
+			 */
+			hex_code_secondary?: string | null;
+			/**
+			 * Anzeigereihenfolge
+			 * @description Reihenfolge, in der Farben in Auswahllisten angezeigt werden
+			 */
+			display_order?: number;
+			/**
+			 * Aktiv
+			 * @description Inaktive Farben werden ausgeblendet, aber für bestehende Daten beibehalten
+			 */
+			is_active?: boolean;
+			/**
+			 * Beschreibung
+			 * @description Optionale Notizen zu dieser Farbe
+			 */
+			description?: string | null;
+			readonly is_two_layer: string;
+		};
+		/** @description Serialize :model:`api.AttributesMicroductStatus` instances. */
+		AttributesMicroductStatus: {
+			id: number;
+			/** Mikrorohrstatus */
+			microduct_status: string;
+		};
+		/** @description Serialize :model:`api.AttributesNetworkLevel` instances. */
+		AttributesNetworkLevel: {
+			readonly id: number;
+			/** Netzebene */
+			network_level: string;
+		};
+		/** @description Serialize :model:`api.AttributesNodeType` instances. */
+		AttributesNodeType: {
+			readonly id: number;
+			/** Netzknotentyp */
+			node_type: string;
+			dimension?: string | null;
+			/** Gruppe */
+			group?: string | null;
+			/** Firma */
+			company?: string | null;
+		};
+		/** @description Serialize :model:`api.AttributesPhase` instances. */
+		AttributesPhase: {
+			readonly id: number;
+			phase: string;
+		};
+		/** @description Serialize :model:`api.AttributesResidentialUnitStatus` instances. */
+		AttributesResidentialUnitStatus: {
+			readonly id: number;
+			status: string;
+		};
+		/** @description Serialize :model:`api.AttributesResidentialUnitType` instances. */
+		AttributesResidentialUnitType: {
+			readonly id: number;
+			/** Wohnungseinheit-Typ */
+			residential_unit_type: string;
+		};
+		/** @description Serialize :model:`api.AttributesStatus` instances. */
+		AttributesStatus: {
+			readonly id: number;
+			status: string;
+		};
+		/** @description Serialize :model:`api.AttributesStatusDevelopment` instances. */
+		AttributesStatusDevelopment: {
+			readonly id: number;
+			status: string;
+		};
+		/** @description Serialize :model:`api.AttributesSurface` instances. */
+		AttributesSurface: {
+			readonly id: number;
+			/** Oberfläche */
+			surface: string;
+			/** Versiegelung */
+			sealing: boolean;
+		};
+		/**
+		 * @description Serialize :model:`api.Cable` with start/end node references.
+		 *
+		 *     Enforces unique cable name per project. Includes computed fields
+		 *     for start and end node names and diagram path data.
+		 */
+		Cable: {
+			/** Format: uuid */
+			uuid?: string;
+			readonly cable_type: components['schemas']['AttributesCableType'];
+			readonly status: components['schemas']['AttributesStatus'];
+			readonly network_level: components['schemas']['AttributesNetworkLevel'];
+			readonly owner: components['schemas']['AttributesCompany'];
+			readonly constructor: components['schemas']['AttributesCompany'];
+			readonly manufacturer: components['schemas']['AttributesCompany'];
+			readonly project: components['schemas']['Projects'];
+			readonly flag: components['schemas']['Flags'];
+			/** Kabelname */
+			name: string;
+			/** Kabeltyp */
+			cable_type_id: number;
+			/** Status */
+			status_id?: number;
+			/** Netzebene */
+			network_level_id?: number;
+			/** Eigentümer */
+			owner_id?: number;
+			/** Baufirma */
+			constructor_id?: number;
+			/** Hersteller */
+			manufacturer_id?: number;
+			/**
+			 * Datum
+			 * Format: date
+			 */
+			date?: string;
+			/**
+			 * Startknoten
+			 * Format: uuid
+			 */
+			uuid_node_start_id: string;
+			/**
+			 * Endknoten
+			 * Format: uuid
+			 */
+			uuid_node_end_id: string;
+			/** Projekt */
+			project_id: number;
+			/** Kennzeichen */
+			flag_id: number;
+			/**
+			 * Übergeordneter Netzknoten
+			 * Format: uuid
+			 */
+			parent_node_context_id?: string | null;
+			/**
+			 * Länge
+			 * Format: double
+			 */
+			length?: number;
+			/**
+			 * Länge
+			 * Format: double
+			 */
+			length_total?: number;
+			/** Reserve am Start */
+			reserve_at_start?: number;
+			/** Reserve am Ende */
+			reserve_at_end?: number;
+			/** Reserve auf Strecke */
+			reserve_section?: number;
+			handle_start: string | null;
+			handle_end: string | null;
+			diagram_path?: unknown;
+			readonly uuid_node_start_name: string;
+			readonly uuid_node_end_name: string;
+			/**
+			 * Startknoten
+			 * Format: uuid
+			 */
+			uuid_node_start?: string | null;
+			/**
+			 * Endknoten
+			 * Format: uuid
+			 */
+			uuid_node_end?: string | null;
+			/**
+			 * Übergeordneter Netzknoten
+			 * Format: uuid
+			 * @description Wenn gesetzt, wurde das Kabel in der Kindansicht dieses übergeordneten Knotens erstellt
+			 */
+			parent_node_context?: string | null;
+		};
+		CableAutoLinkRequest: {
+			/**
+			 * Format: uuid
+			 * @description Link this specific microduct; omit to auto-match both ends.
+			 */
+			microduct_uuid?: string;
+		};
+		CableConduits: {
+			conduit_names: string[];
+		};
+		/** @description Serialize :model:`api.CableLabel` positioned text labels for cables. */
+		CableLabel: {
+			/** Format: uuid */
+			uuid?: string;
+			/**
+			 * Kabel
+			 * Format: uuid
+			 */
+			cable_id: string;
+			readonly cable: components['schemas']['Cable'];
+			/**
+			 * Label-Text
+			 * @description Der Text, der auf dem Label angezeigt wird
+			 */
+			text: string;
+			/**
+			 * Format: double
+			 * @description X-Koordinate des Labels im Diagramm-Canvas
+			 */
+			position_x?: number | null;
+			/**
+			 * Format: double
+			 * @description Y-Koordinate des Labels im Diagramm-Canvas
+			 */
+			position_y?: number | null;
+			/**
+			 * Reihenfolge
+			 * @description Anzeigereihenfolge, wenn mehrere Labels existieren
+			 */
+			order?: number;
+			/** Format: date-time */
+			readonly created_at: string;
+			/** Format: date-time */
+			readonly updated_at: string;
+		};
+		CableLinkedTrenches: {
+			trench_uuids: string[];
+		};
+		CableMicropipeConnectRequest: {
+			micropipe_number: number;
+			color: string;
+			conduit_ids: string[];
+		};
+		CableMicropipeConnectResult: {
+			created: string[];
+			count: number;
+		};
+		CableMicropipeDisconnectResult: {
+			deleted: number;
+		};
+		/** @description Serialize :model:`api.CableTypeColorMapping` with nested color data. */
+		CableTypeColorMapping: {
+			/** Format: uuid */
+			uuid?: string;
+			/** Kabeltyp */
+			cable_type: number;
+			/**
+			 * Positionstyp
+			 * @description Ob diese Zuordnung für Bündel- oder Faserfarben ist
+			 *
+			 *     * `bundle` - Bündel
+			 *     * `fiber` - Faser
+			 */
+			position_type: components['schemas']['PositionTypeEnum'];
+			/** @description Bündel/Faserpositionnummer (1-12, etc.) */
+			position: number;
+			readonly color: components['schemas']['AttributesFiberColor'];
+			/**
+			 * @description Innen oder Außen-Layer
+			 *
+			 *     * `inner` - Innen
+			 *     * `outer` - Außen
+			 */
+			layer?: components['schemas']['LayerEnum'];
+		};
+		CanvasSyncRequest: {
+			project_id?: number;
+			flag_id?: number;
+			/**
+			 * Format: double
+			 * @description Scale factor (default 1.0).
+			 */
+			scale?: number;
+		};
+		CanvasSyncStatus: {
+			total_nodes: number;
+			nodes_with_canvas: number;
+			nodes_missing_canvas: number;
+			sync_needed: boolean;
+			sync_in_progress: boolean;
+			sync_status: string;
+			/** Format: date-time */
+			sync_started_at: string | null;
+			/** Format: double */
+			sync_progress: number;
+			error_message: string | null;
+		};
+		/**
+		 * @description Serialize :model:`api.Conduit` with nested attribute objects.
+		 *
+		 *     Read operations return nested serializers for FK fields.
+		 *     Write operations accept PK references via write-only fields.
+		 *     Enforces unique conduit name per project.
+		 */
+		Conduit: {
+			/** Format: uuid */
+			readonly uuid: string;
+			readonly conduit_type: components['schemas']['AttributesConduitType'];
+			readonly status: components['schemas']['AttributesStatus'];
+			readonly network_level: components['schemas']['AttributesNetworkLevel'];
+			readonly owner: components['schemas']['AttributesCompany'];
+			readonly constructor: components['schemas']['AttributesCompany'];
+			readonly manufacturer: components['schemas']['AttributesCompany'];
+			readonly project: components['schemas']['Projects'];
+			readonly flag: components['schemas']['Flags'];
+			/** Rohrbezeichnung */
+			name: string;
+			/** Rohrtyp */
+			conduit_type_id: number;
+			/** Status */
+			status_id?: number;
+			/** Netzebene */
+			network_level_id?: number;
+			/** Eigentümer */
+			owner_id?: number;
+			/** Baufirma */
+			constructor_id?: number;
+			/** Hersteller */
+			manufacturer_id?: number;
+			/** Projekt */
+			project_id: number;
+			/** Kennzeichen */
+			flag_id: number;
+			/** Schutzrohr */
+			outer_conduit?: string;
+			/** Format: date */
+			date?: string;
+		};
+		/** @description Serializer for conduits returned when selecting by trenches. */
+		ConduitForTrenchSelection: {
+			/** Format: uuid */
+			uuid?: string;
+			/** Rohrbezeichnung */
+			name: string;
+			readonly conduit_type_name: string;
+			/**
+			 * @description Check if any microducts in this conduit are linked to the context cable.
+			 *
+			 *     Args:
+			 *         obj: Conduit instance.
+			 *
+			 *     Returns:
+			 *         bool: True if a :model:`api.MicroductCableConnection` exists.
+			 */
+			readonly has_cable_linkage: boolean;
+		};
+		ConduitImportRequest: {
+			/**
+			 * Format: uri
+			 * @description An .xlsx file (max 10 MB).
+			 */
+			file: string;
+		};
+		ConduitImportResult: {
+			message: string;
+			created_count: number;
+			warnings?: string[];
+		};
+		Config: {
+			srid: number;
+			proj4: string;
+		};
+		ConfigError: {
+			error: string;
+		};
+		/** @description Serialize :model:`api.Container` instances with nested type and display name. */
+		Container: {
+			/** Format: uuid */
+			readonly uuid: string;
+			/** Format: uuid */
+			uuid_node_id: string;
+			readonly container_type: components['schemas']['ContainerType'];
+			container_type_id: number;
+			/**
+			 * Übergeordneter Container
+			 * Format: uuid
+			 * @description Der übergeordnete Container (null, wenn es sich um einen obersten Container handelt)
+			 */
+			parent_container?: string | null;
+			/** Format: uuid */
+			parent_container_id?: string | null;
+			/** @description Optionale benutzerdefinierte Name für diese Container-Instanz */
+			name?: string | null;
+			/**
+			 * Reihenfolge
+			 * @description Reihenfolge dieses Containers unter seinen Geschwisterelementen
+			 */
+			sort_order?: number;
+			/**
+			 * Erweitert
+			 * @description Ob dieser Container in der Benutzeroberfläche erweitert ist
+			 */
+			is_expanded?: boolean;
+			readonly display_name: string;
+			/** Format: date-time */
+			readonly created_at: string;
+			/** Format: date-time */
+			readonly updated_at: string;
+		};
+		/** @description Serialize :model:`api.ContainerType` admin-defined container categories. */
+		ContainerType: {
+			readonly id: number;
+			/** @description Der Name des Container-Typs (z.B., 'MFG-Door-Left', '19-inch Rack') */
+			name: string;
+			/**
+			 * Beschreibung
+			 * @description Optionale Beschreibung dieses Container-Typs
+			 */
+			description?: string | null;
+			/** @description Optionale Icon-Identifier für Frontend-Anzeige (z.B., 'folder', 'server') */
+			icon?: string | null;
+			/**
+			 * Farbe
+			 * @description Optionale hex-Farbcode für visuelle Unterscheidung (z.B., '#3B82F6')
+			 */
+			color?: string | null;
+			/**
+			 * Anzeigereihenfolge
+			 * @description Reihenfolge, in der dieser Typ in Auswahllisten angezeigt wird
+			 */
+			display_order?: number;
+			/**
+			 * Aktiv
+			 * @description Ob dieser Container-Typ für die Verwendung verfügbar ist
+			 */
+			is_active?: boolean;
+		};
+		/** @description Serialize Django ContentType for feature file associations. */
+		ContentType: {
+			readonly id: number;
+			readonly app_label: string;
+			/** Python Modell-Klassenname */
+			readonly model: string;
+		};
+		/**
+		 * @description Serialize user details including staff/superuser flags.
+		 *
+		 *     Override the default dj-rest-auth user serializer to expose
+		 *     is_staff and is_superuser for frontend permission checks.
+		 */
+		CustomUserDetails: {
+			readonly pk: number;
+			readonly username: string;
+			/** Format: email */
+			readonly email: string;
+			readonly first_name: string;
+			readonly last_name: string;
+			readonly is_staff: boolean;
+			readonly is_superuser: boolean;
+		};
+		DashboardStatistics: {
+			trench: {
+				[key: string]: unknown;
+			};
+			node: {
+				[key: string]: unknown;
+			};
+			address: {
+				[key: string]: unknown;
+			};
+			conduit: {
+				[key: string]: unknown;
+			};
+			area: {
+				[key: string]: unknown;
+			};
+		};
+		DashboardStatisticsError: {
+			error: string;
+		};
+		FaultSimulationRequest: {
+			/** @description Damage point as [x, y]. */
+			point: number[];
+			/** @description Project UUID. */
+			project_id: string;
+		};
+		/** @description Serialize :model:`api.FeatureFiles` with Nextcloud storage metadata. */
+		FeatureFiles: {
+			/** Format: uuid */
+			readonly uuid: string;
+			/**
+			 * Feature-ID
+			 * Format: uuid
+			 */
+			object_id: string;
+			/** Feature-Typ */
+			content_type: number;
+			/**
+			 * Dateipfad
+			 * Format: uri
+			 */
+			file_path: string;
+			/** Dateiname */
+			readonly file_name: string;
+			/** Dateityp */
+			readonly file_type: string;
+			/** Beschreibung */
+			description?: string | null;
+			/**
+			 * Erstellt am
+			 * Format: date-time
+			 */
+			readonly created_at: string;
+		};
+		/** @description Serialize :model:`api.Fiber` with cable name and fiber status. */
+		Fiber: {
+			/** Format: uuid */
+			readonly uuid: string;
+			/**
+			 * Kabel
+			 * Format: uuid
+			 * @description Das Kabel, zu dem die Faser gehört
+			 */
+			uuid_cable: string;
+			/** Format: uuid */
+			uuid_cable_id: string;
+			readonly cable_name: string;
+			/**
+			 * Nummer
+			 * @description Die Bündelnummer, zu der die Faser gehört
+			 */
+			bundle_number: number;
+			/**
+			 * Bündelfarbe
+			 * @description Die Farbe des Bündels, zu dem die Faser gehört
+			 */
+			bundle_color: string;
+			/**
+			 * Faser-Nummer absolut
+			 * @description Die absolute Faser-Nummer, zu der die Faser gehört
+			 */
+			fiber_number_absolute: number;
+			/**
+			 * Faser-Nummer im Bündel
+			 * @description Die Nummer der Faser im Bündel, zu dem die Faser gehört
+			 */
+			fiber_number_in_bundle: number;
+			/**
+			 * Faserfarbe
+			 * @description Die Farbe der Faser, zu der die Faser gehört
+			 */
+			fiber_color: string;
+			/**
+			 * Aktiv
+			 * @description Ob die Faser aktiv ist
+			 */
+			active?: boolean;
+			/** @description Innen oder Außen-Layer */
+			layer?: string;
+			readonly fiber_status: components['schemas']['AttributesFiberStatus'];
+			fiber_status_id?: number | null;
+			/** Kennzeichen */
+			flag: number;
+			/** Projekt */
+			project: number;
+		};
+		/**
+		 * @description Serialize :model:`api.FiberSplice` with fiber details and merge group info.
+		 *
+		 *     Handle side-independent merge groups (A and B sides can be merged
+		 *     independently) and shared fiber references for merged port groups.
+		 *     Include residential unit endpoint details for connection tracking.
+		 */
+		FiberSplice: {
+			/** Format: uuid */
+			uuid?: string;
+			/**
+			 * Netzknoten-Struktur
+			 * Format: uuid
+			 * @description Die Komponenten-Platzierung, zu der dieser Splice gehört
+			 */
+			node_structure: string;
+			/**
+			 * Nummer
+			 * @description Die Port-Nummer auf der Komponente (z.B., 1-12 für einen Splice-Cassette)
+			 */
+			port_number: number;
+			/**
+			 * Faser A
+			 * Format: uuid
+			 * @description Die erste Faser in dieser Splice-Verbindung
+			 */
+			fiber_a?: string | null;
+			/**
+			 * Kabel A
+			 * Format: uuid
+			 * @description Das Kabel der Faser A (denormalisiert für CASCADE-Löschen)
+			 */
+			cable_a?: string | null;
+			/**
+			 * Faser B
+			 * Format: uuid
+			 * @description Die zweite Faser in dieser Splice-Verbindung
+			 */
+			fiber_b?: string | null;
+			/**
+			 * Kabel B
+			 * Format: uuid
+			 * @description Das Kabel der Faser B (denormalisiert für CASCADE-Löschen)
+			 */
+			cable_b?: string | null;
+			readonly fiber_a_details: string;
+			readonly fiber_b_details: string;
+			/**
+			 * Zusammenführungsgruppe A
+			 * Format: uuid
+			 * @description UUID-Gruppierung von Ports auf Seite A (IN) die eine Faser teilen. Wird für asymmetrische Komponenten wie Splitter verwendet.
+			 */
+			merge_group_a?: string | null;
+			/**
+			 * Zusammenführungsgruppe B
+			 * Format: uuid
+			 * @description UUID-Gruppierung von Ports auf Seite B (OUT) die eine Faser teilen. Wird für asymmetrische Komponenten wie Splitter verwendet.
+			 */
+			merge_group_b?: string | null;
+			readonly merge_group_a_info: string;
+			readonly merge_group_b_info: string;
+			/**
+			 * Geteilte Faser A
+			 * Format: uuid
+			 * @description Geteilte Faser A für zusammengeführte Port-Gruppen (eine Faser für alle Ports in der Gruppe auf Seite A).
+			 */
+			shared_fiber_a?: string | null;
+			/**
+			 * Geteiltes Kabel A
+			 * Format: uuid
+			 * @description Das Kabel der geteilten Faser A (denormalisiert für CASCADE-Löschen).
+			 */
+			shared_cable_a?: string | null;
+			/**
+			 * Geteilte Faser B
+			 * Format: uuid
+			 * @description Geteilte Faser B für zusammengeführte Port-Gruppen (eine Faser für alle Ports in der Gruppe auf Seite B).
+			 */
+			shared_fiber_b?: string | null;
+			/**
+			 * Geteiltes Kabel B
+			 * Format: uuid
+			 * @description Das Kabel der geteilten Faser B (denormalisiert für CASCADE-Löschen).
+			 */
+			shared_cable_b?: string | null;
+			/**
+			 * Wohnungseinheit A
+			 * Format: uuid
+			 * @description Wohnungseinheit auf Seite A (Endpunkt).
+			 */
+			residential_unit_a?: string | null;
+			/**
+			 * Wohnungseinheit B
+			 * Format: uuid
+			 * @description Wohnungseinheit auf Seite B (Endpunkt).
+			 */
+			residential_unit_b?: string | null;
+			readonly residential_unit_a_details: string;
+			readonly residential_unit_b_details: string;
+		};
+		/** @description Serialize :model:`api.Flags` instances. */
+		Flags: {
+			readonly id: number;
+			/** Kennzeichen */
+			flag: string;
+		};
+		FrontendLogError: {
+			error: string;
+		};
+		FrontendLogRequest: {
+			level?: components['schemas']['FrontendLogRequestLevelEnum'];
+			message?: string;
+			path?: string;
+			extra_data?: {
+				[key: string]: unknown;
+			};
+			project?: number | null;
+		};
+		/**
+		 * @description * `DEBUG` - DEBUG
+		 *     * `INFO` - INFO
+		 *     * `WARNING` - WARNING
+		 *     * `ERROR` - ERROR
+		 *     * `CRITICAL` - CRITICAL
+		 * @enum {string}
+		 */
+		FrontendLogRequestLevelEnum: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL';
+		FrontendLogResult: {
+			status: string;
+		};
+		/** @enum {string} */
+		GisFeatureCollectionEnum: 'FeatureCollection';
+		/** @enum {string} */
+		GisFeatureEnum: 'Feature';
+		/**
+		 * @description * `in` - In
+		 *     * `out` - Out
+		 * @enum {string}
+		 */
+		InOrOutEnum: 'in' | 'out';
+		/** @description Serializer for JWT authentication. */
+		JWT: {
+			access: string;
+			refresh: string;
+			user: components['schemas']['CustomUserDetails'];
+		};
+		/**
+		 * @description * `inner` - Innen
+		 *     * `outer` - Außen
+		 * @enum {string}
+		 */
+		LayerEnum: 'inner' | 'outer';
+		LayerExtent: {
+			/** @description [xmin, ymin, xmax, ymax] in EPSG:3857, or null. */
+			extent: number[] | null;
+			layer: string;
+		};
+		LayerExtentError: {
+			error: string;
+		};
+		/** @description Serialize :model:`api.LogEntry` with user details and project info. */
+		LogEntry: {
+			/** Format: uuid */
+			readonly uuid: string;
+			/** Format: date-time */
+			readonly timestamp: string;
+			/** Log-Level */
+			level: components['schemas']['LogEntryLevelEnum'];
+			/** @description Name des Loggers (z.B., 'apps.api', 'frontend.auth') */
+			logger_name: string;
+			/**
+			 * Nachricht
+			 * @description Die Log-Nachricht
+			 */
+			message: string;
+			/**
+			 * Benutzer
+			 * @description Benutzer, der diesem Log-Eintrag zugewiesen ist
+			 */
+			user?: number | null;
+			readonly username: string | null;
+			/** Format: email */
+			readonly user_email: string | null;
+			/**
+			 * Quelle
+			 * @description Ob dieser Log-Eintrag vom Backend oder Frontend stammt
+			 *
+			 *     * `backend` - Backend
+			 *     * `frontend` - Frontend
+			 *     * `wfs` - WFS (QGIS Server)
+			 */
+			source?: components['schemas']['SourceEnum'];
+			/**
+			 * Dateipfad
+			 * @description Anfragepfad oder URL, an der der Log-Eintrag aufgetreten ist
+			 */
+			path?: string | null;
+			/**
+			 * Extra-Daten
+			 * @description Zusätzliche Kontextdaten (Anfrage-Methode, IP, User-Agent, etc.)
+			 */
+			extra_data?: unknown;
+			readonly project: components['schemas']['Projects'];
+		};
+		/**
+		 * @description * `DEBUG` - Debug
+		 *     * `INFO` - Info
+		 *     * `WARNING` - Warning
+		 *     * `ERROR` - Error
+		 *     * `CRITICAL` - Critical
+		 * @enum {string}
+		 */
+		LogEntryLevelEnum: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL';
+		Login: {
+			username?: string;
+			email?: string;
+			password: string;
+		};
+		/**
+		 * @description Serialize :model:`api.Microduct` with color hex codes and cable connection info.
+		 *
+		 *     Resolves microduct color names to hex codes via
+		 *     :model:`api.AttributesMicroductColor` lookups. Supports two-layer
+		 *     (striped) colors using dash-separated color names.
+		 */
+		Microduct: {
+			/** Format: uuid */
+			readonly uuid: string;
+			readonly uuid_conduit: components['schemas']['Conduit'];
+			readonly microduct_status: components['schemas']['AttributesMicroductStatus'];
+			readonly uuid_node: components['schemas']['Node'];
+			/** Nummer */
+			number: number;
+			/** Farbe */
+			color: string;
+			readonly hex_code: string;
+			readonly hex_code_secondary: string;
+			readonly is_two_layer: string;
+			readonly cable_connection: string;
+			/**
+			 * Rohr
+			 * Format: uuid
+			 */
+			uuid_conduit_id: string;
+			/** Mikrorohrstatus */
+			microduct_status_id?: number | null;
+			/**
+			 * Netzknoten
+			 * Format: uuid
+			 */
+			uuid_node_id?: string | null;
+		};
+		/** @description Serialize :model:`api.MicroductCableConnection` linking cables to microducts. */
+		MicroductCableConnection: {
+			/** Format: uuid */
+			readonly uuid: string;
+			readonly uuid_microduct: components['schemas']['Microduct'];
+			readonly uuid_cable: components['schemas']['Cable'];
+			/**
+			 * Mikrorohr
+			 * Format: uuid
+			 */
+			uuid_microduct_id: string;
+			/**
+			 * Kabel
+			 * Format: uuid
+			 */
+			uuid_cable_id: string;
+		};
+		/** @description Serialize :model:`api.MicroductConnection` between two microducts at a node. */
+		MicroductConnection: {
+			/** Format: uuid */
+			readonly uuid: string;
+			readonly uuid_microduct_from: components['schemas']['Microduct'];
+			readonly uuid_trench_from: components['schemas']['Trench'];
+			readonly uuid_microduct_to: components['schemas']['Microduct'];
+			readonly uuid_trench_to: components['schemas']['Trench'];
+			readonly uuid_node: components['schemas']['Node'];
+			/**
+			 * Mikrorohr von
+			 * Format: uuid
+			 */
+			uuid_microduct_from_id: string;
+			/**
+			 * Graben von
+			 * Format: uuid
+			 */
+			uuid_trench_from_id: string;
+			/**
+			 * Mikrorohr zu
+			 * Format: uuid
+			 */
+			uuid_microduct_to_id: string;
+			/**
+			 * Graben zu
+			 * Format: uuid
+			 */
+			uuid_trench_to_id: string;
+			/**
+			 * Netzknoten
+			 * Format: uuid
+			 */
+			uuid_node_id: string;
+		};
+		MicropipeByConduit: {
+			number: number;
+			color_name: string | null;
+			color_hex: string;
+			available_in: string[];
+			available_in_all: boolean;
+			linked_to_cable: boolean;
+			linked_cables: components['schemas']['MicropipeLinkedCable'][];
+			missing_in: string[];
+			microduct_status: boolean;
+		};
+		MicropipeLinkedCable: {
+			/** Format: uuid */
+			uuid: string;
+			name: string;
+		};
+		/**
+		 * @description Serialize :model:`api.Node` as GeoJSON with nested attribute objects.
+		 *
+		 *     Includes canvas position fields for diagram rendering and an
+		 *     optional parent node reference for hierarchical node structures.
+		 */
+		Node: {
+			type?: components['schemas']['GisFeatureEnum'];
+			/** Format: uuid */
+			readonly id?: string;
+			geometry?: {
+				/** @enum {string} */
+				type?: 'Point';
+				/**
+				 * @example [
+				 *       12.9721,
+				 *       77.5933
+				 *     ]
+				 */
+				coordinates?: number[];
+			};
+			properties?: {
+				readonly uuid_address?: components['schemas']['Address'];
+				readonly node_type?: components['schemas']['AttributesNodeType'];
+				readonly status?: components['schemas']['AttributesStatus'];
+				readonly network_level?: components['schemas']['AttributesNetworkLevel'];
+				readonly owner?: components['schemas']['AttributesCompany'];
+				readonly constructor?: components['schemas']['AttributesCompany'];
+				readonly manufacturer?: components['schemas']['AttributesCompany'];
+				readonly project?: components['schemas']['Projects'];
+				readonly flag?: components['schemas']['Flags'];
+				readonly parent_node?: components['schemas']['ParentNode'];
+				/** Netzknotenname */
+				name?: string;
+				/** Netzknotentyp */
+				node_type_id?: number;
+				/**
+				 * Adresse
+				 * Format: uuid
+				 */
+				uuid_address_id?: string | null;
+				/**
+				 * Übergeordneter Netzknoten
+				 * Format: uuid
+				 */
+				parent_node_id?: string | null;
+				/** Status */
+				status_id?: number | null;
+				/** Netzebene */
+				network_level_id?: number | null;
+				/** Eigentümer */
+				owner_id?: number | null;
+				/** Baufirma */
+				constructor_id?: number | null;
+				/** Hersteller */
+				manufacturer_id?: number | null;
+				/**
+				 * Gewährleistung
+				 * Format: date
+				 */
+				warranty?: string | null;
+				/**
+				 * Datum
+				 * Format: date
+				 */
+				date?: string | null;
+				/** @description GeoJSON geometry object (EPSG:3857). */
+				readonly geom_3857?: {
+					type?: string;
+					coordinates?: unknown[];
+				};
+				/** Format: double */
+				canvas_x?: number | null;
+				/** Format: double */
+				canvas_y?: number | null;
+				/**
+				 * Kind-Canvas Breite
+				 * Format: double
+				 */
+				child_canvas_x?: number | null;
+				/**
+				 * Kind-Canvas Höhe
+				 * Format: double
+				 */
+				child_canvas_y?: number | null;
+				/** Projekt */
+				project_id?: number;
+				/** Kennzeichen */
+				flag_id?: number;
+			};
+		};
+		NodeList: {
+			type?: components['schemas']['GisFeatureCollectionEnum'];
+			features?: components['schemas']['Node'][];
+		};
+		/** @description Serialize :model:`api.NodeSlotClipNumber` clip number assignments. */
+		NodeSlotClipNumber: {
+			/** Format: uuid */
+			readonly uuid: string;
+			/**
+			 * Steckplatz-Konfiguration
+			 * Format: uuid
+			 * @description Die Steckplatz-Konfiguration, zu der diese Clip-Nummer gehört
+			 */
+			readonly slot_configuration: string;
+			/** Format: uuid */
+			slot_configuration_id: string;
+			/**
+			 * Steckplatz-Nummer
+			 * @description Die Steckplatz-Nummer, zu der diese Clip-Nummer zugewiesen ist
+			 */
+			slot_number: number;
+			/**
+			 * Clip-Nummer
+			 * @description Die benutzerdefinierte Clip-Nummer-Bezeichnung (z.B., '1', '1A', '2B')
+			 */
+			clip_number: string;
+		};
+		/** @description Serialize :model:`api.NodeSlotConfiguration` with computed slot usage. */
+		NodeSlotConfiguration: {
+			/** Format: uuid */
+			readonly uuid: string;
+			readonly uuid_node: components['schemas']['Node'];
+			/**
+			 * Netzknoten
+			 * Format: uuid
+			 */
+			uuid_node_id: string;
+			/** Seite */
+			side: string;
+			/** Steckplätze gesamt */
+			total_slots: number;
+			readonly used_slots: string;
+			readonly free_slots: string;
+			/**
+			 * Reihenfolge
+			 * @description Name für diese Konfiguration
+			 */
+			sort_order?: number;
+			/**
+			 * Format: uuid
+			 * @description Optionaler Container, zu dem diese Steckplatz-Konfiguration gehört
+			 */
+			container?: string | null;
+		};
+		/** @description Serialize :model:`api.NodeSlotDivider` visual dividers between slots. */
+		NodeSlotDivider: {
+			/** Format: uuid */
+			readonly uuid: string;
+			/**
+			 * Steckplatz-Konfiguration
+			 * Format: uuid
+			 * @description Die Steckplatz-Konfiguration, zu der dieser Divider gehört
+			 */
+			readonly slot_configuration: string;
+			/** Format: uuid */
+			slot_configuration_id: string;
+			/**
+			 * Nach Steckplatz
+			 * @description Die Steckplatz-Nummer, nach der dieser Divider erscheint
+			 */
+			after_slot: number;
+		};
+		/**
+		 * @description Serialize :model:`api.NodeStructure` with component and slot configuration.
+		 *
+		 *     Supports both component entries and reserved/empty slot entries
+		 *     distinguished by the purpose field.
+		 */
+		NodeStructure: {
+			/** Format: uuid */
+			readonly uuid: string;
+			readonly uuid_node: components['schemas']['Node'];
+			readonly slot_configuration: components['schemas']['NodeSlotConfiguration'];
+			readonly component_type: components['schemas']['AttributesComponentType'];
+			readonly component_structure: components['schemas']['AttributesComponentStructure'];
+			/**
+			 * Netzknoten
+			 * Format: uuid
+			 */
+			uuid_node_id: string;
+			/**
+			 * Steckplatz-Konfiguration
+			 * Format: uuid
+			 */
+			slot_configuration_id: string;
+			/** Komponententyp */
+			component_type_id?: number | null;
+			/** Komponentenstruktur */
+			component_structure_id?: number | null;
+			/** Steckplatz Start */
+			slot_start: number;
+			/** Steckplatz Ende */
+			slot_end: number;
+			/** Clip-Nummer */
+			clip_number?: number | null;
+			/**
+			 * Zweck
+			 * @default component
+			 */
+			purpose: components['schemas']['PurposeEnum'];
+			label?: string | null;
+			readonly slot_count: string;
+			readonly side_name: string;
+		};
+		/** @description Serialize :model:`api.NodeTrenchSelection` with denormalized display names. */
+		NodeTrenchSelection: {
+			/** Format: uuid */
+			readonly uuid: string;
+			/**
+			 * Netzknoten
+			 * Format: uuid
+			 */
+			node: string;
+			readonly node_name: string;
+			/**
+			 * Graben
+			 * Format: uuid
+			 */
+			trench: string;
+			readonly trench_id_trench: string;
+			/**
+			 * Erstellt am
+			 * Format: date-time
+			 */
+			readonly created_at: string;
+		};
+		PaginatedAddressList: {
+			/** @example 123 */
+			count: number;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=4
+			 */
+			next?: string | null;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=2
+			 */
+			previous?: string | null;
+			results: components['schemas']['AddressList'];
+		};
+		PaginatedAreaList: {
+			/** @example 123 */
+			count: number;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=4
+			 */
+			next?: string | null;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=2
+			 */
+			previous?: string | null;
+			results: components['schemas']['AreaList'];
+		};
+		PaginatedCableLabelList: {
+			/** @example 123 */
+			count: number;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=4
+			 */
+			next?: string | null;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=2
+			 */
+			previous?: string | null;
+			results: components['schemas']['CableLabel'][];
+		};
+		PaginatedCableList: {
+			/** @example 123 */
+			count: number;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=4
+			 */
+			next?: string | null;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=2
+			 */
+			previous?: string | null;
+			results: components['schemas']['Cable'][];
+		};
+		PaginatedConduitList: {
+			/** @example 123 */
+			count: number;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=4
+			 */
+			next?: string | null;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=2
+			 */
+			previous?: string | null;
+			results: components['schemas']['Conduit'][];
+		};
+		PaginatedFeatureFilesList: {
+			/** @example 123 */
+			count: number;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=4
+			 */
+			next?: string | null;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=2
+			 */
+			previous?: string | null;
+			results: components['schemas']['FeatureFiles'][];
+		};
+		PaginatedLogEntryList: {
+			/** @example 123 */
+			count: number;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=4
+			 */
+			next?: string | null;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=2
+			 */
+			previous?: string | null;
+			results: components['schemas']['LogEntry'][];
+		};
+		PaginatedMicroductCableConnectionList: {
+			/** @example 123 */
+			count: number;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=4
+			 */
+			next?: string | null;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=2
+			 */
+			previous?: string | null;
+			results: components['schemas']['MicroductCableConnection'][];
+		};
+		PaginatedMicroductConnectionList: {
+			/** @example 123 */
+			count: number;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=4
+			 */
+			next?: string | null;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=2
+			 */
+			previous?: string | null;
+			results: components['schemas']['MicroductConnection'][];
+		};
+		PaginatedMicroductList: {
+			/** @example 123 */
+			count: number;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=4
+			 */
+			next?: string | null;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=2
+			 */
+			previous?: string | null;
+			results: components['schemas']['Microduct'][];
+		};
+		PaginatedNodeList: {
+			/** @example 123 */
+			count: number;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=4
+			 */
+			next?: string | null;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=2
+			 */
+			previous?: string | null;
+			results: components['schemas']['NodeList'];
+		};
+		PaginatedTrenchConduitList: {
+			/** @example 123 */
+			count: number;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=4
+			 */
+			next?: string | null;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=2
+			 */
+			previous?: string | null;
+			results: components['schemas']['TrenchConduit'][];
+		};
+		PaginatedTrenchList: {
+			/** @example 123 */
+			count: number;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=4
+			 */
+			next?: string | null;
+			/**
+			 * Format: uri
+			 * @example http://api.example.org/accounts/?page=2
+			 */
+			previous?: string | null;
+			results: components['schemas']['TrenchList'];
+		};
+		/** @description Minimal serializer for parent node references to avoid circular imports. */
+		ParentNode: {
+			/** Format: uuid */
+			uuid?: string;
+			/** Netzknotenname */
+			name: string;
+		};
+		PasswordChange: {
+			new_password1: string;
+			new_password2: string;
+		};
+		/** @description Serializer for requesting a password reset e-mail. */
+		PasswordReset: {
+			/** Format: email */
+			email: string;
+		};
+		/** @description Serializer for confirming a password reset attempt. */
+		PasswordResetConfirm: {
+			new_password1: string;
+			new_password2: string;
+			uid: string;
+			token: string;
+		};
+		/**
+		 * @description Serialize :model:`api.Address` as GeoJSON with nested attribute objects.
+		 *
+		 *     Geometry is validated as Point in EPSG:25832. Includes a read-only
+		 *     geom_3857 field for web map display.
+		 */
+		PatchedAddress: {
+			type?: components['schemas']['GisFeatureEnum'];
+			/** Format: uuid */
+			readonly id?: string;
+			geometry?: {
+				/** @enum {string} */
+				type?: 'Point';
+				/**
+				 * @example [
+				 *       12.9721,
+				 *       77.5933
+				 *     ]
+				 */
+				coordinates?: number[];
+			};
+			properties?: {
+				readonly status_development?: components['schemas']['AttributesStatusDevelopment'];
+				readonly flag?: components['schemas']['Flags'];
+				readonly project?: components['schemas']['Projects'];
+				/** Adress-ID */
+				id_address?: string;
+				/** Adress-ID 2 */
+				id_address_2?: string | null;
+				/** PLZ */
+				zip_code?: string;
+				/** Stadt */
+				city?: string;
+				/** Ortsteil */
+				district?: string;
+				/** Straße */
+				street?: string;
+				/** Hausnummer */
+				housenumber?: number;
+				/** Hausnummer */
+				house_number_suffix?: string;
+				/** Ausbaustatus */
+				status_development_id?: number;
+				/** Kennzeichen */
+				flag_id?: number;
+				/** Projekt */
+				project_id?: number;
+				/** @description GeoJSON geometry object (EPSG:3857). */
+				readonly geom_3857?: {
+					type?: string;
+					coordinates?: unknown[];
+				};
+			};
+		};
+		/** @description Serialize :model:`api.Area` as GeoJSON with Polygon geometry validation. */
+		PatchedArea: {
+			type?: components['schemas']['GisFeatureEnum'];
+			/** Format: uuid */
+			readonly id?: string;
+			geometry?: {
+				/** @enum {string} */
+				type?: 'Polygon';
+				/**
+				 * @example [
+				 *       [
+				 *         [
+				 *           0,
+				 *           0
+				 *         ],
+				 *         [
+				 *           0,
+				 *           50
+				 *         ],
+				 *         [
+				 *           50,
+				 *           50
+				 *         ],
+				 *         [
+				 *           50,
+				 *           0
+				 *         ],
+				 *         [
+				 *           0,
+				 *           0
+				 *         ]
+				 *       ]
+				 *     ]
+				 */
+				coordinates?: number[][][];
+			};
+			properties?: {
+				readonly area_type?: components['schemas']['AttributesAreaType'];
+				readonly flag?: components['schemas']['Flags'];
+				readonly project?: components['schemas']['Projects'];
+				/** Gebietstyp */
+				area_type_id?: number;
+				/** Kennzeichen */
+				flag_id?: number;
+				/** Projekt */
+				project_id?: number;
+				/** @description GeoJSON geometry object (EPSG:3857). */
+				readonly geom_3857?: {
+					type?: string;
+					coordinates?: unknown[];
+				};
+				/** Gebietname */
+				name?: string;
+			};
+		};
+		/**
+		 * @description Serialize :model:`api.Cable` with start/end node references.
+		 *
+		 *     Enforces unique cable name per project. Includes computed fields
+		 *     for start and end node names and diagram path data.
+		 */
+		PatchedCable: {
+			/** Format: uuid */
+			uuid?: string;
+			readonly cable_type?: components['schemas']['AttributesCableType'];
+			readonly status?: components['schemas']['AttributesStatus'];
+			readonly network_level?: components['schemas']['AttributesNetworkLevel'];
+			readonly owner?: components['schemas']['AttributesCompany'];
+			readonly constructor?: components['schemas']['AttributesCompany'];
+			readonly manufacturer?: components['schemas']['AttributesCompany'];
+			readonly project?: components['schemas']['Projects'];
+			readonly flag?: components['schemas']['Flags'];
+			/** Kabelname */
+			name?: string;
+			/** Kabeltyp */
+			cable_type_id?: number;
+			/** Status */
+			status_id?: number;
+			/** Netzebene */
+			network_level_id?: number;
+			/** Eigentümer */
+			owner_id?: number;
+			/** Baufirma */
+			constructor_id?: number;
+			/** Hersteller */
+			manufacturer_id?: number;
+			/**
+			 * Datum
+			 * Format: date
+			 */
+			date?: string;
+			/**
+			 * Startknoten
+			 * Format: uuid
+			 */
+			uuid_node_start_id?: string;
+			/**
+			 * Endknoten
+			 * Format: uuid
+			 */
+			uuid_node_end_id?: string;
+			/** Projekt */
+			project_id?: number;
+			/** Kennzeichen */
+			flag_id?: number;
+			/**
+			 * Übergeordneter Netzknoten
+			 * Format: uuid
+			 */
+			parent_node_context_id?: string | null;
+			/**
+			 * Länge
+			 * Format: double
+			 */
+			length?: number;
+			/**
+			 * Länge
+			 * Format: double
+			 */
+			length_total?: number;
+			/** Reserve am Start */
+			reserve_at_start?: number;
+			/** Reserve am Ende */
+			reserve_at_end?: number;
+			/** Reserve auf Strecke */
+			reserve_section?: number;
+			handle_start?: string | null;
+			handle_end?: string | null;
+			diagram_path?: unknown;
+			readonly uuid_node_start_name?: string;
+			readonly uuid_node_end_name?: string;
+			/**
+			 * Startknoten
+			 * Format: uuid
+			 */
+			uuid_node_start?: string | null;
+			/**
+			 * Endknoten
+			 * Format: uuid
+			 */
+			uuid_node_end?: string | null;
+			/**
+			 * Übergeordneter Netzknoten
+			 * Format: uuid
+			 * @description Wenn gesetzt, wurde das Kabel in der Kindansicht dieses übergeordneten Knotens erstellt
+			 */
+			parent_node_context?: string | null;
+		};
+		/** @description Serialize :model:`api.CableLabel` positioned text labels for cables. */
+		PatchedCableLabel: {
+			/** Format: uuid */
+			uuid?: string;
+			/**
+			 * Kabel
+			 * Format: uuid
+			 */
+			cable_id?: string;
+			readonly cable?: components['schemas']['Cable'];
+			/**
+			 * Label-Text
+			 * @description Der Text, der auf dem Label angezeigt wird
+			 */
+			text?: string;
+			/**
+			 * Format: double
+			 * @description X-Koordinate des Labels im Diagramm-Canvas
+			 */
+			position_x?: number | null;
+			/**
+			 * Format: double
+			 * @description Y-Koordinate des Labels im Diagramm-Canvas
+			 */
+			position_y?: number | null;
+			/**
+			 * Reihenfolge
+			 * @description Anzeigereihenfolge, wenn mehrere Labels existieren
+			 */
+			order?: number;
+			/** Format: date-time */
+			readonly created_at?: string;
+			/** Format: date-time */
+			readonly updated_at?: string;
+		};
+		/**
+		 * @description Serialize :model:`api.Conduit` with nested attribute objects.
+		 *
+		 *     Read operations return nested serializers for FK fields.
+		 *     Write operations accept PK references via write-only fields.
+		 *     Enforces unique conduit name per project.
+		 */
+		PatchedConduit: {
+			/** Format: uuid */
+			readonly uuid?: string;
+			readonly conduit_type?: components['schemas']['AttributesConduitType'];
+			readonly status?: components['schemas']['AttributesStatus'];
+			readonly network_level?: components['schemas']['AttributesNetworkLevel'];
+			readonly owner?: components['schemas']['AttributesCompany'];
+			readonly constructor?: components['schemas']['AttributesCompany'];
+			readonly manufacturer?: components['schemas']['AttributesCompany'];
+			readonly project?: components['schemas']['Projects'];
+			readonly flag?: components['schemas']['Flags'];
+			/** Rohrbezeichnung */
+			name?: string;
+			/** Rohrtyp */
+			conduit_type_id?: number;
+			/** Status */
+			status_id?: number;
+			/** Netzebene */
+			network_level_id?: number;
+			/** Eigentümer */
+			owner_id?: number;
+			/** Baufirma */
+			constructor_id?: number;
+			/** Hersteller */
+			manufacturer_id?: number;
+			/** Projekt */
+			project_id?: number;
+			/** Kennzeichen */
+			flag_id?: number;
+			/** Schutzrohr */
+			outer_conduit?: string;
+			/** Format: date */
+			date?: string;
+		};
+		/** @description Serialize :model:`api.Container` instances with nested type and display name. */
+		PatchedContainer: {
+			/** Format: uuid */
+			readonly uuid?: string;
+			/** Format: uuid */
+			uuid_node_id?: string;
+			readonly container_type?: components['schemas']['ContainerType'];
+			container_type_id?: number;
+			/**
+			 * Übergeordneter Container
+			 * Format: uuid
+			 * @description Der übergeordnete Container (null, wenn es sich um einen obersten Container handelt)
+			 */
+			parent_container?: string | null;
+			/** Format: uuid */
+			parent_container_id?: string | null;
+			/** @description Optionale benutzerdefinierte Name für diese Container-Instanz */
+			name?: string | null;
+			/**
+			 * Reihenfolge
+			 * @description Reihenfolge dieses Containers unter seinen Geschwisterelementen
+			 */
+			sort_order?: number;
+			/**
+			 * Erweitert
+			 * @description Ob dieser Container in der Benutzeroberfläche erweitert ist
+			 */
+			is_expanded?: boolean;
+			readonly display_name?: string;
+			/** Format: date-time */
+			readonly created_at?: string;
+			/** Format: date-time */
+			readonly updated_at?: string;
+		};
+		/**
+		 * @description Serialize user details including staff/superuser flags.
+		 *
+		 *     Override the default dj-rest-auth user serializer to expose
+		 *     is_staff and is_superuser for frontend permission checks.
+		 */
+		PatchedCustomUserDetails: {
+			readonly pk?: number;
+			readonly username?: string;
+			/** Format: email */
+			readonly email?: string;
+			readonly first_name?: string;
+			readonly last_name?: string;
+			readonly is_staff?: boolean;
+			readonly is_superuser?: boolean;
+		};
+		/** @description Serialize :model:`api.FeatureFiles` with Nextcloud storage metadata. */
+		PatchedFeatureFiles: {
+			/** Format: uuid */
+			readonly uuid?: string;
+			/**
+			 * Feature-ID
+			 * Format: uuid
+			 */
+			object_id?: string;
+			/** Feature-Typ */
+			content_type?: number;
+			/**
+			 * Dateipfad
+			 * Format: uri
+			 */
+			file_path?: string;
+			/** Dateiname */
+			readonly file_name?: string;
+			/** Dateityp */
+			readonly file_type?: string;
+			/** Beschreibung */
+			description?: string | null;
+			/**
+			 * Erstellt am
+			 * Format: date-time
+			 */
+			readonly created_at?: string;
+		};
+		/** @description Serialize :model:`api.Fiber` with cable name and fiber status. */
+		PatchedFiber: {
+			/** Format: uuid */
+			readonly uuid?: string;
+			/**
+			 * Kabel
+			 * Format: uuid
+			 * @description Das Kabel, zu dem die Faser gehört
+			 */
+			uuid_cable?: string;
+			/** Format: uuid */
+			uuid_cable_id?: string;
+			readonly cable_name?: string;
+			/**
+			 * Nummer
+			 * @description Die Bündelnummer, zu der die Faser gehört
+			 */
+			bundle_number?: number;
+			/**
+			 * Bündelfarbe
+			 * @description Die Farbe des Bündels, zu dem die Faser gehört
+			 */
+			bundle_color?: string;
+			/**
+			 * Faser-Nummer absolut
+			 * @description Die absolute Faser-Nummer, zu der die Faser gehört
+			 */
+			fiber_number_absolute?: number;
+			/**
+			 * Faser-Nummer im Bündel
+			 * @description Die Nummer der Faser im Bündel, zu dem die Faser gehört
+			 */
+			fiber_number_in_bundle?: number;
+			/**
+			 * Faserfarbe
+			 * @description Die Farbe der Faser, zu der die Faser gehört
+			 */
+			fiber_color?: string;
+			/**
+			 * Aktiv
+			 * @description Ob die Faser aktiv ist
+			 */
+			active?: boolean;
+			/** @description Innen oder Außen-Layer */
+			layer?: string;
+			readonly fiber_status?: components['schemas']['AttributesFiberStatus'];
+			fiber_status_id?: number | null;
+			/** Kennzeichen */
+			flag?: number;
+			/** Projekt */
+			project?: number;
+		};
+		/**
+		 * @description Serialize :model:`api.FiberSplice` with fiber details and merge group info.
+		 *
+		 *     Handle side-independent merge groups (A and B sides can be merged
+		 *     independently) and shared fiber references for merged port groups.
+		 *     Include residential unit endpoint details for connection tracking.
+		 */
+		PatchedFiberSplice: {
+			/** Format: uuid */
+			uuid?: string;
+			/**
+			 * Netzknoten-Struktur
+			 * Format: uuid
+			 * @description Die Komponenten-Platzierung, zu der dieser Splice gehört
+			 */
+			node_structure?: string;
+			/**
+			 * Nummer
+			 * @description Die Port-Nummer auf der Komponente (z.B., 1-12 für einen Splice-Cassette)
+			 */
+			port_number?: number;
+			/**
+			 * Faser A
+			 * Format: uuid
+			 * @description Die erste Faser in dieser Splice-Verbindung
+			 */
+			fiber_a?: string | null;
+			/**
+			 * Kabel A
+			 * Format: uuid
+			 * @description Das Kabel der Faser A (denormalisiert für CASCADE-Löschen)
+			 */
+			cable_a?: string | null;
+			/**
+			 * Faser B
+			 * Format: uuid
+			 * @description Die zweite Faser in dieser Splice-Verbindung
+			 */
+			fiber_b?: string | null;
+			/**
+			 * Kabel B
+			 * Format: uuid
+			 * @description Das Kabel der Faser B (denormalisiert für CASCADE-Löschen)
+			 */
+			cable_b?: string | null;
+			readonly fiber_a_details?: string;
+			readonly fiber_b_details?: string;
+			/**
+			 * Zusammenführungsgruppe A
+			 * Format: uuid
+			 * @description UUID-Gruppierung von Ports auf Seite A (IN) die eine Faser teilen. Wird für asymmetrische Komponenten wie Splitter verwendet.
+			 */
+			merge_group_a?: string | null;
+			/**
+			 * Zusammenführungsgruppe B
+			 * Format: uuid
+			 * @description UUID-Gruppierung von Ports auf Seite B (OUT) die eine Faser teilen. Wird für asymmetrische Komponenten wie Splitter verwendet.
+			 */
+			merge_group_b?: string | null;
+			readonly merge_group_a_info?: string;
+			readonly merge_group_b_info?: string;
+			/**
+			 * Geteilte Faser A
+			 * Format: uuid
+			 * @description Geteilte Faser A für zusammengeführte Port-Gruppen (eine Faser für alle Ports in der Gruppe auf Seite A).
+			 */
+			shared_fiber_a?: string | null;
+			/**
+			 * Geteiltes Kabel A
+			 * Format: uuid
+			 * @description Das Kabel der geteilten Faser A (denormalisiert für CASCADE-Löschen).
+			 */
+			shared_cable_a?: string | null;
+			/**
+			 * Geteilte Faser B
+			 * Format: uuid
+			 * @description Geteilte Faser B für zusammengeführte Port-Gruppen (eine Faser für alle Ports in der Gruppe auf Seite B).
+			 */
+			shared_fiber_b?: string | null;
+			/**
+			 * Geteiltes Kabel B
+			 * Format: uuid
+			 * @description Das Kabel der geteilten Faser B (denormalisiert für CASCADE-Löschen).
+			 */
+			shared_cable_b?: string | null;
+			/**
+			 * Wohnungseinheit A
+			 * Format: uuid
+			 * @description Wohnungseinheit auf Seite A (Endpunkt).
+			 */
+			residential_unit_a?: string | null;
+			/**
+			 * Wohnungseinheit B
+			 * Format: uuid
+			 * @description Wohnungseinheit auf Seite B (Endpunkt).
+			 */
+			residential_unit_b?: string | null;
+			readonly residential_unit_a_details?: string;
+			readonly residential_unit_b_details?: string;
+		};
+		/**
+		 * @description Serialize :model:`api.Microduct` with color hex codes and cable connection info.
+		 *
+		 *     Resolves microduct color names to hex codes via
+		 *     :model:`api.AttributesMicroductColor` lookups. Supports two-layer
+		 *     (striped) colors using dash-separated color names.
+		 */
+		PatchedMicroduct: {
+			/** Format: uuid */
+			readonly uuid?: string;
+			readonly uuid_conduit?: components['schemas']['Conduit'];
+			readonly microduct_status?: components['schemas']['AttributesMicroductStatus'];
+			readonly uuid_node?: components['schemas']['Node'];
+			/** Nummer */
+			number?: number;
+			/** Farbe */
+			color?: string;
+			readonly hex_code?: string;
+			readonly hex_code_secondary?: string;
+			readonly is_two_layer?: string;
+			readonly cable_connection?: string;
+			/**
+			 * Rohr
+			 * Format: uuid
+			 */
+			uuid_conduit_id?: string;
+			/** Mikrorohrstatus */
+			microduct_status_id?: number | null;
+			/**
+			 * Netzknoten
+			 * Format: uuid
+			 */
+			uuid_node_id?: string | null;
+		};
+		/** @description Serialize :model:`api.MicroductCableConnection` linking cables to microducts. */
+		PatchedMicroductCableConnection: {
+			/** Format: uuid */
+			readonly uuid?: string;
+			readonly uuid_microduct?: components['schemas']['Microduct'];
+			readonly uuid_cable?: components['schemas']['Cable'];
+			/**
+			 * Mikrorohr
+			 * Format: uuid
+			 */
+			uuid_microduct_id?: string;
+			/**
+			 * Kabel
+			 * Format: uuid
+			 */
+			uuid_cable_id?: string;
+		};
+		/** @description Serialize :model:`api.MicroductConnection` between two microducts at a node. */
+		PatchedMicroductConnection: {
+			/** Format: uuid */
+			readonly uuid?: string;
+			readonly uuid_microduct_from?: components['schemas']['Microduct'];
+			readonly uuid_trench_from?: components['schemas']['Trench'];
+			readonly uuid_microduct_to?: components['schemas']['Microduct'];
+			readonly uuid_trench_to?: components['schemas']['Trench'];
+			readonly uuid_node?: components['schemas']['Node'];
+			/**
+			 * Mikrorohr von
+			 * Format: uuid
+			 */
+			uuid_microduct_from_id?: string;
+			/**
+			 * Graben von
+			 * Format: uuid
+			 */
+			uuid_trench_from_id?: string;
+			/**
+			 * Mikrorohr zu
+			 * Format: uuid
+			 */
+			uuid_microduct_to_id?: string;
+			/**
+			 * Graben zu
+			 * Format: uuid
+			 */
+			uuid_trench_to_id?: string;
+			/**
+			 * Netzknoten
+			 * Format: uuid
+			 */
+			uuid_node_id?: string;
+		};
+		/**
+		 * @description Serialize :model:`api.Node` as GeoJSON with nested attribute objects.
+		 *
+		 *     Includes canvas position fields for diagram rendering and an
+		 *     optional parent node reference for hierarchical node structures.
+		 */
+		PatchedNode: {
+			type?: components['schemas']['GisFeatureEnum'];
+			/** Format: uuid */
+			readonly id?: string;
+			geometry?: {
+				/** @enum {string} */
+				type?: 'Point';
+				/**
+				 * @example [
+				 *       12.9721,
+				 *       77.5933
+				 *     ]
+				 */
+				coordinates?: number[];
+			};
+			properties?: {
+				readonly uuid_address?: components['schemas']['Address'];
+				readonly node_type?: components['schemas']['AttributesNodeType'];
+				readonly status?: components['schemas']['AttributesStatus'];
+				readonly network_level?: components['schemas']['AttributesNetworkLevel'];
+				readonly owner?: components['schemas']['AttributesCompany'];
+				readonly constructor?: components['schemas']['AttributesCompany'];
+				readonly manufacturer?: components['schemas']['AttributesCompany'];
+				readonly project?: components['schemas']['Projects'];
+				readonly flag?: components['schemas']['Flags'];
+				readonly parent_node?: components['schemas']['ParentNode'];
+				/** Netzknotenname */
+				name?: string;
+				/** Netzknotentyp */
+				node_type_id?: number;
+				/**
+				 * Adresse
+				 * Format: uuid
+				 */
+				uuid_address_id?: string | null;
+				/**
+				 * Übergeordneter Netzknoten
+				 * Format: uuid
+				 */
+				parent_node_id?: string | null;
+				/** Status */
+				status_id?: number | null;
+				/** Netzebene */
+				network_level_id?: number | null;
+				/** Eigentümer */
+				owner_id?: number | null;
+				/** Baufirma */
+				constructor_id?: number | null;
+				/** Hersteller */
+				manufacturer_id?: number | null;
+				/**
+				 * Gewährleistung
+				 * Format: date
+				 */
+				warranty?: string | null;
+				/**
+				 * Datum
+				 * Format: date
+				 */
+				date?: string | null;
+				/** @description GeoJSON geometry object (EPSG:3857). */
+				readonly geom_3857?: {
+					type?: string;
+					coordinates?: unknown[];
+				};
+				/** Format: double */
+				canvas_x?: number | null;
+				/** Format: double */
+				canvas_y?: number | null;
+				/**
+				 * Kind-Canvas Breite
+				 * Format: double
+				 */
+				child_canvas_x?: number | null;
+				/**
+				 * Kind-Canvas Höhe
+				 * Format: double
+				 */
+				child_canvas_y?: number | null;
+				/** Projekt */
+				project_id?: number;
+				/** Kennzeichen */
+				flag_id?: number;
+			};
+		};
+		/** @description Serialize :model:`api.NodeSlotClipNumber` clip number assignments. */
+		PatchedNodeSlotClipNumber: {
+			/** Format: uuid */
+			readonly uuid?: string;
+			/**
+			 * Steckplatz-Konfiguration
+			 * Format: uuid
+			 * @description Die Steckplatz-Konfiguration, zu der diese Clip-Nummer gehört
+			 */
+			readonly slot_configuration?: string;
+			/** Format: uuid */
+			slot_configuration_id?: string;
+			/**
+			 * Steckplatz-Nummer
+			 * @description Die Steckplatz-Nummer, zu der diese Clip-Nummer zugewiesen ist
+			 */
+			slot_number?: number;
+			/**
+			 * Clip-Nummer
+			 * @description Die benutzerdefinierte Clip-Nummer-Bezeichnung (z.B., '1', '1A', '2B')
+			 */
+			clip_number?: string;
+		};
+		/** @description Serialize :model:`api.NodeSlotConfiguration` with computed slot usage. */
+		PatchedNodeSlotConfiguration: {
+			/** Format: uuid */
+			readonly uuid?: string;
+			readonly uuid_node?: components['schemas']['Node'];
+			/**
+			 * Netzknoten
+			 * Format: uuid
+			 */
+			uuid_node_id?: string;
+			/** Seite */
+			side?: string;
+			/** Steckplätze gesamt */
+			total_slots?: number;
+			readonly used_slots?: string;
+			readonly free_slots?: string;
+			/**
+			 * Reihenfolge
+			 * @description Name für diese Konfiguration
+			 */
+			sort_order?: number;
+			/**
+			 * Format: uuid
+			 * @description Optionaler Container, zu dem diese Steckplatz-Konfiguration gehört
+			 */
+			container?: string | null;
+		};
+		/** @description Serialize :model:`api.NodeSlotDivider` visual dividers between slots. */
+		PatchedNodeSlotDivider: {
+			/** Format: uuid */
+			readonly uuid?: string;
+			/**
+			 * Steckplatz-Konfiguration
+			 * Format: uuid
+			 * @description Die Steckplatz-Konfiguration, zu der dieser Divider gehört
+			 */
+			readonly slot_configuration?: string;
+			/** Format: uuid */
+			slot_configuration_id?: string;
+			/**
+			 * Nach Steckplatz
+			 * @description Die Steckplatz-Nummer, nach der dieser Divider erscheint
+			 */
+			after_slot?: number;
+		};
+		/**
+		 * @description Serialize :model:`api.NodeStructure` with component and slot configuration.
+		 *
+		 *     Supports both component entries and reserved/empty slot entries
+		 *     distinguished by the purpose field.
+		 */
+		PatchedNodeStructure: {
+			/** Format: uuid */
+			readonly uuid?: string;
+			readonly uuid_node?: components['schemas']['Node'];
+			readonly slot_configuration?: components['schemas']['NodeSlotConfiguration'];
+			readonly component_type?: components['schemas']['AttributesComponentType'];
+			readonly component_structure?: components['schemas']['AttributesComponentStructure'];
+			/**
+			 * Netzknoten
+			 * Format: uuid
+			 */
+			uuid_node_id?: string;
+			/**
+			 * Steckplatz-Konfiguration
+			 * Format: uuid
+			 */
+			slot_configuration_id?: string;
+			/** Komponententyp */
+			component_type_id?: number | null;
+			/** Komponentenstruktur */
+			component_structure_id?: number | null;
+			/** Steckplatz Start */
+			slot_start?: number;
+			/** Steckplatz Ende */
+			slot_end?: number;
+			/** Clip-Nummer */
+			clip_number?: number | null;
+			/**
+			 * Zweck
+			 * @default component
+			 */
+			purpose: components['schemas']['PurposeEnum'];
+			label?: string | null;
+			readonly slot_count?: string;
+			readonly side_name?: string;
+		};
+		/** @description Serialize :model:`api.NodeTrenchSelection` with denormalized display names. */
+		PatchedNodeTrenchSelection: {
+			/** Format: uuid */
+			readonly uuid?: string;
+			/**
+			 * Netzknoten
+			 * Format: uuid
+			 */
+			node?: string;
+			readonly node_name?: string;
+			/**
+			 * Graben
+			 * Format: uuid
+			 */
+			trench?: string;
+			readonly trench_id_trench?: string;
+			/**
+			 * Erstellt am
+			 * Format: date-time
+			 */
+			readonly created_at?: string;
+		};
+		/** @description Serialize :model:`api.PipelineInquiryArea` as GeoJSON with Polygon validation. */
+		PatchedPipelineInquiryArea: {
+			type?: components['schemas']['GisFeatureEnum'];
+			/** Format: uuid */
+			readonly id?: string;
+			geometry?: {
+				/** @enum {string} */
+				type?: 'Polygon';
+				/**
+				 * @example [
+				 *       [
+				 *         [
+				 *           0,
+				 *           0
+				 *         ],
+				 *         [
+				 *           0,
+				 *           50
+				 *         ],
+				 *         [
+				 *           50,
+				 *           50
+				 *         ],
+				 *         [
+				 *           50,
+				 *           0
+				 *         ],
+				 *         [
+				 *           0,
+				 *           0
+				 *         ]
+				 *       ]
+				 *     ]
+				 */
+				coordinates?: number[][][];
+			};
+			properties?: {
+				/** Format: uuid */
+				pipeline_record?: string;
+				/** Format: uuid */
+				readonly pipeline_record_uuid?: string;
+				name?: string | null;
+				/**
+				 * Erstellt am
+				 * Format: date-time
+				 */
+				readonly created_at?: string;
+				/**
+				 * Geändert am
+				 * Format: date-time
+				 */
+				readonly modified_at?: string;
+			};
+		};
+		/**
+		 * @description Serialize :model:`api.PipelineRecord` with flattened FK values.
+		 *
+		 *     Read operations return project_name, type_of_work and request_reason as strings.
+		 *     Write operations accept project, type_of_work_value and request_reason_value (PK ints).
+		 */
+		PatchedPipelineRecord: {
+			/** Format: uuid */
+			readonly uuid?: string;
+			project?: number;
+			/** @default  */
+			readonly project_name: string;
+			/** @default  */
+			readonly type_of_work: string;
+			type_of_work_value?: number | null;
+			/** @default  */
+			readonly request_reason: string;
+			request_reason_value?: number | null;
+			organisation?: string | null;
+			name?: string | null;
+			/** Telefon */
+			tel?: string | null;
+			/** Mobil */
+			mobile?: string | null;
+			/**
+			 * Erstellt am
+			 * Format: date-time
+			 */
+			readonly created_at?: string;
+			/**
+			 * Geändert am
+			 * Format: date-time
+			 */
+			readonly modified_at?: string;
+		};
+		/** @description Serialize :model:`api.ResidentialUnit` linked to :model:`api.Address`. */
+		PatchedResidentialUnit: {
+			/** Format: uuid */
+			readonly uuid?: string;
+			readonly residential_unit_type?: components['schemas']['AttributesResidentialUnitType'];
+			readonly status?: components['schemas']['AttributesResidentialUnitStatus'];
+			/**
+			 * Adresse
+			 * Format: uuid
+			 */
+			uuid_address_id?: string;
+			/** Wohnungseinheit-Typ */
+			residential_unit_type_id?: number | null;
+			/** Status */
+			status_id?: number | null;
+			/** Wohnungseinheit-ID */
+			id_residential_unit?: string | null;
+			/** Stockwerk */
+			floor?: number | null;
+			/** Seite */
+			side?: string | null;
+			/** Gebäudeteil */
+			building_section?: string | null;
+			/** Externe ID 1 */
+			external_id_1?: string | null;
+			/** Externe ID 2 */
+			external_id_2?: string | null;
+			/** Dateiname */
+			resident_name?: string | null;
+			/**
+			 * Einwohner-Erfassungsdatum
+			 * Format: date
+			 */
+			resident_recorded_date?: string | null;
+			/** Format: date */
+			ready_for_service?: string | null;
+			/**
+			 * Adresse
+			 * Format: uuid
+			 */
+			readonly uuid_address?: string;
+		};
+		/**
+		 * @description Serialize :model:`api.Trench` as GeoJSON with nested attribute objects.
+		 *
+		 *     Read operations return nested serializers for FK fields (surface,
+		 *     construction_type, status, etc.). Write operations accept PK references
+		 *     via write-only fields. Geometry is validated as LineString in EPSG:25832.
+		 */
+		PatchedTrench: {
+			type?: components['schemas']['GisFeatureEnum'];
+			/** Format: uuid */
+			readonly id?: string;
+			geometry?: {
+				/** @enum {string} */
+				type?: 'LineString';
+				/**
+				 * @example [
+				 *       [
+				 *         22.4707,
+				 *         70.0577
+				 *       ],
+				 *       [
+				 *         12.9721,
+				 *         77.5933
+				 *       ]
+				 *     ]
+				 */
+				coordinates?: number[][];
+			};
+			properties?: {
+				readonly id_trench?: string;
+				readonly house_connection?: boolean;
+				/** Format: decimal */
+				readonly length?: string;
+				readonly surface?: components['schemas']['AttributesSurface'];
+				readonly construction_type?: components['schemas']['AttributesConstructionType'];
+				readonly status?: components['schemas']['AttributesStatus'];
+				readonly phase?: components['schemas']['AttributesPhase'];
+				readonly owner?: components['schemas']['AttributesCompany'];
+				readonly constructor?: components['schemas']['AttributesCompany'];
+				readonly project?: components['schemas']['Projects'];
+				readonly flag?: components['schemas']['Flags'];
+				/** Oberfläche */
+				surface_value?: number;
+				/** Bau-/Verlegeart */
+				construction_type_id?: number;
+				/** Bautiefe */
+				construction_depth?: number;
+				/** Baudetails */
+				construction_details?: string;
+				/** Status */
+				status_id?: number;
+				/** Phase */
+				phase_id?: number;
+				/** Eigenleistung */
+				internal_execution?: boolean;
+				/** Förderstatus */
+				funding_status?: boolean;
+				/** Eigentümer */
+				trench_owner?: number;
+				/** Firma */
+				trench_company?: number;
+				/** Baufirma */
+				trench_constructor?: number;
+				/**
+				 * Datum
+				 * Format: date
+				 */
+				date?: string;
+				/** Kommentar */
+				comment?: string;
+				/** @description GeoJSON geometry object (EPSG:3857). */
+				readonly geom_3857?: {
+					type?: string;
+					coordinates?: unknown[];
+				};
+				/** Projekt */
+				project_id?: number;
+				/** Kennzeichen */
+				flag_id?: number;
+			};
+		};
+		/** @description Serialize :model:`api.TrenchConduitConnection` with nested trench and conduit. */
+		PatchedTrenchConduit: {
+			/** Format: uuid */
+			readonly uuid?: string;
+			/** Graben */
+			readonly trench?: components['schemas']['Trench'];
+			/** Rohr */
+			readonly conduit?: components['schemas']['Conduit'];
+			/**
+			 * Graben
+			 * Format: uuid
+			 */
+			uuid_trench?: string;
+			/**
+			 * Rohr
+			 * Format: uuid
+			 */
+			uuid_conduit?: string;
+		};
+		/** @description Serialize :model:`api.TrenchConduitCanvas` diagram positions. */
+		PatchedTrenchConduitCanvas: {
+			/** Format: uuid */
+			readonly uuid?: string;
+			/**
+			 * Graben
+			 * Format: uuid
+			 */
+			trench?: string;
+			/**
+			 * Rohr
+			 * Format: uuid
+			 */
+			conduit?: string;
+			/** Format: double */
+			canvas_x?: number | null;
+			/** Format: double */
+			canvas_y?: number | null;
+			/**
+			 * Canvas Breite
+			 * Format: double
+			 */
+			canvas_width?: number;
+			/**
+			 * Canvas Höhe
+			 * Format: double
+			 */
+			canvas_height?: number;
+			readonly conduit_name?: string;
+			readonly conduit_type_name?: string;
+		};
+		/** @description Serialize :model:`api.WMSLayer` display settings. */
+		PatchedWMSLayer: {
+			/** Format: uuid */
+			readonly id?: string;
+			/** Layer-Name */
+			readonly name?: string;
+			/** Layer-Titel */
+			readonly title?: string;
+			/** Aktiviert */
+			is_enabled?: boolean;
+			/** Reihenfolge */
+			sort_order?: number;
+			/**
+			 * Minimale Zoom-Ebene
+			 * @description Minimale Zoom-Ebene (0-22)
+			 */
+			min_zoom?: number;
+			/**
+			 * Maximale Zoom-Ebene
+			 * @description Maximale Zoom-Ebene (0-22, leer = keine Begrenzung)
+			 */
+			max_zoom?: number | null;
+			/**
+			 * Transparenz
+			 * Format: double
+			 * @description 0.0 = transparent, 1.0 = undurchsichtig
+			 */
+			opacity?: number;
+		};
+		/** @description Serialize :model:`api.WMSSource` for create/update with encrypted password handling. */
+		PatchedWMSSourceCreate: {
+			/** Format: uuid */
+			readonly id?: string;
+			/** Projekt */
+			project?: number;
+			name?: string;
+			/**
+			 * WMS-URL
+			 * Format: uri
+			 */
+			url?: string;
+			/** Benutzer */
+			username?: string;
+			password?: string;
+			/** @description Attribution-Text für PDF-Export. Leer lassen, um aus Exporten auszuschließen. */
+			attribution?: string;
+			/** Reihenfolge */
+			sort_order?: number;
+			/** Aktiv */
+			is_active?: boolean;
+		};
+		/** @description Serialize :model:`api.PipelineInquiryArea` as GeoJSON with Polygon validation. */
+		PipelineInquiryArea: {
+			type?: components['schemas']['GisFeatureEnum'];
+			/** Format: uuid */
+			readonly id?: string;
+			geometry?: {
+				/** @enum {string} */
+				type?: 'Polygon';
+				/**
+				 * @example [
+				 *       [
+				 *         [
+				 *           0,
+				 *           0
+				 *         ],
+				 *         [
+				 *           0,
+				 *           50
+				 *         ],
+				 *         [
+				 *           50,
+				 *           50
+				 *         ],
+				 *         [
+				 *           50,
+				 *           0
+				 *         ],
+				 *         [
+				 *           0,
+				 *           0
+				 *         ]
+				 *       ]
+				 *     ]
+				 */
+				coordinates?: number[][][];
+			};
+			properties?: {
+				/** Format: uuid */
+				pipeline_record?: string;
+				/** Format: uuid */
+				readonly pipeline_record_uuid?: string;
+				name?: string | null;
+				/**
+				 * Erstellt am
+				 * Format: date-time
+				 */
+				readonly created_at?: string;
+				/**
+				 * Geändert am
+				 * Format: date-time
+				 */
+				readonly modified_at?: string;
+			};
+		};
+		PipelineInquiryAreaList: {
+			type?: components['schemas']['GisFeatureCollectionEnum'];
+			features?: components['schemas']['PipelineInquiryArea'][];
+		};
+		/**
+		 * @description Serialize :model:`api.PipelineRecord` with flattened FK values.
+		 *
+		 *     Read operations return project_name, type_of_work and request_reason as strings.
+		 *     Write operations accept project, type_of_work_value and request_reason_value (PK ints).
+		 */
+		PipelineRecord: {
+			/** Format: uuid */
+			readonly uuid: string;
+			project: number;
+			/** @default  */
+			readonly project_name: string;
+			/** @default  */
+			readonly type_of_work: string;
+			type_of_work_value?: number | null;
+			/** @default  */
+			readonly request_reason: string;
+			request_reason_value?: number | null;
+			organisation?: string | null;
+			name?: string | null;
+			/** Telefon */
+			tel?: string | null;
+			/** Mobil */
+			mobile?: string | null;
+			/**
+			 * Erstellt am
+			 * Format: date-time
+			 */
+			readonly created_at: string;
+			/**
+			 * Geändert am
+			 * Format: date-time
+			 */
+			readonly modified_at: string;
+		};
+		/**
+		 * @description * `bundle` - Bündel
+		 *     * `fiber` - Faser
+		 * @enum {string}
+		 */
+		PositionTypeEnum: 'bundle' | 'fiber';
+		/** @description Serialize :model:`api.Projects` instances. */
+		Projects: {
+			readonly id: number;
+			/** Projekt */
+			project: string;
+			/** Beschreibung */
+			description?: string | null;
+			/** Aktiv */
+			active?: boolean;
+		};
+		/**
+		 * @description * `component` - Komponente
+		 *     * `reserve` - Reserve
+		 *     * `empty` - Leer
+		 * @enum {string}
+		 */
+		PurposeEnum: 'component' | 'reserve' | 'empty';
+		QGISAuthPostResult: {
+			status: string;
+		};
+		QGISAuthResult: {
+			status: string;
+		};
+		/** @description Serialize :model:`api.RequestReason` instances. */
+		RequestReason: {
+			readonly id: number;
+			name: string;
+		};
+		/** @description Serialize :model:`api.ResidentialUnit` linked to :model:`api.Address`. */
+		ResidentialUnit: {
+			/** Format: uuid */
+			readonly uuid: string;
+			readonly residential_unit_type: components['schemas']['AttributesResidentialUnitType'];
+			readonly status: components['schemas']['AttributesResidentialUnitStatus'];
+			/**
+			 * Adresse
+			 * Format: uuid
+			 */
+			uuid_address_id: string;
+			/** Wohnungseinheit-Typ */
+			residential_unit_type_id?: number | null;
+			/** Status */
+			status_id?: number | null;
+			/** Wohnungseinheit-ID */
+			id_residential_unit?: string | null;
+			/** Stockwerk */
+			floor?: number | null;
+			/** Seite */
+			side?: string | null;
+			/** Gebäudeteil */
+			building_section?: string | null;
+			/** Externe ID 1 */
+			external_id_1?: string | null;
+			/** Externe ID 2 */
+			external_id_2?: string | null;
+			/** Dateiname */
+			resident_name?: string | null;
+			/**
+			 * Einwohner-Erfassungsdatum
+			 * Format: date
+			 */
+			resident_recorded_date?: string | null;
+			/** Format: date */
+			ready_for_service?: string | null;
+			/**
+			 * Adresse
+			 * Format: uuid
+			 */
+			readonly uuid_address: string;
+		};
+		RestAuthDetail: {
+			readonly detail: string;
+		};
+		RoutingRequest: {
+			start_trench_id: number;
+			end_trench_id: number;
+			project_id: number;
+			/** @description Snapping tolerance (default 1). */
+			tolerance?: number;
+		};
+		/**
+		 * @description * `backend` - Backend
+		 *     * `frontend` - Frontend
+		 *     * `wfs` - WFS (QGIS Server)
+		 * @enum {string}
+		 */
+		SourceEnum: 'backend' | 'frontend' | 'wfs';
+		SpatialIntersectError: {
+			error: string;
+		};
+		SpatialIntersectRequest: {
+			/** @description GeoJSON geometry (EPSG:25832 unless 'srid' set). */
+			geom: {
+				[key: string]: unknown;
+			};
+			layers?: string[];
+			project?: number;
+			/** @description Comma-separated or list of project ids to drop. */
+			exclude_projects?: string;
+			srid?: number;
+		};
+		SpatialIntersectResult: {
+			srid: number;
+			/** @description Per-layer GeoJSON FeatureCollection. */
+			layers: {
+				[key: string]: unknown;
+			};
+			counts: {
+				[key: string]: number;
+			};
+			total: number;
+		};
+		TokenRefresh: {
+			readonly access: string;
+			refresh: string;
+		};
+		TokenVerify: {
+			token: string;
+		};
+		TraceSearchResult: {
+			/** @description Lightweight picker items; fields vary by type. */
+			results: {
+				[key: string]: unknown;
+			}[];
+		};
+		/**
+		 * @description Serialize :model:`api.Trench` as GeoJSON with nested attribute objects.
+		 *
+		 *     Read operations return nested serializers for FK fields (surface,
+		 *     construction_type, status, etc.). Write operations accept PK references
+		 *     via write-only fields. Geometry is validated as LineString in EPSG:25832.
+		 */
+		Trench: {
+			type?: components['schemas']['GisFeatureEnum'];
+			/** Format: uuid */
+			readonly id?: string;
+			geometry?: {
+				/** @enum {string} */
+				type?: 'LineString';
+				/**
+				 * @example [
+				 *       [
+				 *         22.4707,
+				 *         70.0577
+				 *       ],
+				 *       [
+				 *         12.9721,
+				 *         77.5933
+				 *       ]
+				 *     ]
+				 */
+				coordinates?: number[][];
+			};
+			properties?: {
+				readonly id_trench?: string;
+				readonly house_connection?: boolean;
+				/** Format: decimal */
+				readonly length?: string;
+				readonly surface?: components['schemas']['AttributesSurface'];
+				readonly construction_type?: components['schemas']['AttributesConstructionType'];
+				readonly status?: components['schemas']['AttributesStatus'];
+				readonly phase?: components['schemas']['AttributesPhase'];
+				readonly owner?: components['schemas']['AttributesCompany'];
+				readonly constructor?: components['schemas']['AttributesCompany'];
+				readonly project?: components['schemas']['Projects'];
+				readonly flag?: components['schemas']['Flags'];
+				/** Oberfläche */
+				surface_value?: number;
+				/** Bau-/Verlegeart */
+				construction_type_id?: number;
+				/** Bautiefe */
+				construction_depth?: number;
+				/** Baudetails */
+				construction_details?: string;
+				/** Status */
+				status_id?: number;
+				/** Phase */
+				phase_id?: number;
+				/** Eigenleistung */
+				internal_execution?: boolean;
+				/** Förderstatus */
+				funding_status?: boolean;
+				/** Eigentümer */
+				trench_owner?: number;
+				/** Firma */
+				trench_company?: number;
+				/** Baufirma */
+				trench_constructor?: number;
+				/**
+				 * Datum
+				 * Format: date
+				 */
+				date?: string;
+				/** Kommentar */
+				comment?: string;
+				/** @description GeoJSON geometry object (EPSG:3857). */
+				readonly geom_3857?: {
+					type?: string;
+					coordinates?: unknown[];
+				};
+				/** Projekt */
+				project_id?: number;
+				/** Kennzeichen */
+				flag_id?: number;
+			};
+		};
+		/** @description Serialize :model:`api.TrenchConduitConnection` with nested trench and conduit. */
+		TrenchConduit: {
+			/** Format: uuid */
+			readonly uuid: string;
+			/** Graben */
+			readonly trench: components['schemas']['Trench'];
+			/** Rohr */
+			readonly conduit: components['schemas']['Conduit'];
+			/**
+			 * Graben
+			 * Format: uuid
+			 */
+			uuid_trench: string;
+			/**
+			 * Rohr
+			 * Format: uuid
+			 */
+			uuid_conduit: string;
+		};
+		/** @description Serialize :model:`api.TrenchConduitCanvas` diagram positions. */
+		TrenchConduitCanvas: {
+			/** Format: uuid */
+			readonly uuid: string;
+			/**
+			 * Graben
+			 * Format: uuid
+			 */
+			trench: string;
+			/**
+			 * Rohr
+			 * Format: uuid
+			 */
+			conduit: string;
+			/** Format: double */
+			canvas_x?: number | null;
+			/** Format: double */
+			canvas_y?: number | null;
+			/**
+			 * Canvas Breite
+			 * Format: double
+			 */
+			canvas_width?: number;
+			/**
+			 * Canvas Höhe
+			 * Format: double
+			 */
+			canvas_height?: number;
+			readonly conduit_name: string;
+			readonly conduit_type_name: string;
+		};
+		TrenchList: {
+			type?: components['schemas']['GisFeatureCollectionEnum'];
+			features?: components['schemas']['Trench'][];
+		};
+		TrenchesNearNodeConduit: {
+			/** Format: uuid */
+			uuid: string;
+			name: string;
+			microducts: components['schemas']['TrenchesNearNodeMicroduct'][];
+		};
+		TrenchesNearNodeMicroduct: {
+			/** Format: uuid */
+			uuid: string;
+			number: number;
+			color: string | null;
+			microduct_status: string | null;
+			hex_code: string | null;
+			hex_code_secondary: string | null;
+			name_de: string | null;
+			name_en: string | null;
+			is_two_layer: boolean;
+		};
+		TrenchesNearNodeResult: {
+			trenches: components['schemas']['TrenchesNearNodeTrench'][];
+			count: number;
+			/** Format: uuid */
+			node_uuid: string;
+			node_name: string;
+			/** Format: double */
+			distance: number;
+			project_id: number;
+		};
+		TrenchesNearNodeTrench: {
+			/** Format: uuid */
+			uuid: string;
+			id_trench: string;
+			conduits: components['schemas']['TrenchesNearNodeConduit'][];
+		};
+		/** @description Serialize :model:`api.TypeOfWork` instances. */
+		TypeOfWork: {
+			readonly id: number;
+			name: string;
+		};
+		/**
+		 * @description * `per_meter` - pro Meter
+		 *     * `per_piece` - Stück
+		 * @enum {string}
+		 */
+		UnitEnum: 'per_meter' | 'per_piece';
+		/**
+		 * @description Serialize a user's frontend settings snapshot.
+		 *
+		 *     The ``settings`` field is an opaque JSON object whose shape is owned by
+		 *     the frontend; only its container type is validated here.
+		 */
+		UserSettings: {
+			/** @description Opaque frontend settings snapshot (localStorage key/value map). */
+			settings?: unknown;
+			/** Format: date-time */
+			readonly updated_at: string;
+		};
+		ValuationCategory: {
+			name: string;
+			unit: string;
+			/** Format: double */
+			amount: number;
+			/** Format: double */
+			quantity: number;
+			/** Format: double */
+			gp: number;
+			is_house_connection: boolean;
+		};
+		/** @description Serialize :model:`api.ValuationCostRate` cost rates. */
+		ValuationCostRate: {
+			readonly id: number;
+			/** Projekt */
+			project: number;
+			/** Kostenkategorie */
+			name: string;
+			/**
+			 * Betrag
+			 * Format: decimal
+			 */
+			amount?: string;
+			/**
+			 * Einheit
+			 * @description Pro Meter wird automatisch mit der Trassenlänge multipliziert; Stück multipliziert die Anzahl des ausgewählten Netzknotentyp.
+			 *
+			 *     * `per_meter` - pro Meter
+			 *     * `per_piece` - Stück
+			 */
+			unit?: components['schemas']['UnitEnum'];
+			/**
+			 * Hausanschluss
+			 * @description Wenn aktiviert, wird dieser Typ für die Berechnung 'Kosten pro Hausanschluss' verwendet.
+			 */
+			is_house_connection?: boolean;
+			node_type_ids?: number[];
+		};
+		ValuationProjectionYear: {
+			year: number;
+			/** Format: double */
+			net_value: number;
+			/** Format: double */
+			increase: number;
+		};
+		/** @description Validate the input of the valuation calculation endpoint. */
+		ValuationRequest: {
+			project: number;
+			area_uuids?: string[];
+			base_year?: number | null;
+			/** Format: double */
+			annual_correction?: number | null;
+			projection_years?: number;
+		};
+		ValuationResult: {
+			categories: components['schemas']['ValuationCategory'][];
+			/** Format: double */
+			total: number;
+			/** Format: double */
+			cost_per_house_connection: number | null;
+			/** Format: double */
+			cost_per_meter: number | null;
+			projection: components['schemas']['ValuationProjectionYear'][] | null;
+		};
+		/** @description Serialize :model:`api.WMSLayer` display settings. */
+		WMSLayer: {
+			/** Format: uuid */
+			readonly id: string;
+			/** Layer-Name */
+			readonly name: string;
+			/** Layer-Titel */
+			readonly title: string;
+			/** Aktiviert */
+			is_enabled?: boolean;
+			/** Reihenfolge */
+			sort_order?: number;
+			/**
+			 * Minimale Zoom-Ebene
+			 * @description Minimale Zoom-Ebene (0-22)
+			 */
+			min_zoom?: number;
+			/**
+			 * Maximale Zoom-Ebene
+			 * @description Maximale Zoom-Ebene (0-22, leer = keine Begrenzung)
+			 */
+			max_zoom?: number | null;
+			/**
+			 * Transparenz
+			 * Format: double
+			 * @description 0.0 = transparent, 1.0 = undurchsichtig
+			 */
+			opacity?: number;
+		};
+		/** @description Serialize :model:`api.WMSSource` with nested layers for list views. */
+		WMSSource: {
+			/** Format: uuid */
+			readonly id: string;
+			name: string;
+			/**
+			 * WMS-URL
+			 * Format: uri
+			 */
+			url: string;
+			/** @description Attribution-Text für PDF-Export. Leer lassen, um aus Exporten auszuschließen. */
+			attribution?: string;
+			/** Reihenfolge */
+			sort_order?: number;
+			/** Aktiv */
+			is_active?: boolean;
+			readonly layer_count: string;
+			readonly layers: components['schemas']['WMSLayer'][];
+			/**
+			 * Erstellt am
+			 * Format: date-time
+			 */
+			readonly created_at: string;
+			/**
+			 * Erstellt am
+			 * Format: date-time
+			 */
+			readonly updated_at: string;
+		};
+		/** @description Serialize :model:`api.WMSSource` for create/update with encrypted password handling. */
+		WMSSourceCreate: {
+			/** Format: uuid */
+			readonly id: string;
+			/** Projekt */
+			project: number;
+			name: string;
+			/**
+			 * WMS-URL
+			 * Format: uri
+			 */
+			url: string;
+			/** Benutzer */
+			username?: string;
+			password?: string;
+			/** @description Attribution-Text für PDF-Export. Leer lassen, um aus Exporten auszuschließen. */
+			attribution?: string;
+			/** Reihenfolge */
+			sort_order?: number;
+			/** Aktiv */
+			is_active?: boolean;
+		};
+		WebDAVAuthPostResult: {
+			status: string;
+		};
+		WebDAVAuthResult: {
+			status: string;
+		};
+	};
+	responses: never;
+	parameters: never;
+	requestBodies: never;
+	headers: never;
+	pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    address_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-                /** @description Number of results to return per page. */
-                page_size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedAddressList"];
-                };
-            };
-        };
-    };
-    address_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["Address"];
-                "application/x-www-form-urlencoded": components["schemas"]["Address"];
-                "multipart/form-data": components["schemas"]["Address"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Address"];
-                };
-            };
-        };
-    };
-    address_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Adresse. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Address"];
-                };
-            };
-        };
-    };
-    address_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Adresse. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["Address"];
-                "application/x-www-form-urlencoded": components["schemas"]["Address"];
-                "multipart/form-data": components["schemas"]["Address"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Address"];
-                };
-            };
-        };
-    };
-    address_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Adresse. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    address_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Adresse. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedAddress"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedAddress"];
-                "multipart/form-data": components["schemas"]["PatchedAddress"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Address"];
-                };
-            };
-        };
-    };
-    address_fiber_connections_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Adresse. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Address"];
-                };
-            };
-        };
-    };
-    address_linked_trenches_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Adresse. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Address"];
-                };
-            };
-        };
-    };
-    address_regenerate_id_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Adresse. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["Address"];
-                "application/x-www-form-urlencoded": components["schemas"]["Address"];
-                "multipart/form-data": components["schemas"]["Address"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Address"];
-                };
-            };
-        };
-    };
-    address_all_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Address"];
-                };
-            };
-        };
-    };
-    area_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-                /** @description Number of results to return per page. */
-                page_size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedAreaList"];
-                };
-            };
-        };
-    };
-    area_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["Area"];
-                "application/x-www-form-urlencoded": components["schemas"]["Area"];
-                "multipart/form-data": components["schemas"]["Area"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Area"];
-                };
-            };
-        };
-    };
-    area_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Gebiet. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Area"];
-                };
-            };
-        };
-    };
-    area_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Gebiet. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["Area"];
-                "application/x-www-form-urlencoded": components["schemas"]["Area"];
-                "multipart/form-data": components["schemas"]["Area"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Area"];
-                };
-            };
-        };
-    };
-    area_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Gebiet. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    area_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Gebiet. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedArea"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedArea"];
-                "multipart/form-data": components["schemas"]["PatchedArea"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Area"];
-                };
-            };
-        };
-    };
-    area_all_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Area"];
-                };
-            };
-        };
-    };
-    attributes_area_type_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesAreaType"][];
-                };
-            };
-        };
-    };
-    attributes_area_type_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Gebietstyp. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesAreaType"];
-                };
-            };
-        };
-    };
-    attributes_cable_type_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesCableType"][];
-                };
-            };
-        };
-    };
-    attributes_cable_type_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Kabeltyp. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesCableType"];
-                };
-            };
-        };
-    };
-    attributes_company_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesCompany"][];
-                };
-            };
-        };
-    };
-    attributes_company_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Firma. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesCompany"];
-                };
-            };
-        };
-    };
-    attributes_component_structure_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesComponentStructure"][];
-                };
-            };
-        };
-    };
-    attributes_component_structure_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Komponentenstruktur. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesComponentStructure"];
-                };
-            };
-        };
-    };
-    attributes_component_type_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesComponentType"][];
-                };
-            };
-        };
-    };
-    attributes_component_type_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Komponententyp. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesComponentType"];
-                };
-            };
-        };
-    };
-    attributes_conduit_type_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesConduitType"][];
-                };
-            };
-        };
-    };
-    attributes_conduit_type_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Rohrtyp. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesConduitType"];
-                };
-            };
-        };
-    };
-    attributes_construction_type_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesConstructionType"][];
-                };
-            };
-        };
-    };
-    attributes_construction_type_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Bau-/Verlegeart. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesConstructionType"];
-                };
-            };
-        };
-    };
-    attributes_fiber_color_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesFiberColor"][];
-                };
-            };
-        };
-    };
-    attributes_fiber_color_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Faserfarbe. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesFiberColor"];
-                };
-            };
-        };
-    };
-    attributes_fiber_status_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesFiberStatus"][];
-                };
-            };
-        };
-    };
-    attributes_fiber_status_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Faserstatus. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesFiberStatus"];
-                };
-            };
-        };
-    };
-    attributes_microduct_color_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesMicroductColor"][];
-                };
-            };
-        };
-    };
-    attributes_microduct_color_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Mikrorohrfarbe. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesMicroductColor"];
-                };
-            };
-        };
-    };
-    attributes_microduct_status_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesMicroductStatus"][];
-                };
-            };
-        };
-    };
-    attributes_microduct_status_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique value identifying this Mikrorohrstatus. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesMicroductStatus"];
-                };
-            };
-        };
-    };
-    attributes_network_level_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesNetworkLevel"][];
-                };
-            };
-        };
-    };
-    attributes_network_level_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Netzebene. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesNetworkLevel"];
-                };
-            };
-        };
-    };
-    attributes_node_type_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesNodeType"][];
-                };
-            };
-        };
-    };
-    attributes_node_type_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Netzknotentyp. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesNodeType"];
-                };
-            };
-        };
-    };
-    attributes_residential_unit_status_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesResidentialUnitStatus"][];
-                };
-            };
-        };
-    };
-    attributes_residential_unit_status_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Wohnungseinheit-Status. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesResidentialUnitStatus"];
-                };
-            };
-        };
-    };
-    attributes_residential_unit_type_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesResidentialUnitType"][];
-                };
-            };
-        };
-    };
-    attributes_residential_unit_type_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Wohnungseinheit-Typ. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesResidentialUnitType"];
-                };
-            };
-        };
-    };
-    attributes_status_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesStatus"][];
-                };
-            };
-        };
-    };
-    attributes_status_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Status. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesStatus"];
-                };
-            };
-        };
-    };
-    attributes_status_development_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesStatusDevelopment"][];
-                };
-            };
-        };
-    };
-    attributes_status_development_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Ausbaustatus. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesStatusDevelopment"];
-                };
-            };
-        };
-    };
-    attributes_surface_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesSurface"][];
-                };
-            };
-        };
-    };
-    attributes_surface_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Oberfläche. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AttributesSurface"];
-                };
-            };
-        };
-    };
-    auth_app_login_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AppLoginRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["AppLoginRequest"];
-                "multipart/form-data": components["schemas"]["AppLoginRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AppLoginResult"];
-                };
-            };
-            /** @description Missing username or password. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Invalid credentials or inactive account. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    auth_app_logout_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AppLogoutRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["AppLogoutRequest"];
-                "multipart/form-data": components["schemas"]["AppLogoutRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AppLogoutResult"];
-                };
-            };
-            /** @description Refresh token is required. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Invalid or expired refresh token. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    auth_app_token_refresh_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TokenRefresh"];
-                "application/x-www-form-urlencoded": components["schemas"]["TokenRefresh"];
-                "multipart/form-data": components["schemas"]["TokenRefresh"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TokenRefresh"];
-                };
-            };
-        };
-    };
-    auth_login_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Login"];
-                "application/x-www-form-urlencoded": components["schemas"]["Login"];
-                "multipart/form-data": components["schemas"]["Login"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["JWT"];
-                };
-            };
-        };
-    };
-    auth_logout_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RestAuthDetail"];
-                };
-            };
-        };
-    };
-    auth_password_change_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PasswordChange"];
-                "application/x-www-form-urlencoded": components["schemas"]["PasswordChange"];
-                "multipart/form-data": components["schemas"]["PasswordChange"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RestAuthDetail"];
-                };
-            };
-        };
-    };
-    auth_password_reset_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PasswordReset"];
-                "application/x-www-form-urlencoded": components["schemas"]["PasswordReset"];
-                "multipart/form-data": components["schemas"]["PasswordReset"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RestAuthDetail"];
-                };
-            };
-        };
-    };
-    auth_password_reset_confirm_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PasswordResetConfirm"];
-                "application/x-www-form-urlencoded": components["schemas"]["PasswordResetConfirm"];
-                "multipart/form-data": components["schemas"]["PasswordResetConfirm"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RestAuthDetail"];
-                };
-            };
-        };
-    };
-    auth_permissions_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Role-based permission set for the current user. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    auth_qgis_auth_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["QGISAuthResult"];
-                };
-            };
-            /** @description Not authenticated or lacks QGIS access. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    auth_qgis_auth_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["QGISAuthPostResult"];
-                };
-            };
-            /** @description Not authenticated or lacks QGIS access. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    auth_token_refresh_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TokenRefresh"];
-                "application/x-www-form-urlencoded": components["schemas"]["TokenRefresh"];
-                "multipart/form-data": components["schemas"]["TokenRefresh"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TokenRefresh"];
-                };
-            };
-        };
-    };
-    auth_token_verify_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TokenVerify"];
-                "application/x-www-form-urlencoded": components["schemas"]["TokenVerify"];
-                "multipart/form-data": components["schemas"]["TokenVerify"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TokenVerify"];
-                };
-            };
-        };
-    };
-    auth_user_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CustomUserDetails"];
-                };
-            };
-        };
-    };
-    auth_user_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["CustomUserDetails"];
-                "application/x-www-form-urlencoded": components["schemas"]["CustomUserDetails"];
-                "multipart/form-data": components["schemas"]["CustomUserDetails"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CustomUserDetails"];
-                };
-            };
-        };
-    };
-    auth_user_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedCustomUserDetails"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedCustomUserDetails"];
-                "multipart/form-data": components["schemas"]["PatchedCustomUserDetails"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CustomUserDetails"];
-                };
-            };
-        };
-    };
-    auth_webdav_auth_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WebDAVAuthResult"];
-                };
-            };
-            /** @description Not authenticated. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    auth_webdav_auth_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WebDAVAuthPostResult"];
-                };
-            };
-            /** @description Not authenticated. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    cable_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-                /** @description Number of results to return per page. */
-                page_size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedCableList"];
-                };
-            };
-        };
-    };
-    cable_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Cable"];
-                "application/x-www-form-urlencoded": components["schemas"]["Cable"];
-                "multipart/form-data": components["schemas"]["Cable"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Cable"];
-                };
-            };
-        };
-    };
-    cable_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Kabel. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Cable"];
-                };
-            };
-        };
-    };
-    cable_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Kabel. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Cable"];
-                "application/x-www-form-urlencoded": components["schemas"]["Cable"];
-                "multipart/form-data": components["schemas"]["Cable"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Cable"];
-                };
-            };
-        };
-    };
-    cable_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Kabel. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    cable_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Kabel. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedCable"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedCable"];
-                "multipart/form-data": components["schemas"]["PatchedCable"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Cable"];
-                };
-            };
-        };
-    };
-    cable_recalculate_length_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Kabel. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Cable"];
-                "application/x-www-form-urlencoded": components["schemas"]["Cable"];
-                "multipart/form-data": components["schemas"]["Cable"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Cable"];
-                };
-            };
-        };
-    };
-    cable_all_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Cable"];
-                };
-            };
-        };
-    };
-    cable_at_node_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                node_uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Cable"];
-                };
-            };
-        };
-    };
-    cable_in_trench_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                trench_uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Cable"];
-                };
-            };
-        };
-    };
-    cable_label_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-                /** @description Number of results to return per page. */
-                page_size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedCableLabelList"];
-                };
-            };
-        };
-    };
-    cable_label_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CableLabel"];
-                "application/x-www-form-urlencoded": components["schemas"]["CableLabel"];
-                "multipart/form-data": components["schemas"]["CableLabel"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CableLabel"];
-                };
-            };
-        };
-    };
-    cable_label_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Kabel-Label. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CableLabel"];
-                };
-            };
-        };
-    };
-    cable_label_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Kabel-Label. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CableLabel"];
-                "application/x-www-form-urlencoded": components["schemas"]["CableLabel"];
-                "multipart/form-data": components["schemas"]["CableLabel"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CableLabel"];
-                };
-            };
-        };
-    };
-    cable_label_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Kabel-Label. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    cable_label_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Kabel-Label. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedCableLabel"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedCableLabel"];
-                "multipart/form-data": components["schemas"]["PatchedCableLabel"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CableLabel"];
-                };
-            };
-        };
-    };
-    cable_label_all_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CableLabel"];
-                };
-            };
-        };
-    };
-    cable_type_color_mapping_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CableTypeColorMapping"][];
-                };
-            };
-        };
-    };
-    cable_type_color_mapping_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Kabeltyp-Farbzuordnung. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CableTypeColorMapping"];
-                };
-            };
-        };
-    };
-    cables_auto_link_micropipe_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                cable_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["CableAutoLinkRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["CableAutoLinkRequest"];
-                "multipart/form-data": components["schemas"]["CableAutoLinkRequest"];
-            };
-        };
-        responses: {
-            /** @description Per-end link results, or the single-link result. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Chosen microduct could not be linked. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Cable or microduct not found. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    cables_conduits_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                cable_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CableConduits"];
-                };
-            };
-        };
-    };
-    cables_linked_trenches_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                cable_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CableLinkedTrenches"];
-                };
-            };
-        };
-    };
-    cables_micropipe_connections_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                cable_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CableMicropipeConnectRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["CableMicropipeConnectRequest"];
-                "multipart/form-data": components["schemas"]["CableMicropipeConnectRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CableMicropipeConnectResult"];
-                };
-            };
-            /** @description Missing required fields. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    cables_micropipe_connections_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                cable_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CableMicropipeDisconnectResult"];
-                };
-            };
-            /** @description Missing required fields. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    cables_micropipe_summary_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Map of cable UUID -> list of connected micropipes ({number, color_hex, color_name}), for network-schema edge coloring. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    canvas_coordinates_retrieve: {
-        parameters: {
-            query?: {
-                /** @description Filter node stats by flag. */
-                flag_id?: number;
-                /** @description Filter node stats by project. */
-                project_id?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CanvasSyncStatus"];
-                };
-            };
-        };
-    };
-    canvas_coordinates_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["CanvasSyncRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["CanvasSyncRequest"];
-                "multipart/form-data": components["schemas"]["CanvasSyncRequest"];
-            };
-        };
-        responses: {
-            /** @description Sync result summary. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description A sync is already in progress. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Sync failed to start. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    conduit_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-                /** @description Number of results to return per page. */
-                page_size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedConduitList"];
-                };
-            };
-        };
-    };
-    conduit_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Conduit"];
-                "application/x-www-form-urlencoded": components["schemas"]["Conduit"];
-                "multipart/form-data": components["schemas"]["Conduit"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Conduit"];
-                };
-            };
-        };
-    };
-    conduit_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Conduit"];
-                };
-            };
-        };
-    };
-    conduit_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Conduit"];
-                "application/x-www-form-urlencoded": components["schemas"]["Conduit"];
-                "multipart/form-data": components["schemas"]["Conduit"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Conduit"];
-                };
-            };
-        };
-    };
-    conduit_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    conduit_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedConduit"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedConduit"];
-                "multipart/form-data": components["schemas"]["PatchedConduit"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Conduit"];
-                };
-            };
-        };
-    };
-    conduit_trenches_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Conduit"];
-                };
-            };
-        };
-    };
-    conduit_all_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Conduit"];
-                };
-            };
-        };
-    };
-    conduits_by_trenches_list: {
-        parameters: {
-            query?: {
-                /** @description Cable UUID to mark already-linked conduits. */
-                cable_id?: string;
-                /** @description Comma-separated trench UUIDs. */
-                trench_ids?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConduitForTrenchSelection"][];
-                };
-            };
-        };
-    };
-    config_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Config"];
-                };
-            };
-            /** @description Configured SRID is not a valid EPSG code. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConfigError"];
-                };
-            };
-        };
-    };
-    container_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Container"][];
-                };
-            };
-        };
-    };
-    container_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Container"];
-                "application/x-www-form-urlencoded": components["schemas"]["Container"];
-                "multipart/form-data": components["schemas"]["Container"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Container"];
-                };
-            };
-        };
-    };
-    container_type_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContainerType"][];
-                };
-            };
-        };
-    };
-    container_type_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Container-Typ. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContainerType"];
-                };
-            };
-        };
-    };
-    container_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Container. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Container"];
-                };
-            };
-        };
-    };
-    container_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Container. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Container"];
-                "application/x-www-form-urlencoded": components["schemas"]["Container"];
-                "multipart/form-data": components["schemas"]["Container"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Container"];
-                };
-            };
-        };
-    };
-    container_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Container. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    container_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Container. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedContainer"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedContainer"];
-                "multipart/form-data": components["schemas"]["PatchedContainer"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Container"];
-                };
-            };
-        };
-    };
-    container_move_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Container. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Container"];
-                "application/x-www-form-urlencoded": components["schemas"]["Container"];
-                "multipart/form-data": components["schemas"]["Container"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Container"];
-                };
-            };
-        };
-    };
-    container_by_node_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                node_uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Container"];
-                };
-            };
-        };
-    };
-    container_tree_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                node_uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Container"];
-                };
-            };
-        };
-    };
-    content_types_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContentType"][];
-                };
-            };
-        };
-    };
-    content_types_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Inhaltstyp. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContentType"];
-                };
-            };
-        };
-    };
-    dashboard_statistics_retrieve: {
-        parameters: {
-            query: {
-                /** @description Optional flag id to further filter statistics. */
-                flag?: number;
-                /** @description Project id to scope statistics to. */
-                project: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DashboardStatistics"];
-                };
-            };
-            /** @description Missing required ``project`` parameter. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DashboardStatisticsError"];
-                };
-            };
-        };
-    };
-    fault_simulation_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FaultSimulationRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["FaultSimulationRequest"];
-                "multipart/form-data": components["schemas"]["FaultSimulationRequest"];
-            };
-        };
-        responses: {
-            /** @description Affected infrastructure (cables, addresses, RUs). */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Missing point or project_id. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description No trench found near the point. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    feature_files_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-                /** @description Number of results to return per page. */
-                page_size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedFeatureFilesList"];
-                };
-            };
-        };
-    };
-    feature_files_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FeatureFiles"];
-                "application/x-www-form-urlencoded": components["schemas"]["FeatureFiles"];
-                "multipart/form-data": components["schemas"]["FeatureFiles"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeatureFiles"];
-                };
-            };
-        };
-    };
-    feature_files_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Feature-Datei. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeatureFiles"];
-                };
-            };
-        };
-    };
-    feature_files_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Feature-Datei. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FeatureFiles"];
-                "application/x-www-form-urlencoded": components["schemas"]["FeatureFiles"];
-                "multipart/form-data": components["schemas"]["FeatureFiles"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeatureFiles"];
-                };
-            };
-        };
-    };
-    feature_files_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Feature-Datei. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    feature_files_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Feature-Datei. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedFeatureFiles"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedFeatureFiles"];
-                "multipart/form-data": components["schemas"]["PatchedFeatureFiles"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeatureFiles"];
-                };
-            };
-        };
-    };
-    feature_files_download_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Feature-Datei. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeatureFiles"];
-                };
-            };
-        };
-    };
-    feature_files_preview_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Feature-Datei. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeatureFiles"];
-                };
-            };
-        };
-    };
-    feature_files_rename_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Feature-Datei. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FeatureFiles"];
-                "application/x-www-form-urlencoded": components["schemas"]["FeatureFiles"];
-                "multipart/form-data": components["schemas"]["FeatureFiles"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FeatureFiles"];
-                };
-            };
-        };
-    };
-    fiber_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Fiber"][];
-                };
-            };
-        };
-    };
-    fiber_splice_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FiberSplice"][];
-                };
-            };
-        };
-    };
-    fiber_splice_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FiberSplice"];
-                "application/x-www-form-urlencoded": components["schemas"]["FiberSplice"];
-                "multipart/form-data": components["schemas"]["FiberSplice"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FiberSplice"];
-                };
-            };
-        };
-    };
-    fiber_splice_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Faser-Splice. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FiberSplice"];
-                };
-            };
-        };
-    };
-    fiber_splice_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Faser-Splice. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FiberSplice"];
-                "application/x-www-form-urlencoded": components["schemas"]["FiberSplice"];
-                "multipart/form-data": components["schemas"]["FiberSplice"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FiberSplice"];
-                };
-            };
-        };
-    };
-    fiber_splice_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Faser-Splice. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    fiber_splice_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Faser-Splice. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedFiberSplice"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedFiberSplice"];
-                "multipart/form-data": components["schemas"]["PatchedFiberSplice"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FiberSplice"];
-                };
-            };
-        };
-    };
-    fiber_splice_bulk_upsert_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FiberSplice"];
-                "application/x-www-form-urlencoded": components["schemas"]["FiberSplice"];
-                "multipart/form-data": components["schemas"]["FiberSplice"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FiberSplice"];
-                };
-            };
-        };
-    };
-    fiber_splice_clear_port_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FiberSplice"];
-                "application/x-www-form-urlencoded": components["schemas"]["FiberSplice"];
-                "multipart/form-data": components["schemas"]["FiberSplice"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FiberSplice"];
-                };
-            };
-        };
-    };
-    fiber_splice_merge_ports_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FiberSplice"];
-                "application/x-www-form-urlencoded": components["schemas"]["FiberSplice"];
-                "multipart/form-data": components["schemas"]["FiberSplice"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FiberSplice"];
-                };
-            };
-        };
-    };
-    fiber_splice_unmerge_ports_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FiberSplice"];
-                "application/x-www-form-urlencoded": components["schemas"]["FiberSplice"];
-                "multipart/form-data": components["schemas"]["FiberSplice"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FiberSplice"];
-                };
-            };
-        };
-    };
-    fiber_splice_upsert_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FiberSplice"];
-                "application/x-www-form-urlencoded": components["schemas"]["FiberSplice"];
-                "multipart/form-data": components["schemas"]["FiberSplice"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FiberSplice"];
-                };
-            };
-        };
-    };
-    fiber_splice_upsert_merged_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FiberSplice"];
-                "application/x-www-form-urlencoded": components["schemas"]["FiberSplice"];
-                "multipart/form-data": components["schemas"]["FiberSplice"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FiberSplice"];
-                };
-            };
-        };
-    };
-    fiber_trace_retrieve: {
-        parameters: {
-            query?: {
-                /** @description Trace fibers via an address's linked nodes/RUs. */
-                address_id?: string;
-                /** @description Trace all fibers of a cable. */
-                cable_id?: string;
-                /** @description Trace a single fiber (mutually exclusive with the other *_id params). */
-                fiber_id?: string;
-                /** @description Geometry representation (default 'segments'). */
-                geometry_mode?: "merged" | "routed" | "segments";
-                /** @description Include trench geometry (default false). */
-                include_geometry?: boolean;
-                /** @description Trace all fibers passing through a node. */
-                node_id?: string;
-                /** @description Orient lines from cable start to end. */
-                orient_geometry?: boolean;
-                /** @description Trace fibers connected to a residential unit. */
-                residential_unit_id?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Path tree of the traced fiber(s); recursive shape produced by the trace services. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Missing/ambiguous id or bad parameter. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    fiber_trace_summary_retrieve: {
-        parameters: {
-            query: {
-                /** @description UUID of the fiber to summarize. */
-                fiber_id: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Compact trace summary (start/end nodes, addresses, stats) produced by the trace service. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Missing or invalid fiber_id. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    fiber_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Fiber"];
-                };
-            };
-        };
-    };
-    fiber_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedFiber"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedFiber"];
-                "multipart/form-data": components["schemas"]["PatchedFiber"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Fiber"];
-                };
-            };
-        };
-    };
-    fiber_by_cable_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                cable_uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Fiber"];
-                };
-            };
-        };
-    };
-    flags_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Flags"][];
-                };
-            };
-        };
-    };
-    flags_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Kennzeichen. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Flags"];
-                };
-            };
-        };
-    };
-    import_conduit_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["ConduitImportRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["ConduitImportRequest"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConduitImportResult"];
-                };
-            };
-            /** @description Missing/invalid file or import errors. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    layer_extent_retrieve: {
-        parameters: {
-            query: {
-                /** @description Layer type to compute the extent for. */
-                layer: "address" | "area" | "node" | "trench";
-                /** @description Project id to filter by. */
-                project: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LayerExtent"];
-                };
-            };
-            /** @description Missing or invalid ``layer`` / ``project`` parameter. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LayerExtentError"];
-                };
-            };
-        };
-    };
-    logs_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-                /** @description Number of results to return per page. */
-                page_size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedLogEntryList"];
-                };
-            };
-        };
-    };
-    logs_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Log-Eintrag. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LogEntry"];
-                };
-            };
-        };
-    };
-    logs_frontend_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["FrontendLogRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["FrontendLogRequest"];
-                "multipart/form-data": components["schemas"]["FrontendLogRequest"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FrontendLogResult"];
-                };
-            };
-            /** @description Failed to create the log entry. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FrontendLogError"];
-                };
-            };
-        };
-    };
-    microduct_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-                /** @description Number of results to return per page. */
-                page_size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedMicroductList"];
-                };
-            };
-        };
-    };
-    microduct_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Microduct"];
-                "application/x-www-form-urlencoded": components["schemas"]["Microduct"];
-                "multipart/form-data": components["schemas"]["Microduct"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Microduct"];
-                };
-            };
-        };
-    };
-    microduct_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Mikrorohr. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Microduct"];
-                };
-            };
-        };
-    };
-    microduct_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Mikrorohr. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Microduct"];
-                "application/x-www-form-urlencoded": components["schemas"]["Microduct"];
-                "multipart/form-data": components["schemas"]["Microduct"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Microduct"];
-                };
-            };
-        };
-    };
-    microduct_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Mikrorohr. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    microduct_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Mikrorohr. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedMicroduct"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedMicroduct"];
-                "multipart/form-data": components["schemas"]["PatchedMicroduct"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Microduct"];
-                };
-            };
-        };
-    };
-    microduct_all_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Microduct"];
-                };
-            };
-        };
-    };
-    microduct_cable_connection_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-                /** @description Number of results to return per page. */
-                page_size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedMicroductCableConnectionList"];
-                };
-            };
-        };
-    };
-    microduct_cable_connection_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MicroductCableConnection"];
-                "application/x-www-form-urlencoded": components["schemas"]["MicroductCableConnection"];
-                "multipart/form-data": components["schemas"]["MicroductCableConnection"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MicroductCableConnection"];
-                };
-            };
-        };
-    };
-    microduct_cable_connection_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Mikrorohr-Kabel-Verbindung. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MicroductCableConnection"];
-                };
-            };
-        };
-    };
-    microduct_cable_connection_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Mikrorohr-Kabel-Verbindung. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MicroductCableConnection"];
-                "application/x-www-form-urlencoded": components["schemas"]["MicroductCableConnection"];
-                "multipart/form-data": components["schemas"]["MicroductCableConnection"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MicroductCableConnection"];
-                };
-            };
-        };
-    };
-    microduct_cable_connection_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Mikrorohr-Kabel-Verbindung. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    microduct_cable_connection_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Mikrorohr-Kabel-Verbindung. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedMicroductCableConnection"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedMicroductCableConnection"];
-                "multipart/form-data": components["schemas"]["PatchedMicroductCableConnection"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MicroductCableConnection"];
-                };
-            };
-        };
-    };
-    microduct_cable_connection_all_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MicroductCableConnection"];
-                };
-            };
-        };
-    };
-    microduct_connection_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-                /** @description Number of results to return per page. */
-                page_size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedMicroductConnectionList"];
-                };
-            };
-        };
-    };
-    microduct_connection_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MicroductConnection"];
-                "application/x-www-form-urlencoded": components["schemas"]["MicroductConnection"];
-                "multipart/form-data": components["schemas"]["MicroductConnection"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MicroductConnection"];
-                };
-            };
-        };
-    };
-    microduct_connection_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Mikrorohr-Verbindung. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MicroductConnection"];
-                };
-            };
-        };
-    };
-    microduct_connection_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Mikrorohr-Verbindung. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MicroductConnection"];
-                "application/x-www-form-urlencoded": components["schemas"]["MicroductConnection"];
-                "multipart/form-data": components["schemas"]["MicroductConnection"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MicroductConnection"];
-                };
-            };
-        };
-    };
-    microduct_connection_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Mikrorohr-Verbindung. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    microduct_connection_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Mikrorohr-Verbindung. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedMicroductConnection"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedMicroductConnection"];
-                "multipart/form-data": components["schemas"]["PatchedMicroductConnection"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MicroductConnection"];
-                };
-            };
-        };
-    };
-    microduct_connection_all_connections_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MicroductConnection"];
-                };
-            };
-        };
-    };
-    micropipes_by_conduits_list: {
-        parameters: {
-            query?: {
-                /** @description Cable UUID to flag micropipes linked to it. */
-                cable_id?: string;
-                /** @description Comma-separated conduit UUIDs. */
-                conduit_ids?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MicropipeByConduit"][];
-                };
-            };
-        };
-    };
-    node_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-                /** @description Number of results to return per page. */
-                page_size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedNodeList"];
-                };
-            };
-        };
-    };
-    node_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["Node"];
-                "application/x-www-form-urlencoded": components["schemas"]["Node"];
-                "multipart/form-data": components["schemas"]["Node"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Node"];
-                };
-            };
-        };
-    };
-    node_export_excel_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                node_uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Excel export of the node's structure. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
-                };
-            };
-            /** @description Node not found. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    node_slot_clip_number_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeSlotClipNumber"][];
-                };
-            };
-        };
-    };
-    node_slot_clip_number_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NodeSlotClipNumber"];
-                "application/x-www-form-urlencoded": components["schemas"]["NodeSlotClipNumber"];
-                "multipart/form-data": components["schemas"]["NodeSlotClipNumber"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeSlotClipNumber"];
-                };
-            };
-        };
-    };
-    node_slot_clip_number_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Steckplatz-Clip-Nummer. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeSlotClipNumber"];
-                };
-            };
-        };
-    };
-    node_slot_clip_number_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Steckplatz-Clip-Nummer. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NodeSlotClipNumber"];
-                "application/x-www-form-urlencoded": components["schemas"]["NodeSlotClipNumber"];
-                "multipart/form-data": components["schemas"]["NodeSlotClipNumber"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeSlotClipNumber"];
-                };
-            };
-        };
-    };
-    node_slot_clip_number_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Steckplatz-Clip-Nummer. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    node_slot_clip_number_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Steckplatz-Clip-Nummer. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedNodeSlotClipNumber"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedNodeSlotClipNumber"];
-                "multipart/form-data": components["schemas"]["PatchedNodeSlotClipNumber"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeSlotClipNumber"];
-                };
-            };
-        };
-    };
-    node_slot_clip_number_upsert_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NodeSlotClipNumber"];
-                "application/x-www-form-urlencoded": components["schemas"]["NodeSlotClipNumber"];
-                "multipart/form-data": components["schemas"]["NodeSlotClipNumber"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeSlotClipNumber"];
-                };
-            };
-        };
-    };
-    node_slot_configuration_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeSlotConfiguration"][];
-                };
-            };
-        };
-    };
-    node_slot_configuration_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NodeSlotConfiguration"];
-                "application/x-www-form-urlencoded": components["schemas"]["NodeSlotConfiguration"];
-                "multipart/form-data": components["schemas"]["NodeSlotConfiguration"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeSlotConfiguration"];
-                };
-            };
-        };
-    };
-    node_slot_configuration_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Steckplatz-Konfiguration. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeSlotConfiguration"];
-                };
-            };
-        };
-    };
-    node_slot_configuration_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Steckplatz-Konfiguration. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NodeSlotConfiguration"];
-                "application/x-www-form-urlencoded": components["schemas"]["NodeSlotConfiguration"];
-                "multipart/form-data": components["schemas"]["NodeSlotConfiguration"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeSlotConfiguration"];
-                };
-            };
-        };
-    };
-    node_slot_configuration_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Steckplatz-Konfiguration. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    node_slot_configuration_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Steckplatz-Konfiguration. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedNodeSlotConfiguration"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedNodeSlotConfiguration"];
-                "multipart/form-data": components["schemas"]["PatchedNodeSlotConfiguration"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeSlotConfiguration"];
-                };
-            };
-        };
-    };
-    node_slot_configuration_move_to_container_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Steckplatz-Konfiguration. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NodeSlotConfiguration"];
-                "application/x-www-form-urlencoded": components["schemas"]["NodeSlotConfiguration"];
-                "multipart/form-data": components["schemas"]["NodeSlotConfiguration"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeSlotConfiguration"];
-                };
-            };
-        };
-    };
-    node_slot_configuration_by_node_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                node_uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeSlotConfiguration"];
-                };
-            };
-        };
-    };
-    node_slot_divider_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeSlotDivider"][];
-                };
-            };
-        };
-    };
-    node_slot_divider_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NodeSlotDivider"];
-                "application/x-www-form-urlencoded": components["schemas"]["NodeSlotDivider"];
-                "multipart/form-data": components["schemas"]["NodeSlotDivider"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeSlotDivider"];
-                };
-            };
-        };
-    };
-    node_slot_divider_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Steckplatz-Divider. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeSlotDivider"];
-                };
-            };
-        };
-    };
-    node_slot_divider_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Steckplatz-Divider. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NodeSlotDivider"];
-                "application/x-www-form-urlencoded": components["schemas"]["NodeSlotDivider"];
-                "multipart/form-data": components["schemas"]["NodeSlotDivider"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeSlotDivider"];
-                };
-            };
-        };
-    };
-    node_slot_divider_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Steckplatz-Divider. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    node_slot_divider_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Steckplatz-Divider. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedNodeSlotDivider"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedNodeSlotDivider"];
-                "multipart/form-data": components["schemas"]["PatchedNodeSlotDivider"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeSlotDivider"];
-                };
-            };
-        };
-    };
-    node_structure_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeStructure"][];
-                };
-            };
-        };
-    };
-    node_structure_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NodeStructure"];
-                "application/x-www-form-urlencoded": components["schemas"]["NodeStructure"];
-                "multipart/form-data": components["schemas"]["NodeStructure"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeStructure"];
-                };
-            };
-        };
-    };
-    node_structure_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Struktur. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeStructure"];
-                };
-            };
-        };
-    };
-    node_structure_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Struktur. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NodeStructure"];
-                "application/x-www-form-urlencoded": components["schemas"]["NodeStructure"];
-                "multipart/form-data": components["schemas"]["NodeStructure"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeStructure"];
-                };
-            };
-        };
-    };
-    node_structure_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Struktur. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    node_structure_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Struktur. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedNodeStructure"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedNodeStructure"];
-                "multipart/form-data": components["schemas"]["PatchedNodeStructure"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeStructure"];
-                };
-            };
-        };
-    };
-    node_structure_move_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Struktur. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NodeStructure"];
-                "application/x-www-form-urlencoded": components["schemas"]["NodeStructure"];
-                "multipart/form-data": components["schemas"]["NodeStructure"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeStructure"];
-                };
-            };
-        };
-    };
-    node_structure_bulk_create_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NodeStructure"];
-                "application/x-www-form-urlencoded": components["schemas"]["NodeStructure"];
-                "multipart/form-data": components["schemas"]["NodeStructure"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeStructure"];
-                };
-            };
-        };
-    };
-    node_structure_by_node_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                node_uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeStructure"];
-                };
-            };
-        };
-    };
-    node_structure_summary_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                node_uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeStructure"];
-                };
-            };
-        };
-    };
-    node_trench_selection_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeTrenchSelection"][];
-                };
-            };
-        };
-    };
-    node_trench_selection_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NodeTrenchSelection"];
-                "application/x-www-form-urlencoded": components["schemas"]["NodeTrenchSelection"];
-                "multipart/form-data": components["schemas"]["NodeTrenchSelection"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeTrenchSelection"];
-                };
-            };
-        };
-    };
-    node_trench_selection_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Graben-Auswahl. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeTrenchSelection"];
-                };
-            };
-        };
-    };
-    node_trench_selection_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Graben-Auswahl. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NodeTrenchSelection"];
-                "application/x-www-form-urlencoded": components["schemas"]["NodeTrenchSelection"];
-                "multipart/form-data": components["schemas"]["NodeTrenchSelection"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeTrenchSelection"];
-                };
-            };
-        };
-    };
-    node_trench_selection_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Graben-Auswahl. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    node_trench_selection_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten-Graben-Auswahl. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedNodeTrenchSelection"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedNodeTrenchSelection"];
-                "multipart/form-data": components["schemas"]["PatchedNodeTrenchSelection"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeTrenchSelection"];
-                };
-            };
-        };
-    };
-    node_trench_selection_bulk_update_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NodeTrenchSelection"];
-                "application/x-www-form-urlencoded": components["schemas"]["NodeTrenchSelection"];
-                "multipart/form-data": components["schemas"]["NodeTrenchSelection"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeTrenchSelection"];
-                };
-            };
-        };
-    };
-    node_trench_selection_by_node_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                node_uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NodeTrenchSelection"];
-                };
-            };
-        };
-    };
-    node_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Node"];
-                };
-            };
-        };
-    };
-    node_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["Node"];
-                "application/x-www-form-urlencoded": components["schemas"]["Node"];
-                "multipart/form-data": components["schemas"]["Node"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Node"];
-                };
-            };
-        };
-    };
-    node_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    node_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedNode"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedNode"];
-                "multipart/form-data": components["schemas"]["PatchedNode"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Node"];
-                };
-            };
-        };
-    };
-    node_addresses_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Node"];
-                };
-            };
-        };
-    };
-    node_used_fibers_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Node"];
-                };
-            };
-        };
-    };
-    node_used_residential_units_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Netzknoten. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Node"];
-                };
-            };
-        };
-    };
-    node_all_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Node"];
-                };
-            };
-        };
-    };
-    node_count_by_city_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Node"];
-                };
-            };
-        };
-    };
-    node_count_by_network_level_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Node"];
-                };
-            };
-        };
-    };
-    node_count_by_owner_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Node"];
-                };
-            };
-        };
-    };
-    node_count_by_status_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Node"];
-                };
-            };
-        };
-    };
-    node_count_of_nodes_by_type_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Node"];
-                };
-            };
-        };
-    };
-    node_expiring_warranties_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Node"];
-                };
-            };
-        };
-    };
-    node_newest_oldest_nodes_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Node"];
-                };
-            };
-        };
-    };
-    "ol_address_tiles_.mvt_retrieve": {
-        parameters: {
-            query?: {
-                /** @description Project id to scope the tile features. */
-                project?: number;
-            };
-            header?: never;
-            path: {
-                x: number;
-                y: number;
-                z: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Mapbox Vector Tile (MVT). */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/vnd.mapbox-vector-tile": string;
-                };
-            };
-        };
-    };
-    "ol_area_tiles_.mvt_retrieve": {
-        parameters: {
-            query?: {
-                /** @description Project id to scope the tile features. */
-                project?: number;
-            };
-            header?: never;
-            path: {
-                x: number;
-                y: number;
-                z: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Mapbox Vector Tile (MVT). */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/vnd.mapbox-vector-tile": string;
-                };
-            };
-        };
-    };
-    "ol_node_tiles_.mvt_retrieve": {
-        parameters: {
-            query?: {
-                /** @description Project id to scope the tile features. */
-                project?: number;
-            };
-            header?: never;
-            path: {
-                x: number;
-                y: number;
-                z: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Mapbox Vector Tile (MVT). */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/vnd.mapbox-vector-tile": string;
-                };
-            };
-        };
-    };
-    "ol_trench_tiles_.mvt_retrieve": {
-        parameters: {
-            query?: {
-                /** @description Project id to scope the tile features. */
-                project?: number;
-            };
-            header?: never;
-            path: {
-                x: number;
-                y: number;
-                z: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Mapbox Vector Tile (MVT). */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/vnd.mapbox-vector-tile": string;
-                };
-            };
-        };
-    };
-    pipeline_inquiry_areas_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PipelineInquiryAreaList"];
-                };
-            };
-        };
-    };
-    pipeline_inquiry_areas_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PipelineInquiryArea"];
-                "application/x-www-form-urlencoded": components["schemas"]["PipelineInquiryArea"];
-                "multipart/form-data": components["schemas"]["PipelineInquiryArea"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PipelineInquiryArea"];
-                };
-            };
-        };
-    };
-    pipeline_inquiry_areas_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PipelineInquiryArea"];
-                };
-            };
-        };
-    };
-    pipeline_inquiry_areas_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PipelineInquiryArea"];
-                "application/x-www-form-urlencoded": components["schemas"]["PipelineInquiryArea"];
-                "multipart/form-data": components["schemas"]["PipelineInquiryArea"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PipelineInquiryArea"];
-                };
-            };
-        };
-    };
-    pipeline_inquiry_areas_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    pipeline_inquiry_areas_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedPipelineInquiryArea"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedPipelineInquiryArea"];
-                "multipart/form-data": components["schemas"]["PatchedPipelineInquiryArea"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PipelineInquiryArea"];
-                };
-            };
-        };
-    };
-    pipeline_records_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PipelineRecord"][];
-                };
-            };
-        };
-    };
-    pipeline_records_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PipelineRecord"];
-                "application/x-www-form-urlencoded": components["schemas"]["PipelineRecord"];
-                "multipart/form-data": components["schemas"]["PipelineRecord"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PipelineRecord"];
-                };
-            };
-        };
-    };
-    pipeline_records_inquiry_export_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                pipeline_record_uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description ZIP of GeoJSON layers and feature files for the inquiry. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/zip": string;
-                };
-            };
-            /** @description No inquiry areas exist for the record. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    pipeline_records_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PipelineRecord"];
-                };
-            };
-        };
-    };
-    pipeline_records_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PipelineRecord"];
-                "application/x-www-form-urlencoded": components["schemas"]["PipelineRecord"];
-                "multipart/form-data": components["schemas"]["PipelineRecord"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PipelineRecord"];
-                };
-            };
-        };
-    };
-    pipeline_records_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    pipeline_records_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedPipelineRecord"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedPipelineRecord"];
-                "multipart/form-data": components["schemas"]["PatchedPipelineRecord"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PipelineRecord"];
-                };
-            };
-        };
-    };
-    projects_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Projects"][];
-                };
-            };
-        };
-    };
-    projects_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Projekt. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Projects"];
-                };
-            };
-        };
-    };
-    request_reasons_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RequestReason"][];
-                };
-            };
-        };
-    };
-    request_reasons_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Anfragegrund. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RequestReason"];
-                };
-            };
-        };
-    };
-    residential_unit_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ResidentialUnit"][];
-                };
-            };
-        };
-    };
-    residential_unit_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ResidentialUnit"];
-                "application/x-www-form-urlencoded": components["schemas"]["ResidentialUnit"];
-                "multipart/form-data": components["schemas"]["ResidentialUnit"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ResidentialUnit"];
-                };
-            };
-        };
-    };
-    residential_unit_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Wohnungseinheit. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ResidentialUnit"];
-                };
-            };
-        };
-    };
-    residential_unit_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Wohnungseinheit. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ResidentialUnit"];
-                "application/x-www-form-urlencoded": components["schemas"]["ResidentialUnit"];
-                "multipart/form-data": components["schemas"]["ResidentialUnit"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ResidentialUnit"];
-                };
-            };
-        };
-    };
-    residential_unit_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Wohnungseinheit. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    residential_unit_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Wohnungseinheit. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedResidentialUnit"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedResidentialUnit"];
-                "multipart/form-data": components["schemas"]["PatchedResidentialUnit"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ResidentialUnit"];
-                };
-            };
-        };
-    };
-    residential_unit_fiber_connections_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Wohnungseinheit. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ResidentialUnit"];
-                };
-            };
-        };
-    };
-    residential_unit_regenerate_id_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Wohnungseinheit. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ResidentialUnit"];
-                "application/x-www-form-urlencoded": components["schemas"]["ResidentialUnit"];
-                "multipart/form-data": components["schemas"]["ResidentialUnit"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ResidentialUnit"];
-                };
-            };
-        };
-    };
-    residential_unit_all_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ResidentialUnit"];
-                };
-            };
-        };
-    };
-    routing_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RoutingRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["RoutingRequest"];
-                "multipart/form-data": components["schemas"]["RoutingRequest"];
-            };
-        };
-        responses: {
-            /** @description Shortest path between the two trenches. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Missing trench ids or routing error. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description No path found. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    "schema.gpkg_retrieve": {
-        parameters: {
-            query?: {
-                /** @description Comma-separated layer names to include (default: all). */
-                layers?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description GeoPackage (.gpkg) download. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/geopackage+sqlite3": string;
-                };
-            };
-        };
-    };
-    signal_analysis_retrieve: {
-        parameters: {
-            query: {
-                /** @description UUID of the fiber to analyze. */
-                fiber_id: string;
-                /** @description Geometry representation (default 'segments'). */
-                geometry_mode?: "merged" | "routed" | "segments";
-                /** @description Include trench geometry (default false). */
-                include_geometry?: boolean;
-                /** @description Orient lines from cable start to end. */
-                orient_geometry?: boolean;
-                /** @description Node where the signal originates (default: root cable start). */
-                signal_source_node_id?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Signal-flow analysis with lit/dark portions and breaks. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Missing/invalid fiber_id or bad parameter. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    spatial_intersects_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SpatialIntersectRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["SpatialIntersectRequest"];
-                "multipart/form-data": components["schemas"]["SpatialIntersectRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SpatialIntersectResult"];
-                };
-            };
-            /** @description Invalid geometry or layer request. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SpatialIntersectError"];
-                };
-            };
-        };
-    };
-    template_conduit_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Excel conduit-import template. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
-                };
-            };
-        };
-    };
-    trace_search_retrieve: {
-        parameters: {
-            query: {
-                /** @description Project id to scope results. */
-                project?: number;
-                /** @description Search term (min 2 characters). */
-                search: string;
-                /** @description Entity type to search. */
-                type: "address" | "cable" | "node" | "residential_unit";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TraceSearchResult"];
-                };
-            };
-            /** @description Invalid entity type. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    trench_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-                /** @description Number of results to return per page. */
-                page_size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedTrenchList"];
-                };
-            };
-        };
-    };
-    trench_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["Trench"];
-                "application/x-www-form-urlencoded": components["schemas"]["Trench"];
-                "multipart/form-data": components["schemas"]["Trench"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Trench"];
-                };
-            };
-        };
-    };
-    trench_conduit_canvas_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TrenchConduitCanvas"][];
-                };
-            };
-        };
-    };
-    trench_conduit_canvas_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TrenchConduitCanvas"];
-                "application/x-www-form-urlencoded": components["schemas"]["TrenchConduitCanvas"];
-                "multipart/form-data": components["schemas"]["TrenchConduitCanvas"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TrenchConduitCanvas"];
-                };
-            };
-        };
-    };
-    trench_conduit_canvas_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Graben-Rohr-Canvas-Position. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TrenchConduitCanvas"];
-                };
-            };
-        };
-    };
-    trench_conduit_canvas_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Graben-Rohr-Canvas-Position. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TrenchConduitCanvas"];
-                "application/x-www-form-urlencoded": components["schemas"]["TrenchConduitCanvas"];
-                "multipart/form-data": components["schemas"]["TrenchConduitCanvas"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TrenchConduitCanvas"];
-                };
-            };
-        };
-    };
-    trench_conduit_canvas_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Graben-Rohr-Canvas-Position. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    trench_conduit_canvas_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Graben-Rohr-Canvas-Position. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedTrenchConduitCanvas"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedTrenchConduitCanvas"];
-                "multipart/form-data": components["schemas"]["PatchedTrenchConduitCanvas"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TrenchConduitCanvas"];
-                };
-            };
-        };
-    };
-    trench_conduit_canvas_bulk_save_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TrenchConduitCanvas"];
-                "application/x-www-form-urlencoded": components["schemas"]["TrenchConduitCanvas"];
-                "multipart/form-data": components["schemas"]["TrenchConduitCanvas"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TrenchConduitCanvas"];
-                };
-            };
-        };
-    };
-    trench_conduit_canvas_profile_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                trench_uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TrenchConduitCanvas"];
-                };
-            };
-        };
-    };
-    trench_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Graben. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Trench"];
-                };
-            };
-        };
-    };
-    trench_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Graben. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["Trench"];
-                "application/x-www-form-urlencoded": components["schemas"]["Trench"];
-                "multipart/form-data": components["schemas"]["Trench"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Trench"];
-                };
-            };
-        };
-    };
-    trench_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Graben. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    trench_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Graben. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedTrench"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedTrench"];
-                "multipart/form-data": components["schemas"]["PatchedTrench"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Trench"];
-                };
-            };
-        };
-    };
-    trench_all_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Trench"];
-                };
-            };
-        };
-    };
-    trench_average_house_connection_length_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Trench"];
-                };
-            };
-        };
-    };
-    trench_length_by_phase_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Trench"];
-                };
-            };
-        };
-    };
-    trench_length_by_status_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Trench"];
-                };
-            };
-        };
-    };
-    trench_length_by_types_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Trench"];
-                };
-            };
-        };
-    };
-    trench_length_with_funding_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Trench"];
-                };
-            };
-        };
-    };
-    trench_length_with_internal_execution_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Trench"];
-                };
-            };
-        };
-    };
-    trench_longest_routes_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Trench"];
-                };
-            };
-        };
-    };
-    trench_total_length_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Trench"];
-                };
-            };
-        };
-    };
-    trench_conduit_connection_list: {
-        parameters: {
-            query?: {
-                /** @description A page number within the paginated result set. */
-                page?: number;
-                /** @description Number of results to return per page. */
-                page_size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedTrenchConduitList"];
-                };
-            };
-        };
-    };
-    trench_conduit_connection_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TrenchConduit"];
-                "application/x-www-form-urlencoded": components["schemas"]["TrenchConduit"];
-                "multipart/form-data": components["schemas"]["TrenchConduit"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TrenchConduit"];
-                };
-            };
-        };
-    };
-    trench_conduit_connection_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Graben-Rohr-Verbindung. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TrenchConduit"];
-                };
-            };
-        };
-    };
-    trench_conduit_connection_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Graben-Rohr-Verbindung. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TrenchConduit"];
-                "application/x-www-form-urlencoded": components["schemas"]["TrenchConduit"];
-                "multipart/form-data": components["schemas"]["TrenchConduit"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TrenchConduit"];
-                };
-            };
-        };
-    };
-    trench_conduit_connection_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Graben-Rohr-Verbindung. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    trench_conduit_connection_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this Graben-Rohr-Verbindung. */
-                uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedTrenchConduit"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedTrenchConduit"];
-                "multipart/form-data": components["schemas"]["PatchedTrenchConduit"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TrenchConduit"];
-                };
-            };
-        };
-    };
-    trench_conduit_connection_all_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TrenchConduit"];
-                };
-            };
-        };
-    };
-    trenches_near_node_retrieve: {
-        parameters: {
-            query: {
-                /** @description Search radius in meters (default 5). */
-                distance?: number;
-                /** @description Name of the node to search around. */
-                node_name: string;
-                /** @description Project id to filter by. */
-                project: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TrenchesNearNodeResult"];
-                };
-            };
-            /** @description Missing or non-numeric parameters. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Node not found in the project. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    type_of_work_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TypeOfWork"][];
-                };
-            };
-        };
-    };
-    type_of_work_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Art der Arbeit. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TypeOfWork"];
-                };
-            };
-        };
-    };
-    user_settings_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserSettings"];
-                };
-            };
-        };
-    };
-    user_settings_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["UserSettings"];
-                "application/x-www-form-urlencoded": components["schemas"]["UserSettings"];
-                "multipart/form-data": components["schemas"]["UserSettings"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserSettings"];
-                };
-            };
-        };
-    };
-    valuation_rates_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ValuationCostRate"][];
-                };
-            };
-        };
-    };
-    valuation_rates_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this Wertermittlungssatz. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ValuationCostRate"];
-                };
-            };
-        };
-    };
-    valuation_calculate_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ValuationRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["ValuationRequest"];
-                "multipart/form-data": components["schemas"]["ValuationRequest"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ValuationResult"];
-                };
-            };
-        };
-    };
-    wfs3_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_name: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Reprojected WFS3/OGC-API response from the upstream QGIS Server (GeoJSON or the upstream content-type). */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description QGIS project not found. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    wfs3_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_name: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Reprojected WFS3/OGC-API response from the upstream QGIS Server. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description QGIS project not found. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    wfs3_retrieve_2: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_name: string;
-                wfs3_path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Reprojected WFS3/OGC-API response from the upstream QGIS Server (GeoJSON or the upstream content-type). */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description QGIS project not found. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    wfs3_create_2: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                project_name: string;
-                wfs3_path: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Reprojected WFS3/OGC-API response from the upstream QGIS Server. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description QGIS project not found. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    wms_layers_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WMSLayer"][];
-                };
-            };
-        };
-    };
-    wms_layers_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["WMSLayer"];
-                "application/x-www-form-urlencoded": components["schemas"]["WMSLayer"];
-                "multipart/form-data": components["schemas"]["WMSLayer"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WMSLayer"];
-                };
-            };
-        };
-    };
-    wms_layers_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this WMS-Layer. */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WMSLayer"];
-                };
-            };
-        };
-    };
-    wms_layers_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this WMS-Layer. */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["WMSLayer"];
-                "application/x-www-form-urlencoded": components["schemas"]["WMSLayer"];
-                "multipart/form-data": components["schemas"]["WMSLayer"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WMSLayer"];
-                };
-            };
-        };
-    };
-    wms_layers_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this WMS-Layer. */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    wms_layers_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this WMS-Layer. */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedWMSLayer"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedWMSLayer"];
-                "multipart/form-data": components["schemas"]["PatchedWMSLayer"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WMSLayer"];
-                };
-            };
-        };
-    };
-    wms_proxy_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                source_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Upstream WMS response (image or XML), streamed through. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": string;
-                };
-            };
-        };
-    };
-    wms_sources_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WMSSource"][];
-                };
-            };
-        };
-    };
-    wms_sources_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WMSSourceCreate"];
-                "application/x-www-form-urlencoded": components["schemas"]["WMSSourceCreate"];
-                "multipart/form-data": components["schemas"]["WMSSourceCreate"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WMSSourceCreate"];
-                };
-            };
-        };
-    };
-    wms_sources_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this WMS-Layer. */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WMSSource"];
-                };
-            };
-        };
-    };
-    wms_sources_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this WMS-Layer. */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WMSSourceCreate"];
-                "application/x-www-form-urlencoded": components["schemas"]["WMSSourceCreate"];
-                "multipart/form-data": components["schemas"]["WMSSourceCreate"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WMSSourceCreate"];
-                };
-            };
-        };
-    };
-    wms_sources_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this WMS-Layer. */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    wms_sources_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this WMS-Layer. */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedWMSSourceCreate"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedWMSSourceCreate"];
-                "multipart/form-data": components["schemas"]["PatchedWMSSourceCreate"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WMSSourceCreate"];
-                };
-            };
-        };
-    };
-    wms_sources_refresh_layers_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this WMS-Layer. */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WMSSource"];
-                "application/x-www-form-urlencoded": components["schemas"]["WMSSource"];
-                "multipart/form-data": components["schemas"]["WMSSource"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WMSSource"];
-                };
-            };
-        };
-    };
-    wms_sources_scan_capabilities_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A UUID string identifying this WMS-Layer. */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WMSSource"];
-                "application/x-www-form-urlencoded": components["schemas"]["WMSSource"];
-                "multipart/form-data": components["schemas"]["WMSSource"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WMSSource"];
-                };
-            };
-        };
-    };
-    wms_sources_access_token_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WMSSource"];
-                };
-            };
-        };
-    };
+	address_list: {
+		parameters: {
+			query?: {
+				/** @description A page number within the paginated result set. */
+				page?: number;
+				/** @description Number of results to return per page. */
+				page_size?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PaginatedAddressList'];
+				};
+			};
+		};
+	};
+	address_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['Address'];
+				'application/x-www-form-urlencoded': components['schemas']['Address'];
+				'multipart/form-data': components['schemas']['Address'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Address'];
+				};
+			};
+		};
+	};
+	address_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Adresse. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Address'];
+				};
+			};
+		};
+	};
+	address_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Adresse. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['Address'];
+				'application/x-www-form-urlencoded': components['schemas']['Address'];
+				'multipart/form-data': components['schemas']['Address'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Address'];
+				};
+			};
+		};
+	};
+	address_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Adresse. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	address_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Adresse. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedAddress'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedAddress'];
+				'multipart/form-data': components['schemas']['PatchedAddress'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Address'];
+				};
+			};
+		};
+	};
+	address_fiber_connections_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Adresse. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Address'];
+				};
+			};
+		};
+	};
+	address_linked_trenches_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Adresse. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Address'];
+				};
+			};
+		};
+	};
+	address_regenerate_id_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Adresse. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['Address'];
+				'application/x-www-form-urlencoded': components['schemas']['Address'];
+				'multipart/form-data': components['schemas']['Address'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Address'];
+				};
+			};
+		};
+	};
+	address_all_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Address'];
+				};
+			};
+		};
+	};
+	area_list: {
+		parameters: {
+			query?: {
+				/** @description A page number within the paginated result set. */
+				page?: number;
+				/** @description Number of results to return per page. */
+				page_size?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PaginatedAreaList'];
+				};
+			};
+		};
+	};
+	area_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['Area'];
+				'application/x-www-form-urlencoded': components['schemas']['Area'];
+				'multipart/form-data': components['schemas']['Area'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Area'];
+				};
+			};
+		};
+	};
+	area_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Gebiet. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Area'];
+				};
+			};
+		};
+	};
+	area_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Gebiet. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['Area'];
+				'application/x-www-form-urlencoded': components['schemas']['Area'];
+				'multipart/form-data': components['schemas']['Area'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Area'];
+				};
+			};
+		};
+	};
+	area_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Gebiet. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	area_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Gebiet. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedArea'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedArea'];
+				'multipart/form-data': components['schemas']['PatchedArea'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Area'];
+				};
+			};
+		};
+	};
+	area_all_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Area'];
+				};
+			};
+		};
+	};
+	attributes_area_type_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesAreaType'][];
+				};
+			};
+		};
+	};
+	attributes_area_type_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Gebietstyp. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesAreaType'];
+				};
+			};
+		};
+	};
+	attributes_cable_type_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesCableType'][];
+				};
+			};
+		};
+	};
+	attributes_cable_type_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Kabeltyp. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesCableType'];
+				};
+			};
+		};
+	};
+	attributes_company_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesCompany'][];
+				};
+			};
+		};
+	};
+	attributes_company_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Firma. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesCompany'];
+				};
+			};
+		};
+	};
+	attributes_component_structure_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesComponentStructure'][];
+				};
+			};
+		};
+	};
+	attributes_component_structure_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Komponentenstruktur. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesComponentStructure'];
+				};
+			};
+		};
+	};
+	attributes_component_type_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesComponentType'][];
+				};
+			};
+		};
+	};
+	attributes_component_type_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Komponententyp. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesComponentType'];
+				};
+			};
+		};
+	};
+	attributes_conduit_type_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesConduitType'][];
+				};
+			};
+		};
+	};
+	attributes_conduit_type_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Rohrtyp. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesConduitType'];
+				};
+			};
+		};
+	};
+	attributes_construction_type_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesConstructionType'][];
+				};
+			};
+		};
+	};
+	attributes_construction_type_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Bau-/Verlegeart. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesConstructionType'];
+				};
+			};
+		};
+	};
+	attributes_fiber_color_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesFiberColor'][];
+				};
+			};
+		};
+	};
+	attributes_fiber_color_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Faserfarbe. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesFiberColor'];
+				};
+			};
+		};
+	};
+	attributes_fiber_status_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesFiberStatus'][];
+				};
+			};
+		};
+	};
+	attributes_fiber_status_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Faserstatus. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesFiberStatus'];
+				};
+			};
+		};
+	};
+	attributes_microduct_color_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesMicroductColor'][];
+				};
+			};
+		};
+	};
+	attributes_microduct_color_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Mikrorohrfarbe. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesMicroductColor'];
+				};
+			};
+		};
+	};
+	attributes_microduct_status_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesMicroductStatus'][];
+				};
+			};
+		};
+	};
+	attributes_microduct_status_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique value identifying this Mikrorohrstatus. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesMicroductStatus'];
+				};
+			};
+		};
+	};
+	attributes_network_level_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesNetworkLevel'][];
+				};
+			};
+		};
+	};
+	attributes_network_level_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Netzebene. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesNetworkLevel'];
+				};
+			};
+		};
+	};
+	attributes_node_type_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesNodeType'][];
+				};
+			};
+		};
+	};
+	attributes_node_type_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Netzknotentyp. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesNodeType'];
+				};
+			};
+		};
+	};
+	attributes_residential_unit_status_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesResidentialUnitStatus'][];
+				};
+			};
+		};
+	};
+	attributes_residential_unit_status_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Wohnungseinheit-Status. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesResidentialUnitStatus'];
+				};
+			};
+		};
+	};
+	attributes_residential_unit_type_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesResidentialUnitType'][];
+				};
+			};
+		};
+	};
+	attributes_residential_unit_type_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Wohnungseinheit-Typ. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesResidentialUnitType'];
+				};
+			};
+		};
+	};
+	attributes_status_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesStatus'][];
+				};
+			};
+		};
+	};
+	attributes_status_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Status. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesStatus'];
+				};
+			};
+		};
+	};
+	attributes_status_development_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesStatusDevelopment'][];
+				};
+			};
+		};
+	};
+	attributes_status_development_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Ausbaustatus. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesStatusDevelopment'];
+				};
+			};
+		};
+	};
+	attributes_surface_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesSurface'][];
+				};
+			};
+		};
+	};
+	attributes_surface_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Oberfläche. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AttributesSurface'];
+				};
+			};
+		};
+	};
+	auth_app_login_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['AppLoginRequest'];
+				'application/x-www-form-urlencoded': components['schemas']['AppLoginRequest'];
+				'multipart/form-data': components['schemas']['AppLoginRequest'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AppLoginResult'];
+				};
+			};
+			/** @description Missing username or password. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Invalid credentials or inactive account. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	auth_app_logout_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['AppLogoutRequest'];
+				'application/x-www-form-urlencoded': components['schemas']['AppLogoutRequest'];
+				'multipart/form-data': components['schemas']['AppLogoutRequest'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AppLogoutResult'];
+				};
+			};
+			/** @description Refresh token is required. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Invalid or expired refresh token. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	auth_app_token_refresh_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['TokenRefresh'];
+				'application/x-www-form-urlencoded': components['schemas']['TokenRefresh'];
+				'multipart/form-data': components['schemas']['TokenRefresh'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['TokenRefresh'];
+				};
+			};
+		};
+	};
+	auth_login_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['Login'];
+				'application/x-www-form-urlencoded': components['schemas']['Login'];
+				'multipart/form-data': components['schemas']['Login'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['JWT'];
+				};
+			};
+		};
+	};
+	auth_logout_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['RestAuthDetail'];
+				};
+			};
+		};
+	};
+	auth_password_change_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['PasswordChange'];
+				'application/x-www-form-urlencoded': components['schemas']['PasswordChange'];
+				'multipart/form-data': components['schemas']['PasswordChange'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['RestAuthDetail'];
+				};
+			};
+		};
+	};
+	auth_password_reset_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['PasswordReset'];
+				'application/x-www-form-urlencoded': components['schemas']['PasswordReset'];
+				'multipart/form-data': components['schemas']['PasswordReset'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['RestAuthDetail'];
+				};
+			};
+		};
+	};
+	auth_password_reset_confirm_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['PasswordResetConfirm'];
+				'application/x-www-form-urlencoded': components['schemas']['PasswordResetConfirm'];
+				'multipart/form-data': components['schemas']['PasswordResetConfirm'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['RestAuthDetail'];
+				};
+			};
+		};
+	};
+	auth_permissions_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Role-based permission set for the current user. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						[key: string]: unknown;
+					};
+				};
+			};
+		};
+	};
+	auth_qgis_auth_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['QGISAuthResult'];
+				};
+			};
+			/** @description Not authenticated or lacks QGIS access. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	auth_qgis_auth_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['QGISAuthPostResult'];
+				};
+			};
+			/** @description Not authenticated or lacks QGIS access. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	auth_token_refresh_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['TokenRefresh'];
+				'application/x-www-form-urlencoded': components['schemas']['TokenRefresh'];
+				'multipart/form-data': components['schemas']['TokenRefresh'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['TokenRefresh'];
+				};
+			};
+		};
+	};
+	auth_token_verify_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['TokenVerify'];
+				'application/x-www-form-urlencoded': components['schemas']['TokenVerify'];
+				'multipart/form-data': components['schemas']['TokenVerify'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['TokenVerify'];
+				};
+			};
+		};
+	};
+	auth_user_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['CustomUserDetails'];
+				};
+			};
+		};
+	};
+	auth_user_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['CustomUserDetails'];
+				'application/x-www-form-urlencoded': components['schemas']['CustomUserDetails'];
+				'multipart/form-data': components['schemas']['CustomUserDetails'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['CustomUserDetails'];
+				};
+			};
+		};
+	};
+	auth_user_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedCustomUserDetails'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedCustomUserDetails'];
+				'multipart/form-data': components['schemas']['PatchedCustomUserDetails'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['CustomUserDetails'];
+				};
+			};
+		};
+	};
+	auth_webdav_auth_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['WebDAVAuthResult'];
+				};
+			};
+			/** @description Not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	auth_webdav_auth_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['WebDAVAuthPostResult'];
+				};
+			};
+			/** @description Not authenticated. */
+			401: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	cable_list: {
+		parameters: {
+			query?: {
+				/** @description A page number within the paginated result set. */
+				page?: number;
+				/** @description Number of results to return per page. */
+				page_size?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PaginatedCableList'];
+				};
+			};
+		};
+	};
+	cable_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['Cable'];
+				'application/x-www-form-urlencoded': components['schemas']['Cable'];
+				'multipart/form-data': components['schemas']['Cable'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Cable'];
+				};
+			};
+		};
+	};
+	cable_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Kabel. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Cable'];
+				};
+			};
+		};
+	};
+	cable_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Kabel. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['Cable'];
+				'application/x-www-form-urlencoded': components['schemas']['Cable'];
+				'multipart/form-data': components['schemas']['Cable'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Cable'];
+				};
+			};
+		};
+	};
+	cable_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Kabel. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	cable_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Kabel. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedCable'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedCable'];
+				'multipart/form-data': components['schemas']['PatchedCable'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Cable'];
+				};
+			};
+		};
+	};
+	cable_recalculate_length_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Kabel. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['Cable'];
+				'application/x-www-form-urlencoded': components['schemas']['Cable'];
+				'multipart/form-data': components['schemas']['Cable'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Cable'];
+				};
+			};
+		};
+	};
+	cable_all_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Cable'];
+				};
+			};
+		};
+	};
+	cable_at_node_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				node_uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Cable'];
+				};
+			};
+		};
+	};
+	cable_in_trench_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				trench_uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Cable'];
+				};
+			};
+		};
+	};
+	cable_label_list: {
+		parameters: {
+			query?: {
+				/** @description A page number within the paginated result set. */
+				page?: number;
+				/** @description Number of results to return per page. */
+				page_size?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PaginatedCableLabelList'];
+				};
+			};
+		};
+	};
+	cable_label_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['CableLabel'];
+				'application/x-www-form-urlencoded': components['schemas']['CableLabel'];
+				'multipart/form-data': components['schemas']['CableLabel'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['CableLabel'];
+				};
+			};
+		};
+	};
+	cable_label_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Kabel-Label. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['CableLabel'];
+				};
+			};
+		};
+	};
+	cable_label_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Kabel-Label. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['CableLabel'];
+				'application/x-www-form-urlencoded': components['schemas']['CableLabel'];
+				'multipart/form-data': components['schemas']['CableLabel'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['CableLabel'];
+				};
+			};
+		};
+	};
+	cable_label_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Kabel-Label. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	cable_label_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Kabel-Label. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedCableLabel'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedCableLabel'];
+				'multipart/form-data': components['schemas']['PatchedCableLabel'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['CableLabel'];
+				};
+			};
+		};
+	};
+	cable_label_all_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['CableLabel'];
+				};
+			};
+		};
+	};
+	cable_type_color_mapping_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['CableTypeColorMapping'][];
+				};
+			};
+		};
+	};
+	cable_type_color_mapping_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Kabeltyp-Farbzuordnung. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['CableTypeColorMapping'];
+				};
+			};
+		};
+	};
+	cables_auto_link_micropipe_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				cable_id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['CableAutoLinkRequest'];
+				'application/x-www-form-urlencoded': components['schemas']['CableAutoLinkRequest'];
+				'multipart/form-data': components['schemas']['CableAutoLinkRequest'];
+			};
+		};
+		responses: {
+			/** @description Per-end link results, or the single-link result. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						[key: string]: unknown;
+					};
+				};
+			};
+			/** @description Chosen microduct could not be linked. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Cable or microduct not found. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	cables_conduits_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				cable_id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['CableConduits'];
+				};
+			};
+		};
+	};
+	cables_linked_trenches_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				cable_id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['CableLinkedTrenches'];
+				};
+			};
+		};
+	};
+	cables_micropipe_connections_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				cable_id: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['CableMicropipeConnectRequest'];
+				'application/x-www-form-urlencoded': components['schemas']['CableMicropipeConnectRequest'];
+				'multipart/form-data': components['schemas']['CableMicropipeConnectRequest'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['CableMicropipeConnectResult'];
+				};
+			};
+			/** @description Missing required fields. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	cables_micropipe_connections_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				cable_id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['CableMicropipeDisconnectResult'];
+				};
+			};
+			/** @description Missing required fields. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	cables_micropipe_summary_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				project_id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Map of cable UUID -> list of connected micropipes ({number, color_hex, color_name}), for network-schema edge coloring. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						[key: string]: unknown;
+					};
+				};
+			};
+		};
+	};
+	canvas_coordinates_retrieve: {
+		parameters: {
+			query?: {
+				/** @description Filter node stats by flag. */
+				flag_id?: number;
+				/** @description Filter node stats by project. */
+				project_id?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['CanvasSyncStatus'];
+				};
+			};
+		};
+	};
+	canvas_coordinates_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['CanvasSyncRequest'];
+				'application/x-www-form-urlencoded': components['schemas']['CanvasSyncRequest'];
+				'multipart/form-data': components['schemas']['CanvasSyncRequest'];
+			};
+		};
+		responses: {
+			/** @description Sync result summary. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						[key: string]: unknown;
+					};
+				};
+			};
+			/** @description A sync is already in progress. */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Sync failed to start. */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	conduit_list: {
+		parameters: {
+			query?: {
+				/** @description A page number within the paginated result set. */
+				page?: number;
+				/** @description Number of results to return per page. */
+				page_size?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PaginatedConduitList'];
+				};
+			};
+		};
+	};
+	conduit_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['Conduit'];
+				'application/x-www-form-urlencoded': components['schemas']['Conduit'];
+				'multipart/form-data': components['schemas']['Conduit'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Conduit'];
+				};
+			};
+		};
+	};
+	conduit_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Conduit'];
+				};
+			};
+		};
+	};
+	conduit_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['Conduit'];
+				'application/x-www-form-urlencoded': components['schemas']['Conduit'];
+				'multipart/form-data': components['schemas']['Conduit'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Conduit'];
+				};
+			};
+		};
+	};
+	conduit_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	conduit_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedConduit'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedConduit'];
+				'multipart/form-data': components['schemas']['PatchedConduit'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Conduit'];
+				};
+			};
+		};
+	};
+	conduit_trenches_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Conduit'];
+				};
+			};
+		};
+	};
+	conduit_all_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Conduit'];
+				};
+			};
+		};
+	};
+	conduits_by_trenches_list: {
+		parameters: {
+			query?: {
+				/** @description Cable UUID to mark already-linked conduits. */
+				cable_id?: string;
+				/** @description Comma-separated trench UUIDs. */
+				trench_ids?: string;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ConduitForTrenchSelection'][];
+				};
+			};
+		};
+	};
+	config_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Config'];
+				};
+			};
+			/** @description Configured SRID is not a valid EPSG code. */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ConfigError'];
+				};
+			};
+		};
+	};
+	container_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Container'][];
+				};
+			};
+		};
+	};
+	container_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['Container'];
+				'application/x-www-form-urlencoded': components['schemas']['Container'];
+				'multipart/form-data': components['schemas']['Container'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Container'];
+				};
+			};
+		};
+	};
+	container_type_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ContainerType'][];
+				};
+			};
+		};
+	};
+	container_type_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Container-Typ. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ContainerType'];
+				};
+			};
+		};
+	};
+	container_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Container. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Container'];
+				};
+			};
+		};
+	};
+	container_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Container. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['Container'];
+				'application/x-www-form-urlencoded': components['schemas']['Container'];
+				'multipart/form-data': components['schemas']['Container'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Container'];
+				};
+			};
+		};
+	};
+	container_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Container. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	container_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Container. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedContainer'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedContainer'];
+				'multipart/form-data': components['schemas']['PatchedContainer'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Container'];
+				};
+			};
+		};
+	};
+	container_move_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Container. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['Container'];
+				'application/x-www-form-urlencoded': components['schemas']['Container'];
+				'multipart/form-data': components['schemas']['Container'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Container'];
+				};
+			};
+		};
+	};
+	container_by_node_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				node_uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Container'];
+				};
+			};
+		};
+	};
+	container_tree_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				node_uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Container'];
+				};
+			};
+		};
+	};
+	content_types_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ContentType'][];
+				};
+			};
+		};
+	};
+	content_types_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Inhaltstyp. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ContentType'];
+				};
+			};
+		};
+	};
+	dashboard_statistics_retrieve: {
+		parameters: {
+			query: {
+				/** @description Optional flag id to further filter statistics. */
+				flag?: number;
+				/** @description Project id to scope statistics to. */
+				project: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['DashboardStatistics'];
+				};
+			};
+			/** @description Missing required ``project`` parameter. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['DashboardStatisticsError'];
+				};
+			};
+		};
+	};
+	fault_simulation_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['FaultSimulationRequest'];
+				'application/x-www-form-urlencoded': components['schemas']['FaultSimulationRequest'];
+				'multipart/form-data': components['schemas']['FaultSimulationRequest'];
+			};
+		};
+		responses: {
+			/** @description Affected infrastructure (cables, addresses, RUs). */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						[key: string]: unknown;
+					};
+				};
+			};
+			/** @description Missing point or project_id. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description No trench found near the point. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	feature_files_list: {
+		parameters: {
+			query?: {
+				/** @description A page number within the paginated result set. */
+				page?: number;
+				/** @description Number of results to return per page. */
+				page_size?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PaginatedFeatureFilesList'];
+				};
+			};
+		};
+	};
+	feature_files_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['FeatureFiles'];
+				'application/x-www-form-urlencoded': components['schemas']['FeatureFiles'];
+				'multipart/form-data': components['schemas']['FeatureFiles'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['FeatureFiles'];
+				};
+			};
+		};
+	};
+	feature_files_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Feature-Datei. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['FeatureFiles'];
+				};
+			};
+		};
+	};
+	feature_files_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Feature-Datei. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['FeatureFiles'];
+				'application/x-www-form-urlencoded': components['schemas']['FeatureFiles'];
+				'multipart/form-data': components['schemas']['FeatureFiles'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['FeatureFiles'];
+				};
+			};
+		};
+	};
+	feature_files_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Feature-Datei. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	feature_files_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Feature-Datei. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedFeatureFiles'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedFeatureFiles'];
+				'multipart/form-data': components['schemas']['PatchedFeatureFiles'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['FeatureFiles'];
+				};
+			};
+		};
+	};
+	feature_files_download_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Feature-Datei. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['FeatureFiles'];
+				};
+			};
+		};
+	};
+	feature_files_preview_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Feature-Datei. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['FeatureFiles'];
+				};
+			};
+		};
+	};
+	feature_files_rename_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Feature-Datei. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['FeatureFiles'];
+				'application/x-www-form-urlencoded': components['schemas']['FeatureFiles'];
+				'multipart/form-data': components['schemas']['FeatureFiles'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['FeatureFiles'];
+				};
+			};
+		};
+	};
+	fiber_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Fiber'][];
+				};
+			};
+		};
+	};
+	fiber_splice_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['FiberSplice'][];
+				};
+			};
+		};
+	};
+	fiber_splice_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['FiberSplice'];
+				'application/x-www-form-urlencoded': components['schemas']['FiberSplice'];
+				'multipart/form-data': components['schemas']['FiberSplice'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['FiberSplice'];
+				};
+			};
+		};
+	};
+	fiber_splice_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Faser-Splice. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['FiberSplice'];
+				};
+			};
+		};
+	};
+	fiber_splice_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Faser-Splice. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['FiberSplice'];
+				'application/x-www-form-urlencoded': components['schemas']['FiberSplice'];
+				'multipart/form-data': components['schemas']['FiberSplice'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['FiberSplice'];
+				};
+			};
+		};
+	};
+	fiber_splice_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Faser-Splice. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	fiber_splice_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Faser-Splice. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedFiberSplice'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedFiberSplice'];
+				'multipart/form-data': components['schemas']['PatchedFiberSplice'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['FiberSplice'];
+				};
+			};
+		};
+	};
+	fiber_splice_bulk_upsert_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['FiberSplice'];
+				'application/x-www-form-urlencoded': components['schemas']['FiberSplice'];
+				'multipart/form-data': components['schemas']['FiberSplice'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['FiberSplice'];
+				};
+			};
+		};
+	};
+	fiber_splice_clear_port_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['FiberSplice'];
+				'application/x-www-form-urlencoded': components['schemas']['FiberSplice'];
+				'multipart/form-data': components['schemas']['FiberSplice'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['FiberSplice'];
+				};
+			};
+		};
+	};
+	fiber_splice_merge_ports_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['FiberSplice'];
+				'application/x-www-form-urlencoded': components['schemas']['FiberSplice'];
+				'multipart/form-data': components['schemas']['FiberSplice'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['FiberSplice'];
+				};
+			};
+		};
+	};
+	fiber_splice_unmerge_ports_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['FiberSplice'];
+				'application/x-www-form-urlencoded': components['schemas']['FiberSplice'];
+				'multipart/form-data': components['schemas']['FiberSplice'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['FiberSplice'];
+				};
+			};
+		};
+	};
+	fiber_splice_upsert_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['FiberSplice'];
+				'application/x-www-form-urlencoded': components['schemas']['FiberSplice'];
+				'multipart/form-data': components['schemas']['FiberSplice'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['FiberSplice'];
+				};
+			};
+		};
+	};
+	fiber_splice_upsert_merged_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['FiberSplice'];
+				'application/x-www-form-urlencoded': components['schemas']['FiberSplice'];
+				'multipart/form-data': components['schemas']['FiberSplice'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['FiberSplice'];
+				};
+			};
+		};
+	};
+	fiber_trace_retrieve: {
+		parameters: {
+			query?: {
+				/** @description Trace fibers via an address's linked nodes/RUs. */
+				address_id?: string;
+				/** @description Trace all fibers of a cable. */
+				cable_id?: string;
+				/** @description Trace a single fiber (mutually exclusive with the other *_id params). */
+				fiber_id?: string;
+				/** @description Geometry representation (default 'segments'). */
+				geometry_mode?: 'merged' | 'routed' | 'segments';
+				/** @description Include trench geometry (default false). */
+				include_geometry?: boolean;
+				/** @description Trace all fibers passing through a node. */
+				node_id?: string;
+				/** @description Orient lines from cable start to end. */
+				orient_geometry?: boolean;
+				/** @description Trace fibers connected to a residential unit. */
+				residential_unit_id?: string;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Path tree of the traced fiber(s); recursive shape produced by the trace services. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						[key: string]: unknown;
+					};
+				};
+			};
+			/** @description Missing/ambiguous id or bad parameter. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	fiber_trace_summary_retrieve: {
+		parameters: {
+			query: {
+				/** @description UUID of the fiber to summarize. */
+				fiber_id: string;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Compact trace summary (start/end nodes, addresses, stats) produced by the trace service. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						[key: string]: unknown;
+					};
+				};
+			};
+			/** @description Missing or invalid fiber_id. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	fiber_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Fiber'];
+				};
+			};
+		};
+	};
+	fiber_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedFiber'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedFiber'];
+				'multipart/form-data': components['schemas']['PatchedFiber'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Fiber'];
+				};
+			};
+		};
+	};
+	fiber_by_cable_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				cable_uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Fiber'];
+				};
+			};
+		};
+	};
+	flags_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Flags'][];
+				};
+			};
+		};
+	};
+	flags_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Kennzeichen. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Flags'];
+				};
+			};
+		};
+	};
+	import_conduit_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'multipart/form-data': components['schemas']['ConduitImportRequest'];
+				'application/x-www-form-urlencoded': components['schemas']['ConduitImportRequest'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ConduitImportResult'];
+				};
+			};
+			/** @description Missing/invalid file or import errors. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	layer_extent_retrieve: {
+		parameters: {
+			query: {
+				/** @description Layer type to compute the extent for. */
+				layer: 'address' | 'area' | 'node' | 'trench';
+				/** @description Project id to filter by. */
+				project: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['LayerExtent'];
+				};
+			};
+			/** @description Missing or invalid ``layer`` / ``project`` parameter. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['LayerExtentError'];
+				};
+			};
+		};
+	};
+	logs_list: {
+		parameters: {
+			query?: {
+				/** @description A page number within the paginated result set. */
+				page?: number;
+				/** @description Number of results to return per page. */
+				page_size?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PaginatedLogEntryList'];
+				};
+			};
+		};
+	};
+	logs_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Log-Eintrag. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['LogEntry'];
+				};
+			};
+		};
+	};
+	logs_frontend_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['FrontendLogRequest'];
+				'application/x-www-form-urlencoded': components['schemas']['FrontendLogRequest'];
+				'multipart/form-data': components['schemas']['FrontendLogRequest'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['FrontendLogResult'];
+				};
+			};
+			/** @description Failed to create the log entry. */
+			500: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['FrontendLogError'];
+				};
+			};
+		};
+	};
+	microduct_list: {
+		parameters: {
+			query?: {
+				/** @description A page number within the paginated result set. */
+				page?: number;
+				/** @description Number of results to return per page. */
+				page_size?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PaginatedMicroductList'];
+				};
+			};
+		};
+	};
+	microduct_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['Microduct'];
+				'application/x-www-form-urlencoded': components['schemas']['Microduct'];
+				'multipart/form-data': components['schemas']['Microduct'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Microduct'];
+				};
+			};
+		};
+	};
+	microduct_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Mikrorohr. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Microduct'];
+				};
+			};
+		};
+	};
+	microduct_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Mikrorohr. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['Microduct'];
+				'application/x-www-form-urlencoded': components['schemas']['Microduct'];
+				'multipart/form-data': components['schemas']['Microduct'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Microduct'];
+				};
+			};
+		};
+	};
+	microduct_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Mikrorohr. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	microduct_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Mikrorohr. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedMicroduct'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedMicroduct'];
+				'multipart/form-data': components['schemas']['PatchedMicroduct'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Microduct'];
+				};
+			};
+		};
+	};
+	microduct_all_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Microduct'];
+				};
+			};
+		};
+	};
+	microduct_cable_connection_list: {
+		parameters: {
+			query?: {
+				/** @description A page number within the paginated result set. */
+				page?: number;
+				/** @description Number of results to return per page. */
+				page_size?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PaginatedMicroductCableConnectionList'];
+				};
+			};
+		};
+	};
+	microduct_cable_connection_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['MicroductCableConnection'];
+				'application/x-www-form-urlencoded': components['schemas']['MicroductCableConnection'];
+				'multipart/form-data': components['schemas']['MicroductCableConnection'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['MicroductCableConnection'];
+				};
+			};
+		};
+	};
+	microduct_cable_connection_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Mikrorohr-Kabel-Verbindung. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['MicroductCableConnection'];
+				};
+			};
+		};
+	};
+	microduct_cable_connection_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Mikrorohr-Kabel-Verbindung. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['MicroductCableConnection'];
+				'application/x-www-form-urlencoded': components['schemas']['MicroductCableConnection'];
+				'multipart/form-data': components['schemas']['MicroductCableConnection'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['MicroductCableConnection'];
+				};
+			};
+		};
+	};
+	microduct_cable_connection_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Mikrorohr-Kabel-Verbindung. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	microduct_cable_connection_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Mikrorohr-Kabel-Verbindung. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedMicroductCableConnection'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedMicroductCableConnection'];
+				'multipart/form-data': components['schemas']['PatchedMicroductCableConnection'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['MicroductCableConnection'];
+				};
+			};
+		};
+	};
+	microduct_cable_connection_all_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['MicroductCableConnection'];
+				};
+			};
+		};
+	};
+	microduct_connection_list: {
+		parameters: {
+			query?: {
+				/** @description A page number within the paginated result set. */
+				page?: number;
+				/** @description Number of results to return per page. */
+				page_size?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PaginatedMicroductConnectionList'];
+				};
+			};
+		};
+	};
+	microduct_connection_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['MicroductConnection'];
+				'application/x-www-form-urlencoded': components['schemas']['MicroductConnection'];
+				'multipart/form-data': components['schemas']['MicroductConnection'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['MicroductConnection'];
+				};
+			};
+		};
+	};
+	microduct_connection_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Mikrorohr-Verbindung. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['MicroductConnection'];
+				};
+			};
+		};
+	};
+	microduct_connection_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Mikrorohr-Verbindung. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['MicroductConnection'];
+				'application/x-www-form-urlencoded': components['schemas']['MicroductConnection'];
+				'multipart/form-data': components['schemas']['MicroductConnection'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['MicroductConnection'];
+				};
+			};
+		};
+	};
+	microduct_connection_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Mikrorohr-Verbindung. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	microduct_connection_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Mikrorohr-Verbindung. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedMicroductConnection'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedMicroductConnection'];
+				'multipart/form-data': components['schemas']['PatchedMicroductConnection'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['MicroductConnection'];
+				};
+			};
+		};
+	};
+	microduct_connection_all_connections_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['MicroductConnection'];
+				};
+			};
+		};
+	};
+	micropipes_by_conduits_list: {
+		parameters: {
+			query?: {
+				/** @description Cable UUID to flag micropipes linked to it. */
+				cable_id?: string;
+				/** @description Comma-separated conduit UUIDs. */
+				conduit_ids?: string;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['MicropipeByConduit'][];
+				};
+			};
+		};
+	};
+	node_list: {
+		parameters: {
+			query?: {
+				/** @description A page number within the paginated result set. */
+				page?: number;
+				/** @description Number of results to return per page. */
+				page_size?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PaginatedNodeList'];
+				};
+			};
+		};
+	};
+	node_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['Node'];
+				'application/x-www-form-urlencoded': components['schemas']['Node'];
+				'multipart/form-data': components['schemas']['Node'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Node'];
+				};
+			};
+		};
+	};
+	node_export_excel_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				node_uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Excel export of the node's structure. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': string;
+				};
+			};
+			/** @description Node not found. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	node_slot_clip_number_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeSlotClipNumber'][];
+				};
+			};
+		};
+	};
+	node_slot_clip_number_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['NodeSlotClipNumber'];
+				'application/x-www-form-urlencoded': components['schemas']['NodeSlotClipNumber'];
+				'multipart/form-data': components['schemas']['NodeSlotClipNumber'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeSlotClipNumber'];
+				};
+			};
+		};
+	};
+	node_slot_clip_number_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Steckplatz-Clip-Nummer. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeSlotClipNumber'];
+				};
+			};
+		};
+	};
+	node_slot_clip_number_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Steckplatz-Clip-Nummer. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['NodeSlotClipNumber'];
+				'application/x-www-form-urlencoded': components['schemas']['NodeSlotClipNumber'];
+				'multipart/form-data': components['schemas']['NodeSlotClipNumber'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeSlotClipNumber'];
+				};
+			};
+		};
+	};
+	node_slot_clip_number_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Steckplatz-Clip-Nummer. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	node_slot_clip_number_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Steckplatz-Clip-Nummer. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedNodeSlotClipNumber'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedNodeSlotClipNumber'];
+				'multipart/form-data': components['schemas']['PatchedNodeSlotClipNumber'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeSlotClipNumber'];
+				};
+			};
+		};
+	};
+	node_slot_clip_number_upsert_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['NodeSlotClipNumber'];
+				'application/x-www-form-urlencoded': components['schemas']['NodeSlotClipNumber'];
+				'multipart/form-data': components['schemas']['NodeSlotClipNumber'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeSlotClipNumber'];
+				};
+			};
+		};
+	};
+	node_slot_configuration_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeSlotConfiguration'][];
+				};
+			};
+		};
+	};
+	node_slot_configuration_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['NodeSlotConfiguration'];
+				'application/x-www-form-urlencoded': components['schemas']['NodeSlotConfiguration'];
+				'multipart/form-data': components['schemas']['NodeSlotConfiguration'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeSlotConfiguration'];
+				};
+			};
+		};
+	};
+	node_slot_configuration_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Steckplatz-Konfiguration. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeSlotConfiguration'];
+				};
+			};
+		};
+	};
+	node_slot_configuration_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Steckplatz-Konfiguration. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['NodeSlotConfiguration'];
+				'application/x-www-form-urlencoded': components['schemas']['NodeSlotConfiguration'];
+				'multipart/form-data': components['schemas']['NodeSlotConfiguration'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeSlotConfiguration'];
+				};
+			};
+		};
+	};
+	node_slot_configuration_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Steckplatz-Konfiguration. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	node_slot_configuration_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Steckplatz-Konfiguration. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedNodeSlotConfiguration'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedNodeSlotConfiguration'];
+				'multipart/form-data': components['schemas']['PatchedNodeSlotConfiguration'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeSlotConfiguration'];
+				};
+			};
+		};
+	};
+	node_slot_configuration_move_to_container_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Steckplatz-Konfiguration. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['NodeSlotConfiguration'];
+				'application/x-www-form-urlencoded': components['schemas']['NodeSlotConfiguration'];
+				'multipart/form-data': components['schemas']['NodeSlotConfiguration'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeSlotConfiguration'];
+				};
+			};
+		};
+	};
+	node_slot_configuration_by_node_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				node_uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeSlotConfiguration'];
+				};
+			};
+		};
+	};
+	node_slot_divider_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeSlotDivider'][];
+				};
+			};
+		};
+	};
+	node_slot_divider_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['NodeSlotDivider'];
+				'application/x-www-form-urlencoded': components['schemas']['NodeSlotDivider'];
+				'multipart/form-data': components['schemas']['NodeSlotDivider'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeSlotDivider'];
+				};
+			};
+		};
+	};
+	node_slot_divider_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Steckplatz-Divider. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeSlotDivider'];
+				};
+			};
+		};
+	};
+	node_slot_divider_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Steckplatz-Divider. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['NodeSlotDivider'];
+				'application/x-www-form-urlencoded': components['schemas']['NodeSlotDivider'];
+				'multipart/form-data': components['schemas']['NodeSlotDivider'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeSlotDivider'];
+				};
+			};
+		};
+	};
+	node_slot_divider_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Steckplatz-Divider. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	node_slot_divider_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Steckplatz-Divider. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedNodeSlotDivider'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedNodeSlotDivider'];
+				'multipart/form-data': components['schemas']['PatchedNodeSlotDivider'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeSlotDivider'];
+				};
+			};
+		};
+	};
+	node_structure_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeStructure'][];
+				};
+			};
+		};
+	};
+	node_structure_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['NodeStructure'];
+				'application/x-www-form-urlencoded': components['schemas']['NodeStructure'];
+				'multipart/form-data': components['schemas']['NodeStructure'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeStructure'];
+				};
+			};
+		};
+	};
+	node_structure_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Struktur. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeStructure'];
+				};
+			};
+		};
+	};
+	node_structure_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Struktur. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['NodeStructure'];
+				'application/x-www-form-urlencoded': components['schemas']['NodeStructure'];
+				'multipart/form-data': components['schemas']['NodeStructure'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeStructure'];
+				};
+			};
+		};
+	};
+	node_structure_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Struktur. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	node_structure_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Struktur. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedNodeStructure'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedNodeStructure'];
+				'multipart/form-data': components['schemas']['PatchedNodeStructure'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeStructure'];
+				};
+			};
+		};
+	};
+	node_structure_move_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Struktur. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['NodeStructure'];
+				'application/x-www-form-urlencoded': components['schemas']['NodeStructure'];
+				'multipart/form-data': components['schemas']['NodeStructure'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeStructure'];
+				};
+			};
+		};
+	};
+	node_structure_bulk_create_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['NodeStructure'];
+				'application/x-www-form-urlencoded': components['schemas']['NodeStructure'];
+				'multipart/form-data': components['schemas']['NodeStructure'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeStructure'];
+				};
+			};
+		};
+	};
+	node_structure_by_node_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				node_uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeStructure'];
+				};
+			};
+		};
+	};
+	node_structure_summary_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				node_uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeStructure'];
+				};
+			};
+		};
+	};
+	node_trench_selection_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeTrenchSelection'][];
+				};
+			};
+		};
+	};
+	node_trench_selection_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['NodeTrenchSelection'];
+				'application/x-www-form-urlencoded': components['schemas']['NodeTrenchSelection'];
+				'multipart/form-data': components['schemas']['NodeTrenchSelection'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeTrenchSelection'];
+				};
+			};
+		};
+	};
+	node_trench_selection_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Graben-Auswahl. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeTrenchSelection'];
+				};
+			};
+		};
+	};
+	node_trench_selection_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Graben-Auswahl. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['NodeTrenchSelection'];
+				'application/x-www-form-urlencoded': components['schemas']['NodeTrenchSelection'];
+				'multipart/form-data': components['schemas']['NodeTrenchSelection'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeTrenchSelection'];
+				};
+			};
+		};
+	};
+	node_trench_selection_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Graben-Auswahl. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	node_trench_selection_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten-Graben-Auswahl. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedNodeTrenchSelection'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedNodeTrenchSelection'];
+				'multipart/form-data': components['schemas']['PatchedNodeTrenchSelection'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeTrenchSelection'];
+				};
+			};
+		};
+	};
+	node_trench_selection_bulk_update_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['NodeTrenchSelection'];
+				'application/x-www-form-urlencoded': components['schemas']['NodeTrenchSelection'];
+				'multipart/form-data': components['schemas']['NodeTrenchSelection'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeTrenchSelection'];
+				};
+			};
+		};
+	};
+	node_trench_selection_by_node_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				node_uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['NodeTrenchSelection'];
+				};
+			};
+		};
+	};
+	node_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Node'];
+				};
+			};
+		};
+	};
+	node_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['Node'];
+				'application/x-www-form-urlencoded': components['schemas']['Node'];
+				'multipart/form-data': components['schemas']['Node'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Node'];
+				};
+			};
+		};
+	};
+	node_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	node_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedNode'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedNode'];
+				'multipart/form-data': components['schemas']['PatchedNode'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Node'];
+				};
+			};
+		};
+	};
+	node_addresses_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Node'];
+				};
+			};
+		};
+	};
+	node_used_fibers_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Node'];
+				};
+			};
+		};
+	};
+	node_used_residential_units_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Netzknoten. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Node'];
+				};
+			};
+		};
+	};
+	node_all_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Node'];
+				};
+			};
+		};
+	};
+	node_count_by_city_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Node'];
+				};
+			};
+		};
+	};
+	node_count_by_network_level_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Node'];
+				};
+			};
+		};
+	};
+	node_count_by_owner_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Node'];
+				};
+			};
+		};
+	};
+	node_count_by_status_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Node'];
+				};
+			};
+		};
+	};
+	node_count_of_nodes_by_type_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Node'];
+				};
+			};
+		};
+	};
+	node_expiring_warranties_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Node'];
+				};
+			};
+		};
+	};
+	node_newest_oldest_nodes_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Node'];
+				};
+			};
+		};
+	};
+	'ol_address_tiles_.mvt_retrieve': {
+		parameters: {
+			query?: {
+				/** @description Project id to scope the tile features. */
+				project?: number;
+			};
+			header?: never;
+			path: {
+				x: number;
+				y: number;
+				z: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Mapbox Vector Tile (MVT). */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/vnd.mapbox-vector-tile': string;
+				};
+			};
+		};
+	};
+	'ol_area_tiles_.mvt_retrieve': {
+		parameters: {
+			query?: {
+				/** @description Project id to scope the tile features. */
+				project?: number;
+			};
+			header?: never;
+			path: {
+				x: number;
+				y: number;
+				z: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Mapbox Vector Tile (MVT). */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/vnd.mapbox-vector-tile': string;
+				};
+			};
+		};
+	};
+	'ol_node_tiles_.mvt_retrieve': {
+		parameters: {
+			query?: {
+				/** @description Project id to scope the tile features. */
+				project?: number;
+			};
+			header?: never;
+			path: {
+				x: number;
+				y: number;
+				z: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Mapbox Vector Tile (MVT). */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/vnd.mapbox-vector-tile': string;
+				};
+			};
+		};
+	};
+	'ol_trench_tiles_.mvt_retrieve': {
+		parameters: {
+			query?: {
+				/** @description Project id to scope the tile features. */
+				project?: number;
+			};
+			header?: never;
+			path: {
+				x: number;
+				y: number;
+				z: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Mapbox Vector Tile (MVT). */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/vnd.mapbox-vector-tile': string;
+				};
+			};
+		};
+	};
+	pipeline_inquiry_areas_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PipelineInquiryAreaList'];
+				};
+			};
+		};
+	};
+	pipeline_inquiry_areas_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PipelineInquiryArea'];
+				'application/x-www-form-urlencoded': components['schemas']['PipelineInquiryArea'];
+				'multipart/form-data': components['schemas']['PipelineInquiryArea'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PipelineInquiryArea'];
+				};
+			};
+		};
+	};
+	pipeline_inquiry_areas_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PipelineInquiryArea'];
+				};
+			};
+		};
+	};
+	pipeline_inquiry_areas_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PipelineInquiryArea'];
+				'application/x-www-form-urlencoded': components['schemas']['PipelineInquiryArea'];
+				'multipart/form-data': components['schemas']['PipelineInquiryArea'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PipelineInquiryArea'];
+				};
+			};
+		};
+	};
+	pipeline_inquiry_areas_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	pipeline_inquiry_areas_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedPipelineInquiryArea'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedPipelineInquiryArea'];
+				'multipart/form-data': components['schemas']['PatchedPipelineInquiryArea'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PipelineInquiryArea'];
+				};
+			};
+		};
+	};
+	pipeline_records_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PipelineRecord'][];
+				};
+			};
+		};
+	};
+	pipeline_records_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['PipelineRecord'];
+				'application/x-www-form-urlencoded': components['schemas']['PipelineRecord'];
+				'multipart/form-data': components['schemas']['PipelineRecord'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PipelineRecord'];
+				};
+			};
+		};
+	};
+	pipeline_records_inquiry_export_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				pipeline_record_uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description ZIP of GeoJSON layers and feature files for the inquiry. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/zip': string;
+				};
+			};
+			/** @description No inquiry areas exist for the record. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	pipeline_records_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PipelineRecord'];
+				};
+			};
+		};
+	};
+	pipeline_records_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['PipelineRecord'];
+				'application/x-www-form-urlencoded': components['schemas']['PipelineRecord'];
+				'multipart/form-data': components['schemas']['PipelineRecord'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PipelineRecord'];
+				};
+			};
+		};
+	};
+	pipeline_records_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	pipeline_records_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedPipelineRecord'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedPipelineRecord'];
+				'multipart/form-data': components['schemas']['PatchedPipelineRecord'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PipelineRecord'];
+				};
+			};
+		};
+	};
+	projects_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Projects'][];
+				};
+			};
+		};
+	};
+	projects_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Projekt. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Projects'];
+				};
+			};
+		};
+	};
+	request_reasons_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['RequestReason'][];
+				};
+			};
+		};
+	};
+	request_reasons_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Anfragegrund. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['RequestReason'];
+				};
+			};
+		};
+	};
+	residential_unit_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ResidentialUnit'][];
+				};
+			};
+		};
+	};
+	residential_unit_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['ResidentialUnit'];
+				'application/x-www-form-urlencoded': components['schemas']['ResidentialUnit'];
+				'multipart/form-data': components['schemas']['ResidentialUnit'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ResidentialUnit'];
+				};
+			};
+		};
+	};
+	residential_unit_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Wohnungseinheit. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ResidentialUnit'];
+				};
+			};
+		};
+	};
+	residential_unit_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Wohnungseinheit. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['ResidentialUnit'];
+				'application/x-www-form-urlencoded': components['schemas']['ResidentialUnit'];
+				'multipart/form-data': components['schemas']['ResidentialUnit'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ResidentialUnit'];
+				};
+			};
+		};
+	};
+	residential_unit_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Wohnungseinheit. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	residential_unit_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Wohnungseinheit. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedResidentialUnit'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedResidentialUnit'];
+				'multipart/form-data': components['schemas']['PatchedResidentialUnit'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ResidentialUnit'];
+				};
+			};
+		};
+	};
+	residential_unit_fiber_connections_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Wohnungseinheit. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ResidentialUnit'];
+				};
+			};
+		};
+	};
+	residential_unit_regenerate_id_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Wohnungseinheit. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['ResidentialUnit'];
+				'application/x-www-form-urlencoded': components['schemas']['ResidentialUnit'];
+				'multipart/form-data': components['schemas']['ResidentialUnit'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ResidentialUnit'];
+				};
+			};
+		};
+	};
+	residential_unit_all_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ResidentialUnit'];
+				};
+			};
+		};
+	};
+	routing_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['RoutingRequest'];
+				'application/x-www-form-urlencoded': components['schemas']['RoutingRequest'];
+				'multipart/form-data': components['schemas']['RoutingRequest'];
+			};
+		};
+		responses: {
+			/** @description Shortest path between the two trenches. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						[key: string]: unknown;
+					};
+				};
+			};
+			/** @description Missing trench ids or routing error. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description No path found. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	'schema.gpkg_retrieve': {
+		parameters: {
+			query?: {
+				/** @description Comma-separated layer names to include (default: all). */
+				layers?: string;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description GeoPackage (.gpkg) download. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/geopackage+sqlite3': string;
+				};
+			};
+		};
+	};
+	signal_analysis_retrieve: {
+		parameters: {
+			query: {
+				/** @description UUID of the fiber to analyze. */
+				fiber_id: string;
+				/** @description Geometry representation (default 'segments'). */
+				geometry_mode?: 'merged' | 'routed' | 'segments';
+				/** @description Include trench geometry (default false). */
+				include_geometry?: boolean;
+				/** @description Orient lines from cable start to end. */
+				orient_geometry?: boolean;
+				/** @description Node where the signal originates (default: root cable start). */
+				signal_source_node_id?: string;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Signal-flow analysis with lit/dark portions and breaks. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						[key: string]: unknown;
+					};
+				};
+			};
+			/** @description Missing/invalid fiber_id or bad parameter. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	spatial_intersects_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['SpatialIntersectRequest'];
+				'application/x-www-form-urlencoded': components['schemas']['SpatialIntersectRequest'];
+				'multipart/form-data': components['schemas']['SpatialIntersectRequest'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['SpatialIntersectResult'];
+				};
+			};
+			/** @description Invalid geometry or layer request. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['SpatialIntersectError'];
+				};
+			};
+		};
+	};
+	template_conduit_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Excel conduit-import template. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': string;
+				};
+			};
+		};
+	};
+	trace_search_retrieve: {
+		parameters: {
+			query: {
+				/** @description Project id to scope results. */
+				project?: number;
+				/** @description Search term (min 2 characters). */
+				search: string;
+				/** @description Entity type to search. */
+				type: 'address' | 'cable' | 'node' | 'residential_unit';
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['TraceSearchResult'];
+				};
+			};
+			/** @description Invalid entity type. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	trench_list: {
+		parameters: {
+			query?: {
+				/** @description A page number within the paginated result set. */
+				page?: number;
+				/** @description Number of results to return per page. */
+				page_size?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PaginatedTrenchList'];
+				};
+			};
+		};
+	};
+	trench_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['Trench'];
+				'application/x-www-form-urlencoded': components['schemas']['Trench'];
+				'multipart/form-data': components['schemas']['Trench'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Trench'];
+				};
+			};
+		};
+	};
+	trench_conduit_canvas_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['TrenchConduitCanvas'][];
+				};
+			};
+		};
+	};
+	trench_conduit_canvas_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['TrenchConduitCanvas'];
+				'application/x-www-form-urlencoded': components['schemas']['TrenchConduitCanvas'];
+				'multipart/form-data': components['schemas']['TrenchConduitCanvas'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['TrenchConduitCanvas'];
+				};
+			};
+		};
+	};
+	trench_conduit_canvas_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Graben-Rohr-Canvas-Position. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['TrenchConduitCanvas'];
+				};
+			};
+		};
+	};
+	trench_conduit_canvas_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Graben-Rohr-Canvas-Position. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['TrenchConduitCanvas'];
+				'application/x-www-form-urlencoded': components['schemas']['TrenchConduitCanvas'];
+				'multipart/form-data': components['schemas']['TrenchConduitCanvas'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['TrenchConduitCanvas'];
+				};
+			};
+		};
+	};
+	trench_conduit_canvas_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Graben-Rohr-Canvas-Position. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	trench_conduit_canvas_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Graben-Rohr-Canvas-Position. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedTrenchConduitCanvas'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedTrenchConduitCanvas'];
+				'multipart/form-data': components['schemas']['PatchedTrenchConduitCanvas'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['TrenchConduitCanvas'];
+				};
+			};
+		};
+	};
+	trench_conduit_canvas_bulk_save_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['TrenchConduitCanvas'];
+				'application/x-www-form-urlencoded': components['schemas']['TrenchConduitCanvas'];
+				'multipart/form-data': components['schemas']['TrenchConduitCanvas'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['TrenchConduitCanvas'];
+				};
+			};
+		};
+	};
+	trench_conduit_canvas_profile_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				trench_uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['TrenchConduitCanvas'];
+				};
+			};
+		};
+	};
+	trench_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Graben. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Trench'];
+				};
+			};
+		};
+	};
+	trench_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Graben. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['Trench'];
+				'application/x-www-form-urlencoded': components['schemas']['Trench'];
+				'multipart/form-data': components['schemas']['Trench'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Trench'];
+				};
+			};
+		};
+	};
+	trench_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Graben. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	trench_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Graben. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedTrench'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedTrench'];
+				'multipart/form-data': components['schemas']['PatchedTrench'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Trench'];
+				};
+			};
+		};
+	};
+	trench_all_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Trench'];
+				};
+			};
+		};
+	};
+	trench_average_house_connection_length_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Trench'];
+				};
+			};
+		};
+	};
+	trench_length_by_phase_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Trench'];
+				};
+			};
+		};
+	};
+	trench_length_by_status_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Trench'];
+				};
+			};
+		};
+	};
+	trench_length_by_types_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Trench'];
+				};
+			};
+		};
+	};
+	trench_length_with_funding_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Trench'];
+				};
+			};
+		};
+	};
+	trench_length_with_internal_execution_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Trench'];
+				};
+			};
+		};
+	};
+	trench_longest_routes_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Trench'];
+				};
+			};
+		};
+	};
+	trench_total_length_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Trench'];
+				};
+			};
+		};
+	};
+	trench_conduit_connection_list: {
+		parameters: {
+			query?: {
+				/** @description A page number within the paginated result set. */
+				page?: number;
+				/** @description Number of results to return per page. */
+				page_size?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PaginatedTrenchConduitList'];
+				};
+			};
+		};
+	};
+	trench_conduit_connection_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['TrenchConduit'];
+				'application/x-www-form-urlencoded': components['schemas']['TrenchConduit'];
+				'multipart/form-data': components['schemas']['TrenchConduit'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['TrenchConduit'];
+				};
+			};
+		};
+	};
+	trench_conduit_connection_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Graben-Rohr-Verbindung. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['TrenchConduit'];
+				};
+			};
+		};
+	};
+	trench_conduit_connection_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Graben-Rohr-Verbindung. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['TrenchConduit'];
+				'application/x-www-form-urlencoded': components['schemas']['TrenchConduit'];
+				'multipart/form-data': components['schemas']['TrenchConduit'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['TrenchConduit'];
+				};
+			};
+		};
+	};
+	trench_conduit_connection_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Graben-Rohr-Verbindung. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	trench_conduit_connection_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this Graben-Rohr-Verbindung. */
+				uuid: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedTrenchConduit'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedTrenchConduit'];
+				'multipart/form-data': components['schemas']['PatchedTrenchConduit'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['TrenchConduit'];
+				};
+			};
+		};
+	};
+	trench_conduit_connection_all_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['TrenchConduit'];
+				};
+			};
+		};
+	};
+	trenches_near_node_retrieve: {
+		parameters: {
+			query: {
+				/** @description Search radius in meters (default 5). */
+				distance?: number;
+				/** @description Name of the node to search around. */
+				node_name: string;
+				/** @description Project id to filter by. */
+				project: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['TrenchesNearNodeResult'];
+				};
+			};
+			/** @description Missing or non-numeric parameters. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Node not found in the project. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	type_of_work_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['TypeOfWork'][];
+				};
+			};
+		};
+	};
+	type_of_work_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Art der Arbeit. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['TypeOfWork'];
+				};
+			};
+		};
+	};
+	user_settings_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['UserSettings'];
+				};
+			};
+		};
+	};
+	user_settings_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['UserSettings'];
+				'application/x-www-form-urlencoded': components['schemas']['UserSettings'];
+				'multipart/form-data': components['schemas']['UserSettings'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['UserSettings'];
+				};
+			};
+		};
+	};
+	valuation_rates_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ValuationCostRate'][];
+				};
+			};
+		};
+	};
+	valuation_rates_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A unique integer value identifying this Wertermittlungssatz. */
+				id: number;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ValuationCostRate'];
+				};
+			};
+		};
+	};
+	valuation_calculate_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['ValuationRequest'];
+				'application/x-www-form-urlencoded': components['schemas']['ValuationRequest'];
+				'multipart/form-data': components['schemas']['ValuationRequest'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ValuationResult'];
+				};
+			};
+		};
+	};
+	wfs3_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				project_name: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Reprojected WFS3/OGC-API response from the upstream QGIS Server (GeoJSON or the upstream content-type). */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						[key: string]: unknown;
+					};
+				};
+			};
+			/** @description QGIS project not found. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	wfs3_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				project_name: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Reprojected WFS3/OGC-API response from the upstream QGIS Server. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						[key: string]: unknown;
+					};
+				};
+			};
+			/** @description QGIS project not found. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	wfs3_retrieve_2: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				project_name: string;
+				wfs3_path: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Reprojected WFS3/OGC-API response from the upstream QGIS Server (GeoJSON or the upstream content-type). */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						[key: string]: unknown;
+					};
+				};
+			};
+			/** @description QGIS project not found. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	wfs3_create_2: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				project_name: string;
+				wfs3_path: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Reprojected WFS3/OGC-API response from the upstream QGIS Server. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						[key: string]: unknown;
+					};
+				};
+			};
+			/** @description QGIS project not found. */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	wms_layers_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['WMSLayer'][];
+				};
+			};
+		};
+	};
+	wms_layers_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['WMSLayer'];
+				'application/x-www-form-urlencoded': components['schemas']['WMSLayer'];
+				'multipart/form-data': components['schemas']['WMSLayer'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['WMSLayer'];
+				};
+			};
+		};
+	};
+	wms_layers_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this WMS-Layer. */
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['WMSLayer'];
+				};
+			};
+		};
+	};
+	wms_layers_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this WMS-Layer. */
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['WMSLayer'];
+				'application/x-www-form-urlencoded': components['schemas']['WMSLayer'];
+				'multipart/form-data': components['schemas']['WMSLayer'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['WMSLayer'];
+				};
+			};
+		};
+	};
+	wms_layers_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this WMS-Layer. */
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	wms_layers_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this WMS-Layer. */
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedWMSLayer'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedWMSLayer'];
+				'multipart/form-data': components['schemas']['PatchedWMSLayer'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['WMSLayer'];
+				};
+			};
+		};
+	};
+	wms_proxy_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				source_id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Upstream WMS response (image or XML), streamed through. */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': string;
+				};
+			};
+		};
+	};
+	wms_sources_list: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['WMSSource'][];
+				};
+			};
+		};
+	};
+	wms_sources_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['WMSSourceCreate'];
+				'application/x-www-form-urlencoded': components['schemas']['WMSSourceCreate'];
+				'multipart/form-data': components['schemas']['WMSSourceCreate'];
+			};
+		};
+		responses: {
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['WMSSourceCreate'];
+				};
+			};
+		};
+	};
+	wms_sources_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this WMS-Layer. */
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['WMSSource'];
+				};
+			};
+		};
+	};
+	wms_sources_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this WMS-Layer. */
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['WMSSourceCreate'];
+				'application/x-www-form-urlencoded': components['schemas']['WMSSourceCreate'];
+				'multipart/form-data': components['schemas']['WMSSourceCreate'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['WMSSourceCreate'];
+				};
+			};
+		};
+	};
+	wms_sources_destroy: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this WMS-Layer. */
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No response body */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+		};
+	};
+	wms_sources_partial_update: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this WMS-Layer. */
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				'application/json': components['schemas']['PatchedWMSSourceCreate'];
+				'application/x-www-form-urlencoded': components['schemas']['PatchedWMSSourceCreate'];
+				'multipart/form-data': components['schemas']['PatchedWMSSourceCreate'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['WMSSourceCreate'];
+				};
+			};
+		};
+	};
+	wms_sources_refresh_layers_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this WMS-Layer. */
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['WMSSource'];
+				'application/x-www-form-urlencoded': components['schemas']['WMSSource'];
+				'multipart/form-data': components['schemas']['WMSSource'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['WMSSource'];
+				};
+			};
+		};
+	};
+	wms_sources_scan_capabilities_create: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description A UUID string identifying this WMS-Layer. */
+				id: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['WMSSource'];
+				'application/x-www-form-urlencoded': components['schemas']['WMSSource'];
+				'multipart/form-data': components['schemas']['WMSSource'];
+			};
+		};
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['WMSSource'];
+				};
+			};
+		};
+	};
+	wms_sources_access_token_retrieve: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['WMSSource'];
+				};
+			};
+		};
+	};
 }

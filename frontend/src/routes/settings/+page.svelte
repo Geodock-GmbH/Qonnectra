@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { PageData } from './$types';
 	import { Slider, Switch } from '@skeletonlabs/skeleton-svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -27,8 +28,6 @@
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { loadUserSettings, saveUserSettings } from '$lib/utils/userSettingsSync';
-
-	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 

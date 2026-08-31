@@ -25,9 +25,7 @@ describe('TrenchStatistics', () => {
 			lengthWithInternalExecution: 800,
 			lengthByStatus: [{ status_name: 'fertig', gesamt_länge: 3000 }],
 			lengthByNetworkLevel: [{ network_level: 'NE3', gesamt_länge: 3000 }],
-			longestRoutes: [
-				{ construction_type_name: 'offen', surface_name: 'Asphalt', length: 900 }
-			]
+			longestRoutes: [{ construction_type_name: 'offen', surface_name: 'Asphalt', length: 900 }]
 		});
 
 		expect(screen.getByText('form_length_by_surface')).toBeInTheDocument();

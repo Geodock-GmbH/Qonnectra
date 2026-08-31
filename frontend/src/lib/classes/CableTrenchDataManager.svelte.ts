@@ -1,7 +1,7 @@
 import type { Fiber } from './CableFiberDataManager.svelte';
+import type { FiberColor } from '$lib/server/nodeData';
 import { deserialize } from '$app/forms';
 
-import type { FiberColor } from '$lib/server/nodeData';
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 interface CableTrenchItem {

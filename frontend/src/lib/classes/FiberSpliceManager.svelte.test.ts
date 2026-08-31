@@ -174,9 +174,7 @@ describe('selectStructure', () => {
 			'?/getFiberColors': {
 				type: 'success',
 				data: {
-					fiberColors: [
-						{ name_de: 'rot', name_en: 'red', hex_code: '#ff0000', display_order: 1 }
-					]
+					fiberColors: [{ name_de: 'rot', name_en: 'red', hex_code: '#ff0000', display_order: 1 }]
 				}
 			}
 		});
