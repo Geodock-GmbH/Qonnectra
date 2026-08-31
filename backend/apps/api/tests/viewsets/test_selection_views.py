@@ -21,7 +21,6 @@ from ..factories import (
     MicroductCableConnectionFactory,
     MicroductColorFactory,
     MicroductFactory,
-    NodeFactory,
     TrenchConduitConnectionFactory,
     TrenchFactory,
 )

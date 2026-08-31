@@ -4,6 +4,7 @@ Register DRF router endpoints and standalone API views for
 GIS features, file management, WMS/WFS proxying, and dashboard statistics.
 """
 
+from django.conf import settings
 from django.urls import include, path, re_path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework.routers import DefaultRouter
@@ -14,8 +15,6 @@ from .views import (
     AppLogoutView,
     AppTokenRefreshView,
     AreaViewSet,
-    ValuationCalculateView,
-    ValuationCostRateViewSet,
     AttributesAreaTypeViewSet,
     AttributesCableTypeViewSet,
     AttributesCompanyViewSet,
@@ -39,30 +38,24 @@ from .views import (
     CableMicropipeConnectionsView,
     CableTypeColorMappingViewSet,
     CableViewSet,
-    ConfigView,
-    FaultSimulationView,
     ConduitImportTemplateView,
     ConduitImportView,
     ConduitsByTrenchesView,
     ConduitViewSet,
+    ConfigView,
     ContainerTypeViewSet,
     ContainerViewSet,
     ContentTypeViewSet,
     DashboardStatisticsView,
+    FaultSimulationView,
     FeatureFilesViewSet,
     FiberSpliceViewSet,
     FiberTraceSummaryView,
-    SignalAnalysisView,
-    SpatialIntersectView,
-    TraceSearchView,
     FiberTraceView,
     FiberViewSet,
     FlagsViewSet,
     FrontendLogView,
     GeoPackageSchemaView,
-    get_cable_micropipe_summary,
-    get_conduits_for_cable,
-    get_trenches_for_cable_connections,
     LayerExtentView,
     LogEntryViewSet,
     MicroductCableConnectionViewSet,
@@ -85,22 +78,30 @@ from .views import (
     PipelineInquiryExportView,
     PipelineRecordViewSet,
     ProjectsViewSet,
-    RequestReasonViewSet,
-    TypeOfWorkViewSet,
     QGISAuthView,
+    RequestReasonViewSet,
     ResidentialUnitViewSet,
     RoutingView,
+    SignalAnalysisView,
+    SpatialIntersectView,
+    TraceSearchView,
     TrenchConduitCanvasViewSet,
     TrenchConduitConnectionViewSet,
     TrenchesNearNodeView,
     TrenchViewSet,
+    TypeOfWorkViewSet,
     UserPermissionsView,
     UserSettingsView,
+    ValuationCalculateView,
+    ValuationCostRateViewSet,
     WebDAVAuthView,
     WFS3ProxyView,
     WMSLayerViewSet,
     WMSProxyView,
     WMSSourceViewSet,
+    get_cable_micropipe_summary,
+    get_conduits_for_cable,
+    get_trenches_for_cable_connections,
 )
 
 router = DefaultRouter()
@@ -273,7 +274,11 @@ router.register(
 router.register(r"wms-sources", WMSSourceViewSet, basename="wms-sources")
 router.register(r"wms-layers", WMSLayerViewSet, basename="wms-layers")
 router.register(r"pipeline-records", PipelineRecordViewSet, basename="pipeline-records")
-router.register(r"pipeline-inquiry-areas", PipelineInquiryAreaViewSet, basename="pipeline-inquiry-areas")
+router.register(
+    r"pipeline-inquiry-areas",
+    PipelineInquiryAreaViewSet,
+    basename="pipeline-inquiry-areas",
+)
 router.register(r"type-of-work", TypeOfWorkViewSet, basename="type-of-work")
 router.register(r"request-reasons", RequestReasonViewSet, basename="request-reasons")
 router.register(
@@ -281,16 +286,14 @@ router.register(
 )
 
 urlpatterns = [
-    path("schema/", SpectacularAPIView.as_view(), name="schema"),
-    path(
-        "docs/",
-        SpectacularSwaggerView.as_view(url_name="v1:schema"),
-        name="swagger-ui",
-    ),
     path("logs/frontend/", FrontendLogView.as_view(), name="frontend-logs"),
     path("auth/permissions/", UserPermissionsView.as_view(), name="user-permissions"),
     path("auth/app/login/", AppLoginView.as_view(), name="app-login"),
-    path("auth/app/token/refresh/", AppTokenRefreshView.as_view(), name="app-token-refresh"),
+    path(
+        "auth/app/token/refresh/",
+        AppTokenRefreshView.as_view(),
+        name="app-token-refresh",
+    ),
     path("auth/app/logout/", AppLogoutView.as_view(), name="app-logout"),
     path("", include(router.urls)),
     path(
@@ -461,3 +464,13 @@ urlpatterns = [
         name="fault-simulation",
     ),
 ]
+
+if settings.DEBUG:
+    urlpatterns += [
+        path("schema/", SpectacularAPIView.as_view(), name="schema"),
+        path(
+            "docs/",
+            SpectacularSwaggerView.as_view(url_name="v1:schema"),
+            name="swagger-ui",
+        ),
+    ]

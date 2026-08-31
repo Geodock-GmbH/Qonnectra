@@ -5,23 +5,6 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer, GeometryField
 
-
-@extend_schema_field(
-    {
-        "type": "object",
-        "description": "GeoJSON geometry object (EPSG:3857).",
-        "properties": {
-            "type": {"type": "string"},
-            "coordinates": {"type": "array", "items": {}},
-        },
-    }
-)
-class GeoJSON3857Field(GeometryField):
-    """A read-only :class:`GeometryField` that serializes the persisted 3857
-    geometry as a GeoJSON object, with an explicit OpenAPI schema so
-    drf-spectacular types it instead of falling back to ``string``."""
-
-
 from .models import (
     Address,
     Area,
@@ -70,14 +53,30 @@ from .models import (
     RequestReason,
     ResidentialUnit,
     Trench,
-    TypeOfWork,
     TrenchConduitCanvas,
     TrenchConduitConnection,
+    TypeOfWork,
     UserSettings,
     ValuationCostRate,
     WMSLayer,
     WMSSource,
 )
+
+
+@extend_schema_field(
+    {
+        "type": "object",
+        "description": "GeoJSON geometry object (EPSG:3857).",
+        "properties": {
+            "type": {"type": "string"},
+            "coordinates": {"type": "array", "items": {}},
+        },
+    }
+)
+class GeoJSON3857Field(GeometryField):
+    """A read-only :class:`GeometryField` that serializes the persisted 3857
+    geometry as a GeoJSON object, with an explicit OpenAPI schema so
+    drf-spectacular types it instead of falling back to ``string``."""
 
 
 class ProjectsSerializer(serializers.ModelSerializer):
@@ -549,7 +548,9 @@ class ConduitSerializer(serializers.ModelSerializer):
     outer_conduit = serializers.CharField(required=False, allow_blank=True)
 
     date = serializers.DateField(
-        input_formats=["%Y-%m-%d"], format="%Y-%m-%d", required=False  # type: ignore[arg-type]
+        input_formats=["%Y-%m-%d"],
+        format="%Y-%m-%d",  # type: ignore[arg-type]
+        required=False,
     )
 
     class Meta:
@@ -1372,7 +1373,9 @@ class CableSerializer(serializers.ModelSerializer):
         source="manufacturer",
     )
     date = serializers.DateField(
-        input_formats=["%Y-%m-%d"], format="%Y-%m-%d", required=False  # type: ignore[arg-type]
+        input_formats=["%Y-%m-%d"],
+        format="%Y-%m-%d",  # type: ignore[arg-type]
+        required=False,
     )
     uuid_node_start_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
