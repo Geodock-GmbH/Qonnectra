@@ -441,45 +441,6 @@ export const actions = {
 			return fail(500, { error: 'Internal server error' });
 		}
 	},
-	getCables: async ({ request, cookies }) => {
-		try {
-			const formData = await request.formData();
-			const uuid = formData.get('uuid');
-
-			if (!uuid) {
-				return fail(400, {
-					error: 'Missing required parameter: uuid is required'
-				});
-			}
-
-			const headers = getAuthHeaders(cookies);
-			const backendUrl = `${API_URL}cable/${uuid}`;
-
-			const response = await fetch(backendUrl, {
-				method: 'GET',
-				headers
-			});
-
-			if (!response.ok) {
-				const errorText = await response.text();
-				let errorData;
-
-				try {
-					errorData = JSON.parse(errorText);
-				} catch {
-					errorData = { error: errorText || `Request failed with status: ${response.status}` };
-				}
-
-				return fail(response.status, errorData);
-			}
-
-			const cables = await response.json();
-			return cables;
-		} catch (error) {
-			console.error('Cable GET action error:', error);
-			return fail(500, { error: 'Internal server error' });
-		}
-	},
 	updateCable: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
 		const formData = await request.formData();
@@ -644,45 +605,6 @@ export const actions = {
 				type: 'error',
 				message: (err as Error).message || 'Failed to save cable path'
 			};
-		}
-	},
-	getNodes: async ({ request, fetch, cookies }) => {
-		try {
-			const formData = await request.formData();
-			const uuid = formData.get('uuid');
-
-			if (!uuid) {
-				return fail(400, {
-					error: 'Missing required parameter: uuid is required'
-				});
-			}
-
-			const headers = getAuthHeaders(cookies);
-			const backendUrl = `${API_URL}node/${uuid}`;
-
-			const response = await fetch(backendUrl, {
-				method: 'GET',
-				headers
-			});
-
-			if (!response.ok) {
-				const errorText = await response.text();
-				let errorData;
-
-				try {
-					errorData = JSON.parse(errorText);
-				} catch {
-					errorData = { error: errorText || `Request failed with status: ${response.status}` };
-				}
-
-				return fail(response.status, errorData);
-			}
-
-			const nodes = await response.json();
-			return nodes;
-		} catch (error) {
-			console.error('Node GET action error:', error);
-			return fail(500, { error: 'Internal server error' });
 		}
 	},
 	updateNode: async ({ request, fetch, cookies }) => {

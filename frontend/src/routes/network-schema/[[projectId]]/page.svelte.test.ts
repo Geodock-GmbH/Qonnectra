@@ -187,6 +187,7 @@ vi.mock('$lib/classes/NetworkSchemaState.svelte', () => ({
 		userCableName = '';
 		initialized = true;
 		parentNodeContext = null;
+		shiftPressed = false;
 		initialize = vi.fn();
 		handleNodeDragStop = vi.fn();
 		handleConnect = vi.fn();
@@ -194,15 +195,10 @@ vi.mock('$lib/classes/NetworkSchemaState.svelte', () => ({
 		updateCableHandles = vi.fn();
 		updateEdgeConnection = vi.fn();
 		deselectAllNodes = vi.fn();
+		setShiftFromKeyboard = vi.fn();
+		clearShift = vi.fn();
 		transformNodesToSvelteFlow = vi.fn().mockReturnValue([]);
 		transformCablesToSvelteFlowEdges = vi.fn().mockReturnValue([]);
-	}
-}));
-
-vi.mock('$lib/classes/CablePathManager.svelte.js', () => ({
-	CablePathManager: class MockCablePathManager {
-		updatePath = vi.fn();
-		updateHandles = vi.fn();
 	}
 }));
 

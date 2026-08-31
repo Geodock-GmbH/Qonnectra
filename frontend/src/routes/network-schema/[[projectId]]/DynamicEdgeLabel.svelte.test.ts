@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'svelte';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -5,6 +6,18 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { drawerStore } from '$lib/stores/drawer';
 
 import DynamicEdgeLabel from './DynamicEdgeLabel.svelte';
+import DynamicEdgeLabelTestHarness from './DynamicEdgeLabelTestHarness.svelte';
+
+/**
+ * Renders the label through a harness that provides the schema-state context
+ * the component reads for shift-cue styling.
+ */
+function renderLabel(labelProps: ComponentProps<typeof DynamicEdgeLabel>) {
+	return render(DynamicEdgeLabelTestHarness, {
+		labelProps,
+		schemaState: { loadCableDetails: loadCableDetailsMock }
+	});
+}
 
 vi.mock('$app/environment', () => ({
 	browser: true
@@ -16,12 +29,6 @@ const screenToFlowPositionMock = vi.hoisted(() =>
 
 vi.mock('@xyflow/svelte', () => ({
 	useSvelteFlow: () => ({ screenToFlowPosition: screenToFlowPositionMock })
-}));
-
-// The click handler parses result.data with devalue.parse only if it is a
-// string; returning the object straight through keeps the stub simple.
-vi.mock('devalue', () => ({
-	parse: vi.fn((v: unknown) => v)
 }));
 
 vi.mock('$lib/paraglide/messages', () => ({
@@ -38,14 +45,7 @@ vi.mock('./DrawerTabs.svelte', () => ({
 	default: () => {}
 }));
 
-const fetchMock = vi.fn();
-
-function mockCablesResponse(data: unknown = { name: 'K-Details', uuid: 'cab-1' }) {
-	fetchMock.mockResolvedValue({
-		ok: true,
-		json: () => Promise.resolve({ type: 'success', data })
-	});
-}
+const loadCableDetailsMock = vi.fn();
 
 const baseProps = {
 	edgeId: 'edge-1',
@@ -60,28 +60,26 @@ const baseProps = {
 };
 
 beforeEach(() => {
-	vi.stubGlobal('fetch', fetchMock);
 	vi.spyOn(console, 'error').mockImplementation(() => {});
-	mockCablesResponse();
+	loadCableDetailsMock.mockResolvedValue({ name: 'K-Details', uuid: 'cab-1' });
 });
 
 afterEach(() => {
-	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
-	fetchMock.mockReset();
+	loadCableDetailsMock.mockReset();
 	screenToFlowPositionMock.mockClear();
 	drawerStore.close();
 });
 
 describe('DynamicEdgeLabel', () => {
 	test('should render the label text from labelData', () => {
-		render(DynamicEdgeLabel, { ...baseProps });
+		renderLabel({ ...baseProps });
 
 		expect(screen.getByText('K-Nord')).toBeInTheDocument();
 	});
 
 	test('should fall back to cableData.cable.name when labelData has no text', () => {
-		render(DynamicEdgeLabel, {
+		renderLabel({
 			...baseProps,
 			labelData: { uuid: 'label-1', position_x: 100, position_y: 50 }
 		});
@@ -90,7 +88,7 @@ describe('DynamicEdgeLabel', () => {
 	});
 
 	test('should render nothing when there is no label text at all', () => {
-		render(DynamicEdgeLabel, {
+		renderLabel({
 			edgeId: 'edge-1',
 			labelData: { uuid: 'label-1' },
 			cableData: { uuid: 'cab-1', cable: { uuid: 'cab-1' } },
@@ -106,7 +104,7 @@ describe('DynamicEdgeLabel', () => {
 	});
 
 	test('should apply the selected border styling when selected', () => {
-		render(DynamicEdgeLabel, { ...baseProps, selected: true });
+		renderLabel({ ...baseProps, selected: true });
 
 		const label = screen.getByText('K-Nord');
 		expect(label.className).toContain('border-primary-500');
@@ -116,19 +114,15 @@ describe('DynamicEdgeLabel', () => {
 		const user = userEvent.setup();
 		const onEdgeSelect = vi.fn();
 		const openSpy = vi.spyOn(drawerStore, 'open');
-		mockCablesResponse({ name: 'K-Details', uuid: 'cab-1' });
+		loadCableDetailsMock.mockResolvedValue({ name: 'K-Details', uuid: 'cab-1' });
 
-		render(DynamicEdgeLabel, { ...baseProps, onEdgeSelect });
+		renderLabel({ ...baseProps, onEdgeSelect });
 
 		await user.click(screen.getByRole('button', { name: /tooltip_open_cable_details/ }));
 
 		expect(onEdgeSelect).toHaveBeenCalledWith('edge-1');
 
-		await vi.waitFor(() => {
-			const call = fetchMock.mock.calls.find(([url]) => url === '?/getCables');
-			expect(call).toBeTruthy();
-			expect((call![1].body as FormData).get('uuid')).toBe('cab-1');
-		});
+		await vi.waitFor(() => expect(loadCableDetailsMock).toHaveBeenCalledWith('cab-1'));
 
 		await vi.waitFor(() => expect(openSpy).toHaveBeenCalled());
 		const openArg = openSpy.mock.calls[0][0] as { props: Record<string, unknown> };
@@ -139,7 +133,7 @@ describe('DynamicEdgeLabel', () => {
 		const user = userEvent.setup();
 		const onLabelReset = vi.fn();
 
-		render(DynamicEdgeLabel, { ...baseProps, onLabelReset });
+		renderLabel({ ...baseProps, onLabelReset });
 
 		const button = screen.getByRole('button', { name: /tooltip_open_cable_details/ });
 
@@ -148,14 +142,14 @@ describe('DynamicEdgeLabel', () => {
 		await user.keyboard('{/Shift}');
 
 		expect(onLabelReset).toHaveBeenCalledWith('label-1');
-		// A reset short-circuits before any cable fetch.
-		expect(fetchMock.mock.calls.find(([url]) => url === '?/getCables')).toBeUndefined();
+		// A reset short-circuits before any cable detail load.
+		expect(loadCableDetailsMock).not.toHaveBeenCalled();
 	});
 
 	test('should reset on Shift+Click even when the Shift keydown was never observed', async () => {
 		const onLabelReset = vi.fn();
 
-		render(DynamicEdgeLabel, { ...baseProps, onLabelReset });
+		renderLabel({ ...baseProps, onLabelReset });
 
 		const button = screen.getByRole('button', { name: /tooltip_open_cable_details/ });
 
@@ -164,14 +158,14 @@ describe('DynamicEdgeLabel', () => {
 		await fireEvent.click(button, { shiftKey: true });
 
 		expect(onLabelReset).toHaveBeenCalledWith('label-1');
-		expect(fetchMock.mock.calls.find(([url]) => url === '?/getCables')).toBeUndefined();
+		expect(loadCableDetailsMock).not.toHaveBeenCalled();
 	});
 
 	test('should roll the label position back when the reset fails to persist', async () => {
 		let resolveReset!: (value: boolean) => void;
 		const onLabelReset = vi.fn(() => new Promise<boolean>((resolve) => (resolveReset = resolve)));
 
-		const { container } = render(DynamicEdgeLabel, { ...baseProps, onLabelReset });
+		const { container } = renderLabel({ ...baseProps, onLabelReset });
 
 		const foreignObject = container.querySelector('foreignObject');
 		// Rendered at the stored label position (position_y 50 - 12 offset).
@@ -191,7 +185,7 @@ describe('DynamicEdgeLabel', () => {
 	test('should keep the reset position when the reset persists', async () => {
 		const onLabelReset = vi.fn().mockResolvedValue(true);
 
-		const { container } = render(DynamicEdgeLabel, { ...baseProps, onLabelReset });
+		const { container } = renderLabel({ ...baseProps, onLabelReset });
 
 		await fireEvent.click(screen.getByRole('button', { name: /tooltip_open_cable_details/ }), {
 			shiftKey: true
@@ -207,7 +201,7 @@ describe('DynamicEdgeLabel', () => {
 			const onPositionUpdate = vi.fn();
 			const onLabelReset = vi.fn().mockResolvedValue(true);
 
-			const { container } = render(DynamicEdgeLabel, {
+			const { container } = renderLabel({
 				...baseProps,
 				onPositionUpdate,
 				onLabelReset
@@ -233,7 +227,7 @@ describe('DynamicEdgeLabel', () => {
 		const user = userEvent.setup();
 		const openSpy = vi.spyOn(drawerStore, 'open');
 
-		render(DynamicEdgeLabel, { ...baseProps });
+		renderLabel({ ...baseProps });
 
 		const button = screen.getByRole('button', { name: /tooltip_open_cable_details/ });
 		button.focus();

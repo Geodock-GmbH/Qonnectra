@@ -1,32 +1,27 @@
 <script lang="ts">
 	import type { NodeProps } from '@xyflow/svelte';
 	import { Handle, Position } from '@xyflow/svelte';
-	import { parse } from 'devalue';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
+	import { getSchemaState } from '$lib/context/networkSchemaContext';
 
 	import DrawerTabs from './DrawerTabs.svelte';
 
 	interface CableNodeData {
 		label?: string;
 		node?: { name?: string };
-		onNodeSelect?: (id: string) => void;
-		onNameUpdate?: (label: string) => void;
-		onNodeDelete?: unknown;
 		[key: string]: unknown;
 	}
 
 	let { id, data, selected }: NodeProps & { data: CableNodeData } = $props();
 
-	let currentLabel = $state('');
+	const schemaState = getSchemaState();
 
-	$effect(() => {
-		currentLabel = data?.label || data?.node?.name || '';
-	});
+	let currentLabel = $derived(data?.label || data?.node?.name || '');
 
 	const handleInit = $derived({
 		top: {
@@ -67,34 +62,24 @@
 	 * Handle click on node label to open node details
 	 */
 	async function handleNodeClick() {
-		if (data?.onNodeSelect) {
-			data.onNodeSelect(id);
-		}
+		schemaState.selectNode(id);
 
 		try {
-			const formData = new FormData();
-			formData.append('uuid', id);
-			const response = await fetch('?/getNodes', {
-				method: 'POST',
-				body: formData
-			});
-			const result = await response.json();
-
-			const parsedData = typeof result.data === 'string' ? parse(result.data) : result.data;
+			const parsedData = await schemaState.loadNodeDetails(id);
+			const properties = (parsedData?.properties ?? {}) as Record<string, unknown>;
 
 			drawerStore.open({
-				title: parsedData?.properties?.name || m.title_node_details(),
+				title: (properties.name as string) || m.title_node_details(),
 				component: DrawerTabs,
 				props: {
 					id: id,
-					...parsedData.properties,
+					...properties,
 					type: 'node',
 					onLabelUpdate: (newLabel: string) => {
-						currentLabel = newLabel;
 						drawerStore.setTitle(newLabel);
-						data?.onNameUpdate?.(newLabel);
+						schemaState.updateNodeName(id, newLabel);
 					},
-					onNodeDelete: data?.onNodeDelete
+					onNodeDelete: (nodeId: string) => schemaState.handleNodeDelete(nodeId)
 				}
 			});
 		} catch (error) {

@@ -2,7 +2,6 @@
 	import type { EdgeProps } from '@xyflow/svelte';
 	import type { EdgeLabelData } from '$lib/classes/NetworkSchemaState.svelte';
 	import { BaseEdge, getSmoothStepPath } from '@xyflow/svelte';
-	import { parse } from 'devalue';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -11,15 +10,13 @@
 		cableEdgeColorMode,
 		edgeSnappingEnabled
 	} from '$lib/stores/store';
-	import { globalToaster } from '$lib/stores/toaster';
 	import {
 		buildEdgePath,
 		getClosestPointOnSegment,
 		getPathMidpoint,
 		snapToGrid
 	} from '$lib/utils/edgeGeometry';
-	import { logToBackendClient } from '$lib/utils/logToBackendClient';
-	import { trackPendingWrite } from '$lib/utils/pendingWrites';
+	import { getSchemaState } from '$lib/context/networkSchemaContext';
 
 	import DynamicEdgeLabel from './DynamicEdgeLabel.svelte';
 
@@ -31,8 +28,6 @@
 		lowestMicropipe?: { color_hex?: string };
 		cable?: { uuid?: string; name?: string; diagram_path?: Waypoint[] };
 		labelData?: Partial<EdgeLabelData> | null;
-		onEdgeDelete?: unknown;
-		onEdgeSelect?: (edgeId: string) => void;
 	};
 
 	let {
@@ -46,6 +41,8 @@
 		data,
 		selected
 	}: EdgeProps & { data: CableEdgeData } = $props();
+
+	const schemaState = getSchemaState();
 
 	const DEFAULT_GREEN = '#22c55e';
 	const LINKED_BLUE = '#3b82f6';
@@ -87,8 +84,8 @@
 		return `stroke: ${strokeColor}; stroke-width: 2;`;
 	});
 
-	let currentLabel = $state('');
-	let labelData = $state<Partial<EdgeLabelData> | null>(null);
+	let currentLabel = $derived(data?.label || data?.cable?.name || '');
+	let labelData = $derived(data?.labelData ?? null);
 
 	let edgePath = $derived.by(() => {
 		const waypoints = data?.cable?.diagram_path;
@@ -122,166 +119,35 @@
 	});
 
 	/**
-	 * Handle label reset - deletes the label entry from database
+	 * Delete the cable's label via the schema state (single owner).
 	 * @param labelId - The UUID of the label to delete
 	 * @returns Whether the delete persisted, so the label can roll back on failure
 	 */
-	async function handleLabelReset(labelId: string): Promise<boolean> {
-		if (!labelId) return false;
-
-		try {
-			const formData = new FormData();
-			formData.append('labelId', labelId);
-
-			const response = await trackPendingWrite(
-				fetch('?/deleteCableLabel', {
-					method: 'POST',
-					body: formData
-				})
-			);
-
-			const result = await response.json();
-
-			if (result.type === 'success' && response.ok) {
-				// Clear labelData so label uses default position
-				labelData = null;
-				// Dispatch event to update parent state
-				window.dispatchEvent(
-					new CustomEvent('updateCableLabelData', {
-						detail: { edgeId: id, labelData: null }
-					})
-				);
-				return true;
-			}
-
-			console.error('Failed to reset label:', result.message);
-			globalToaster.error({
-				title: m.common_error(),
-				description: result.message || m.message_error_saving_cable_label()
-			});
-			return false;
-		} catch (error) {
-			console.error('Failed to reset label:', error);
-			void logToBackendClient({
-				level: 'ERROR',
-				message: 'Failed to reset label',
-				extraData: {
-					from: 'CableDiagramEdge.handleLabelReset',
-					error: error instanceof Error ? error.message : String(error),
-					stack: error instanceof Error ? error.stack : undefined
-				}
-			});
-			globalToaster.error({
-				title: m.common_error(),
-				description: m.message_error_saving_cable_label()
-			});
-			return false;
-		}
+	function handleLabelReset(labelId: string): Promise<boolean> {
+		return schemaState.resetLabel(id, labelId);
 	}
 
 	/**
-	 * Handle label position update - saves to backend via server action
+	 * Persist the cable label's position via the schema state (single owner).
+	 * @returns Whether the save persisted, so the label can clear its optimistic override
 	 */
-	async function handleLabelPositionUpdate(positionData: {
+	function handleLabelPositionUpdate(positionData: {
 		x: number;
 		y: number;
 		text?: string;
 		labelId?: string;
-	}) {
-		const cableUuid = data?.cable?.uuid;
-		if (!cableUuid) return;
-
-		try {
-			const formData = new FormData();
-			formData.append('cableId', cableUuid);
-			formData.append('position_x', positionData.x.toString());
-			formData.append('position_y', positionData.y.toString());
-			formData.append('text', positionData.text || currentLabel);
-			formData.append('order', '0');
-
-			if (positionData.labelId) {
-				formData.append('labelId', positionData.labelId);
-			}
-
-			const response = await trackPendingWrite(
-				fetch('?/updateCableLabel', {
-					method: 'POST',
-					body: formData
-				})
-			);
-
-			const result = await response.json();
-
-			// Parse the devalue-serialized response from the action
-			const actionResult = typeof result.data === 'string' ? parse(result.data) : result.data;
-
-			if (actionResult?.type === 'success' && actionResult.label) {
-				labelData = actionResult.label;
-				// Dispatch event to update parent state so position persists across re-renders
-				window.dispatchEvent(
-					new CustomEvent('updateCableLabelData', {
-						detail: { edgeId: id, labelData: actionResult.label }
-					})
-				);
-				globalToaster.success({
-					title: m.title_success(),
-					description: m.message_success_saving_cable_label()
-				});
-			} else if (actionResult?.type === 'error') {
-				console.error('Failed to save label position:', actionResult.message);
-				globalToaster.error({
-					title: m.common_error(),
-					description: actionResult.message || m.message_error_saving_cable_label()
-				});
-			}
-		} catch (error) {
-			console.error('Failed to save label position:', error);
-			void logToBackendClient({
-				level: 'ERROR',
-				message: 'Failed to save label position',
-				extraData: {
-					from: 'CableDiagramEdge.handleLabelPositionUpdate',
-					error: error instanceof Error ? error.message : String(error),
-					stack: error instanceof Error ? error.stack : undefined
-				}
-			});
-			globalToaster.error({
-				title: m.common_error(),
-				description: m.message_error_saving_cable_label()
-			});
-		}
+	}): Promise<boolean> {
+		return schemaState.saveLabelPosition(id, positionData);
 	}
 
 	let draggingVertexIndex = $state<number | null>(null);
 	let edgeHovered = $state(false);
 	let svgElement = $state<SVGSVGElement | null>(null);
-	// Latest waypoints produced during the current drag. The mouseup save must
-	// use these instead of the props, which may not have round-tripped through
-	// the parent state yet when the drag ends.
-	let dragWaypoints: Waypoint[] | null = null;
-	let shiftPressed = $state(false);
 	let hoveredVertexIndex = $state<number | null>(null);
 
 	const SNAP_GRID_SIZE = 20;
 	let showSnapFeedback = $state(false);
 	let snapFeedbackPosition = $state({ x: 0, y: 0 });
-
-	/**
-	 * Sync currentLabel when data changes
-	 */
-	$effect(() => {
-		currentLabel = data?.label || data?.cable?.name || '';
-	});
-
-	/**
-	 * Sync labelData when data changes
-	 */
-	$effect(() => {
-		// Only update if we don't have local labelData yet or if data.labelData changed
-		if (data?.labelData !== undefined) {
-			labelData = data.labelData;
-		}
-	});
 
 	/**
 	 * Handle click on edge to add a new vertex
@@ -323,40 +189,8 @@
 		const newWaypoints = [...waypoints];
 		newWaypoints.splice(closestSegmentIndex, 0, snappedPosition);
 
-		window.dispatchEvent(
-			new CustomEvent('updateCablePath', {
-				detail: { edgeId: id, waypoints: newWaypoints }
-			})
-		);
+		schemaState.updateCablePathWaypoints(id, newWaypoints);
 	}
-
-	/**
-	 * Handle keyboard events for Shift key tracking
-	 */
-	function handleKeyDown(event: KeyboardEvent) {
-		if (event.key === 'Shift') {
-			shiftPressed = true;
-		}
-	}
-
-	/**
-	 * Handle keyup event for Shift key tracking
-	 */
-	function handleKeyUp(event: KeyboardEvent) {
-		if (event.key === 'Shift') {
-			shiftPressed = false;
-		}
-	}
-
-	$effect(() => {
-		window.addEventListener('keydown', handleKeyDown);
-		window.addEventListener('keyup', handleKeyUp);
-
-		return () => {
-			window.removeEventListener('keydown', handleKeyDown);
-			window.removeEventListener('keyup', handleKeyUp);
-		};
-	});
 
 	/**
 	 * Handle vertex click - delete if Shift is pressed, otherwise start drag
@@ -366,8 +200,8 @@
 		event.preventDefault();
 
 		// The event's own modifier is authoritative; the tracked shiftPressed
-		// state can go stale when the keydown happened while focus was
-		// outside the window.
+		// state (used only for the hover cue) can go stale when the keydown
+		// happened while focus was outside the window.
 		if (event.shiftKey) {
 			deleteVertex(index);
 			return;
@@ -375,6 +209,7 @@
 
 		draggingVertexIndex = index;
 		svgElement = (event.currentTarget as Element).closest('svg');
+		schemaState.beginPathDrag(id);
 
 		window.addEventListener('mousemove', handleWindowMouseMove);
 		window.addEventListener('mouseup', handleWindowMouseUp);
@@ -387,11 +222,7 @@
 		const waypoints = [...(data?.cable?.diagram_path || [])];
 		waypoints.splice(index, 1);
 
-		window.dispatchEvent(
-			new CustomEvent('updateCablePath', {
-				detail: { edgeId: id, waypoints: waypoints, save: true }
-			})
-		);
+		void schemaState.saveCablePath(id, waypoints);
 	}
 
 	/**
@@ -423,15 +254,7 @@
 			}, 200);
 		}
 
-		const waypoints = [...(dragWaypoints ?? data?.cable?.diagram_path ?? [])];
-		waypoints[draggingVertexIndex] = snappedPosition;
-		dragWaypoints = waypoints;
-
-		window.dispatchEvent(
-			new CustomEvent('updateCablePath', {
-				detail: { edgeId: id, waypoints: waypoints, temporary: true }
-			})
-		);
+		schemaState.dragPathVertex(id, draggingVertexIndex, snappedPosition);
 	}
 
 	/**
@@ -439,18 +262,9 @@
 	 */
 	function handleWindowMouseUp() {
 		if (draggingVertexIndex !== null) {
-			window.dispatchEvent(
-				new CustomEvent('updateCablePath', {
-					detail: {
-						edgeId: id,
-						waypoints: dragWaypoints ?? data?.cable?.diagram_path,
-						save: true
-					}
-				})
-			);
+			void schemaState.endPathDrag(id);
 		}
 		draggingVertexIndex = null;
-		dragWaypoints = null;
 		svgElement = null;
 
 		window.removeEventListener('mousemove', handleWindowMouseMove);
@@ -458,9 +272,9 @@
 	}
 
 	/**
-	 * Handle vertex right-click to delete
+	 * Suppress the browser context menu on a vertex right-click.
 	 */
-	function handleVertexContextMenu(event: MouseEvent, index: number) {
+	function handleVertexContextMenu(event: MouseEvent) {
 		event.preventDefault();
 		event.stopPropagation();
 	}
@@ -506,11 +320,11 @@
 
 <!-- Vertex handles -->
 {#if data?.cable?.diagram_path && Array.isArray(data.cable.diagram_path)}
-	{#each data.cable.diagram_path as vertex, index}
+	{#each data.cable.diagram_path as vertex, index (index)}
 		{@const isHovered = hoveredVertexIndex === index}
-		{@const isDeleteMode = shiftPressed && isHovered}
+		{@const isDeleteMode = schemaState.shiftPressed && isHovered}
 		{@const fillColor = isDeleteMode ? 'var(--color-error-500)' : strokeColor}
-		{@const cursorStyle = shiftPressed ? 'cursor: crosshair;' : 'cursor: move;'}
+		{@const cursorStyle = schemaState.shiftPressed ? 'cursor: crosshair;' : 'cursor: move;'}
 		<circle
 			class="nopan"
 			cx={vertex.x}
@@ -524,8 +338,8 @@
 			onmousedown={(e) => handleVertexMouseDown(e, index)}
 			onmouseenter={() => (hoveredVertexIndex = index)}
 			onmouseleave={() => (hoveredVertexIndex = null)}
-			oncontextmenu={(e) => handleVertexContextMenu(e, index)}
-			aria-label={shiftPressed
+			oncontextmenu={handleVertexContextMenu}
+			aria-label={schemaState.shiftPressed
 				? m.tooltip_click_to_delete_vertex()
 				: m.tooltip_drag_to_move_vertex()}
 			role="button"
@@ -544,8 +358,9 @@
 		defaultY={labelY}
 		onPositionUpdate={handleLabelPositionUpdate}
 		onLabelReset={handleLabelReset}
-		onEdgeDelete={data?.onEdgeDelete}
-		onEdgeSelect={data?.onEdgeSelect}
+		onEdgeDelete={(edgeId: string) => schemaState.handleEdgeDelete(edgeId)}
+		onEdgeSelect={(edgeId: string) => schemaState.selectEdge(edgeId)}
+		onNameUpdate={(newName: string) => schemaState.updateEdgeName(id, newName)}
 		{selected}
 	/>
 {/if}

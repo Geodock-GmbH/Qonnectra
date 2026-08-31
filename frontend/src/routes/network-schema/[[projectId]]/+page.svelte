@@ -1,10 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import type { EdgeTypes, NodeTypes } from '@xyflow/svelte';
-	import type {
-		EdgeLabelData,
-		NetworkSchemaInitData
-	} from '$lib/classes/NetworkSchemaState.svelte';
+	import type { NetworkSchemaInitData } from '$lib/classes/NetworkSchemaState.svelte';
 	import { page } from '$app/stores';
 	import { Background, ConnectionMode, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
@@ -12,7 +9,6 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { CablePathManager } from '$lib/classes/CablePathManager.svelte.js';
 	import { NetworkSchemaSearchManager } from '$lib/classes/NetworkSchemaSearchManager.svelte.js';
 	import { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte';
 	import Drawer from '$lib/components/Drawer.svelte';
@@ -27,6 +23,7 @@
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
+	import { setSchemaState } from '$lib/context/networkSchemaContext';
 
 	import '@xyflow/svelte/dist/style.css';
 
@@ -55,7 +52,6 @@
 	};
 
 	const schemaState = new NetworkSchemaState();
-	const cablePathManager = new CablePathManager();
 	const searchManager = new NetworkSchemaSearchManager(schemaState);
 
 	let prevUrl = $state($page.url.href);
@@ -107,11 +103,7 @@
 		}
 	});
 
-	setContext('schemaState', {
-		get nodes() {
-			return schemaState.nodes;
-		}
-	});
+	setSchemaState(schemaState);
 
 	onMount(() => {
 		autoLockSvelteFlow();
@@ -157,111 +149,6 @@
 		};
 	});
 
-	/**
-	 * Applies a waypoint update from a CableDiagramEdge drag to both the path manager and local edge state.
-	 */
-	async function handleCablePathUpdate(
-		event: CustomEvent<{
-			edgeId: string;
-			waypoints: unknown[];
-			temporary: boolean;
-			save: boolean;
-		}>
-	): Promise<void> {
-		const { edgeId, waypoints, temporary, save } = event.detail;
-
-		await cablePathManager.updatePath(
-			edgeId,
-			waypoints as { x: number; y: number }[],
-			temporary,
-			save,
-			(edgeId, updates) => {
-				const cableUpdate = (updates.data as { cable?: Record<string, unknown> })?.cable ?? {};
-				schemaState.edges = schemaState.edges.map((edge) => {
-					if (edge.id === edgeId) {
-						return {
-							...edge,
-							data: {
-								...edge.data,
-								cable: {
-									...edge.data.cable,
-									...cableUpdate
-								}
-							}
-						};
-					}
-					return edge;
-				});
-			}
-		);
-	}
-
-	/**
-	 * Applies handle position updates from a CableDiagramEdge to both the path manager and schema state.
-	 */
-	function handleCableHandleUpdate(
-		event: CustomEvent<{ cableId: string; handleStart: unknown; handleEnd: unknown }>
-	) {
-		const { cableId, handleStart, handleEnd } = event.detail;
-		cablePathManager.updateHandles(
-			cableId,
-			String(handleStart),
-			String(handleEnd),
-			(cableId, handleStart, handleEnd) => {
-				schemaState.updateCableHandles(cableId, handleStart, handleEnd);
-			}
-		);
-	}
-
-	$effect(() => {
-		window.addEventListener('updateCablePath', handleCablePathUpdate);
-		return () => {
-			window.removeEventListener('updateCablePath', handleCablePathUpdate);
-		};
-	});
-
-	$effect(() => {
-		window.addEventListener('updateCableHandles', handleCableHandleUpdate);
-		return () => {
-			window.removeEventListener('updateCableHandles', handleCableHandleUpdate);
-		};
-	});
-
-	/**
-	 * Propagates label data changes from a CableDiagramEdge into schema state.
-	 */
-	function handleCableLabelDataUpdate(event: CustomEvent<{ edgeId: string; labelData: unknown }>) {
-		const { edgeId, labelData } = event.detail;
-		schemaState.updateEdgeLabelData(edgeId, labelData as EdgeLabelData);
-	}
-
-	$effect(() => {
-		window.addEventListener('updateCableLabelData', handleCableLabelDataUpdate);
-		return () => {
-			window.removeEventListener('updateCableLabelData', handleCableLabelDataUpdate);
-		};
-	});
-
-	$effect(() => {
-		function handleCableConnectionChangedEvent(event: WindowEventMap['cableConnectionChanged']) {
-			// Only the edge-reconnection payload variant carries cableId/side/newNodeId.
-			const detail = event.detail;
-			if ('cableId' in detail && detail.side && detail.newNodeId) {
-				schemaState.updateEdgeConnection(
-					detail.cableId,
-					detail.side,
-					detail.newNodeId,
-					detail.handlePosition ?? 'top'
-				);
-			}
-		}
-
-		window.addEventListener('cableConnectionChanged', handleCableConnectionChangedEvent);
-		return () => {
-			window.removeEventListener('cableConnectionChanged', handleCableConnectionChangedEvent);
-		};
-	});
-
 	let previousDrawerOpen = $state(false);
 	$effect(() => {
 		const currentDrawerOpen = $drawerStore.open;
@@ -278,6 +165,13 @@
 <svelte:head>
 	<title>{m.nav_network_schema()}</title>
 </svelte:head>
+
+<svelte:window
+	onkeydown={(e) => schemaState.setShiftFromKeyboard(e)}
+	onkeyup={(e) => schemaState.setShiftFromKeyboard(e)}
+	onblur={() => schemaState.clearShift()}
+/>
+<svelte:document onvisibilitychange={() => schemaState.clearShift()} />
 
 <div class="relative flex gap-4 h-full overflow-hidden">
 	<div class="flex-1 border-2 rounded-lg border-surface-200-800 h-full">

@@ -1,11 +1,11 @@
 <script lang="ts">
 	import type { EdgeLabelData } from '$lib/classes/NetworkSchemaState.svelte';
 	import { useSvelteFlow } from '@xyflow/svelte';
-	import { parse } from 'devalue';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import { drawerStore } from '$lib/stores/drawer';
+	import { getSchemaState } from '$lib/context/networkSchemaContext';
 
 	import DrawerTabs from './DrawerTabs.svelte';
 
@@ -13,7 +13,6 @@
 		label?: string;
 		uuid?: string;
 		cable?: { uuid?: string; name?: string };
-		onNameUpdate?: (label: string) => void;
 	}
 
 	let {
@@ -26,6 +25,7 @@
 		onLabelReset,
 		onEdgeDelete,
 		onEdgeSelect,
+		onNameUpdate,
 		selected = false
 	}: {
 		edgeId: string;
@@ -33,19 +33,33 @@
 		cableData?: CableData | null;
 		defaultX: number;
 		defaultY: number;
-		onPositionUpdate?: (data: { labelId?: string; x: number; y: number; text?: string }) => void;
+		onPositionUpdate?: (data: {
+			labelId?: string;
+			x: number;
+			y: number;
+			text?: string;
+		}) => boolean | Promise<boolean>;
 		onLabelReset?: (labelId: string) => boolean | Promise<boolean>;
 		onEdgeDelete?: unknown;
 		onEdgeSelect?: (edgeId: string) => void;
+		onNameUpdate?: (label: string) => void;
 		selected?: boolean;
 	} = $props();
 
-	let shiftPressed = $state(false);
+	const schemaState = getSchemaState();
+
 	let labelHovered = $state(false);
 
 	const { screenToFlowPosition } = useSvelteFlow();
 
-	let position = $state({ x: 0, y: 0 });
+	// Drag-time / optimistic position. Null means "derive from labelData/props".
+	let positionOverride = $state<{ x: number; y: number } | null>(null);
+	let position = $derived(
+		positionOverride ?? {
+			x: labelData?.position_x ?? defaultX,
+			y: labelData?.position_y ?? defaultY
+		}
+	);
 
 	let isDragging = $state(false);
 	let isMoveLabelMode = $state(false);
@@ -53,7 +67,6 @@
 	let longPressTimer = $state<ReturnType<typeof setTimeout> | null>(null);
 	let longPressEvent = $state<MouseEvent | null>(null);
 	let dragStartPos = $state({ x: 0, y: 0 });
-	let labelElement = $state<HTMLDivElement | null>(null);
 	let labelWidth = $state(0);
 	let labelHeight = $state(0);
 
@@ -63,34 +76,7 @@
 	let showProgressCircle = $state(false);
 	let progressDelayTimer = $state<ReturnType<typeof setTimeout> | null>(null);
 
-	let currentLabel = $state('');
-
-	/**
-	 * Update label dimensions when element is bound
-	 */
-	$effect(() => {
-		if (labelElement && currentLabel) {
-			labelWidth = labelElement.offsetWidth + 20;
-			labelHeight = labelElement.offsetHeight + 20;
-		}
-	});
-
-	/**
-	 * Sync label text when data changes
-	 */
-	$effect(() => {
-		currentLabel = labelData?.text || cableData?.label || cableData?.cable?.name || '';
-	});
-
-	/**
-	 * Sync position when labelData or defaults change
-	 */
-	$effect(() => {
-		position = {
-			x: labelData?.position_x ?? defaultX,
-			y: labelData?.position_y ?? defaultY
-		};
-	});
+	let currentLabel = $derived(labelData?.text || cableData?.label || cableData?.cable?.name || '');
 
 	/**
 	 * Handle long press start - begins timer for move mode
@@ -225,13 +211,13 @@
 		if (event.shiftKey && labelData?.uuid && onLabelReset) {
 			event.preventDefault();
 			event.stopPropagation();
-			// Reset local position immediately for instant feedback, but roll
-			// back if the delete does not persist so the UI never lies.
-			const previousPosition = position;
-			position = { x: defaultX, y: defaultY };
+			// Optimistically show the default position, but roll back if the
+			// delete does not persist so the UI never lies. On success we keep
+			// the override; the cleared labelData derives to the same default.
+			positionOverride = { x: defaultX, y: defaultY };
 			const persisted = await onLabelReset(labelData.uuid);
 			if (persisted === false) {
-				position = previousPosition;
+				positionOverride = null;
 			}
 			return;
 		}
@@ -241,26 +227,19 @@
 			onEdgeSelect(edgeId);
 		}
 
-		const formData = new FormData();
-		formData.append('uuid', cableData?.cable?.uuid || cableData?.uuid || '');
-		const response = await fetch('?/getCables', {
-			method: 'POST',
-			body: formData
-		});
-		const result = await response.json();
-
-		const parsedData = typeof result.data === 'string' ? parse(result.data) : result.data;
+		const parsedData = await schemaState.loadCableDetails(
+			cableData?.cable?.uuid || cableData?.uuid || ''
+		);
 
 		drawerStore.open({
-			title: parsedData?.name || m.title_cable_details(),
+			title: (parsedData?.name as string) || m.title_cable_details(),
 			component: DrawerTabs,
 			props: {
 				...parsedData,
 				type: 'edge',
 				onLabelUpdate: (newLabel: string) => {
-					currentLabel = newLabel;
 					drawerStore.setTitle(newLabel);
-					cableData?.onNameUpdate?.(newLabel);
+					onNameUpdate?.(newLabel);
 				},
 				onEdgeDelete
 			}
@@ -314,7 +293,7 @@
 			{ snapToGrid: false }
 		);
 
-		position = {
+		positionOverride = {
 			x: flowPosition.x - dragStartPos.x,
 			y: flowPosition.y - dragStartPos.y
 		};
@@ -323,7 +302,7 @@
 	/**
 	 * Handle mouse up - ends dragging and saves position
 	 */
-	function handleMouseUp() {
+	async function handleMouseUp() {
 		if (isDragging) {
 			isDragging = false;
 			isMoveLabelMode = false;
@@ -334,12 +313,17 @@
 			window.removeEventListener('mouseup', handleMouseUp);
 
 			if (onPositionUpdate) {
-				onPositionUpdate({
+				const persisted = await onPositionUpdate({
 					labelId: labelData?.uuid,
 					x: position.x,
 					y: position.y,
 					text: currentLabel
 				});
+				// On success the new position lives in labelData; drop the override
+				// so props are authoritative. On failure keep the dragged position.
+				if (persisted) {
+					positionOverride = null;
+				}
 			}
 
 			setTimeout(() => {
@@ -361,36 +345,11 @@
 			isMoveLabelMode = false;
 		}
 	}
-
-	/**
-	 * Handle global keyboard events for Shift key tracking
-	 */
-	function handleGlobalKeyDown(event: KeyboardEvent) {
-		if (event.key === 'Shift') {
-			shiftPressed = true;
-		}
-	}
-
-	function handleGlobalKeyUp(event: KeyboardEvent) {
-		if (event.key === 'Shift') {
-			shiftPressed = false;
-		}
-	}
-
-	$effect(() => {
-		window.addEventListener('keydown', handleGlobalKeyDown);
-		window.addEventListener('keyup', handleGlobalKeyUp);
-
-		return () => {
-			window.removeEventListener('keydown', handleGlobalKeyDown);
-			window.removeEventListener('keyup', handleGlobalKeyUp);
-		};
-	});
 </script>
 
 <!-- Label -->
 {#if currentLabel}
-	{@const isResetMode = shiftPressed && labelHovered && labelData?.uuid}
+	{@const isResetMode = schemaState?.shiftPressed && labelHovered && labelData?.uuid}
 	{@const cursorStyle = isResetMode ? 'crosshair' : isMoveLabelMode ? 'move' : 'pointer'}
 	<foreignObject
 		x={labelWidth > 0 ? position.x - labelWidth / 2 : position.x - 50}
@@ -421,7 +380,8 @@
 					: m.tooltip_open_cable_details({ label: currentLabel })}
 		>
 			<div
-				bind:this={labelElement}
+				bind:clientWidth={null, (w) => (labelWidth = w && w > 0 ? w + 20 : 0)}
+				bind:clientHeight={null, (h) => (labelHeight = h && h > 0 ? h + 20 : 0)}
 				class="z-10 bg-surface-50-950 border rounded px-2 py-1 text-xs text-center shadow-sm font-medium {isResetMode
 					? 'border-error-500  ring-error-400 bg-error-50 dark:bg-error-950'
 					: isMoveLabelMode || selected

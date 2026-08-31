@@ -6,7 +6,6 @@
 	import type { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte';
 	import { useSvelteFlow } from '@xyflow/svelte';
 	import { IconLine, IconPoint, IconSearch, IconX } from '@tabler/icons-svelte';
-	import { parse } from 'devalue';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -107,21 +106,15 @@
 	 * @param nodeId - Node UUID
 	 */
 	async function openNodeDrawer(nodeId: string) {
-		const formData = new FormData();
-		formData.append('uuid', nodeId);
-		const response = await fetch('?/getNodes', {
-			method: 'POST',
-			body: formData
-		});
-		const result = await response.json();
-		const parsedData = typeof result.data === 'string' ? parse(result.data) : result.data;
+		const parsedData = await schemaState.loadNodeDetails(nodeId);
+		const properties = (parsedData?.properties ?? {}) as Record<string, unknown>;
 
 		drawerStore.open({
-			title: parsedData?.properties?.name || m.title_node_details(),
+			title: (properties.name as string) || m.title_node_details(),
 			component: DrawerTabs,
 			props: {
 				id: nodeId,
-				...parsedData.properties,
+				...properties,
 				type: 'node',
 				onLabelUpdate: (newLabel: string) => {
 					drawerStore.setTitle(newLabel);
@@ -137,17 +130,10 @@
 	 * @param cableId - Cable UUID
 	 */
 	async function openCableDrawer(cableId: string) {
-		const formData = new FormData();
-		formData.append('uuid', cableId);
-		const response = await fetch('?/getCables', {
-			method: 'POST',
-			body: formData
-		});
-		const result = await response.json();
-		const parsedData = typeof result.data === 'string' ? parse(result.data) : result.data;
+		const parsedData = await schemaState.loadCableDetails(cableId);
 
 		drawerStore.open({
-			title: parsedData?.name || m.title_cable_details(),
+			title: (parsedData?.name as string) || m.title_cable_details(),
 			component: DrawerTabs,
 			props: {
 				...parsedData,

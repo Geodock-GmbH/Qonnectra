@@ -29,8 +29,6 @@ vi.mock('./DrawerTabs.svelte', () => ({
 	default: () => {}
 }));
 
-const fetchMock = vi.fn();
-
 /**
  * Build a minimal search manager stand-in matching the properties the component reads.
  */
@@ -57,24 +55,18 @@ function makeSchemaState() {
 		selectNode: vi.fn(),
 		selectEdge: vi.fn(),
 		updateNodeName: vi.fn(),
-		updateEdgeName: vi.fn()
+		updateEdgeName: vi.fn(),
+		loadNodeDetails: vi.fn().mockResolvedValue({ properties: { name: 'PoP-Nord' } }),
+		loadCableDetails: vi.fn().mockResolvedValue({ name: 'K-Süd', uuid: 'cable-1' })
 	} as any;
 }
 
 beforeEach(() => {
-	vi.stubGlobal('fetch', fetchMock);
-	fetchMock.mockResolvedValue({
-		ok: true,
-		text: () => Promise.resolve(JSON.stringify({ type: 'success', data: {} })),
-		json: () => Promise.resolve({ type: 'success', data: { properties: { name: 'PoP-Nord' } } })
-	});
 	vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {
-	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
-	fetchMock.mockReset();
 	setCenterMock.mockReset();
 	drawerStore.close();
 });
@@ -131,10 +123,7 @@ describe('NetworkSchemaSearch', () => {
 		expect(schemaState.selectNode).toHaveBeenCalledWith('node-1');
 
 		await vi.waitFor(() => expect(openSpy).toHaveBeenCalled());
-		const getNodesCall = fetchMock.mock.calls.find(([url]) => url === '?/getNodes');
-		expect(getNodesCall).toBeTruthy();
-		const body = getNodesCall![1].body as FormData;
-		expect(body.get('uuid')).toBe('node-1');
+		expect(schemaState.loadNodeDetails).toHaveBeenCalledWith('node-1');
 	});
 
 	test('should select an edge result and fetch cable details', async () => {
@@ -148,10 +137,7 @@ describe('NetworkSchemaSearch', () => {
 		await user.click(screen.getByText('K-Süd'));
 
 		expect(schemaState.selectEdge).toHaveBeenCalledWith('cable-1');
-		await vi.waitFor(() => {
-			const getCablesCall = fetchMock.mock.calls.find(([url]) => url === '?/getCables');
-			expect(getCablesCall).toBeTruthy();
-		});
+		await vi.waitFor(() => expect(schemaState.loadCableDetails).toHaveBeenCalledWith('cable-1'));
 	});
 
 	test('should clear the search when the clear button is clicked', async () => {

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { ActionResult } from '@sveltejs/kit';
 	import type { CableDrawerProps } from '$lib/types/attributeCardTypes';
-	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
 
 	import { m } from '$lib/paraglide/messages';
@@ -12,13 +11,14 @@
 	import { globalToaster } from '$lib/stores/toaster';
 	import { actionData } from '$lib/utils/forms';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
+	import { getSchemaState } from '$lib/context/networkSchemaContext';
 
 	interface SchemaFlowNode {
 		id: string;
 		data?: { node?: { name?: string } };
 	}
 
-	const schemaStateContext = getContext<{ nodes: SchemaFlowNode[] } | undefined>('schemaState');
+	const schemaState = getSchemaState();
 
 	let cable = $derived($drawerStore.props as CableDrawerProps | undefined);
 	let handleStart = $state('top');
@@ -29,7 +29,7 @@
 
 	// Nodes are sourced from schemaState context so child-view filtering is respected
 	const availableNodes = $derived(
-		(schemaStateContext?.nodes || []).map((node: SchemaFlowNode) => ({
+		((schemaState?.nodes as SchemaFlowNode[] | undefined) || []).map((node: SchemaFlowNode) => ({
 			value: node.id,
 			label: node.data?.node?.name || node.id
 		}))
@@ -143,18 +143,14 @@
 				description: m.message_success_updating_cable()
 			});
 
-			const oldNodeId = side === 'start' ? cable?.uuid_node_start : cable?.uuid_node_end;
-			window.dispatchEvent(
-				new CustomEvent('cableConnectionChanged', {
-					detail: {
-						cableId: cable?.uuid,
-						side,
-						oldNodeId,
-						newNodeId,
-						handlePosition: side === 'start' ? handleStart : handleEnd
-					}
-				})
-			);
+			if (cable?.uuid) {
+				schemaState.updateEdgeConnection(
+					cable.uuid,
+					side,
+					newNodeId,
+					side === 'start' ? handleStart : handleEnd
+				);
+			}
 
 			// Update drawer props so subsequent saves use correct IDs
 			const newNodeName = availableNodes.find((n) => n.value === newNodeId)?.label || newNodeId;
@@ -230,15 +226,7 @@
 				description: m.message_success_updating_cable()
 			});
 
-			window.dispatchEvent(
-				new CustomEvent('updateCableHandles', {
-					detail: {
-						cableId: cableUuid,
-						handleStart: handleStart,
-						handleEnd: handleEnd
-					}
-				})
-			);
+			schemaState.updateCableHandles(cableUuid, handleStart, handleEnd);
 		} catch (error) {
 			console.error('Error updating cable handles:', error);
 			void logToBackendClient({

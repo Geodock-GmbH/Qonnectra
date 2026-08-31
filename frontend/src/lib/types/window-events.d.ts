@@ -1,7 +1,7 @@
 /**
  * Ambient typings for the app's custom `window` events.
  *
- * Augmenting `WindowEventMap` lets `window.addEventListener('updateCablePath', h)`
+ * Augmenting `WindowEventMap` lets `window.addEventListener('micropipeLinkageChanged', h)`
  * infer `h`'s event as the matching `CustomEvent<Detail>` — no untyped window
  * cast and no loosely-typed handler needed. Keep each entry in sync with the
  * corresponding `window.dispatchEvent(new CustomEvent(...))` call site.
@@ -25,35 +25,12 @@ declare global {
 			cableId: string;
 			connections: import('$lib/classes/NetworkSchemaState.svelte').MicropipeConnection[];
 		}>;
-		updateCablePath: CustomEvent<{
-			edgeId: string;
-			waypoints: unknown[];
-			temporary: boolean;
-			save: boolean;
-		}>;
-		updateCableHandles: CustomEvent<{
-			cableId: string;
-			handleStart: unknown;
-			handleEnd: unknown;
-		}>;
-		updateCableLabelData: CustomEvent<{
-			edgeId: string;
-			labelData: unknown;
-		}>;
 		/**
-		 * Dispatched with two distinct payloads: an affected-node broadcast from
-		 * NetworkSchemaState, and an edge-reconnection detail from the handle config.
+		 * Broadcast of the node IDs affected by a cable create/delete so the fiber
+		 * sidebar can refresh its cache. Cable-reconnection is now a direct
+		 * NetworkSchemaState.updateEdgeConnection call, not an event.
 		 */
-		cableConnectionChanged: CustomEvent<
-			| { nodeIds: string[] }
-			| {
-					cableId: string;
-					side: 'start' | 'end';
-					oldNodeId?: string;
-					newNodeId: string;
-					handlePosition?: string;
-			  }
-		>;
+		cableConnectionChanged: CustomEvent<{ nodeIds: string[] }>;
 	}
 }
 

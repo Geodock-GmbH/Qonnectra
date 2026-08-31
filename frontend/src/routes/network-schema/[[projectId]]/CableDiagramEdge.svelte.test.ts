@@ -1,6 +1,9 @@
 import type { EdgeProps } from '@xyflow/svelte';
+import type { SvelteFlowEdge } from '$lib/classes/NetworkSchemaState.svelte';
 import { fireEvent, render } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
+import { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte';
 
 import CableDiagramEdgeTestHarness from './CableDiagramEdgeTestHarness.svelte';
 
@@ -22,6 +25,26 @@ vi.mock('@xyflow/svelte', async () => {
 		})
 	};
 });
+
+vi.mock('$app/forms', () => ({
+	deserialize: vi.fn((text: string) => JSON.parse(text))
+}));
+
+vi.mock('$app/state', () => ({
+	page: { url: new URL('http://localhost/network-schema/1') }
+}));
+
+vi.mock('devalue', () => ({
+	parse: vi.fn((value: unknown) => value)
+}));
+
+vi.mock('$lib/stores/toaster', () => ({
+	globalToaster: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() }
+}));
+
+vi.mock('$lib/utils/logToBackendClient', () => ({
+	logToBackendClient: vi.fn()
+}));
 
 vi.mock('$lib/paraglide/messages', () => ({
 	m: new Proxy(
@@ -57,6 +80,27 @@ function buildProps(diagramPath: { x: number; y: number }[]) {
 }
 
 /**
+ * A NetworkSchemaState seeded with the single edge under test, so the real
+ * drag-buffer and path methods run while we spy on saveCablePath.
+ */
+function seededState(diagramPath: { x: number; y: number }[]): NetworkSchemaState {
+	const state = new NetworkSchemaState();
+	state.edges = [
+		{
+			id: 'cab-1',
+			source: 'node-1',
+			target: 'node-2',
+			type: 'cableDiagramEdge',
+			data: {
+				label: 'K-Nord',
+				cable: { uuid: 'cab-1', name: 'K-Nord', diagram_path: diagramPath }
+			}
+		} as unknown as SvelteFlowEdge
+	];
+	return state;
+}
+
+/**
  * Stubs the SVG geometry APIs jsdom does not implement so vertex dragging can
  * translate client coordinates 1:1 into SVG coordinates.
  */
@@ -74,22 +118,12 @@ function stubSvgGeometry(svg: SVGSVGElement) {
 	});
 }
 
-/**
- * Collects updateCablePath events dispatched on window during a test.
- */
-function collectPathEvents() {
-	const events: { edgeId: string; waypoints: { x: number; y: number }[]; save?: boolean }[] = [];
-	const listener = (event: Event) =>
-		events.push((event as CustomEvent<(typeof events)[number]>).detail);
-	window.addEventListener('updateCablePath', listener);
-	return {
-		events,
-		cleanup: () => window.removeEventListener('updateCablePath', listener)
-	};
-}
-
 beforeEach(() => {
 	vi.stubGlobal('fetch', fetchMock);
+	fetchMock.mockResolvedValue({
+		ok: true,
+		json: () => Promise.resolve({ type: 'success' })
+	});
 });
 
 afterEach(() => {
@@ -100,9 +134,12 @@ afterEach(() => {
 
 describe('CableDiagramEdge vertex handling', () => {
 	test('should delete the vertex on Shift+MouseDown even when the Shift keydown was never observed', async () => {
-		const { events, cleanup } = collectPathEvents();
+		const schemaState = seededState([{ x: 100, y: 100 }]);
+		const saveSpy = vi.spyOn(schemaState, 'saveCablePath').mockResolvedValue();
+
 		const { container } = render(CableDiagramEdgeTestHarness, {
-			edgeProps: buildProps([{ x: 100, y: 100 }])
+			edgeProps: buildProps([{ x: 100, y: 100 }]),
+			schemaState
 		});
 
 		const vertex = container.querySelector('circle.nopan')!;
@@ -111,16 +148,16 @@ describe('CableDiagramEdge vertex handling', () => {
 		// elsewhere, so only the mouse event itself carries the modifier.
 		await fireEvent.mouseDown(vertex, { shiftKey: true });
 
-		cleanup();
-		const saveEvent = events.find((e) => e.save);
-		expect(saveEvent).toBeTruthy();
-		expect(saveEvent!.waypoints).toEqual([]);
+		expect(saveSpy).toHaveBeenCalledWith('cab-1', []);
 	});
 
 	test('should persist the dragged waypoints on mouseup, not the pre-drag path from props', async () => {
-		const { events, cleanup } = collectPathEvents();
+		const schemaState = seededState([{ x: 100, y: 100 }]);
+		const saveSpy = vi.spyOn(schemaState, 'saveCablePath').mockResolvedValue();
+
 		const { container } = render(CableDiagramEdgeTestHarness, {
-			edgeProps: buildProps([{ x: 100, y: 100 }])
+			edgeProps: buildProps([{ x: 100, y: 100 }]),
+			schemaState
 		});
 
 		stubSvgGeometry(container.querySelector('svg')!);
@@ -132,9 +169,7 @@ describe('CableDiagramEdge vertex handling', () => {
 		// moment before the temporary update has round-tripped through state.
 		await fireEvent.mouseUp(window);
 
-		cleanup();
-		const saveEvent = events.find((e) => e.save);
-		expect(saveEvent).toBeTruthy();
-		expect(saveEvent!.waypoints).toEqual([{ x: 300, y: 300 }]);
+		// endPathDrag saves the buffered waypoint, not the stale prop path.
+		expect(saveSpy).toHaveBeenCalledWith('cab-1', [{ x: 300, y: 300 }]);
 	});
 });

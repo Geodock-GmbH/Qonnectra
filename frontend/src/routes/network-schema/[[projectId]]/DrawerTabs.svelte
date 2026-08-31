@@ -33,6 +33,7 @@
 	import CableMicropipePanel from './CableMicropipePanel.svelte';
 	import NodeSlotConfigPanel from './NodeSlotConfigPanel.svelte';
 	import NodeStructurePanel from './NodeStructurePanel.svelte';
+	import { getCableDetails } from './cables.remote';
 
 	/** The drawer's props bag: a `type` discriminator, callbacks, and the feature's fields. */
 	interface DrawerTabsProps {
@@ -244,18 +245,11 @@
 		if (type !== 'edge' || !featureId) return;
 
 		try {
+			const parsedData = await getCableDetails(featureId);
+			drawerStore.updateProps(parsedData);
+
 			const formData = new FormData();
 			formData.append('uuid', featureId);
-			const response = await fetch('?/getCables', {
-				method: 'POST',
-				body: formData
-			});
-			const result = deserialize(await response.text());
-			if (result.type === 'success' && result.data) {
-				const parsedData = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
-				drawerStore.updateProps(parsedData);
-			}
-
 			const micropipeResponse = await fetch(`?/getMicropipeConnectionsForCable`, {
 				method: 'POST',
 				body: formData

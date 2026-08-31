@@ -9,7 +9,6 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { CablePathManager } from '$lib/classes/CablePathManager.svelte.js';
 	import { NetworkSchemaSearchManager } from '$lib/classes/NetworkSchemaSearchManager.svelte.js';
 	import { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte';
 	import Drawer from '$lib/components/Drawer.svelte';
@@ -23,6 +22,7 @@
 		selectedProject
 	} from '$lib/stores/store';
 	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
+	import { setSchemaState } from '$lib/context/networkSchemaContext';
 
 	import '@xyflow/svelte/dist/style.css';
 
@@ -54,7 +54,6 @@
 	};
 
 	const schemaState = new NetworkSchemaState();
-	const cablePathManager = new CablePathManager();
 	const searchManager = new NetworkSchemaSearchManager(schemaState);
 
 	$effect(() => {
@@ -105,11 +104,7 @@
 		}
 	});
 
-	setContext('schemaState', {
-		get nodes() {
-			return schemaState.nodes;
-		}
-	});
+	setSchemaState(schemaState);
 
 	onMount(() => {
 		autoLockSvelteFlow();
@@ -124,80 +119,6 @@
 		window.addEventListener('micropipeLinkageChanged', handleMicropipeLinkageChanged);
 		return () => {
 			window.removeEventListener('micropipeLinkageChanged', handleMicropipeLinkageChanged);
-		};
-	});
-
-	async function handleCablePathUpdate(event: WindowEventMap['updateCablePath']) {
-		const { edgeId, waypoints, temporary, save } = event.detail;
-
-		await cablePathManager.updatePath(
-			edgeId,
-			waypoints as { x: number; y: number }[],
-			temporary,
-			save,
-			(edgeId, updates) => {
-				const cableUpdate = (updates.data as { cable?: Record<string, unknown> })?.cable ?? {};
-				schemaState.edges = schemaState.edges.map((edge) => {
-					if (edge.id === edgeId) {
-						return {
-							...edge,
-							data: {
-								...edge.data,
-								cable: {
-									...edge.data.cable,
-									...cableUpdate
-								}
-							}
-						};
-					}
-					return edge;
-				});
-			}
-		);
-	}
-
-	function handleCableHandleUpdate(event: WindowEventMap['updateCableHandles']) {
-		const { cableId, handleStart, handleEnd } = event.detail;
-		cablePathManager.updateHandles(
-			cableId,
-			String(handleStart),
-			String(handleEnd),
-			(cableId, handleStart, handleEnd) => {
-				schemaState.updateCableHandles(cableId, handleStart, handleEnd);
-			}
-		);
-	}
-
-	$effect(() => {
-		window.addEventListener('updateCablePath', handleCablePathUpdate);
-		return () => {
-			window.removeEventListener('updateCablePath', handleCablePathUpdate);
-		};
-	});
-
-	$effect(() => {
-		window.addEventListener('updateCableHandles', handleCableHandleUpdate);
-		return () => {
-			window.removeEventListener('updateCableHandles', handleCableHandleUpdate);
-		};
-	});
-
-	$effect(() => {
-		function handleCableConnectionChangedEvent(event: WindowEventMap['cableConnectionChanged']) {
-			const detail = event.detail;
-			if ('cableId' in detail && detail.side && detail.newNodeId) {
-				schemaState.updateEdgeConnection(
-					detail.cableId,
-					detail.side,
-					detail.newNodeId,
-					detail.handlePosition ?? 'top'
-				);
-			}
-		}
-
-		window.addEventListener('cableConnectionChanged', handleCableConnectionChangedEvent);
-		return () => {
-			window.removeEventListener('cableConnectionChanged', handleCableConnectionChangedEvent);
 		};
 	});
 
@@ -219,6 +140,13 @@
 <svelte:head>
 	<title>{m.nav_network_schema()} - {m.action_open_child_network()}</title>
 </svelte:head>
+
+<svelte:window
+	onkeydown={(e) => schemaState.setShiftFromKeyboard(e)}
+	onkeyup={(e) => schemaState.setShiftFromKeyboard(e)}
+	onblur={() => schemaState.clearShift()}
+/>
+<svelte:document onvisibilitychange={() => schemaState.clearShift()} />
 
 <div class="relative flex gap-4 h-full overflow-hidden">
 	<div class="flex-1 border-2 rounded-lg border-surface-200-800 h-full">
