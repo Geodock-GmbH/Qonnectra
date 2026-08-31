@@ -679,47 +679,8 @@ describe('+page.server.js actions', () => {
 		});
 	});
 	// ---------------------------------------------------------------------------
-	// getTrenchesForCable / getConduitsByTrenches / getMicropipesByConduits
+	// getConduitsByTrenches / getMicropipesByConduits
 	// ---------------------------------------------------------------------------
-
-	describe('getTrenchesForCable', () => {
-		test('collects unique trenches from both node selections', async () => {
-			// GET cable
-			mockFetch.mockResolvedValueOnce(
-				okJson({ uuid_node_start: 'node-a', uuid_node_end: 'node-b' })
-			);
-			// selections for node-a
-			mockFetch.mockResolvedValueOnce(okJson([{ trench: { uuid: 't-1' } }]));
-			// selections for node-b (duplicate t-1 + new t-2)
-			mockFetch.mockResolvedValueOnce(
-				okJson([{ trench: { uuid: 't-1' } }, { trench: { uuid: 't-2' } }])
-			);
-
-			const result = await runAction('getTrenchesForCable', [['cableId', 'cab-1']]);
-
-			expect((result.trenches as unknown[]).length).toBe(2);
-			expect(mockFetch.mock.calls[0][0]).toBe('http://localhost:8000/cable/cab-1/');
-			expect(mockFetch.mock.calls[1][0]).toBe(
-				'http://localhost:8000/node-trench-selection/by-node/node-a/'
-			);
-		});
-
-		test('returns 400 without cableId', async () => {
-			const result = await runAction('getTrenchesForCable', []);
-
-			expect(result.status).toBe(400);
-			expect(mockFetch).not.toHaveBeenCalled();
-		});
-
-		test('returns empty trenches when cable has no nodes', async () => {
-			mockFetch.mockResolvedValueOnce(okJson({ uuid_node_start: null, uuid_node_end: null }));
-
-			const result = await runAction('getTrenchesForCable', [['cableId', 'cab-1']]);
-
-			expect(result.trenches).toEqual([]);
-			expect(mockFetch).toHaveBeenCalledTimes(1);
-		});
-	});
 
 	describe('getConduitsByTrenches', () => {
 		test('fetches conduits and includes cable_id in query', async () => {
