@@ -1,7 +1,5 @@
 <script lang="ts">
-	import type { ActionResult } from '@sveltejs/kit';
 	import type { CableDrawerProps } from '$lib/types/attributeCardTypes';
-	import { deserialize } from '$app/forms';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -9,9 +7,13 @@
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { actionData } from '$lib/utils/forms';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { getSchemaState } from '$lib/context/networkSchemaContext';
+	import {
+		deleteCableSplicesAtNode,
+		getCableSplicesAtNode,
+		updateCableConnection
+	} from '$lib/remote/network-schema/cable-connections.remote';
 	import { updateCable } from '$lib/remote/network-schema/cables.remote';
 
 	interface SchemaFlowNode {
@@ -70,17 +72,12 @@
 			return;
 		}
 
-		const formData = new FormData();
-		formData.append('cableUuid', cable?.uuid ?? '');
-		formData.append('nodeUuid', currentNodeId ?? '');
-
 		try {
-			const response = await fetch('?/getCableSplicesAtNode', {
-				method: 'POST',
-				body: formData
+			const splices = await getCableSplicesAtNode({
+				cableUuid: cable?.uuid ?? '',
+				nodeUuid: currentNodeId ?? ''
 			});
-			const result = deserialize(await response.text()) as ActionResult;
-			const spliceCount = (actionData(result)?.splices as unknown[] | undefined)?.length || 0;
+			const spliceCount = splices.length;
 
 			if (spliceCount > 0) {
 				pendingNodeChange = { side, newNodeId, spliceCount };
@@ -107,37 +104,14 @@
 	 * Execute the node connection change
 	 */
 	async function executeNodeChange(side: 'start' | 'end', newNodeId: string) {
-		const formData = new FormData();
-		formData.append('uuid', cable?.uuid ?? '');
-
-		if (side === 'start') {
-			formData.append('uuid_node_start_id', newNodeId);
-			formData.append('handle_start', handleStart);
-		} else {
-			formData.append('uuid_node_end_id', newNodeId);
-			formData.append('handle_end', handleEnd);
-		}
-
 		try {
-			const response = await fetch('?/updateCableConnection', {
-				method: 'POST',
-				body: formData
+			await updateCableConnection({
+				cableId: cable?.uuid ?? '',
+				nodeStartId: side === 'start' ? newNodeId : undefined,
+				nodeEndId: side === 'end' ? newNodeId : undefined,
+				handleStart: side === 'start' ? handleStart : undefined,
+				handleEnd: side === 'end' ? handleEnd : undefined
 			});
-
-			const result = deserialize(await response.text()) as ActionResult;
-
-			if (result.type === 'failure' || result.type === 'error') {
-				globalToaster.error({
-					title: m.common_error(),
-					description: m.message_error_updating_cable()
-				});
-				if (side === 'start') {
-					selectedNodeStart = cable?.uuid_node_start ? [cable.uuid_node_start] : [];
-				} else {
-					selectedNodeEnd = cable?.uuid_node_end ? [cable.uuid_node_end] : [];
-				}
-				return;
-			}
 
 			globalToaster.success({
 				title: m.title_success(),
@@ -181,6 +155,12 @@
 				title: m.common_error(),
 				description: m.message_error_updating_cable()
 			});
+			// Restore the combobox to the persisted node since the change failed.
+			if (side === 'start') {
+				selectedNodeStart = cable?.uuid_node_start ? [cable.uuid_node_start] : [];
+			} else {
+				selectedNodeEnd = cable?.uuid_node_end ? [cable.uuid_node_end] : [];
+			}
 		}
 
 		pendingNodeChange = null;
@@ -227,26 +207,10 @@
 				pendingNodeChange.side === 'start' ? cable.uuid_node_start : cable.uuid_node_end;
 
 			try {
-				const deleteFormData = new FormData();
-				deleteFormData.append('cableUuid', cable.uuid);
-				deleteFormData.append('nodeUuid', oldNodeId ?? '');
-
-				const deleteResponse = await fetch('?/deleteCableSplicesAtNode', {
-					method: 'POST',
-					body: deleteFormData
+				await deleteCableSplicesAtNode({
+					cableUuid: cable.uuid,
+					nodeUuid: oldNodeId ?? ''
 				});
-
-				const deleteResult = deserialize(await deleteResponse.text());
-
-				if (deleteResult.type === 'failure' || deleteResult.type === 'error') {
-					globalToaster.error({
-						title: m.common_error(),
-						description:
-							m.message_error_deleting_splices?.() || 'Failed to delete fiber connections'
-					});
-					handleCancelNodeChange();
-					return;
-				}
 			} catch (err) {
 				console.error('Error deleting splices:', err);
 				void logToBackendClient({
