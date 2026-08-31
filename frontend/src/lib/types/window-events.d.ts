@@ -27,8 +27,7 @@ declare global {
 		}>;
 		/**
 		 * Broadcast of the node IDs affected by a cable create/delete so the fiber
-		 * sidebar can refresh its cache. Cable-reconnection is now a direct
-		 * NetworkSchemaState.updateEdgeConnection call, not an event.
+		 * sidebar can refresh its cache.
 		 */
 		cableConnectionChanged: CustomEvent<{ nodeIds: string[] }>;
 	}

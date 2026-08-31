@@ -6,8 +6,8 @@ import { fireBeforeUnload } from '$lib/test-utils/fireBeforeUnload';
 
 import { NetworkSchemaState } from './NetworkSchemaState.svelte';
 
-// The path/label persistence now goes through remote-function commands; mock
-// those modules so the class's calls are observable without a running server.
+// Path/label persistence runs through remote-function commands; mock the
+// modules so the class's calls are observable without a running server.
 const saveCableGeometry = vi.fn();
 const upsertCableLabel = vi.fn();
 const deleteCableLabel = vi.fn();
@@ -28,7 +28,6 @@ vi.mock('$lib/remote/network-schema/nodes.remote', () => ({
 	getNodeDetails: (...args: unknown[]) => getNodeDetails(...args)
 }));
 
-// The class still imports deserialize for non-migrated actions.
 vi.mock('$app/forms', () => ({
 	deserialize: vi.fn((text: string) => JSON.parse(text))
 }));

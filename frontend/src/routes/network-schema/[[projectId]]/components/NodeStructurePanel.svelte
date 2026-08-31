@@ -36,9 +36,8 @@
 	let innerWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1024);
 	const isMobile = $derived(innerWidth < 768);
 
-	// NOTE: `activeSheet` doubles as MobileBottomSheet's `open` binding — a non-null
-	// string opens the sheet and the sheet resets it to a falsy value on close. The
-	// `any` here reflects that string↔boolean dual use; unifying it is a follow-up.
+	// `activeSheet` doubles as MobileBottomSheet's `open` binding: a string opens
+	// the sheet and the sheet resets it to a falsy value on close, hence the `any`.
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let activeSheet = $state<any>(null);
 	let cableRefreshTrigger = $state(0);
