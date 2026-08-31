@@ -199,6 +199,10 @@ LOCALE_PATHS = [
 STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
+# Hand-written static source (kept out of STATIC_ROOT so collectstatic --clear
+# never wipes it). Holds the Skeleton legacy admin theme override.
+STATICFILES_DIRS = [BASE_DIR / "static_src"]
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 

@@ -1,0 +1,14 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{# Skeleton "legacy" theme overrides.
+
+   Injected in extrahead (not extrastyle) on purpose: on change forms Django
+   renders the widget CSS via the media variable — Select2, autocomplete,
+   forms.css — inside extrahead, which comes after extrastyle. Appending our
+   link after block.super here makes it the LAST stylesheet in <head>, so our
+   variable and Select2 overrides win by source order on every admin page. #}
+{% block extrahead %}
+	{{ block.super }}
+	<link rel="stylesheet" href="{% static 'admin/css/skeleton-legacy.css' %}">
+{% endblock %}

@@ -1,0 +1,778 @@
+/*
+ * Skeleton "legacy" theme for the Django admin.
+ *
+ * Django's admin CSS (base.css, forms.css, widgets.css, ...) is variable-driven:
+ * it reads a set of semantic custom properties (--primary, --body-bg, ...) that we
+ * redefine here from Skeleton legacy tokens. We do NOT rewrite Django's rules; we
+ * only re-point its variables and add a few overrides for values Django hardcodes
+ * (radii on some widgets).
+ *
+ * Load AFTER Django's own stylesheets (see templates/admin/base.html), otherwise
+ * :root specificity ties and Django's defaults win by source order.
+ *
+ * Dark mode follows Django's own scheme:
+ *   - OS preference via @media (prefers-color-scheme: dark)
+ *   - the admin's theme toggle via html[data-theme="dark" | "light"]
+ * We do not couple to the Svelte app's [data-mode] attribute — the admin is a
+ * separate server-rendered page with its own toggle.
+ */
+
+/* ---------------------------------------------------------------------------
+ * 1. Skeleton legacy palette (subset actually referenced below).
+ *    Copied verbatim from @skeletonlabs/skeleton/src/themes/legacy.css so the
+ *    admin has no dependency on the frontend build.
+ * ------------------------------------------------------------------------- */
+:root {
+	--sk-radius-base: 0.375rem; /* Skeleton --radius-base   (inputs, buttons) */
+	--sk-radius-container: 0.75rem; /* Skeleton --radius-container (cards/modules) */
+
+	--sk-primary-50: oklch(93.76% 0.05 174.04deg);
+	--sk-primary-100: oklch(88.31% 0.07 172.12deg);
+	--sk-primary-200: oklch(83.12% 0.1 170.96deg);
+	--sk-primary-300: oklch(78.47% 0.12 168.13deg);
+	--sk-primary-400: oklch(73.96% 0.14 165.85deg);
+	--sk-primary-500: oklch(69.84% 0.15 162.21deg);
+	--sk-primary-600: oklch(63.62% 0.14 162.09deg);
+	--sk-primary-700: oklch(57.25% 0.12 161.89deg);
+	--sk-primary-900: oklch(43.64% 0.09 162.59deg);
+	--sk-primary-950: oklch(36.55% 0.08 162.58deg);
+	/* Skeleton uses primary-contrast = primary-950 on primary-500 fills */
+	--sk-primary-contrast: oklch(36.55% 0.08 162.58deg);
+
+	--sk-error-400: oklch(61.78% 0.2 354.34deg);
+	--sk-error-500: oklch(57.22% 0.22 358.61deg);
+	--sk-error-600: oklch(52.66% 0.2 358.6deg);
+
+	--sk-success-500: oklch(76.81% 0.2 130.85deg);
+	--sk-success-700: oklch(63.6% 0.17 130.68deg);
+
+	--sk-warning-400: oklch(82.3% 0.16 89.59deg);
+	--sk-warning-500: oklch(79.53% 0.16 86.04deg);
+
+	--sk-surface-50: oklch(92.32% 0.01 279.78deg);
+	--sk-surface-100: oklch(83.77% 0.02 274.72deg);
+	--sk-surface-200: oklch(75.06% 0.04 273.55deg);
+	--sk-surface-300: oklch(66.32% 0.05 270.91deg);
+	--sk-surface-400: oklch(57.19% 0.07 270.48deg);
+	--sk-surface-500: oklch(47.8% 0.09 269.38deg);
+	--sk-surface-600: oklch(44.12% 0.08 269.69deg);
+	--sk-surface-700: oklch(40.23% 0.07 268.97deg);
+	--sk-surface-800: oklch(36.14% 0.07 270.51deg);
+	--sk-surface-900: oklch(32.03% 0.06 269.71deg);
+	--sk-surface-950: oklch(27.93% 0.05 270.32deg);
+}
+
+/* ---------------------------------------------------------------------------
+ * 2. LIGHT theme  -> map Skeleton light surfaces onto Django's variables.
+ *
+ *    IMPORTANT specificity note: base.css defines its light values on
+ *    `html[data-theme="light"], :root` (specificity 0,1,1). When the admin
+ *    toggle stamps data-theme="light" on <html>, a plain :root here (0,1,0)
+ *    LOSES to Django. So the light mapping must carry the SAME selector group
+ *    to win by source order. (The dark blocks already match Django's
+ *    html[data-theme="dark"] specificity.)
+ * ------------------------------------------------------------------------- */
+html[data-theme='light'],
+:root {
+	/* Brand / accents — Skeleton primary is the teal-green */
+	--primary: var(--sk-primary-500);
+	--secondary: var(--sk-primary-700);
+	--accent: var(--sk-primary-600);
+
+	/* Links use primary; Skeleton anchors are primary-500 in both modes */
+	--link-fg: var(--sk-primary-700);
+	--link-hover-color: var(--sk-primary-900);
+	--link-selected-fg: var(--sk-primary-700);
+
+	/* Text on the light lavender-gray body */
+	--body-fg: var(--sk-surface-950);
+	--body-quiet-color: var(--sk-surface-700);
+	--body-loud-color: var(--sk-surface-950);
+	--headline-fg: var(--sk-surface-900);
+	--text-color: var(--sk-surface-900);
+
+	/*
+	 * Backgrounds. Skeleton --color-root-bg-light is pure white; surface-50 is a
+	 * subtle raised tint used for stripes/headers. So: white body, faint-tinted
+	 * cards and table-head stripes.
+	 */
+	--body-bg: white;
+	--body-medium-color: var(--sk-surface-700);
+	--darkened-bg: color-mix(in oklab, var(--sk-surface-50) 45%, white); /* stripes/headers */
+	--selected-bg: color-mix(in oklab, var(--sk-primary-500) 14%, white);
+
+	/* Selected changelist row -> Skeleton preset-tonal-primary (pale green) */
+	--selected-row: color-mix(in oklab, var(--sk-primary-500) 16%, white);
+
+	/* Module cards sit just above the white body with the faintest lavender tint */
+	--module-bg: color-mix(in oklab, var(--sk-surface-50) 25%, white);
+	--module-fg: var(--sk-surface-950);
+
+	/*
+	 * Header + breadcrumbs: Skeleton legacy keeps the app shell (sidebar/appbar)
+	 * on a DARK surface even in light mode — that is the signature look. So the
+	 * Django header is surface-900 with light text regardless of light/dark.
+	 */
+	--header-color: var(--sk-surface-100);
+	--header-branding-color: white;
+	--header-bg: var(--sk-surface-900);
+	--header-link-color: var(--sk-surface-50);
+
+	--breadcrumbs-fg: var(--sk-surface-200);
+	--breadcrumbs-link-fg: var(--sk-surface-50);
+	--breadcrumbs-bg: var(--sk-surface-800);
+
+	/* Borders — Skeleton uses surface-200 hairlines in light mode */
+	--border-color: color-mix(in oklab, var(--sk-surface-200) 85%, transparent);
+	--hairline-color: color-mix(in oklab, var(--sk-surface-200) 55%, transparent);
+
+	/*
+	 * Buttons. Skeleton preset-filled-primary = primary-500 fill with
+	 * primary-contrast (= primary-950, dark green) text. Neutral actions use a
+	 * tonal surface. Delete uses error.
+	 */
+	--button-fg: var(--sk-primary-contrast);
+	--button-bg: var(--sk-primary-500);
+	--button-hover-bg: var(--sk-primary-400);
+	--default-button-bg: var(--sk-primary-500);
+	--default-button-hover-bg: var(--sk-primary-400);
+	--close-button-bg: var(--sk-surface-300);
+	--close-button-hover-bg: var(--sk-surface-400);
+	--delete-button-bg: var(--sk-error-500);
+	--delete-button-hover-bg: var(--sk-error-400);
+
+	/*
+	 * Object tools (Add / History). base.css targets these with
+	 * `.object-tools a:link,:visited` (specificity 0,2,1) which beats a plain
+	 * class rule, so we drive them through the variables instead -> green.
+	 */
+	--object-tools-bg: var(--sk-primary-500);
+	--object-tools-hover-bg: var(--sk-primary-400);
+	--object-tools-fg: var(--sk-primary-contrast);
+
+	/* Messages — Skeleton tonal presets */
+	--message-success-bg: color-mix(in oklab, var(--sk-success-500) 22%, white);
+	--message-warning-bg: color-mix(in oklab, var(--sk-warning-500) 22%, white);
+	--message-error-bg: color-mix(in oklab, var(--sk-error-500) 20%, white);
+
+	/* Form inputs */
+	--form-fg: var(--sk-surface-950);
+
+	/* Radii */
+	--border-radius: var(--sk-radius-base);
+}
+
+/* ---------------------------------------------------------------------------
+ * 3. DARK theme. Covers the two ways the admin goes dark:
+ *      (a) OS preference, unless the user forced light with the toggle
+ *      (b) the admin toggle forcing dark (wins regardless of OS)
+ *    CSS has no rule mixins, so the two selectors below carry identical
+ *    declarations — keep them in sync when editing.
+ * ------------------------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme='light']) {
+		--primary: var(--sk-primary-500);
+		--secondary: var(--sk-primary-400);
+		--accent: var(--sk-primary-400);
+
+		--link-fg: var(--sk-primary-400);
+		--link-hover-color: var(--sk-primary-200);
+		--link-selected-fg: var(--sk-primary-400);
+
+		--body-fg: var(--sk-surface-50);
+		--body-quiet-color: var(--sk-surface-300);
+		--body-loud-color: white;
+		--headline-fg: var(--sk-surface-100);
+		--text-color: var(--sk-surface-100);
+
+		--body-bg: var(--sk-surface-950);
+		--body-medium-color: var(--sk-surface-200);
+		--darkened-bg: var(--sk-surface-900);
+		--selected-bg: color-mix(in oklab, var(--sk-primary-500) 22%, var(--sk-surface-900));
+		--selected-row: color-mix(in oklab, var(--sk-primary-500) 24%, var(--sk-surface-900));
+
+		--module-bg: var(--sk-surface-900);
+		--module-fg: var(--sk-surface-50);
+
+		--header-color: var(--sk-surface-100);
+		--header-branding-color: white;
+		--header-bg: var(--sk-surface-900);
+		--header-link-color: var(--sk-surface-50);
+
+		--breadcrumbs-fg: var(--sk-surface-300);
+		--breadcrumbs-link-fg: var(--sk-surface-50);
+		--breadcrumbs-bg: var(--sk-surface-800);
+
+		--border-color: color-mix(in oklab, var(--sk-surface-700) 80%, transparent);
+		--hairline-color: color-mix(in oklab, var(--sk-surface-700) 50%, transparent);
+
+		--button-fg: var(--sk-primary-contrast);
+		--button-bg: var(--sk-primary-500);
+		--button-hover-bg: var(--sk-primary-400);
+		--default-button-bg: var(--sk-primary-500);
+		--default-button-hover-bg: var(--sk-primary-400);
+		--close-button-bg: var(--sk-surface-700);
+		--close-button-hover-bg: var(--sk-surface-600);
+		--delete-button-bg: var(--sk-error-600);
+		--delete-button-hover-bg: var(--sk-error-500);
+
+		--object-tools-bg: var(--sk-primary-500);
+		--object-tools-hover-bg: var(--sk-primary-400);
+		--object-tools-fg: var(--sk-primary-contrast);
+
+		--message-success-bg: color-mix(in oklab, var(--sk-success-700) 30%, var(--sk-surface-900));
+		--message-warning-bg: color-mix(in oklab, var(--sk-warning-500) 25%, var(--sk-surface-900));
+		--message-error-bg: color-mix(in oklab, var(--sk-error-600) 30%, var(--sk-surface-900));
+
+		--form-fg: var(--sk-surface-50);
+	}
+}
+:root[data-theme='dark'] {
+	--primary: var(--sk-primary-500);
+	--secondary: var(--sk-primary-400);
+	--accent: var(--sk-primary-400);
+
+	--link-fg: var(--sk-primary-400);
+	--link-hover-color: var(--sk-primary-200);
+	--link-selected-fg: var(--sk-primary-400);
+
+	--body-fg: var(--sk-surface-50);
+	--body-quiet-color: var(--sk-surface-300);
+	--body-loud-color: white;
+	--headline-fg: var(--sk-surface-100);
+	--text-color: var(--sk-surface-100);
+
+	--body-bg: var(--sk-surface-950);
+	--body-medium-color: var(--sk-surface-200);
+	--darkened-bg: var(--sk-surface-900);
+	--selected-bg: color-mix(in oklab, var(--sk-primary-500) 22%, var(--sk-surface-900));
+	--selected-row: color-mix(in oklab, var(--sk-primary-500) 24%, var(--sk-surface-900));
+
+	--module-bg: var(--sk-surface-900);
+	--module-fg: var(--sk-surface-50);
+
+	--header-color: var(--sk-surface-100);
+	--header-branding-color: white;
+	--header-bg: var(--sk-surface-900);
+	--header-link-color: var(--sk-surface-50);
+
+	--breadcrumbs-fg: var(--sk-surface-300);
+	--breadcrumbs-link-fg: var(--sk-surface-50);
+	--breadcrumbs-bg: var(--sk-surface-800);
+
+	--border-color: color-mix(in oklab, var(--sk-surface-700) 80%, transparent);
+	--hairline-color: color-mix(in oklab, var(--sk-surface-700) 50%, transparent);
+
+	--button-fg: var(--sk-primary-contrast);
+	--button-bg: var(--sk-primary-500);
+	--button-hover-bg: var(--sk-primary-400);
+	--default-button-bg: var(--sk-primary-500);
+	--default-button-hover-bg: var(--sk-primary-400);
+	--close-button-bg: var(--sk-surface-700);
+	--close-button-hover-bg: var(--sk-surface-600);
+	--delete-button-bg: var(--sk-error-600);
+	--delete-button-hover-bg: var(--sk-error-500);
+
+	--object-tools-bg: var(--sk-primary-500);
+	--object-tools-hover-bg: var(--sk-primary-400);
+	--object-tools-fg: var(--sk-primary-contrast);
+
+	--message-success-bg: color-mix(in oklab, var(--sk-success-700) 30%, var(--sk-surface-900));
+	--message-warning-bg: color-mix(in oklab, var(--sk-warning-500) 25%, var(--sk-surface-900));
+	--message-error-bg: color-mix(in oklab, var(--sk-error-600) 30%, var(--sk-surface-900));
+
+	--form-fg: var(--sk-surface-50);
+}
+
+/* ---------------------------------------------------------------------------
+ * 4. Shape overrides — the "rounded corners etc." part.
+ *    Django hardcodes border-radius on several widgets, so --border-radius
+ *    alone is not enough. These give the Skeleton feel across the board.
+ * ------------------------------------------------------------------------- */
+
+/* Inputs, selects, textareas -> Skeleton --radius-base */
+.module input,
+input[type='text'],
+input[type='password'],
+input[type='email'],
+input[type='url'],
+input[type='number'],
+input[type='tel'],
+input[type='search'],
+textarea,
+select,
+.vTextField {
+	border-radius: var(--sk-radius-base);
+	border: 1px solid var(--border-color);
+}
+
+/* Focus ring in Skeleton primary */
+.module input:focus,
+input:focus,
+textarea:focus,
+select:focus,
+.vTextField:focus {
+	border-color: var(--primary);
+	outline: 2px solid color-mix(in oklab, var(--primary) 45%, transparent);
+	outline-offset: 0;
+}
+
+/* Buttons -> Skeleton --radius-base */
+.button,
+input[type='submit'],
+input[type='button'],
+.submit-row input,
+button,
+a.button {
+	border-radius: var(--sk-radius-base);
+	transition:
+		background 0.15s ease,
+		color 0.15s ease;
+}
+
+/*
+ * Cards -> Skeleton --radius-container. NOTE: we deliberately do NOT round the
+ * outer #changelist.module wrapper — it is full-bleed and its overflow:hidden
+ * would clip the inner rounded toolbar/results cards. The changelist's inner
+ * pieces (#toolbar, .actions, .results) are rounded individually instead.
+ */
+.dashboard .module,
+.card,
+#content-related .module,
+.submit-row,
+#changelist .actions,
+.login #container,
+.inline-group,
+ul.messagelist li {
+	border-radius: var(--sk-radius-container);
+	overflow: hidden; /* keep child corners inside the container radius */
+}
+
+/* Changelist table look: tinted head, tonal hover/selected (border + radius
+ * live on the .results wrapper; the table uses border-collapse). */
+#changelist table thead th,
+#changelist table thead th a {
+	background: var(--darkened-bg);
+	color: var(--body-quiet-color);
+	font-weight: 600;
+	text-transform: none;
+}
+#changelist table tbody tr:hover {
+	background: color-mix(in oklab, var(--primary) 10%, transparent);
+}
+/* tr.selected already reads --selected-row (tonal primary) from Django. */
+/* (.results framing lives in Section 9, with x-scroll preserved.) */
+
+/*
+ * Object tools ("Hinzufügen" / History). Background/color come from the
+ * --object-tools-* variables (see the theme blocks) because base.css targets
+ * them with a higher-specificity :link/:visited rule. Here we only add shape
+ * and typography, which base.css does not set.
+ */
+.object-tools a {
+	border-radius: var(--sk-radius-base);
+	text-transform: none;
+	font-weight: 600;
+	letter-spacing: 0;
+}
+/* ---------------------------------------------------------------------------
+ * 5. Buttons — explicit color/variant styling.
+ *    Django gives every button --button-bg; here we add the Skeleton "preset"
+ *    feel: solid brand primary, tonal neutral secondary, and semantic delete.
+ * ------------------------------------------------------------------------- */
+.button,
+input[type='submit'],
+input[type='button'],
+.submit-row input,
+a.button {
+	background: var(--button-bg);
+	color: var(--button-fg);
+	border: 1px solid transparent;
+	font-weight: 600;
+}
+.button:hover,
+input[type='submit']:hover,
+input[type='button']:hover,
+.submit-row input:hover,
+a.button:hover {
+	background: var(--button-hover-bg);
+	color: var(--button-fg);
+}
+
+/* Primary/default action (the filled "Save") -> preset-filled-primary */
+.submit-row input.default,
+.button.default {
+	background: var(--default-button-bg);
+	color: var(--sk-primary-contrast);
+}
+.submit-row input.default:hover,
+.button.default:hover {
+	background: var(--default-button-hover-bg);
+	color: var(--sk-primary-contrast);
+}
+
+/* Neutral / secondary buttons -> Skeleton tonal surface */
+.button.cancel-link,
+a.closelink,
+.button[value='Cancel'],
+.deletelink-box a,
+.submit-row a:not(.deletelink) {
+	background: color-mix(in oklab, var(--body-fg) 10%, transparent);
+	color: var(--body-fg);
+	border: 1px solid var(--border-color);
+}
+.button.cancel-link:hover,
+a.closelink:hover,
+.submit-row a:not(.deletelink):hover {
+	background: color-mix(in oklab, var(--body-fg) 18%, transparent);
+}
+
+/* Destructive */
+.deletelink,
+a.deletelink,
+.submit-row a.deletelink {
+	background: var(--delete-button-bg);
+	color: white;
+	border-radius: var(--sk-radius-base);
+	border: 1px solid transparent;
+}
+.deletelink:hover,
+a.deletelink:hover,
+.submit-row a.deletelink:hover {
+	background: var(--delete-button-hover-bg);
+}
+
+/* ---------------------------------------------------------------------------
+ * 6. Select2 comboboxes (autocomplete_fields).
+ *    vendored select2.css hardcodes #5897fb / #eee / #fff and ignores Django's
+ *    variables, so it stays light+blue in dark mode. We re-skin every part to
+ *    the Skeleton surfaces + primary, for single and multi selects alike.
+ * ------------------------------------------------------------------------- */
+
+/*
+ * NOTE on !important: the vendored select2.css and Django's autocomplete.css
+ * are injected via the form's {{ media }}, which the admin change_form renders
+ * AFTER this file in <head>. Source order therefore favors them on tied
+ * specificity, so the declarations that fight hardcoded vendor colors
+ * (#5897fb, #eee, #fff) are marked !important. This is scoped to Select2 only;
+ * every other section wins on ordinary source order.
+ */
+
+/* The closed control (looks like a Skeleton input) */
+.select2-container--admin-autocomplete .select2-selection {
+	background: var(--body-bg) !important;
+	border: 1px solid var(--border-color) !important;
+	border-radius: var(--sk-radius-base) !important;
+	color: var(--body-fg) !important;
+}
+.select2-container--admin-autocomplete.select2-container--focus .select2-selection,
+.select2-container--admin-autocomplete.select2-container--open .select2-selection {
+	border-color: var(--primary) !important;
+	outline: 2px solid color-mix(in oklab, var(--primary) 45%, transparent) !important;
+}
+.select2-container--admin-autocomplete .select2-selection__rendered {
+	color: var(--body-fg) !important;
+}
+.select2-container--admin-autocomplete .select2-selection__placeholder {
+	color: var(--body-quiet-color) !important;
+}
+.select2-container--admin-autocomplete .select2-selection__arrow b {
+	border-color: var(--body-quiet-color) transparent transparent transparent !important;
+}
+
+/* The dropdown panel */
+.select2-container--admin-autocomplete .select2-dropdown,
+.select2-dropdown {
+	background: var(--module-bg) !important;
+	border: 1px solid var(--border-color) !important;
+	border-radius: var(--sk-radius-base) !important;
+	color: var(--body-fg) !important;
+	overflow: hidden;
+}
+.select2-container--admin-autocomplete .select2-search--dropdown .select2-search__field {
+	background: var(--body-bg) !important;
+	border: 1px solid var(--border-color) !important;
+	border-radius: var(--sk-radius-base) !important;
+	color: var(--body-fg) !important;
+}
+
+/* Result rows — highlighted row uses Skeleton primary (was #5897fb) */
+.select2-container--admin-autocomplete .select2-results__option {
+	color: var(--body-fg) !important;
+}
+.select2-container--admin-autocomplete .select2-results__option--highlighted[aria-selected],
+.select2-container--admin-autocomplete .select2-results__option--highlighted {
+	background: var(--primary) !important;
+	color: var(--sk-primary-contrast) !important;
+}
+.select2-container--admin-autocomplete .select2-results__option[aria-selected='true'] {
+	background: color-mix(in oklab, var(--primary) 18%, transparent) !important;
+	color: var(--body-fg) !important;
+}
+
+/* Multi-select chips -> Skeleton tonal primary chips */
+.select2-container--admin-autocomplete .select2-selection--multiple .select2-selection__choice {
+	background: color-mix(in oklab, var(--primary) 20%, transparent) !important;
+	border: 1px solid color-mix(in oklab, var(--primary) 40%, transparent) !important;
+	border-radius: var(--sk-radius-base) !important;
+	color: var(--body-fg) !important;
+}
+.select2-container--admin-autocomplete
+	.select2-selection--multiple
+	.select2-selection__choice__remove {
+	color: var(--body-quiet-color) !important;
+}
+.select2-container--admin-autocomplete
+	.select2-selection--multiple
+	.select2-selection__choice__remove:hover {
+	color: var(--delete-button-bg) !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * 7. filter_horizontal / filter_vertical dual-list selector.
+ * ------------------------------------------------------------------------- */
+.selector .selector-available,
+.selector .selector-chosen {
+	border: 1px solid var(--border-color);
+	border-radius: var(--sk-radius-container);
+	overflow: hidden;
+}
+.selector .selector-available h2,
+.selector .selector-chosen h2 {
+	background: var(--darkened-bg);
+	color: var(--body-fg);
+	border-bottom: 1px solid var(--border-color);
+}
+.selector-chosen h2 {
+	background: var(--primary);
+	color: var(--sk-primary-contrast);
+}
+.selector select {
+	background: var(--body-bg);
+	color: var(--body-fg);
+	border: none;
+}
+.selector .selector-filter input {
+	border-radius: var(--sk-radius-base);
+	border: 1px solid var(--border-color);
+	background: var(--body-bg);
+	color: var(--body-fg);
+}
+/* the add/remove arrow chiclets */
+.selector-add,
+.selector-remove,
+.selector-chooseall,
+.selector-clearall {
+	border-radius: var(--sk-radius-base);
+}
+.selector ul.selector-chooser {
+	background: var(--darkened-bg);
+	border-radius: var(--sk-radius-container);
+}
+
+/* ---------------------------------------------------------------------------
+ * 8. list_filter sidebar + native selects/date widgets.
+ * ------------------------------------------------------------------------- */
+#changelist-filter {
+	background: var(--module-bg);
+	border-radius: var(--sk-radius-container);
+	border: 1px solid var(--border-color);
+	overflow: hidden;
+}
+#changelist-filter h2 {
+	background: var(--darkened-bg);
+	color: var(--body-fg);
+}
+#changelist-filter li.selected {
+	border-left: 3px solid var(--primary);
+}
+#changelist-filter a:focus,
+#changelist-filter a:hover,
+#changelist-filter li.selected a {
+	color: var(--link-selected-fg);
+}
+
+/* Native <select> arrow area + calendar/clock popups */
+select {
+	background: var(--body-bg);
+	color: var(--body-fg);
+}
+.calendarbox,
+.clockbox {
+	background: var(--module-bg);
+	border: 1px solid var(--border-color);
+	border-radius: var(--sk-radius-container);
+	color: var(--body-fg);
+}
+.calendar caption,
+.calendarbox h2 {
+	background: var(--primary);
+	color: var(--sk-primary-contrast);
+}
+.calendar td.selected a {
+	background: var(--primary);
+	color: var(--sk-primary-contrast);
+}
+.calendar td a:hover,
+.timelist a:hover {
+	background: color-mix(in oklab, var(--primary) 20%, transparent);
+}
+
+/* ---------------------------------------------------------------------------
+ * 9. Changelist polish — bring the search toolbar, action bar, secondary
+ *    buttons and table header up to Skeleton fidelity.
+ * ------------------------------------------------------------------------- */
+
+/* Search toolbar -> a clean rounded card instead of the gray band */
+#toolbar {
+	background: var(--module-bg);
+	border: 1px solid var(--border-color);
+	border-radius: var(--sk-radius-container);
+	padding: 12px 14px;
+}
+#toolbar #searchbar {
+	border-radius: var(--sk-radius-base);
+	height: auto;
+	padding: 6px 10px;
+}
+#toolbar #searchbar:focus {
+	border-color: var(--primary);
+	outline: 2px solid color-mix(in oklab, var(--primary) 45%, transparent);
+}
+
+/* Secondary buttons (Suchen / Ausführen) -> Skeleton tonal-surface preset */
+#toolbar form input[type='submit'],
+#changelist-form .actions .button {
+	background: color-mix(in oklab, var(--body-fg) 8%, var(--module-bg));
+	border: 1px solid var(--border-color);
+	border-radius: var(--sk-radius-base);
+	color: var(--body-fg);
+	box-shadow: none;
+	font-weight: 600;
+}
+#toolbar form input[type='submit']:hover,
+#toolbar form input[type='submit']:focus,
+#changelist-form .actions .button:hover {
+	background: color-mix(in oklab, var(--body-fg) 15%, var(--module-bg));
+	border-color: var(--primary);
+	color: var(--body-fg);
+}
+
+/* Action bar -> rounded card matching the toolbar */
+#changelist .actions {
+	background: var(--module-bg);
+	border: 1px solid var(--border-color);
+	border-radius: var(--sk-radius-container);
+	color: var(--body-quiet-color);
+}
+#changelist .actions select {
+	border-radius: var(--sk-radius-base);
+}
+
+/*
+ * Result list -> a bordered, rounded Skeleton table card.
+ * The border + radius MUST live on the .results wrapper: the <table> uses
+ * border-collapse, which ignores border-radius on the table element itself.
+ * .results already has overflow-x:auto, so the radius clips cleanly.
+ */
+#changelist-form .results {
+	border: 1px solid var(--border-color);
+	border-radius: var(--sk-radius-container);
+	overflow: auto; /* clips rows to the rounded corners AND keeps x-scroll */
+}
+#changelist #result_list {
+	border: none;
+	margin: 0;
+}
+#changelist #result_list thead th {
+	background: var(--darkened-bg);
+	color: var(--body-quiet-color);
+	border-bottom: 1px solid var(--border-color);
+	font-weight: 600;
+}
+#changelist #result_list thead th a {
+	color: var(--body-quiet-color);
+}
+#changelist #result_list tbody td,
+#changelist #result_list tbody th {
+	border-bottom: 1px solid var(--hairline-color);
+}
+/* last row has no divider so it sits flush on the rounded bottom edge */
+#changelist #result_list tbody tr:last-child td,
+#changelist #result_list tbody tr:last-child th {
+	border-bottom: none;
+}
+
+/* Filter sidebar: bolder selected item, matching Skeleton nav */
+#changelist-filter li.selected {
+	border-left: 3px solid var(--primary);
+	font-weight: 600;
+}
+#changelist-filter li.selected a {
+	color: var(--link-selected-fg);
+}
+
+/* Pagination controls -> rounded */
+.paginator a:link,
+.paginator a:visited,
+.paginator .this-page {
+	border-radius: var(--sk-radius-base);
+}
+.paginator .this-page {
+	background: var(--primary);
+	color: var(--sk-primary-contrast);
+	padding: 2px 6px;
+}
+
+/* ---------------------------------------------------------------------------
+ * 10. Change-form layout — stop Django's full-width hairlines from crossing
+ *     the rounded cards, and frame the fieldset as one Skeleton module.
+ *
+ *     Django draws dividers as: fieldset { border-top }, .form-row
+ *     { border-bottom }, and a standalone <hr> above .submit-row. On a flat
+ *     module these sit flush; against our rounded, bordered cards they bled
+ *     past the corners. Fix: give the fieldset ITS OWN rounded frame, keep the
+ *     row dividers inside it (Skeleton forms use row separators), and drop the
+ *     loose top border + the pre-submit hr.
+ * ------------------------------------------------------------------------- */
+
+/* The fieldset becomes the card; module h2 (its caption) is the dark header */
+.change-form fieldset.module {
+	border: 1px solid var(--border-color);
+	border-radius: var(--sk-radius-container);
+	border-top: 1px solid var(--border-color); /* override Django's lone top rule */
+	overflow: hidden;
+	background: var(--module-bg);
+	margin-bottom: 20px;
+}
+
+/* Row dividers: keep them, but never on the last row (flush rounded bottom) */
+.change-form .form-row {
+	border-bottom: 1px solid var(--hairline-color);
+}
+.change-form fieldset.module .form-row:last-child {
+	border-bottom: none;
+}
+
+/* Kill the standalone hr Django prints just above the submit row */
+.change-form form > div > hr,
+.submit-row + hr,
+form .aligned + hr {
+	display: none;
+}
+
+/* Submit row: its own rounded card, clear of the fieldset above it */
+.submit-row {
+	border: 1px solid var(--border-color);
+	border-radius: var(--sk-radius-container);
+	background: var(--module-bg);
+	margin-top: 0;
+}
+
+/* Inline groups (tabular/stacked) get the same rounded framing */
+.inline-group .module,
+.inline-related fieldset.module {
+	border: 1px solid var(--border-color);
+	border-radius: var(--sk-radius-container);
+	overflow: hidden;
+}
