@@ -59,8 +59,8 @@ function makeCable(overrides: Partial<CableData> = {}): CableData {
 
 function makeCableTypes(): CableType[] {
 	return [
-		{ id: 'ct-1', name: 'Type A' },
-		{ id: 'ct-2', name: 'Type B' }
+		{ value: 'ct-1', label: 'Type A' },
+		{ value: 'ct-2', label: 'Type B' }
 	];
 }
 

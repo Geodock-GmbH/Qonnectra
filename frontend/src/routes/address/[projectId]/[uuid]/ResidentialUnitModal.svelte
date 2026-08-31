@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ResidentialUnitStatus, ResidentialUnitType } from '$lib/types';
+	import type { ComboboxItem } from '$lib/types/attributeCardTypes';
 	import { deserialize } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
@@ -16,8 +16,8 @@
 		residentialUnitStatuses = [],
 		openModal = $bindable(false)
 	}: {
-		residentialUnitTypes?: ResidentialUnitType[];
-		residentialUnitStatuses?: ResidentialUnitStatus[];
+		residentialUnitTypes?: ComboboxItem[];
+		residentialUnitStatuses?: ComboboxItem[];
 		openModal?: boolean;
 	} = $props();
 

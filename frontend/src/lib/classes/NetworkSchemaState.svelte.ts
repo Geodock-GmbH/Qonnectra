@@ -94,9 +94,13 @@ export interface SvelteFlowEdge {
 	};
 }
 
+/**
+ * Cable-type combobox row. The page server loads map the raw API payload to
+ * `{ value: item.id, label: item.cable_type }` before it reaches this class.
+ */
 export interface CableType {
-	id: string;
-	name: string;
+	value: string | number;
+	label: string;
 }
 
 export interface NetworkSchemaInitData {

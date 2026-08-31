@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ResidentialUnitStatus, ResidentialUnitType } from '$lib/types';
+	import type { ComboboxItem } from '$lib/types/attributeCardTypes';
 	import { deserialize } from '$app/forms';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
@@ -41,8 +41,8 @@
 		addressUuid = ''
 	}: {
 		residentialUnits?: UnitRow[];
-		residentialUnitTypes?: ResidentialUnitType[];
-		residentialUnitStatuses?: ResidentialUnitStatus[];
+		residentialUnitTypes?: ComboboxItem[];
+		residentialUnitStatuses?: ComboboxItem[];
 		projectId?: string;
 		addressUuid?: string;
 	} = $props();

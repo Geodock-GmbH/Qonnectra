@@ -5,6 +5,18 @@
  * The generic form-action helper `actionData` lives in `$lib/utils/forms`.
  */
 
+/**
+ * Minimal structural contract for GenericCombobox's `data` items. Kept free of
+ * an index signature so any named option interface with `{ value, label }`
+ * qualifies (interfaces have no implicit index signature and would otherwise
+ * fail to assign). `value` allows numbers: the server loads map raw API ids
+ * (`value: item.id`) into these rows; the combobox widget coerces to string.
+ */
+export interface ComboboxItem {
+	value: string | number;
+	label: string;
+}
+
 /** A `{ value, label }` option as rendered by the comboboxes. */
 export interface ComboboxOption {
 	value: string;
