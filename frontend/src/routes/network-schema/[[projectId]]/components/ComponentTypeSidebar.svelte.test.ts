@@ -8,8 +8,12 @@ vi.mock('$app/environment', () => ({
 	browser: true
 }));
 
-vi.mock('$app/forms', () => ({
-	deserialize: vi.fn((text: string) => JSON.parse(text))
+// The component reads the query's reactive `.current`/`.loading`; the mock
+// returns a matching query-object stub so tests can seed the rendered list.
+const getComponentTypes = vi.fn();
+
+vi.mock('$lib/remote/network-schema/component-types.remote', () => ({
+	getComponentTypes: (...args: unknown[]) => getComponentTypes(...args)
 }));
 
 vi.mock('$lib/paraglide/messages', () => ({
@@ -22,22 +26,16 @@ vi.mock('$lib/paraglide/messages', () => ({
 	)
 }));
 
-const fetchMock = vi.fn();
-
 const componentTypes = [
 	{ id: 1, component_type: 'Splice Tray', occupied_slots: 2 },
 	{ id: 2, component_type: 'Patch Panel', occupied_slots: 4 }
 ];
 
 /**
- * Stub the ?/getComponentTypes form action response.
+ * Seed the getComponentTypes query with a resolved value.
  */
 function mockComponentTypes(types: unknown[] = componentTypes) {
-	fetchMock.mockResolvedValue({
-		ok: true,
-		text: () =>
-			Promise.resolve(JSON.stringify({ type: 'success', data: { componentTypes: types } }))
-	});
+	getComponentTypes.mockReturnValue({ current: types, loading: false, error: undefined });
 }
 
 /**
@@ -53,26 +51,24 @@ function makeDragDropManager() {
 }
 
 beforeEach(() => {
-	vi.stubGlobal('fetch', fetchMock);
 	vi.spyOn(console, 'error').mockImplementation(() => {});
+	mockComponentTypes();
 });
 
 afterEach(() => {
-	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
-	fetchMock.mockReset();
+	getComponentTypes.mockReset();
 });
 
 describe('ComponentTypeSidebar (desktop)', () => {
-	test('should fetch and render component types with slot counts', async () => {
+	test('should query and render component types with slot counts', async () => {
 		mockComponentTypes();
 		render(Fixture, {});
 
 		expect(await screen.findByText('Splice Tray')).toBeInTheDocument();
 		expect(screen.getByText('Patch Panel')).toBeInTheDocument();
 
-		const getCall = fetchMock.mock.calls.find(([url]) => url === '?/getComponentTypes');
-		expect(getCall).toBeTruthy();
+		expect(getComponentTypes).toHaveBeenCalled();
 	});
 
 	test('should show the empty message when no component types exist', async () => {

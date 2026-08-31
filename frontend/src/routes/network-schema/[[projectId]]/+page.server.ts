@@ -14,7 +14,6 @@ import {
 	getAddressesForNode,
 	getCablesAtNode,
 	getComponentPorts,
-	getComponentTypes,
 	getContainerHierarchy,
 	getContainerTypes,
 	getFiberColors,
@@ -1092,9 +1091,6 @@ export const actions = {
 		const formData = await request.formData();
 		const slotConfigUuid = formData.get('slotConfigUuid');
 		return getNodeStructures(fetch, cookies, String(slotConfigUuid));
-	},
-	getComponentTypes: async ({ fetch, cookies }) => {
-		return getComponentTypes(fetch, cookies);
 	},
 	createNodeStructure: async ({ request, fetch, cookies }) => {
 		try {

@@ -1,8 +1,6 @@
 <script lang="ts">
-	import type { ActionResult } from '@sveltejs/kit';
 	import type { ComponentType } from '$lib/classes/DragDropManager.svelte';
 	import { getContext, onMount } from 'svelte';
-	import { deserialize } from '$app/forms';
 	import {
 		IconChevronLeft,
 		IconChevronRight,
@@ -15,9 +13,8 @@
 
 	import { DRAG_DROP_CONTEXT_KEY, DragDropManager } from '$lib/classes/DragDropManager.svelte';
 	import { PanelResizeManager } from '$lib/classes/PanelResizeManager.svelte.js';
-	import { actionData } from '$lib/utils/forms';
-	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
+	import { getComponentTypes } from '$lib/remote/network-schema/component-types.remote';
 
 	let {
 		onDragStart = () => {},
@@ -37,40 +34,16 @@
 
 	const resizer = new PanelResizeManager({ defaultWidth: 260, side: 'left' });
 
-	let componentTypes = $state<ComponentType[]>([]);
-	let loading = $state(true);
+	// Component types are server truth rendered as a list; the query's reactive
+	// `.current`/`.loading` drive the template without an onMount fetch. Errors
+	// bubble to the nearest boundary.
+	const componentTypesQuery = getComponentTypes();
+	const componentTypes = $derived<ComponentType[]>(componentTypesQuery.current ?? []);
+	const loading = $derived(componentTypesQuery.loading);
 	let collapsed = $state(false);
 
 	/** Track quantity per component type ID */
 	let quantities = $state(new Map<number, number>());
-
-	async function fetchComponentTypes() {
-		loading = true;
-		try {
-			const formData = new FormData();
-			const response = await fetch('?/getComponentTypes', {
-				method: 'POST',
-				body: formData
-			});
-			const result = deserialize(await response.text()) as ActionResult;
-			if (result.type === 'success') {
-				componentTypes = (actionData(result)?.componentTypes as ComponentType[]) || [];
-			}
-		} catch (err) {
-			console.error('Error fetching component types:', err);
-			void logToBackendClient({
-				level: 'ERROR',
-				message: 'Error fetching component types',
-				extraData: {
-					from: 'ComponentTypeSidebar.fetchComponentTypes',
-					error: err instanceof Error ? err.message : String(err),
-					stack: err instanceof Error ? err.stack : undefined
-				}
-			});
-		} finally {
-			loading = false;
-		}
-	}
 
 	/**
 	 * Get quantity for a component type (default 1)
@@ -147,10 +120,7 @@
 		}
 	}
 
-	onMount(() => {
-		fetchComponentTypes();
-		return resizer.listen();
-	});
+	onMount(() => resizer.listen());
 </script>
 
 {#if isMobile}

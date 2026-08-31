@@ -57,6 +57,9 @@ vi.mock('$lib/remote/network-schema/micropipes.remote', () => ({
 	autoLinkMicropipe: vi.fn().mockResolvedValue({ results: [], linked_count: 0 }),
 	getMicropipeConnectionsForCable: vi.fn().mockResolvedValue([])
 }));
+vi.mock('$lib/remote/network-schema/component-types.remote', () => ({
+	getComponentTypes: vi.fn(() => ({ current: [], loading: false, error: undefined }))
+}));
 
 // jsdom does not provide ResizeObserver (required by @zag-js/tabs / Skeleton Tabs)
 global.ResizeObserver = class ResizeObserver {

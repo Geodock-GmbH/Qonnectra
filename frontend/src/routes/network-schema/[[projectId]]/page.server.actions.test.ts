@@ -115,25 +115,6 @@ describe('+page.server.js actions', () => {
 		});
 	});
 
-	describe('getComponentTypes', () => {
-		test('returns component types', async () => {
-			mockFetch.mockResolvedValueOnce(okJson([{ id: 1, name: 'Splitter' }]));
-
-			const result = await runAction('getComponentTypes');
-
-			expect(result.componentTypes).toEqual([{ id: 1, name: 'Splitter' }]);
-			expect(mockFetch.mock.calls[0][0]).toBe('http://localhost:8000/attributes_component_type/');
-		});
-
-		test('propagates API failure', async () => {
-			mockFetch.mockResolvedValueOnce({ ok: false, status: 500, json: () => Promise.resolve({}) });
-
-			const result = await runAction('getComponentTypes');
-
-			expect(result.status).toBe(500);
-		});
-	});
-
 	describe('getSlotDividers', () => {
 		test('returns dividers array', async () => {
 			mockFetch.mockResolvedValueOnce(okJson([{ uuid: 'd-1' }]));
