@@ -7,14 +7,13 @@ import { m } from '$lib/paraglide/messages';
 import { globalToaster } from '$lib/stores/toaster';
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
 import { trackPendingWrite } from '$lib/utils/pendingWrites';
-
-import { getCableDetails } from '../../routes/network-schema/[[projectId]]/cables.remote';
+import { getCableDetails } from '$lib/remote/network-schema/cables.remote';
 import {
 	deleteCableLabel as deleteCableLabelCommand,
 	upsertCableLabel
-} from '../../routes/network-schema/[[projectId]]/labels.remote';
-import { getNodeDetails } from '../../routes/network-schema/[[projectId]]/nodes.remote';
-import { saveCableGeometry as saveCableGeometryCommand } from '../../routes/network-schema/[[projectId]]/paths.remote';
+} from '$lib/remote/network-schema/labels.remote';
+import { getNodeDetails } from '$lib/remote/network-schema/nodes.remote';
+import { saveCableGeometry as saveCableGeometryCommand } from '$lib/remote/network-schema/paths.remote';
 
 export interface NodeProperties {
 	uuid: string;

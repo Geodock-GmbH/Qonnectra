@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import Harness from './ComponentTypeSidebarTestHarness.svelte';
+import Fixture from './ComponentTypeSidebar.fixture.svelte';
 
 vi.mock('$app/environment', () => ({
 	browser: true
@@ -66,7 +66,7 @@ afterEach(() => {
 describe('ComponentTypeSidebar (desktop)', () => {
 	test('should fetch and render component types with slot counts', async () => {
 		mockComponentTypes();
-		render(Harness, {});
+		render(Fixture, {});
 
 		expect(await screen.findByText('Splice Tray')).toBeInTheDocument();
 		expect(screen.getByText('Patch Panel')).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('ComponentTypeSidebar (desktop)', () => {
 
 	test('should show the empty message when no component types exist', async () => {
 		mockComponentTypes([]);
-		render(Harness, {});
+		render(Fixture, {});
 
 		expect(await screen.findByText('message_no_component_types')).toBeInTheDocument();
 	});
@@ -85,7 +85,7 @@ describe('ComponentTypeSidebar (desktop)', () => {
 	test('should increment quantity and update the displayed slot total', async () => {
 		const user = userEvent.setup();
 		mockComponentTypes();
-		render(Harness, {});
+		render(Fixture, {});
 
 		await screen.findByText('Splice Tray');
 
@@ -116,7 +116,7 @@ describe('ComponentTypeSidebar (desktop)', () => {
 	test('should start a single-component drag and set drag payload', async () => {
 		mockComponentTypes();
 		const dragDropManager = makeDragDropManager();
-		render(Harness, { dragDropManager });
+		render(Fixture, { dragDropManager });
 
 		await screen.findByText('Splice Tray');
 
@@ -135,7 +135,7 @@ describe('ComponentTypeSidebar (desktop)', () => {
 	test('should collapse and expand the sidebar', async () => {
 		const user = userEvent.setup();
 		mockComponentTypes();
-		render(Harness, {});
+		render(Fixture, {});
 
 		await screen.findByText('Splice Tray');
 
@@ -154,7 +154,7 @@ describe('ComponentTypeSidebar (mobile)', () => {
 		mockComponentTypes();
 		const dragDropManager = makeDragDropManager();
 		const onMobileSelect = vi.fn();
-		render(Harness, { isMobile: true, dragDropManager, onMobileSelect });
+		render(Fixture, { isMobile: true, dragDropManager, onMobileSelect });
 
 		await screen.findByText('Splice Tray');
 

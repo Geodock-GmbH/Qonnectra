@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { withCableLock } from './_cable-lock';
+import { withCableLock } from './cable-lock';
 
 /**
  * Defers resolution so a test can control exactly when a locked operation finishes.

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { drawerStore } from '$lib/stores/drawer';
 
-import DrawerTabs from './DrawerTabs.svelte';
+import DrawerTabsFixture from './DrawerTabs.fixture.svelte';
 
 vi.mock('$app/environment', () => ({
 	browser: true
@@ -86,10 +86,12 @@ afterEach(() => {
 
 describe('DrawerTabs', () => {
 	test('should show edge tabs for cables', () => {
-		render(DrawerTabs, {
-			type: 'edge',
-			uuid: 'cable-1',
-			name: 'K-Nord'
+		render(DrawerTabsFixture, {
+			drawerProps: {
+				type: 'edge',
+				uuid: 'cable-1',
+				name: 'K-Nord'
+			}
 		});
 
 		expect(screen.getByRole('tab', { name: 'common_attributes' })).toBeInTheDocument();
@@ -100,10 +102,12 @@ describe('DrawerTabs', () => {
 	});
 
 	test('should show node tabs without cable-specific entries', () => {
-		render(DrawerTabs, {
-			type: 'node',
-			uuid: 'node-1',
-			name: 'PoP-1'
+		render(DrawerTabsFixture, {
+			drawerProps: {
+				type: 'node',
+				uuid: 'node-1',
+				name: 'PoP-1'
+			}
 		});
 
 		expect(screen.getByRole('tab', { name: 'common_attributes' })).toBeInTheDocument();
@@ -113,7 +117,7 @@ describe('DrawerTabs', () => {
 	});
 
 	test('should select the attributes tab by default', () => {
-		render(DrawerTabs, { type: 'node', uuid: 'node-1' });
+		render(DrawerTabsFixture, { drawerProps: { type: 'node', uuid: 'node-1' } });
 
 		expect(screen.getByRole('tab', { name: 'common_attributes' })).toHaveAttribute(
 			'aria-selected',

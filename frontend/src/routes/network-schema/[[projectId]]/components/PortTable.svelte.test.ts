@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import PortTableTestHarness from './PortTableTestHarness.svelte';
+import PortTableFixture from './PortTable.fixture.svelte';
 
 vi.mock('$lib/paraglide/messages', () => ({
 	m: new Proxy(
@@ -61,7 +61,7 @@ function makeRow(portNumber: number, overrides: Record<string, unknown> = {}) {
 
 /** `context` is a reserved testing-library render option, so all props go under `props`. */
 function renderPortTable(props: Record<string, unknown>) {
-	return render(PortTableTestHarness, { props });
+	return render(PortTableFixture, { props });
 }
 
 afterEach(() => {

@@ -5,15 +5,15 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { drawerStore } from '$lib/stores/drawer';
 
+import DynamicEdgeLabelFixture from './DynamicEdgeLabel.fixture.svelte';
 import DynamicEdgeLabel from './DynamicEdgeLabel.svelte';
-import DynamicEdgeLabelTestHarness from './DynamicEdgeLabelTestHarness.svelte';
 
 /**
- * Renders the label through a harness that provides the schema-state context
+ * Renders the label through a fixture component that provides the schema-state context
  * the component reads for shift-cue styling.
  */
 function renderLabel(labelProps: ComponentProps<typeof DynamicEdgeLabel>) {
-	return render(DynamicEdgeLabelTestHarness, {
+	return render(DynamicEdgeLabelFixture, {
 		labelProps,
 		schemaState: { loadCableDetails: loadCableDetailsMock }
 	});

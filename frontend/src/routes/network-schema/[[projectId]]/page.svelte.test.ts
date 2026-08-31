@@ -140,31 +140,31 @@ vi.mock('$lib/components/GenericCombobox.svelte', async () => {
 	return { default: MockGenericCombobox };
 });
 
-vi.mock('./CableDiagramNode.svelte', async () => {
+vi.mock('./components/CableDiagramNode.svelte', async () => {
 	const { default: MockCableDiagramNode } =
 		await import('$lib/test-utils/mocks/MockCableDiagramNode.svelte');
 	return { default: MockCableDiagramNode };
 });
 
-vi.mock('./CableDiagramEdge.svelte', async () => {
+vi.mock('./components/CableDiagramEdge.svelte', async () => {
 	const { default: MockCableDiagramEdge } =
 		await import('$lib/test-utils/mocks/MockCableDiagramEdge.svelte');
 	return { default: MockCableDiagramEdge };
 });
 
-vi.mock('./NetworkSchemaSearch.svelte', async () => {
+vi.mock('./components/NetworkSchemaSearch.svelte', async () => {
 	const { default: MockNetworkSchemaSearch } =
 		await import('$lib/test-utils/mocks/MockNetworkSchemaSearch.svelte');
 	return { default: MockNetworkSchemaSearch };
 });
 
-vi.mock('./ViewportPersistence.svelte', async () => {
+vi.mock('./components/ViewportPersistence.svelte', async () => {
 	const { default: MockViewportPersistence } =
 		await import('$lib/test-utils/mocks/MockViewportPersistence.svelte');
 	return { default: MockViewportPersistence };
 });
 
-vi.mock('./MicroductChoiceDialog.svelte', async () => {
+vi.mock('./components/MicroductChoiceDialog.svelte', async () => {
 	const { default: MockMicroductChoiceDialog } =
 		await import('$lib/test-utils/mocks/MockMicroductChoiceDialog.svelte');
 	return { default: MockMicroductChoiceDialog };

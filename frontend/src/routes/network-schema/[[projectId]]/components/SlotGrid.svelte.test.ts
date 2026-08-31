@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import SlotGridTestHarness from './SlotGridTestHarness.svelte';
+import SlotGridFixture from './SlotGrid.fixture.svelte';
 
 vi.mock('$lib/paraglide/messages', () => ({
 	m: new Proxy(
@@ -90,7 +90,7 @@ function makeStructureRow(slotNumber: number, structure: Record<string, unknown>
 
 /** `context` is a reserved testing-library render option, so props are nested. */
 function renderSlotGrid(props: Record<string, unknown>) {
-	return render(SlotGridTestHarness, { props });
+	return render(SlotGridFixture, { props });
 }
 
 afterEach(() => {

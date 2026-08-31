@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte';
 
-import CableDiagramEdgeTestHarness from './CableDiagramEdgeTestHarness.svelte';
+import CableDiagramEdgeFixture from './CableDiagramEdge.fixture.svelte';
 
 vi.mock('$app/environment', () => ({
 	browser: true
@@ -137,7 +137,7 @@ describe('CableDiagramEdge vertex handling', () => {
 		const schemaState = seededState([{ x: 100, y: 100 }]);
 		const saveSpy = vi.spyOn(schemaState, 'saveCablePath').mockResolvedValue();
 
-		const { container } = render(CableDiagramEdgeTestHarness, {
+		const { container } = render(CableDiagramEdgeFixture, {
 			edgeProps: buildProps([{ x: 100, y: 100 }]),
 			schemaState
 		});
@@ -155,7 +155,7 @@ describe('CableDiagramEdge vertex handling', () => {
 		const schemaState = seededState([{ x: 100, y: 100 }]);
 		const saveSpy = vi.spyOn(schemaState, 'saveCablePath').mockResolvedValue();
 
-		const { container } = render(CableDiagramEdgeTestHarness, {
+		const { container } = render(CableDiagramEdgeFixture, {
 			edgeProps: buildProps([{ x: 100, y: 100 }]),
 			schemaState
 		});

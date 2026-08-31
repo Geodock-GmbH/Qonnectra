@@ -29,11 +29,11 @@
 
 	import { onMount, setContext } from 'svelte';
 
-	import CableDiagramEdge from './CableDiagramEdge.svelte';
-	import CableDiagramNode from './CableDiagramNode.svelte';
-	import MicroductChoiceDialog from './MicroductChoiceDialog.svelte';
-	import NetworkSchemaSearch from './NetworkSchemaSearch.svelte';
-	import ViewportPersistence from './ViewportPersistence.svelte';
+	import CableDiagramEdge from './components/CableDiagramEdge.svelte';
+	import CableDiagramNode from './components/CableDiagramNode.svelte';
+	import MicroductChoiceDialog from './components/MicroductChoiceDialog.svelte';
+	import NetworkSchemaSearch from './components/NetworkSchemaSearch.svelte';
+	import ViewportPersistence from './components/ViewportPersistence.svelte';
 
 	let { data }: { data: PageData } = $props();
 

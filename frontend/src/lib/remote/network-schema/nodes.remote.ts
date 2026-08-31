@@ -2,7 +2,7 @@ import { query } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';
 
-import { djangoHeaders } from './_remote-auth';
+import { djangoHeaders } from './remote-auth';
 
 /**
  * Fetch a node's full detail record for the node-details drawer.

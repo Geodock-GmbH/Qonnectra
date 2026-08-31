@@ -14,17 +14,17 @@ const deleteCableLabel = vi.fn();
 const getCableDetails = vi.fn();
 const getNodeDetails = vi.fn();
 
-vi.mock('../../routes/network-schema/[[projectId]]/paths.remote', () => ({
+vi.mock('$lib/remote/network-schema/paths.remote', () => ({
 	saveCableGeometry: (...args: unknown[]) => saveCableGeometry(...args)
 }));
-vi.mock('../../routes/network-schema/[[projectId]]/labels.remote', () => ({
+vi.mock('$lib/remote/network-schema/labels.remote', () => ({
 	upsertCableLabel: (...args: unknown[]) => upsertCableLabel(...args),
 	deleteCableLabel: (...args: unknown[]) => deleteCableLabel(...args)
 }));
-vi.mock('../../routes/network-schema/[[projectId]]/cables.remote', () => ({
+vi.mock('$lib/remote/network-schema/cables.remote', () => ({
 	getCableDetails: (...args: unknown[]) => getCableDetails(...args)
 }));
-vi.mock('../../routes/network-schema/[[projectId]]/nodes.remote', () => ({
+vi.mock('$lib/remote/network-schema/nodes.remote', () => ({
 	getNodeDetails: (...args: unknown[]) => getNodeDetails(...args)
 }));
 

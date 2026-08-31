@@ -2,22 +2,22 @@ import '@testing-library/jest-dom/vitest';
 
 import { vi } from 'vitest';
 
-// The network-schema remote functions ($app/server query/command) can't load in
-// the jsdom unit-test SSR context (the SvelteKit remote plugin references
-// build-time path globals). Any component/class that imports them transitively
-// gets these inert stubs; tests that need to observe a call override with their
+// The remote functions ($app/server query/command) can't load in the jsdom
+// unit-test SSR context (the SvelteKit remote plugin references build-time
+// path globals). Any component/class that imports them transitively gets
+// these inert stubs; tests that need to observe a call override with their
 // own vi.mock in the test file.
-vi.mock('./src/routes/network-schema/[[projectId]]/paths.remote', () => ({
+vi.mock('$lib/remote/network-schema/paths.remote', () => ({
 	saveCableGeometry: vi.fn().mockResolvedValue({})
 }));
-vi.mock('./src/routes/network-schema/[[projectId]]/labels.remote', () => ({
+vi.mock('$lib/remote/network-schema/labels.remote', () => ({
 	upsertCableLabel: vi.fn().mockResolvedValue({ position_x: 0, position_y: 0, text: '', uuid: '' }),
 	deleteCableLabel: vi.fn().mockResolvedValue(undefined)
 }));
-vi.mock('./src/routes/network-schema/[[projectId]]/cables.remote', () => ({
+vi.mock('$lib/remote/network-schema/cables.remote', () => ({
 	getCableDetails: vi.fn().mockResolvedValue({})
 }));
-vi.mock('./src/routes/network-schema/[[projectId]]/nodes.remote', () => ({
+vi.mock('$lib/remote/network-schema/nodes.remote', () => ({
 	getNodeDetails: vi.fn().mockResolvedValue({})
 }));
 

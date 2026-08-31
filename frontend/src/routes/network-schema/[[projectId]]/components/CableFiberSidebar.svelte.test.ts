@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import Harness from './CableFiberSidebarTestHarness.svelte';
+import Fixture from './CableFiberSidebar.fixture.svelte';
 
 vi.mock('$app/environment', () => ({
 	browser: true
@@ -133,7 +133,7 @@ afterEach(() => {
 describe('CableFiberSidebar (desktop)', () => {
 	test('should fetch and render cables with fiber counts', async () => {
 		mockRoutes(defaultRoutes);
-		render(Harness, { nodeUuid: 'node-1' });
+		render(Fixture, { nodeUuid: 'node-1' });
 
 		expect(await screen.findByText('K-Nord')).toBeInTheDocument();
 		expect(screen.getByText('K-Süd')).toBeInTheDocument();
@@ -150,7 +150,7 @@ describe('CableFiberSidebar (desktop)', () => {
 			'?/getCablesAtNode': { type: 'success', data: { cables: [] } },
 			'?/getAddressesForNode': { type: 'success', data: { addresses: [] } }
 		});
-		render(Harness, { nodeUuid: 'node-1' });
+		render(Fixture, { nodeUuid: 'node-1' });
 
 		// Desktop empty state still lists the cables header plus the empty note.
 		expect(await screen.findByText('message_no_cables')).toBeInTheDocument();
@@ -159,7 +159,7 @@ describe('CableFiberSidebar (desktop)', () => {
 	test('should expand a cable and fetch its fibers grouped into bundles', async () => {
 		const user = userEvent.setup();
 		mockRoutes(defaultRoutes);
-		render(Harness, { nodeUuid: 'node-1' });
+		render(Fixture, { nodeUuid: 'node-1' });
 
 		await screen.findByText('K-Nord');
 		fetchMock.mockClear();
@@ -181,7 +181,7 @@ describe('CableFiberSidebar (desktop)', () => {
 
 	test('should render addresses section with residential unit counts', async () => {
 		mockRoutes(defaultRoutes);
-		render(Harness, { nodeUuid: 'node-1' });
+		render(Fixture, { nodeUuid: 'node-1' });
 
 		expect(await screen.findByText('Hauptstraße 5')).toBeInTheDocument();
 	});
@@ -189,7 +189,7 @@ describe('CableFiberSidebar (desktop)', () => {
 	test('should start a cable drag through the drag-drop manager', async () => {
 		mockRoutes(defaultRoutes);
 		const dragDropManager = makeDragDropManager();
-		render(Harness, {
+		render(Fixture, {
 			nodeUuid: 'node-1',
 			dragDropManager: dragDropManager as unknown as DragDropManager
 		});
@@ -206,7 +206,7 @@ describe('CableFiberSidebar (desktop)', () => {
 	test('should NOT start a drag when readonly', async () => {
 		mockRoutes(defaultRoutes);
 		const dragDropManager = makeDragDropManager();
-		render(Harness, {
+		render(Fixture, {
 			nodeUuid: 'node-1',
 			dragDropManager: dragDropManager as unknown as DragDropManager,
 			readonly: true
@@ -223,7 +223,7 @@ describe('CableFiberSidebar (desktop)', () => {
 	test('should collapse and re-expand the panel', async () => {
 		const user = userEvent.setup();
 		mockRoutes(defaultRoutes);
-		render(Harness, { nodeUuid: 'node-1' });
+		render(Fixture, { nodeUuid: 'node-1' });
 
 		await screen.findByText('K-Nord');
 
@@ -240,7 +240,7 @@ describe('CableFiberSidebar (mobile)', () => {
 		const user = userEvent.setup();
 		mockRoutes(defaultRoutes);
 		const dragDropManager = makeDragDropManager();
-		render(Harness, {
+		render(Fixture, {
 			nodeUuid: 'node-1',
 			isMobile: true,
 			dragDropManager: dragDropManager as unknown as DragDropManager
@@ -260,7 +260,7 @@ describe('CableFiberSidebar (mobile)', () => {
 		const user = userEvent.setup();
 		mockRoutes(defaultRoutes);
 		const dragDropManager = makeDragDropManager();
-		render(Harness, {
+		render(Fixture, {
 			nodeUuid: 'node-1',
 			isMobile: true,
 			readonly: true,

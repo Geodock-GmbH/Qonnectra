@@ -3,8 +3,8 @@ import { command } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';
 
-import { withCableLock } from './_cable-lock';
-import { djangoHeaders } from './_remote-auth';
+import { withCableLock } from './cable-lock';
+import { djangoHeaders } from './remote-auth';
 
 const UpsertLabelSchema = v.object({
 	cableId: v.pipe(v.string(), v.nonEmpty()),
@@ -58,14 +58,7 @@ async function patchLabel(
  */
 export const upsertCableLabel = command(
 	UpsertLabelSchema,
-	async (input: {
-		cableId: string;
-		positionX: number;
-		positionY: number;
-		text?: string;
-		order?: number;
-		labelId?: string;
-	}): Promise<EdgeLabelData> => {
+	async (input): Promise<EdgeLabelData> => {
 		const headers = djangoHeaders(true);
 		const text = input.text ?? 'Label';
 		const body = { text, position_x: input.positionX, position_y: input.positionY };
@@ -116,17 +109,14 @@ export const upsertCableLabel = command(
  * @param input.labelId - Label UUID to delete.
  * @throws When the backend rejects the delete.
  */
-export const deleteCableLabel = command(
-	DeleteLabelSchema,
-	async ({ labelId }: { labelId: string }) => {
-		const response = await fetch(`${API_URL}cable_label/${labelId}/`, {
-			method: 'DELETE',
-			headers: djangoHeaders()
-		});
+export const deleteCableLabel = command(DeleteLabelSchema, async ({ labelId }) => {
+	const response = await fetch(`${API_URL}cable_label/${labelId}/`, {
+		method: 'DELETE',
+		headers: djangoHeaders()
+	});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(errorData.detail || `HTTP ${response.status}: Failed to delete cable label`);
-		}
+	if (!response.ok) {
+		const errorData = await response.json().catch(() => ({}));
+		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to delete cable label`);
 	}
-);
+});

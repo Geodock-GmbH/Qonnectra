@@ -26,6 +26,7 @@
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
+	import { getSchemaState } from '$lib/context/networkSchemaContext';
 
 	import CableDiagramEdgeAttributeCard from './CableDiagramEdgeAttributeCard.svelte';
 	import CableDiagramEdgeHandleConfig from './CableDiagramEdgeHandleConfig.svelte';
@@ -33,7 +34,6 @@
 	import CableMicropipePanel from './CableMicropipePanel.svelte';
 	import NodeSlotConfigPanel from './NodeSlotConfigPanel.svelte';
 	import NodeStructurePanel from './NodeStructurePanel.svelte';
-	import { getCableDetails } from './cables.remote';
 
 	/** The drawer's props bag: a `type` discriminator, callbacks, and the feature's fields. */
 	interface DrawerTabsProps {
@@ -48,6 +48,7 @@
 	}
 
 	const attributeOptions = getContext<AttributeOptions>('attributeOptions');
+	const schemaState = getSchemaState();
 
 	const fiberDataManager = new CableFiberDataManager();
 
@@ -245,7 +246,7 @@
 		if (type !== 'edge' || !featureId) return;
 
 		try {
-			const parsedData = await getCableDetails(featureId);
+			const parsedData = await schemaState.loadCableDetails(featureId);
 			drawerStore.updateProps(parsedData);
 
 			const formData = new FormData();
