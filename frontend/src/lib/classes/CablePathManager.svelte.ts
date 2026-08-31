@@ -2,6 +2,7 @@ import { m } from '$lib/paraglide/messages';
 
 import { globalToaster } from '$lib/stores/toaster';
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
+import { trackPendingWrite } from '$lib/utils/pendingWrites';
 
 /**
  * Manages cable path geometry and handle configuration
@@ -41,10 +42,12 @@ export class CablePathManager {
 				formData.append('cableId', edgeId);
 				formData.append('diagram_path', JSON.stringify(waypoints));
 
-				const response = await fetch('?/saveCableGeometry', {
-					method: 'POST',
-					body: formData
-				});
+				const response = await trackPendingWrite(
+					fetch('?/saveCableGeometry', {
+						method: 'POST',
+						body: formData
+					})
+				);
 
 				const result = await response.json();
 
