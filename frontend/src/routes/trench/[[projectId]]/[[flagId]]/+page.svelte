@@ -315,9 +315,10 @@
 		if (mapState.olMap) mapState.olMap.addLayer(highlightLayer);
 
 		if (mapState.olMap) {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any -- OL's MapEventHandler
-			// intersection type breaks overload resolution for on('click', listener); the runtime
-			// contract (MapBrowserEvent<PointerEvent>) is correct and enforced on handleMapClick.
+			// OL's MapEventHandler intersection type breaks overload resolution for
+			// on('click', listener); the runtime contract (MapBrowserEvent<PointerEvent>)
+			// is correct and enforced on handleMapClick.
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			(mapState.olMap as any).on('click', handleMapClick);
 		}
 	}

@@ -2,19 +2,20 @@ import svelte from 'eslint-plugin-svelte';
 import tseslint from 'typescript-eslint';
 
 /**
- * Minimal flat ESLint config for the `any`-elimination metric.
+ * Minimal flat ESLint config enforcing the `any` ban.
  *
- * Its job right now is to surface `@typescript-eslint/no-explicit-any` as a
- * WARNING (not an error — CI must not break) across `.ts` and `.svelte`
- * sources, so the burndown has a machine-countable signal:
+ * `@typescript-eslint/no-explicit-any` is an ERROR: the 2026-08 burndown took
+ * production `any` from 568 to 0 (plus 3 justified, eslint-disabled cases with
+ * inline rationale — GenericCombobox's polymorphic `data`, NodeStructurePanel's
+ * string↔boolean `activeSheet`, the trench-page OL `on('click')` cast). Any new
+ * `any` needs the same disable-with-rationale treatment or a real type.
  *
  * ```
  * npm run lint:ts
  * ```
  *
- * Generated, vendored and test files are ignored so the count reflects
- * production code we intend to type. Flip the rule to `'error'` only once the
- * residual count is all justified (see plan task C8).
+ * Generated, vendored and test files are ignored so the rule targets
+ * production code.
  */
 export default tseslint.config(
 	{
@@ -39,7 +40,7 @@ export default tseslint.config(
 			}
 		},
 		rules: {
-			'@typescript-eslint/no-explicit-any': 'warn'
+			'@typescript-eslint/no-explicit-any': 'error'
 		}
 	},
 	{
