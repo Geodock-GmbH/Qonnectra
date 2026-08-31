@@ -2,8 +2,20 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { CableFiberDataManager } from './CableFiberDataManager.svelte';
 
-vi.mock('$app/forms', () => ({
-	deserialize: vi.fn((text: string) => JSON.parse(text))
+// Reads run through the fibers.remote module; mock it so the class's calls are
+// observable without a running server.
+const getFiberUsageInNode = vi.fn();
+const getUsedResidentialUnits = vi.fn();
+
+vi.mock('$lib/remote/network-schema/fibers.remote', () => ({
+	getCablesAtNode: vi.fn().mockResolvedValue([]),
+	getFibersForCable: vi.fn().mockResolvedValue([]),
+	getFiberColors: vi.fn().mockResolvedValue([]),
+	getFiberUsageInNode: (...a: unknown[]) => getFiberUsageInNode(...a),
+	getAddressesForNode: vi.fn().mockResolvedValue([]),
+	getUsedResidentialUnits: (...a: unknown[]) => getUsedResidentialUnits(...a),
+	getFiberStatusOptions: vi.fn().mockResolvedValue([]),
+	updateFiberStatus: vi.fn().mockResolvedValue(null)
 }));
 
 describe('CableFiberDataManager', () => {
@@ -13,6 +25,11 @@ describe('CableFiberDataManager', () => {
 		manager = new CableFiberDataManager();
 		manager.nodeUuid = 'node-1';
 		vi.restoreAllMocks();
+		getFiberUsageInNode.mockResolvedValue({ usedFiberUuids: [], fiberComponentMap: {} });
+		getUsedResidentialUnits.mockResolvedValue({
+			usedResidentialUnitUuids: [],
+			residentialUnitComponentMap: {}
+		});
 	});
 
 	describe('fiber component info', () => {
@@ -21,30 +38,23 @@ describe('CableFiberDataManager', () => {
 		});
 
 		test('getFiberComponentInfo returns component info after fetchFiberUsage', async () => {
-			const mockResponse = {
-				type: 'success',
-				data: {
-					usedFiberUuids: ['fiber-1', 'fiber-2'],
-					fiberComponentMap: {
-						'fiber-1': {
-							component_type: 'Spleißkassette',
-							slot_start: 6,
-							port_number: 1,
-							side: 'A'
-						},
-						'fiber-2': {
-							component_type: 'Splitter 1:8',
-							slot_start: 12,
-							port_number: 2,
-							side: 'B'
-						}
+			getFiberUsageInNode.mockResolvedValue({
+				usedFiberUuids: ['fiber-1', 'fiber-2'],
+				fiberComponentMap: {
+					'fiber-1': {
+						component_type: 'Spleißkassette',
+						slot_start: 6,
+						port_number: 1,
+						side: 'A'
+					},
+					'fiber-2': {
+						component_type: 'Splitter 1:8',
+						slot_start: 12,
+						port_number: 2,
+						side: 'B'
 					}
 				}
-			};
-
-			vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-				text: () => Promise.resolve(JSON.stringify(mockResponse))
-			} as unknown as Response);
+			});
 
 			await manager.fetchFiberUsage();
 
@@ -70,17 +80,10 @@ describe('CableFiberDataManager', () => {
 		});
 
 		test('getFiberComponentInfo returns null for used fiber without component info', async () => {
-			const mockResponse = {
-				type: 'success',
-				data: {
-					usedFiberUuids: ['fiber-1'],
-					fiberComponentMap: {}
-				}
-			};
-
-			vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-				text: () => Promise.resolve(JSON.stringify(mockResponse))
-			} as unknown as Response);
+			getFiberUsageInNode.mockResolvedValue({
+				usedFiberUuids: ['fiber-1'],
+				fiberComponentMap: {}
+			});
 
 			await manager.fetchFiberUsage();
 
@@ -88,17 +91,8 @@ describe('CableFiberDataManager', () => {
 			expect(manager.getFiberComponentInfo('fiber-1')).toBeNull();
 		});
 
-		test('fiberComponentMap is empty when no data returned', async () => {
-			const mockResponse = {
-				type: 'success',
-				data: {
-					usedFiberUuids: ['fiber-1']
-				}
-			};
-
-			vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-				text: () => Promise.resolve(JSON.stringify(mockResponse))
-			} as unknown as Response);
+		test('fiberComponentMap is empty when no map data returned', async () => {
+			getFiberUsageInNode.mockResolvedValue({ usedFiberUuids: ['fiber-1'], fiberComponentMap: {} });
 
 			await manager.fetchFiberUsage();
 
@@ -113,30 +107,23 @@ describe('CableFiberDataManager', () => {
 		});
 
 		test('getResidentialUnitComponentInfo returns component info after fetchResidentialUnitUsage', async () => {
-			const mockResponse = {
-				type: 'success',
-				data: {
-					used_uuids: ['ru-1', 'ru-2'],
-					residentialUnitComponentMap: {
-						'ru-1': {
-							component_type: 'Splitter 1:8',
-							slot_start: 5,
-							port_number: 3,
-							side: 'A'
-						},
-						'ru-2': {
-							component_type: 'GF-GV (4 WE)',
-							slot_start: 10,
-							port_number: 1,
-							side: 'B'
-						}
+			getUsedResidentialUnits.mockResolvedValue({
+				usedResidentialUnitUuids: ['ru-1', 'ru-2'],
+				residentialUnitComponentMap: {
+					'ru-1': {
+						component_type: 'Splitter 1:8',
+						slot_start: 5,
+						port_number: 3,
+						side: 'A'
+					},
+					'ru-2': {
+						component_type: 'GF-GV (4 WE)',
+						slot_start: 10,
+						port_number: 1,
+						side: 'B'
 					}
 				}
-			};
-
-			vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-				text: () => Promise.resolve(JSON.stringify(mockResponse))
-			} as unknown as Response);
+			});
 
 			await manager.fetchResidentialUnitUsage();
 
@@ -161,16 +148,10 @@ describe('CableFiberDataManager', () => {
 		});
 
 		test('residentialUnitComponentMap is empty when no map data returned', async () => {
-			const mockResponse = {
-				type: 'success',
-				data: {
-					used_uuids: ['ru-1']
-				}
-			};
-
-			vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-				text: () => Promise.resolve(JSON.stringify(mockResponse))
-			} as unknown as Response);
+			getUsedResidentialUnits.mockResolvedValue({
+				usedResidentialUnitUuids: ['ru-1'],
+				residentialUnitComponentMap: {}
+			});
 
 			await manager.fetchResidentialUnitUsage();
 
@@ -202,19 +183,12 @@ describe('CableFiberDataManager', () => {
 
 	describe('setNodeUuid resets component maps', () => {
 		test('component maps are cleared when node changes', async () => {
-			const mockResponse = {
-				type: 'success',
-				data: {
-					usedFiberUuids: ['fiber-1'],
-					fiberComponentMap: {
-						'fiber-1': { component_type: 'Test', slot_start: 1, port_number: 1, side: 'A' }
-					}
+			getFiberUsageInNode.mockResolvedValue({
+				usedFiberUuids: ['fiber-1'],
+				fiberComponentMap: {
+					'fiber-1': { component_type: 'Test', slot_start: 1, port_number: 1, side: 'A' }
 				}
-			};
-
-			vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-				text: () => Promise.resolve(JSON.stringify(mockResponse))
-			} as unknown as Response);
+			});
 
 			await manager.fetchFiberUsage();
 			expect(manager.getFiberComponentInfo('fiber-1')).not.toBeNull();
@@ -226,19 +200,12 @@ describe('CableFiberDataManager', () => {
 
 	describe('cleanup resets component maps', () => {
 		test('component maps are cleared on cleanup', async () => {
-			const mockResponse = {
-				type: 'success',
-				data: {
-					usedFiberUuids: ['fiber-1'],
-					fiberComponentMap: {
-						'fiber-1': { component_type: 'Test', slot_start: 1, port_number: 1, side: 'A' }
-					}
+			getFiberUsageInNode.mockResolvedValue({
+				usedFiberUuids: ['fiber-1'],
+				fiberComponentMap: {
+					'fiber-1': { component_type: 'Test', slot_start: 1, port_number: 1, side: 'A' }
 				}
-			};
-
-			vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-				text: () => Promise.resolve(JSON.stringify(mockResponse))
-			} as unknown as Response);
+			});
 
 			await manager.fetchFiberUsage();
 			expect(manager.getFiberComponentInfo('fiber-1')).not.toBeNull();

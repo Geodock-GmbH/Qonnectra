@@ -70,6 +70,18 @@ vi.mock('$lib/remote/network-schema/micropipes.remote', () => ({
 vi.mock('$lib/remote/network-schema/component-types.remote', () => ({
 	getComponentTypes: vi.fn(() => ({ current: [], loading: false, error: undefined }))
 }));
+vi.mock('$lib/remote/network-schema/fibers.remote', () => ({
+	getCablesAtNode: vi.fn().mockResolvedValue([]),
+	getFibersForCable: vi.fn().mockResolvedValue([]),
+	getFiberColors: vi.fn().mockResolvedValue([]),
+	getFiberUsageInNode: vi.fn().mockResolvedValue({ usedFiberUuids: [], fiberComponentMap: {} }),
+	getAddressesForNode: vi.fn().mockResolvedValue([]),
+	getUsedResidentialUnits: vi
+		.fn()
+		.mockResolvedValue({ usedResidentialUnitUuids: [], residentialUnitComponentMap: {} }),
+	getFiberStatusOptions: vi.fn().mockResolvedValue([]),
+	updateFiberStatus: vi.fn().mockResolvedValue(null)
+}));
 vi.mock('$lib/remote/network-schema/cable-connections.remote', () => ({
 	getCableSplicesAtNode: vi.fn().mockResolvedValue([]),
 	updateCableConnection: vi.fn().mockResolvedValue({}),

@@ -9,8 +9,24 @@ vi.mock('$app/environment', () => ({
 	browser: true
 }));
 
-vi.mock('$app/forms', () => ({
-	deserialize: vi.fn((text: string) => JSON.parse(text))
+// CableFiberDataManager reads through fibers.remote; mock it so the sidebar's
+// data is observable without a running server.
+const getCablesAtNode = vi.fn();
+const getFibersForCable = vi.fn();
+const getFiberColors = vi.fn();
+const getFiberUsageInNode = vi.fn();
+const getAddressesForNode = vi.fn();
+const getUsedResidentialUnits = vi.fn();
+
+vi.mock('$lib/remote/network-schema/fibers.remote', () => ({
+	getCablesAtNode: (...a: unknown[]) => getCablesAtNode(...a),
+	getFibersForCable: (...a: unknown[]) => getFibersForCable(...a),
+	getFiberColors: (...a: unknown[]) => getFiberColors(...a),
+	getFiberUsageInNode: (...a: unknown[]) => getFiberUsageInNode(...a),
+	getAddressesForNode: (...a: unknown[]) => getAddressesForNode(...a),
+	getUsedResidentialUnits: (...a: unknown[]) => getUsedResidentialUnits(...a),
+	getFiberStatusOptions: vi.fn().mockResolvedValue([]),
+	updateFiberStatus: vi.fn().mockResolvedValue(null)
 }));
 
 vi.mock('$lib/paraglide/messages', () => ({
@@ -21,8 +37,6 @@ vi.mock('$lib/paraglide/messages', () => ({
 		}
 	)
 }));
-
-const fetchMock = vi.fn();
 
 const cables = [
 	{ uuid: 'cab-1', name: 'K-Nord', direction: 'start', fiber_count: 12 },
@@ -64,33 +78,19 @@ const fiberColors = [
 ];
 
 /**
- * Stub the form-action responses keyed by URL. Any unlisted URL resolves to an
- * empty success result so the manager's fetches never reject.
+ * Seed the fibers.remote mocks with the default happy-path data.
  */
-function mockRoutes(routes: Record<string, unknown> = {}) {
-	fetchMock.mockImplementation((url: string) => {
-		const payload = routes[url] ?? { type: 'success', data: {} };
-		return Promise.resolve({
-			ok: true,
-			text: () => Promise.resolve(JSON.stringify(payload))
-		});
+function seedDefaults() {
+	getCablesAtNode.mockResolvedValue(cables);
+	getFibersForCable.mockResolvedValue(fibers);
+	getFiberColors.mockResolvedValue(fiberColors);
+	getAddressesForNode.mockResolvedValue(addresses);
+	getFiberUsageInNode.mockResolvedValue({ usedFiberUuids: [], fiberComponentMap: {} });
+	getUsedResidentialUnits.mockResolvedValue({
+		usedResidentialUnitUuids: [],
+		residentialUnitComponentMap: {}
 	});
 }
-
-const defaultRoutes = {
-	'?/getCablesAtNode': { type: 'success', data: { cables } },
-	'?/getFibersForCable': { type: 'success', data: { fibers } },
-	'?/getFiberColors': { type: 'success', data: { fiberColors } },
-	'?/getAddressesForNode': { type: 'success', data: { addresses } },
-	'?/getFiberUsageInNode': {
-		type: 'success',
-		data: { usedFiberUuids: [], fiberComponentMap: {} }
-	},
-	'?/getUsedResidentialUnits': {
-		type: 'success',
-		data: { used_uuids: [], residentialUnitComponentMap: {} }
-	}
-};
 
 /**
  * Build a minimal drag-drop manager stub exposing every method the sidebar calls.
@@ -120,36 +120,35 @@ function fireDragStart(el: HTMLElement) {
 }
 
 beforeEach(() => {
-	vi.stubGlobal('fetch', fetchMock);
 	vi.spyOn(console, 'error').mockImplementation(() => {});
+	seedDefaults();
 });
 
 afterEach(() => {
-	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
-	fetchMock.mockReset();
+	[
+		getCablesAtNode,
+		getFibersForCable,
+		getFiberColors,
+		getFiberUsageInNode,
+		getAddressesForNode,
+		getUsedResidentialUnits
+	].forEach((fn) => fn.mockReset());
 });
 
 describe('CableFiberSidebar (desktop)', () => {
 	test('should fetch and render cables with fiber counts', async () => {
-		mockRoutes(defaultRoutes);
 		render(Fixture, { nodeUuid: 'node-1' });
 
 		expect(await screen.findByText('K-Nord')).toBeInTheDocument();
 		expect(screen.getByText('K-Süd')).toBeInTheDocument();
 
-		const getCall = fetchMock.mock.calls.find(([url]) => url === '?/getCablesAtNode');
-		expect(getCall).toBeTruthy();
-		const body = getCall![1].body as FormData;
-		expect(body.get('nodeUuid')).toBe('node-1');
+		expect(getCablesAtNode).toHaveBeenCalledWith('node-1');
 	});
 
 	test('should show the empty message when there are no cables or addresses', async () => {
-		mockRoutes({
-			...defaultRoutes,
-			'?/getCablesAtNode': { type: 'success', data: { cables: [] } },
-			'?/getAddressesForNode': { type: 'success', data: { addresses: [] } }
-		});
+		getCablesAtNode.mockResolvedValue([]);
+		getAddressesForNode.mockResolvedValue([]);
 		render(Fixture, { nodeUuid: 'node-1' });
 
 		// Desktop empty state still lists the cables header plus the empty note.
@@ -158,36 +157,29 @@ describe('CableFiberSidebar (desktop)', () => {
 
 	test('should expand a cable and fetch its fibers grouped into bundles', async () => {
 		const user = userEvent.setup();
-		mockRoutes(defaultRoutes);
 		render(Fixture, { nodeUuid: 'node-1' });
 
 		await screen.findByText('K-Nord');
-		fetchMock.mockClear();
+		getFibersForCable.mockClear();
 
 		// The first cable row (role="button") holds the chevron toggle button.
 		const cableRow = screen.getAllByText('K-Nord')[0].closest('[role="button"]') as HTMLElement;
 		const toggle = cableRow.querySelector('button') as HTMLButtonElement;
 		await user.click(toggle);
 
-		await vi.waitFor(() => {
-			const call = fetchMock.mock.calls.find(([url]) => url === '?/getFibersForCable');
-			expect(call).toBeTruthy();
-			expect((call![1].body as FormData).get('cableUuid')).toBe('cab-1');
-		});
+		await vi.waitFor(() => expect(getFibersForCable).toHaveBeenCalledWith('cab-1'));
 
 		// A single bundle (bundle 1) groups both fibers; label reads "form_bundle 1".
 		expect(await screen.findByText('form_bundle 1')).toBeInTheDocument();
 	});
 
 	test('should render addresses section with residential unit counts', async () => {
-		mockRoutes(defaultRoutes);
 		render(Fixture, { nodeUuid: 'node-1' });
 
 		expect(await screen.findByText('Hauptstraße 5')).toBeInTheDocument();
 	});
 
 	test('should start a cable drag through the drag-drop manager', async () => {
-		mockRoutes(defaultRoutes);
 		const dragDropManager = makeDragDropManager();
 		render(Fixture, {
 			nodeUuid: 'node-1',
@@ -204,7 +196,6 @@ describe('CableFiberSidebar (desktop)', () => {
 	});
 
 	test('should NOT start a drag when readonly', async () => {
-		mockRoutes(defaultRoutes);
 		const dragDropManager = makeDragDropManager();
 		render(Fixture, {
 			nodeUuid: 'node-1',
@@ -222,7 +213,6 @@ describe('CableFiberSidebar (desktop)', () => {
 
 	test('should collapse and re-expand the panel', async () => {
 		const user = userEvent.setup();
-		mockRoutes(defaultRoutes);
 		render(Fixture, { nodeUuid: 'node-1' });
 
 		await screen.findByText('K-Nord');
@@ -238,7 +228,6 @@ describe('CableFiberSidebar (desktop)', () => {
 describe('CableFiberSidebar (mobile)', () => {
 	test('should render cables and select a fiber on tap', async () => {
 		const user = userEvent.setup();
-		mockRoutes(defaultRoutes);
 		const dragDropManager = makeDragDropManager();
 		render(Fixture, {
 			nodeUuid: 'node-1',
@@ -258,7 +247,6 @@ describe('CableFiberSidebar (mobile)', () => {
 
 	test('should not select a fiber on tap when readonly', async () => {
 		const user = userEvent.setup();
-		mockRoutes(defaultRoutes);
 		const dragDropManager = makeDragDropManager();
 		render(Fixture, {
 			nodeUuid: 'node-1',

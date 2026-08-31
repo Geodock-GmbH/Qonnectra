@@ -128,17 +128,6 @@ describe('+page.server.js actions', () => {
 		});
 	});
 
-	describe('getCablesAtNode', () => {
-		test('returns cables at node', async () => {
-			mockFetch.mockResolvedValueOnce(okJson([{ uuid: 'cab-1' }]));
-
-			const result = await runAction('getCablesAtNode', [['nodeUuid', 'node-x']]);
-
-			expect(result.cables).toEqual([{ uuid: 'cab-1' }]);
-			expect(mockFetch.mock.calls[0][0]).toBe('http://localhost:8000/cable/at-node/node-x/');
-		});
-	});
-
 	describe('getFibersForCable', () => {
 		test('returns fibers for cable', async () => {
 			mockFetch.mockResolvedValueOnce(okJson([{ uuid: 'fib-1' }]));
@@ -183,54 +172,6 @@ describe('+page.server.js actions', () => {
 			expect(result.splices).toEqual([{ uuid: 'sp-1' }]);
 			expect(mockFetch.mock.calls[0][0]).toBe(
 				'http://localhost:8000/fiber-splice/?node_structure=ns-1'
-			);
-		});
-	});
-
-	describe('getFiberUsageInNode', () => {
-		test('maps used fiber uuids and component map', async () => {
-			mockFetch.mockResolvedValueOnce(
-				okJson({
-					used_uuids: ['f-1', 'f-2'],
-					fiber_component_map: { 'f-1': { component_label: 'C1' } }
-				})
-			);
-
-			const result = await runAction('getFiberUsageInNode', [['nodeUuid', 'node-1']]);
-
-			expect(result.usedFiberUuids).toEqual(['f-1', 'f-2']);
-			expect((result.fiberComponentMap as Record<string, unknown>)['f-1']).toEqual({
-				component_label: 'C1'
-			});
-			expect(mockFetch.mock.calls[0][0]).toBe('http://localhost:8000/node/node-1/used-fibers/');
-		});
-	});
-
-	describe('getAddressesForNode', () => {
-		test('returns addresses list', async () => {
-			mockFetch.mockResolvedValueOnce(okJson({ addresses: [{ uuid: 'addr-1' }] }));
-
-			const result = await runAction('getAddressesForNode', [['nodeUuid', 'node-1']]);
-
-			expect(result.addresses).toEqual([{ uuid: 'addr-1' }]);
-			expect(mockFetch.mock.calls[0][0]).toBe('http://localhost:8000/node/node-1/addresses/');
-		});
-	});
-
-	describe('getUsedResidentialUnits', () => {
-		test('returns used residential unit uuids', async () => {
-			mockFetch.mockResolvedValueOnce(
-				okJson({
-					used_uuids: ['ru-1'],
-					residential_unit_component_map: { 'ru-1': { component_label: 'C2' } }
-				})
-			);
-
-			const result = await runAction('getUsedResidentialUnits', [['nodeUuid', 'node-1']]);
-
-			expect(result.used_uuids).toEqual(['ru-1']);
-			expect(mockFetch.mock.calls[0][0]).toBe(
-				'http://localhost:8000/node/node-1/used-residential-units/'
 			);
 		});
 	});
@@ -673,63 +614,6 @@ describe('+page.server.js actions', () => {
 				['side', 'a'],
 				['fibers', JSON.stringify([])]
 			]);
-
-			expect(result.status).toBe(400);
-			expect(mockFetch).not.toHaveBeenCalled();
-		});
-	});
-	// ---------------------------------------------------------------------------
-	// getFiberStatusOptions / updateFiberStatus
-	// ---------------------------------------------------------------------------
-
-	describe('getFiberStatusOptions', () => {
-		test('returns raw status options', async () => {
-			mockFetch.mockResolvedValueOnce(okJson([{ id: 1, name: 'active' }]));
-
-			const result = (await runAction('getFiberStatusOptions')) as unknown as unknown[];
-
-			expect(result).toEqual([{ id: 1, name: 'active' }]);
-			expect(mockFetch.mock.calls[0][0]).toBe('http://localhost:8000/attributes_fiber_status/');
-		});
-
-		test('propagates API failure', async () => {
-			mockFetch.mockResolvedValueOnce({ ok: false, status: 503, json: () => Promise.resolve({}) });
-
-			const result = await runAction('getFiberStatusOptions');
-
-			expect(result.status).toBe(503);
-		});
-	});
-
-	describe('updateFiberStatus', () => {
-		test('patches fiber status with numeric id', async () => {
-			mockFetch.mockResolvedValueOnce(okJson({ uuid: 'fib-1', fiber_status_id: 2 }));
-
-			const result = await runAction('updateFiberStatus', [
-				['uuid', 'fib-1'],
-				['fiber_status_id', '2']
-			]);
-
-			expect((result as Record<string, unknown>).fiber_status_id).toBe(2);
-			const call = mockFetch.mock.calls[0];
-			expect(call[0]).toBe('http://localhost:8000/fiber/fib-1/');
-			expect(call[1].method).toBe('PATCH');
-			expect(JSON.parse(call[1].body).fiber_status_id).toBe(2);
-		});
-
-		test('sends null when status id is the string "null"', async () => {
-			mockFetch.mockResolvedValueOnce(okJson({ uuid: 'fib-1', fiber_status_id: null }));
-
-			await runAction('updateFiberStatus', [
-				['uuid', 'fib-1'],
-				['fiber_status_id', 'null']
-			]);
-
-			expect(JSON.parse(mockFetch.mock.calls[0][1].body).fiber_status_id).toBeNull();
-		});
-
-		test('returns 400 when uuid missing', async () => {
-			const result = await runAction('updateFiberStatus', [['fiber_status_id', '2']]);
 
 			expect(result.status).toBe(400);
 			expect(mockFetch).not.toHaveBeenCalled();
