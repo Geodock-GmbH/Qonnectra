@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalToaster } from '$lib/stores/toaster';
+import { fireBeforeUnload } from '$lib/test-utils/fireBeforeUnload';
 
 import { CablePathManager } from './CablePathManager.svelte';
 
@@ -91,6 +92,24 @@ describe('updatePath', () => {
 		await manager.updatePath('edge-1', waypoints, false, true, vi.fn());
 
 		expect(globalToaster.error).toHaveBeenCalled();
+	});
+
+	test('should block unload while the save request is in flight', async () => {
+		let resolveFetch!: (value: unknown) => void;
+		fetchMock.mockReturnValue(new Promise((resolve) => (resolveFetch = resolve)));
+
+		const manager = new CablePathManager();
+		const pending = manager.updatePath('edge-1', waypoints, false, true, vi.fn());
+
+		expect(fireBeforeUnload()).toBe(true);
+
+		resolveFetch({
+			ok: true,
+			json: () => Promise.resolve({ type: 'success' })
+		});
+		await pending;
+
+		expect(fireBeforeUnload()).toBe(false);
 	});
 });
 

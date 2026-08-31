@@ -34,7 +34,7 @@
 		defaultX: number;
 		defaultY: number;
 		onPositionUpdate?: (data: { labelId?: string; x: number; y: number; text?: string }) => void;
-		onLabelReset?: (labelId: string) => void;
+		onLabelReset?: (labelId: string) => boolean | Promise<boolean>;
 		onEdgeDelete?: unknown;
 		onEdgeSelect?: (edgeId: string) => void;
 		selected?: boolean;
@@ -97,6 +97,11 @@
 	 * @param event - The mouse event
 	 */
 	function handleLongPressStart(event: MouseEvent) {
+		// A Shift+Click is a reset gesture; starting the long-press here would
+		// flip into move mode on a slow click and re-save the label instead.
+		if (event.shiftKey) {
+			return;
+		}
 		if (longPressTimer) {
 			clearTimeout(longPressTimer);
 		}
@@ -214,13 +219,20 @@
 			return;
 		}
 
-		// Shift+Click to reset label position
-		if (shiftPressed && labelData?.uuid && onLabelReset) {
+		// Shift+Click to reset label position. The event's own modifier is
+		// authoritative; the tracked shiftPressed state can go stale when the
+		// keydown happened while focus was outside the window.
+		if (event.shiftKey && labelData?.uuid && onLabelReset) {
 			event.preventDefault();
 			event.stopPropagation();
-			// Reset local position immediately for instant feedback
+			// Reset local position immediately for instant feedback, but roll
+			// back if the delete does not persist so the UI never lies.
+			const previousPosition = position;
 			position = { x: defaultX, y: defaultY };
-			onLabelReset(labelData.uuid);
+			const persisted = await onLabelReset(labelData.uuid);
+			if (persisted === false) {
+				position = previousPosition;
+			}
 			return;
 		}
 

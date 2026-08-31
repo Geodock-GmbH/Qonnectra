@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -150,6 +150,83 @@ describe('DynamicEdgeLabel', () => {
 		expect(onLabelReset).toHaveBeenCalledWith('label-1');
 		// A reset short-circuits before any cable fetch.
 		expect(fetchMock.mock.calls.find(([url]) => url === '?/getCables')).toBeUndefined();
+	});
+
+	test('should reset on Shift+Click even when the Shift keydown was never observed', async () => {
+		const onLabelReset = vi.fn();
+
+		render(DynamicEdgeLabel, { ...baseProps, onLabelReset });
+
+		const button = screen.getByRole('button', { name: /tooltip_open_cable_details/ });
+
+		// No keyboard events fired: Shift was pressed while focus was elsewhere,
+		// so only the click event itself carries the modifier.
+		await fireEvent.click(button, { shiftKey: true });
+
+		expect(onLabelReset).toHaveBeenCalledWith('label-1');
+		expect(fetchMock.mock.calls.find(([url]) => url === '?/getCables')).toBeUndefined();
+	});
+
+	test('should roll the label position back when the reset fails to persist', async () => {
+		let resolveReset!: (value: boolean) => void;
+		const onLabelReset = vi.fn(() => new Promise<boolean>((resolve) => (resolveReset = resolve)));
+
+		const { container } = render(DynamicEdgeLabel, { ...baseProps, onLabelReset });
+
+		const foreignObject = container.querySelector('foreignObject');
+		// Rendered at the stored label position (position_y 50 - 12 offset).
+		expect(foreignObject?.getAttribute('y')).toBe('38');
+
+		await fireEvent.click(screen.getByRole('button', { name: /tooltip_open_cable_details/ }), {
+			shiftKey: true
+		});
+
+		// Optimistically moved to the default position (defaultY 80 - 12 offset).
+		expect(foreignObject?.getAttribute('y')).toBe('68');
+
+		resolveReset(false);
+		await vi.waitFor(() => expect(foreignObject?.getAttribute('y')).toBe('38'));
+	});
+
+	test('should keep the reset position when the reset persists', async () => {
+		const onLabelReset = vi.fn().mockResolvedValue(true);
+
+		const { container } = render(DynamicEdgeLabel, { ...baseProps, onLabelReset });
+
+		await fireEvent.click(screen.getByRole('button', { name: /tooltip_open_cable_details/ }), {
+			shiftKey: true
+		});
+
+		const foreignObject = container.querySelector('foreignObject');
+		await vi.waitFor(() => expect(foreignObject?.getAttribute('y')).toBe('68'));
+	});
+
+	test('should reset instead of entering move mode when a Shift+Click is held past the long-press delay', async () => {
+		vi.useFakeTimers();
+		try {
+			const onPositionUpdate = vi.fn();
+			const onLabelReset = vi.fn().mockResolvedValue(true);
+
+			const { container } = render(DynamicEdgeLabel, {
+				...baseProps,
+				onPositionUpdate,
+				onLabelReset
+			});
+
+			const foreignObject = container.querySelector('foreignObject')!;
+
+			await fireEvent.mouseDown(foreignObject, { shiftKey: true });
+			vi.advanceTimersByTime(600);
+			await fireEvent.mouseUp(foreignObject, { shiftKey: true });
+			await fireEvent.click(screen.getByRole('button', { name: /tooltip/ }), {
+				shiftKey: true
+			});
+
+			expect(onPositionUpdate).not.toHaveBeenCalled();
+			expect(onLabelReset).toHaveBeenCalledWith('label-1');
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	test('should open the drawer on Enter keydown for accessibility', async () => {

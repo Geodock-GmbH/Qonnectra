@@ -19,6 +19,7 @@
 		snapToGrid
 	} from '$lib/utils/edgeGeometry';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
+	import { trackPendingWrite } from '$lib/utils/pendingWrites';
 
 	import DynamicEdgeLabel from './DynamicEdgeLabel.svelte';
 
@@ -123,22 +124,25 @@
 	/**
 	 * Handle label reset - deletes the label entry from database
 	 * @param labelId - The UUID of the label to delete
+	 * @returns Whether the delete persisted, so the label can roll back on failure
 	 */
-	async function handleLabelReset(labelId: string) {
-		if (!labelId) return;
+	async function handleLabelReset(labelId: string): Promise<boolean> {
+		if (!labelId) return false;
 
 		try {
 			const formData = new FormData();
 			formData.append('labelId', labelId);
 
-			const response = await fetch('?/deleteCableLabel', {
-				method: 'POST',
-				body: formData
-			});
+			const response = await trackPendingWrite(
+				fetch('?/deleteCableLabel', {
+					method: 'POST',
+					body: formData
+				})
+			);
 
 			const result = await response.json();
 
-			if (result.type === 'success' || response.ok) {
+			if (result.type === 'success' && response.ok) {
 				// Clear labelData so label uses default position
 				labelData = null;
 				// Dispatch event to update parent state
@@ -147,13 +151,15 @@
 						detail: { edgeId: id, labelData: null }
 					})
 				);
-			} else {
-				console.error('Failed to reset label:', result.message);
-				globalToaster.error({
-					title: m.common_error(),
-					description: result.message || m.message_error_saving_cable_label()
-				});
+				return true;
 			}
+
+			console.error('Failed to reset label:', result.message);
+			globalToaster.error({
+				title: m.common_error(),
+				description: result.message || m.message_error_saving_cable_label()
+			});
+			return false;
 		} catch (error) {
 			console.error('Failed to reset label:', error);
 			void logToBackendClient({
@@ -169,6 +175,7 @@
 				title: m.common_error(),
 				description: m.message_error_saving_cable_label()
 			});
+			return false;
 		}
 	}
 
@@ -196,10 +203,12 @@
 				formData.append('labelId', positionData.labelId);
 			}
 
-			const response = await fetch('?/updateCableLabel', {
-				method: 'POST',
-				body: formData
-			});
+			const response = await trackPendingWrite(
+				fetch('?/updateCableLabel', {
+					method: 'POST',
+					body: formData
+				})
+			);
 
 			const result = await response.json();
 
@@ -246,6 +255,10 @@
 	let draggingVertexIndex = $state<number | null>(null);
 	let edgeHovered = $state(false);
 	let svgElement = $state<SVGSVGElement | null>(null);
+	// Latest waypoints produced during the current drag. The mouseup save must
+	// use these instead of the props, which may not have round-tripped through
+	// the parent state yet when the drag ends.
+	let dragWaypoints: Waypoint[] | null = null;
 	let shiftPressed = $state(false);
 	let hoveredVertexIndex = $state<number | null>(null);
 
@@ -352,7 +365,10 @@
 		event.stopPropagation();
 		event.preventDefault();
 
-		if (shiftPressed) {
+		// The event's own modifier is authoritative; the tracked shiftPressed
+		// state can go stale when the keydown happened while focus was
+		// outside the window.
+		if (event.shiftKey) {
 			deleteVertex(index);
 			return;
 		}
@@ -407,8 +423,9 @@
 			}, 200);
 		}
 
-		const waypoints = [...(data?.cable?.diagram_path || [])];
+		const waypoints = [...(dragWaypoints ?? data?.cable?.diagram_path ?? [])];
 		waypoints[draggingVertexIndex] = snappedPosition;
+		dragWaypoints = waypoints;
 
 		window.dispatchEvent(
 			new CustomEvent('updateCablePath', {
@@ -424,11 +441,16 @@
 		if (draggingVertexIndex !== null) {
 			window.dispatchEvent(
 				new CustomEvent('updateCablePath', {
-					detail: { edgeId: id, waypoints: data?.cable?.diagram_path, save: true }
+					detail: {
+						edgeId: id,
+						waypoints: dragWaypoints ?? data?.cable?.diagram_path,
+						save: true
+					}
 				})
 			);
 		}
 		draggingVertexIndex = null;
+		dragWaypoints = null;
 		svgElement = null;
 
 		window.removeEventListener('mousemove', handleWindowMouseMove);
