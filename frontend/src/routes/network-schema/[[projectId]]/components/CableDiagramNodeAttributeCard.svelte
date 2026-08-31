@@ -1,25 +1,21 @@
 <script lang="ts">
-	import type { ActionResult } from '@sveltejs/kit';
-	import type {
-		AttributeOptions,
-		ComboboxOption,
-		FkRef,
-		NodeDrawerProps
-	} from '$lib/types/attributeCardTypes';
+	import type { AttributeOptions, NodeDrawerProps } from '$lib/types/attributeCardTypes';
 	import { getContext } from 'svelte';
-	import { deserialize } from '$app/forms';
 	import { page } from '$app/stores';
 
 	import { m } from '$lib/paraglide/messages';
 
-	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
-	import VirtualCombobox from '$lib/components/VirtualCombobox.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { actionData } from '$lib/utils/forms';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
+	import {
+		deleteNode as deleteNodeCommand,
+		getNodeDependencies
+	} from '$lib/remote/network-schema/nodes.remote';
+
+	import NodeAttributeForm from './NodeAttributeForm.svelte';
 
 	const attributes = getContext<AttributeOptions>('attributeOptions') || {
 		nodeTypes: [],
@@ -35,20 +31,7 @@
 
 	let node = $derived($drawerStore.props as NodeDrawerProps | undefined);
 	let id = $derived(node?.id || '');
-	let nodeName = $state('');
-	let nodeType = $state<string[]>([]);
-	let nodeStatus = $state<string[]>([]);
-	let nodeNetworkLevel = $state<string[]>([]);
-	let nodeOwner = $state<string[]>([]);
-	let nodeConstructor = $state<string[]>([]);
-	let nodeManufacturer = $state<string[]>([]);
-	let nodeWarranty = $state('');
-	let nodeDate = $state('');
-	let nodeFlag = $state<string[]>([]);
-	let nodeParentNode = $state('');
-	const availableNodes = $derived(
-		(attributes.parentNodeOptions || []).filter((n: ComboboxOption) => n.value !== id)
-	);
+	const projectId = $derived($page.params.projectId as string | undefined);
 
 	let {
 		onLabelUpdate,
@@ -57,14 +40,17 @@
 
 	let deleteMessageBox = $state<ReturnType<typeof MessageBox> | null>(null);
 	let cableBlockedMessageBox = $state<ReturnType<typeof MessageBox> | null>(null);
-	let pendingDeleteCableCount = $state(0);
-	let pendingDeleteStructureCount = $state(0);
-	let hasConnectedCables = $state(false);
-	let hasChildren = $state(false);
-	let hasChildrenWithCables = $state(false);
-	let isCheckingDependencies = $state(false);
 
-	let lastCheckedNodeId = $state('');
+	// The dependency query re-runs whenever the node id changes; its reactive
+	// `.current` lets the form render immediately while the flags settle. Empty
+	// while loading (or between nodes) so nothing is spuriously locked.
+	const dependencies = $derived(id ? getNodeDependencies({ nodeId: id, projectId }) : undefined);
+	const isCheckingDependencies = $derived(dependencies?.loading ?? false);
+	const hasConnectedCables = $derived(dependencies?.current?.hasCables ?? false);
+	const hasChildren = $derived(dependencies?.current?.hasChildren ?? false);
+	const hasChildrenWithCables = $derived(dependencies?.current?.hasChildrenWithCables ?? false);
+	const pendingDeleteCableCount = $derived(dependencies?.current?.cables.length ?? 0);
+	const pendingDeleteStructureCount = $derived(dependencies?.current?.structures.length ?? 0);
 
 	/** Disabled when node has both children and cables, as changing type would break the hierarchy. */
 	const nodeTypeDisabled = $derived(isCheckingDependencies || (hasChildren && hasConnectedCables));
@@ -73,221 +59,27 @@
 		isChildView && (isCheckingDependencies || hasConnectedCables)
 	);
 
-	/**
-	 * Check dependencies when node changes (cables, structures, children)
-	 */
-	async function checkNodeDependencies(nodeId: string) {
-		if (!nodeId) return;
-
-		isCheckingDependencies = true;
-		lastCheckedNodeId = nodeId;
-
-		try {
-			const formData = new FormData();
-			formData.append('nodeUuid', nodeId);
-
-			const response = await fetch('?/getNodeDependencies', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text()) as ActionResult;
-			const data = actionData(result);
-			const cables = (data?.cables as unknown[]) || [];
-			const structures = (data?.structures as unknown[]) || [];
-			const children = (data?.children as unknown[]) || [];
-			const childrenWithCables = (data?.childrenWithCables as unknown[]) || [];
-
-			// Only update state if this is still the current node
-			if (lastCheckedNodeId === nodeId) {
-				pendingDeleteCableCount = cables.length;
-				pendingDeleteStructureCount = structures.length;
-				hasConnectedCables = cables.length > 0;
-				hasChildren = children.length > 0;
-				hasChildrenWithCables = childrenWithCables.length > 0;
-			}
-		} catch (err) {
-			console.error('Error checking dependencies:', err);
-			void logToBackendClient({
-				level: 'ERROR',
-				message: 'Error checking dependencies',
-				extraData: {
-					from: 'CableDiagramNodeAttributeCard.checkNodeDependencies',
-					error: err instanceof Error ? err.message : String(err),
-					stack: err instanceof Error ? err.stack : undefined
-				}
-			});
-			if (lastCheckedNodeId === nodeId) {
-				hasConnectedCables = false;
-				hasChildren = false;
-				hasChildrenWithCables = false;
-			}
-		} finally {
-			if (lastCheckedNodeId === nodeId) {
-				isCheckingDependencies = false;
-			}
-		}
-	}
-
-	$effect(() => {
-		if (id) {
-			pendingDeleteCableCount = 0;
-			pendingDeleteStructureCount = 0;
-			hasConnectedCables = false;
-			hasChildren = false;
-			hasChildrenWithCables = false;
-			checkNodeDependencies(id);
-		}
-	});
-
-	$effect(() => {
-		if (node) {
-			nodeName = node.name || '';
-			nodeType = node.node_type?.id != null ? [String(node.node_type.id)] : [];
-			nodeStatus = node.status?.id != null ? [String(node.status.id)] : [];
-			nodeNetworkLevel = node.network_level?.id != null ? [String(node.network_level.id)] : [];
-			nodeOwner = node.owner?.id != null ? [String(node.owner.id)] : [];
-			const nodeConstructorRef = node.constructor as FkRef | null | undefined;
-			nodeConstructor = nodeConstructorRef?.id != null ? [String(nodeConstructorRef.id)] : [];
-			nodeManufacturer = node.manufacturer?.id != null ? [String(node.manufacturer.id)] : [];
-			nodeWarranty = node.warranty || '';
-			nodeDate = node.date || '';
-			nodeFlag = node.flag?.id != null ? [String(node.flag.id)] : [];
-			nodeParentNode = node.parent_node?.uuid ?? '';
-		}
-	});
-
-	async function handleSubmit(event: SubmitEvent) {
-		event.preventDefault();
-		const formData = new FormData(event.target as HTMLFormElement);
-		formData.append('uuid', id);
-		formData.append('node_type_id', nodeType?.[0] || '');
-		formData.append('status_id', nodeStatus?.[0] || '');
-		formData.append('network_level_id', nodeNetworkLevel?.[0] || '');
-		formData.append('owner_id', nodeOwner?.[0] || '');
-		formData.append('constructor_id', nodeConstructor?.[0] || '');
-		formData.append('manufacturer_id', nodeManufacturer?.[0] || '');
-		formData.append('flag_id', nodeFlag?.[0] || '');
-		formData.append('parent_node_id', nodeParentNode || '');
-
-		try {
-			const response = await fetch('?/updateNode', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure') {
-				globalToaster.error({
-					title: m.common_error(),
-					description: m.message_error_updating_node()
-				});
-				return;
-			}
-
-			if (result.type === 'error') {
-				const errorMessage = result.error?.message;
-				globalToaster.error({
-					title: m.common_error(),
-					description: m.message_error_updating_node()
-				});
-				return;
-			}
-
-			globalToaster.success({
-				title: m.title_success(),
-				description: m.message_success_updating_node()
-			});
-			if (onLabelUpdate && nodeName) {
-				onLabelUpdate(nodeName);
-			}
-		} catch (error) {
-			console.error('Error updating node:', error);
-			void logToBackendClient({
-				level: 'ERROR',
-				message: 'Error updating node',
-				extraData: {
-					from: 'CableDiagramNodeAttributeCard.handleSubmit',
-					error: error instanceof Error ? error.message : String(error),
-					stack: error instanceof Error ? error.stack : undefined
-				}
-			});
-			globalToaster.error({
-				title: m.message_error_updating_node()
-			});
-		}
-	}
-
-	async function confirmDelete() {
+	function confirmDelete() {
 		if (!id) return;
-
-		try {
-			const formData = new FormData();
-			formData.append('nodeUuid', id);
-
-			const response = await fetch('?/getNodeDependencies', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text()) as ActionResult;
-			const data = actionData(result);
-			const cables = (data?.cables as unknown[]) || [];
-			const structures = (data?.structures as unknown[]) || [];
-
-			pendingDeleteCableCount = cables.length;
-			pendingDeleteStructureCount = structures.length;
-
-			if (cables.length > 0) {
-				cableBlockedMessageBox?.open();
-				return;
-			}
-
-			deleteMessageBox?.open();
-		} catch (err) {
-			console.error('Error checking dependencies:', err);
-			void logToBackendClient({
-				level: 'ERROR',
-				message: 'Error checking dependencies',
-				extraData: {
-					from: 'CableDiagramNodeAttributeCard.confirmDelete',
-					error: err instanceof Error ? err.message : String(err),
-					stack: err instanceof Error ? err.stack : undefined
-				}
-			});
-			pendingDeleteCableCount = 0;
-			pendingDeleteStructureCount = 0;
-			deleteMessageBox?.open();
+		if (hasConnectedCables) {
+			cableBlockedMessageBox?.open();
+			return;
 		}
+		deleteMessageBox?.open();
 	}
 
 	async function handleDelete() {
 		if (!id) return;
 
-		const formData = new FormData();
-		formData.append('uuid', id);
-
 		try {
-			const response = await fetch('?/deleteNode', {
-				method: 'POST',
-				body: formData
+			await deleteNodeCommand(id);
+
+			globalToaster.success({
+				title: m.title_success(),
+				description: m.message_success_deleting_node?.() || 'Node deleted successfully'
 			});
-
-			const result = await response.json();
-
-			if (response.ok && result.type !== 'error') {
-				globalToaster.success({
-					title: m.title_success(),
-					description: m.message_success_deleting_node?.() || 'Node deleted successfully'
-				});
-				drawerStore.close();
-				onNodeDelete?.(id);
-			} else {
-				throw new Error(
-					result.message || m.message_error_deleting_node?.() || 'Failed to delete node'
-				);
-			}
+			drawerStore.close();
+			onNodeDelete?.(id);
 		} catch (error) {
 			console.error('Error deleting node:', error);
 			void logToBackendClient({
@@ -325,139 +117,19 @@
 	});
 </script>
 
-<!-- Node form -->
-<form id="node-form" class="flex flex-col gap-4 mr-4" onsubmit={handleSubmit}>
-	<label class="label">
-		<span class="text-sm">{m.common_name()}</span>
-		<input
-			id="node-name"
-			type="text"
-			class="input"
-			placeholder=""
-			name="node_name"
-			required
-			value={nodeName}
-			oninput={(e) => (nodeName = (e.target as HTMLInputElement).value)}
+<!-- Node form (keyed so a different node remounts and re-initialises fields) -->
+{#key id}
+	{#if node}
+		<NodeAttributeForm
+			{node}
+			{attributes}
+			{nodeTypeDisabled}
+			{parentNodeDisabled}
+			{isCheckingDependencies}
+			{onLabelUpdate}
 		/>
-	</label>
-	<label
-		class="label"
-		{@attach tooltip(
-			m.message_node_type_locked_has_children_and_cables?.() ||
-				'Node type cannot be changed (has children and cables)',
-			{ disabled: !nodeTypeDisabled || isCheckingDependencies }
-		)}
-	>
-		<span class="text-sm">{m.form_node_type()}</span>
-		<GenericCombobox
-			data={attributes.nodeTypes}
-			bind:value={nodeType}
-			defaultValue={nodeType}
-			onValueChange={(e) => (nodeType = e.value)}
-			disabledValues={attributes.excludedNodeTypeIds}
-			disabled={nodeTypeDisabled}
-			renderInPlace={true}
-		/>
-	</label>
-	<label class="label">
-		<span class="text-sm">{m.form_status()}</span>
-		<GenericCombobox
-			data={attributes.statuses}
-			bind:value={nodeStatus}
-			defaultValue={nodeStatus}
-			onValueChange={(e) => (nodeStatus = e.value)}
-			renderInPlace={true}
-		/>
-	</label>
-	<label class="label">
-		<span class="text-sm">{m.form_network_level()}</span>
-		<GenericCombobox
-			data={attributes.networkLevels}
-			bind:value={nodeNetworkLevel}
-			defaultValue={nodeNetworkLevel}
-			onValueChange={(e) => (nodeNetworkLevel = e.value)}
-			renderInPlace={true}
-		/>
-	</label>
-	<label class="label">
-		<span class="text-sm">{m.form_owner()}</span>
-		<GenericCombobox
-			data={attributes.companies}
-			bind:value={nodeOwner}
-			defaultValue={nodeOwner}
-			onValueChange={(e) => (nodeOwner = e.value)}
-			renderInPlace={true}
-		/>
-	</label>
-	<label class="label">
-		<span class="text-sm">{m.form_constructor()}</span>
-		<GenericCombobox
-			data={attributes.companies}
-			bind:value={nodeConstructor}
-			defaultValue={nodeConstructor}
-			onValueChange={(e) => (nodeConstructor = e.value)}
-			renderInPlace={true}
-		/>
-	</label>
-	<label class="label">
-		<span class="text-sm">{m.form_manufacturer()}</span>
-		<GenericCombobox
-			data={attributes.companies}
-			bind:value={nodeManufacturer}
-			defaultValue={nodeManufacturer}
-			onValueChange={(e) => (nodeManufacturer = e.value)}
-			renderInPlace={true}
-		/>
-	</label>
-	<label class="label">
-		<span class="text-sm">{m.form_warranty()}</span>
-		<input
-			id="node-warranty"
-			type="date"
-			class="input"
-			name="warranty"
-			value={nodeWarranty}
-			oninput={(e) => (nodeWarranty = (e.target as HTMLInputElement).value)}
-		/>
-	</label>
-	<label class="label">
-		<span class="text-sm">{m.common_date()}</span>
-		<input
-			id="node-date"
-			type="date"
-			class="input"
-			name="date"
-			value={nodeDate}
-			oninput={(e) => (nodeDate = (e.target as HTMLInputElement).value)}
-		/>
-	</label>
-	<label class="label">
-		<span class="text-sm">{m.form_flag()}</span>
-		<GenericCombobox
-			data={attributes.flags}
-			bind:value={nodeFlag}
-			defaultValue={nodeFlag}
-			onValueChange={(e) => (nodeFlag = e.value)}
-			renderInPlace={true}
-		/>
-	</label>
-	<label
-		class="label"
-		{@attach tooltip(
-			m.message_parent_node_locked_has_cables?.() || 'Parent node cannot be changed (has cables)',
-			{ disabled: !parentNodeDisabled || isCheckingDependencies }
-		)}
-	>
-		<span class="text-sm">{m.form_parent_node_name()}</span>
-		<VirtualCombobox
-			data={availableNodes}
-			bind:value={nodeParentNode}
-			disabled={parentNodeDisabled}
-			placeholder={m.form_parent_node_name()}
-			renderInPlace={true}
-		/>
-	</label>
-</form>
+	{/if}
+{/key}
 
 <!-- Update buttons -->
 <div

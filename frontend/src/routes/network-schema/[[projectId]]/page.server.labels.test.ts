@@ -36,56 +36,6 @@ beforeEach(() => {
 	vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
-describe('getNodeDependencies', () => {
-	test('should collect cables, structures, and children with cables', async () => {
-		const fetchMock = vi.fn((url: string) => {
-			if (url.includes('cable/at-node/node-1/')) {
-				return Promise.resolve(okJson([{ uuid: 'cable-1' }]));
-			}
-			if (url.includes('node-structure/')) {
-				return Promise.resolve(okJson([{ uuid: 'structure-1' }]));
-			}
-			if (url.includes('parent_node=node-1')) {
-				return Promise.resolve(
-					okJson({ features: [{ id: 'child-1', properties: { name: 'Kind 1' } }] })
-				);
-			}
-			if (url.includes('cable/at-node/child-1/')) {
-				return Promise.resolve(okJson([{ uuid: 'cable-2' }]));
-			}
-			return Promise.resolve(okJson([]));
-		});
-
-		const result = await actions.getNodeDependencies({
-			request: makeRequest({ nodeUuid: 'node-1' }),
-			fetch: fetchMock,
-			cookies: mockCookies,
-			params: { projectId: '7' }
-		} as never);
-
-		expect(result).toEqual({
-			cables: [{ uuid: 'cable-1' }],
-			structures: [{ uuid: 'structure-1' }],
-			children: [{ id: 'child-1', properties: { name: 'Kind 1' } }],
-			childrenWithCables: [{ nodeId: 'child-1', nodeName: 'Kind 1', cableCount: 1 }],
-			hasChildren: true,
-			hasCables: true,
-			hasChildrenWithCables: true
-		});
-	});
-
-	test('should fail without a node id', async () => {
-		const result = await actions.getNodeDependencies({
-			request: makeRequest({}),
-			fetch: vi.fn(),
-			cookies: mockCookies,
-			params: {}
-		} as never);
-
-		expect(result).toMatchObject({ status: 400 });
-	});
-});
-
 describe('getCableSplices', () => {
 	test('should merge and dedupe splices from both cable sides', async () => {
 		const fetchMock = vi.fn((url: string) => {

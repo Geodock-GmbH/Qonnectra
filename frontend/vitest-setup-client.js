@@ -36,7 +36,22 @@ vi.mock('$lib/remote/network-schema/cables.remote', () => ({
 }));
 vi.mock('$lib/remote/network-schema/nodes.remote', () => ({
 	getNodeDetails: vi.fn().mockResolvedValue({}),
-	saveNodeGeometry: vi.fn().mockResolvedValue({})
+	saveNodeGeometry: vi.fn().mockResolvedValue({}),
+	getNodeDependencies: vi.fn(() => ({
+		loading: false,
+		error: undefined,
+		current: {
+			cables: [],
+			structures: [],
+			children: [],
+			childrenWithCables: [],
+			hasChildren: false,
+			hasCables: false,
+			hasChildrenWithCables: false
+		}
+	})),
+	updateNode: vi.fn().mockResolvedValue({}),
+	deleteNode: vi.fn().mockResolvedValue(undefined)
 }));
 vi.mock('$lib/remote/network-schema/micropipes.remote', () => ({
 	autoLinkMicropipe: vi.fn().mockResolvedValue({ results: [], linked_count: 0 }),

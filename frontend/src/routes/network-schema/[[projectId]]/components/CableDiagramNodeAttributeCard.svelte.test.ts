@@ -10,12 +10,12 @@ vi.mock('$app/environment', () => ({
 	browser: true
 }));
 
-vi.mock('$app/forms', () => ({
-	deserialize: vi.fn((text: string) => JSON.parse(text))
-}));
-
 const pageStore = vi.hoisted(() => {
-	const value = { url: new URL('http://localhost/network-schema/7'), data: {}, params: {} };
+	const value = {
+		url: new URL('http://localhost/network-schema/7'),
+		data: {},
+		params: { projectId: '7' }
+	};
 	return {
 		subscribe(run: (value: unknown) => void) {
 			run(value);
@@ -26,6 +26,18 @@ const pageStore = vi.hoisted(() => {
 
 vi.mock('$app/stores', () => ({
 	page: pageStore
+}));
+
+// Node reads/writes run through remote-function modules; mock them so the
+// component's calls are observable without a running server.
+const getNodeDependencies = vi.fn();
+const updateNode = vi.fn();
+const deleteNode = vi.fn();
+
+vi.mock('$lib/remote/network-schema/nodes.remote', () => ({
+	getNodeDependencies: (...args: unknown[]) => getNodeDependencies(...args),
+	updateNode: (...args: unknown[]) => updateNode(...args),
+	deleteNode: (...args: unknown[]) => deleteNode(...args)
 }));
 
 vi.mock('$lib/paraglide/messages', () => ({
@@ -44,7 +56,19 @@ vi.mock('$lib/stores/toaster', () => ({
 	}
 }));
 
-const fetchMock = vi.fn();
+const emptyDependencies = {
+	loading: false,
+	error: undefined,
+	current: {
+		cables: [],
+		structures: [],
+		children: [],
+		childrenWithCables: [],
+		hasChildren: false,
+		hasCables: false,
+		hasChildrenWithCables: false
+	}
+};
 
 const node = {
 	id: 'node-1',
@@ -55,27 +79,19 @@ const node = {
 	parent_node: { uuid: 'parent-1' }
 };
 
-function mockRoutes(routes: Record<string, unknown> = {}) {
-	fetchMock.mockImplementation((url: string) => {
-		const payload = routes[url] ?? { type: 'success', data: {} };
-		return Promise.resolve({
-			ok: true,
-			text: () => Promise.resolve(JSON.stringify(payload)),
-			json: () => Promise.resolve(payload)
-		});
-	});
-}
-
 beforeEach(() => {
-	vi.stubGlobal('fetch', fetchMock);
 	vi.spyOn(console, 'error').mockImplementation(() => {});
+	getNodeDependencies.mockReturnValue(emptyDependencies);
+	updateNode.mockResolvedValue({});
+	deleteNode.mockResolvedValue(undefined);
 	drawerStore.open({ props: node });
 });
 
 afterEach(() => {
-	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
-	fetchMock.mockReset();
+	getNodeDependencies.mockReset();
+	updateNode.mockReset();
+	deleteNode.mockReset();
 	drawerStore.close();
 	vi.mocked(globalToaster.success).mockClear();
 	vi.mocked(globalToaster.error).mockClear();
@@ -83,37 +99,42 @@ afterEach(() => {
 
 describe('CableDiagramNodeAttributeCard', () => {
 	test('should prefill the form from the drawer node', () => {
-		mockRoutes();
-
 		render(CableDiagramNodeAttributeCard, {});
 
 		expect(screen.getByDisplayValue('PoP-1')).toBeInTheDocument();
 	});
 
+	test('should query dependencies for the current node', () => {
+		render(CableDiagramNodeAttributeCard, {});
+
+		expect(getNodeDependencies).toHaveBeenCalledWith({ nodeId: 'node-1', projectId: '7' });
+	});
+
 	test('should submit the node update with attribute and parent ids', async () => {
-		mockRoutes();
 		const onLabelUpdate = vi.fn();
 
 		render(CableDiagramNodeAttributeCard, {
 			onLabelUpdate
 		} as unknown as Parameters<typeof render<typeof CableDiagramNodeAttributeCard>>[1]);
-		fetchMock.mockClear();
 
 		const form = document.getElementById('node-form') as HTMLFormElement;
 		form.requestSubmit();
 		await vi.waitFor(() => expect(globalToaster.success).toHaveBeenCalled());
 
-		const updateCall = fetchMock.mock.calls.find(([url]) => url === '?/updateNode');
-		const body = updateCall![1].body as FormData;
-		expect(body.get('uuid')).toBe('node-1');
-		expect(body.get('node_type_id')).toBe('4');
-		expect(body.get('status_id')).toBe('2');
-		expect(body.get('parent_node_id')).toBe('parent-1');
+		expect(updateNode).toHaveBeenCalledWith(
+			expect.objectContaining({
+				nodeId: 'node-1',
+				name: 'PoP-1',
+				nodeTypeId: 4,
+				statusId: 2,
+				parentNodeId: 'parent-1'
+			})
+		);
 		expect(onLabelUpdate).toHaveBeenCalledWith('PoP-1');
 	});
 
 	test('should toast an error when the update fails', async () => {
-		mockRoutes({ '?/updateNode': { type: 'failure', data: { error: 'nein' } } });
+		updateNode.mockRejectedValue(new Error('nein'));
 
 		render(CableDiagramNodeAttributeCard, {});
 
