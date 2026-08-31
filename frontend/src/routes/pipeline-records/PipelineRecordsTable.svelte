@@ -18,8 +18,11 @@
 		page: number;
 	}
 
+	/** A pipeline-record list row, accessed by dynamic column key. */
+	type RecordRow = Record<string, unknown>;
+
 	interface Props {
-		records: Record<string, any>[];
+		records: RecordRow[];
 		pagination: PaginationInfo;
 	}
 
@@ -105,12 +108,12 @@
 	 * Navigates to the edit page for the clicked pipeline record.
 	 * @param record - The pipeline record row object.
 	 */
-	function handleRowClick(record: Record<string, any>) {
+	function handleRowClick(record: RecordRow) {
 		goto(`/pipeline-records/${record.value}`);
 	}
 
 	const filteredRecords = $derived.by(() => {
-		return records.filter((record: Record<string, any>) => {
+		return records.filter((record: RecordRow) => {
 			return Object.entries(filters).every(([key, filterValue]) => {
 				if (!filterValue) return true;
 				const cellValue = String(record[key] || '').toLowerCase();
@@ -126,15 +129,17 @@
 		const column = columnConfig.find((c) => c.key === currentSortColumn);
 
 		return [...filteredRecords].sort((a, b) => {
-			let aVal = a[currentSortColumn] ?? '';
-			let bVal = b[currentSortColumn] ?? '';
+			let aVal: string | number = '';
+			let bVal: string | number = '';
+			const aRaw = a[currentSortColumn];
+			const bRaw = b[currentSortColumn];
 
 			if (column?.sortType === 'date') {
-				aVal = aVal ? new Date(aVal).getTime() : 0;
-				bVal = bVal ? new Date(bVal).getTime() : 0;
+				aVal = aRaw ? new Date(String(aRaw)).getTime() : 0;
+				bVal = bRaw ? new Date(String(bRaw)).getTime() : 0;
 			} else {
-				aVal = String(aVal).toLowerCase();
-				bVal = String(bVal).toLowerCase();
+				aVal = String(aRaw ?? '').toLowerCase();
+				bVal = String(bRaw ?? '').toLowerCase();
 			}
 
 			if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
@@ -147,7 +152,7 @@
 		if (!mobileSearchTerm) return sortedRecords;
 
 		const term = mobileSearchTerm.toLowerCase();
-		return sortedRecords.filter((record: Record<string, any>) => {
+		return sortedRecords.filter((record: RecordRow) => {
 			return Object.values(record).some((value) =>
 				String(value || '')
 					.toLowerCase()
@@ -218,7 +223,9 @@
 							<tr onclick={() => handleRowClick(row)}>
 								{#each columnConfig as column (column.key)}
 									<td data-label={column.label}
-										>{column.format ? column.format(row[column.key]) : row[column.key]}</td
+										>{column.format
+											? column.format(row[column.key] as string | null | undefined)
+											: row[column.key]}</td
 									>
 								{/each}
 							</tr>
@@ -275,7 +282,7 @@
 							</div>
 							<div>
 								<span class="font-medium text-surface-600-400">{m.common_created()}:</span>
-								<p class="truncate">{formatDate(row.created_at)}</p>
+								<p class="truncate">{formatDate(row.created_at as string | null | undefined)}</p>
 							</div>
 						</div>
 					</div>

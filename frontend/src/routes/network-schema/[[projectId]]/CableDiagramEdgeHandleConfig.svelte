@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { ActionResult } from '@sveltejs/kit';
+	import type { CableDrawerProps } from '$lib/types/attributeCardTypes';
 	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
 
@@ -8,27 +10,37 @@
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { actionData } from '$lib/utils/forms';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
-	const schemaStateContext = getContext<{ nodes: any[] } | undefined>('schemaState');
+	interface SchemaFlowNode {
+		id: string;
+		data?: { node?: { name?: string } };
+	}
 
-	let cable = $derived<any>($drawerStore.props);
+	const schemaStateContext = getContext<{ nodes: SchemaFlowNode[] } | undefined>('schemaState');
+
+	let cable = $derived($drawerStore.props as CableDrawerProps | undefined);
 	let handleStart = $state('top');
 	let handleEnd = $state('top');
 
-	let selectedNodeStart = $state<any[]>([]);
-	let selectedNodeEnd = $state<any[]>([]);
+	let selectedNodeStart = $state<string[]>([]);
+	let selectedNodeEnd = $state<string[]>([]);
 
 	// Nodes are sourced from schemaState context so child-view filtering is respected
 	const availableNodes = $derived(
-		(schemaStateContext?.nodes || []).map((node: any) => ({
+		(schemaStateContext?.nodes || []).map((node: SchemaFlowNode) => ({
 			value: node.id,
 			label: node.data?.node?.name || node.id
 		}))
 	);
 
-	let pendingNodeChange = $state<any>(null);
-	let confirmMessageBox: any;
+	let pendingNodeChange = $state<{
+		side: 'start' | 'end';
+		newNodeId: string;
+		spliceCount: number;
+	} | null>(null);
+	let confirmMessageBox: ReturnType<typeof MessageBox> | null = $state(null);
 
 	$effect(() => {
 		if (cable) {
@@ -50,28 +62,28 @@
 	 * Checks for existing fiber splices at the current node before switching the connection.
 	 * Opens a confirmation dialog if splices would be lost.
 	 */
-	async function handleNodeChange(side: any, newNodeId: any) {
-		const currentNodeId = side === 'start' ? cable.uuid_node_start : cable.uuid_node_end;
+	async function handleNodeChange(side: 'start' | 'end', newNodeId: string) {
+		const currentNodeId = side === 'start' ? cable?.uuid_node_start : cable?.uuid_node_end;
 
 		if (!newNodeId || newNodeId === currentNodeId) {
 			return;
 		}
 
 		const formData = new FormData();
-		formData.append('cableUuid', cable.uuid);
-		formData.append('nodeUuid', currentNodeId);
+		formData.append('cableUuid', cable?.uuid ?? '');
+		formData.append('nodeUuid', currentNodeId ?? '');
 
 		try {
 			const response = await fetch('?/getCableSplicesAtNode', {
 				method: 'POST',
 				body: formData
 			});
-			const result = deserialize(await response.text());
-			const spliceCount = (result as any).data?.splices?.length || 0;
+			const result = deserialize(await response.text()) as ActionResult;
+			const spliceCount = (actionData(result)?.splices as unknown[] | undefined)?.length || 0;
 
 			if (spliceCount > 0) {
 				pendingNodeChange = { side, newNodeId, spliceCount };
-				confirmMessageBox.open();
+				confirmMessageBox?.open();
 			} else {
 				await executeNodeChange(side, newNodeId);
 			}
@@ -93,9 +105,9 @@
 	/**
 	 * Execute the node connection change
 	 */
-	async function executeNodeChange(side: any, newNodeId: any) {
+	async function executeNodeChange(side: 'start' | 'end', newNodeId: string) {
 		const formData = new FormData();
-		formData.append('uuid', cable.uuid);
+		formData.append('uuid', cable?.uuid ?? '');
 
 		if (side === 'start') {
 			formData.append('uuid_node_start_id', newNodeId);
@@ -111,7 +123,7 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = deserialize(await response.text()) as ActionResult;
 
 			if (result.type === 'failure' || result.type === 'error') {
 				globalToaster.error({
@@ -119,9 +131,9 @@
 					description: m.message_error_updating_cable()
 				});
 				if (side === 'start') {
-					selectedNodeStart = cable.uuid_node_start ? [cable.uuid_node_start] : [];
+					selectedNodeStart = cable?.uuid_node_start ? [cable.uuid_node_start] : [];
 				} else {
-					selectedNodeEnd = cable.uuid_node_end ? [cable.uuid_node_end] : [];
+					selectedNodeEnd = cable?.uuid_node_end ? [cable.uuid_node_end] : [];
 				}
 				return;
 			}
@@ -131,11 +143,11 @@
 				description: m.message_success_updating_cable()
 			});
 
-			const oldNodeId = side === 'start' ? cable.uuid_node_start : cable.uuid_node_end;
+			const oldNodeId = side === 'start' ? cable?.uuid_node_start : cable?.uuid_node_end;
 			window.dispatchEvent(
 				new CustomEvent('cableConnectionChanged', {
 					detail: {
-						cableId: cable.uuid,
+						cableId: cable?.uuid,
 						side,
 						oldNodeId,
 						newNodeId,
@@ -145,8 +157,7 @@
 			);
 
 			// Update drawer props so subsequent saves use correct IDs
-			const newNodeName =
-				availableNodes.find((n: any) => n.value === newNodeId)?.label || newNodeId;
+			const newNodeName = availableNodes.find((n) => n.value === newNodeId)?.label || newNodeId;
 			if (side === 'start') {
 				drawerStore.updateProps({
 					uuid_node_start: newNodeId,
@@ -183,8 +194,10 @@
 	 */
 	async function handleSubmit(event: SubmitEvent) {
 		event.preventDefault();
+		if (!cable?.uuid) return;
+		const cableUuid = cable.uuid;
 		const formData = new FormData();
-		formData.append('uuid', cable.uuid);
+		formData.append('uuid', cableUuid);
 		formData.append('handle_start', handleStart);
 		formData.append('handle_end', handleEnd);
 
@@ -220,7 +233,7 @@
 			window.dispatchEvent(
 				new CustomEvent('updateCableHandles', {
 					detail: {
-						cableId: cable.uuid,
+						cableId: cableUuid,
 						handleStart: handleStart,
 						handleEnd: handleEnd
 					}
@@ -244,14 +257,14 @@
 	}
 
 	async function handleConfirmNodeChange() {
-		if (pendingNodeChange) {
+		if (pendingNodeChange && cable?.uuid) {
 			const oldNodeId =
 				pendingNodeChange.side === 'start' ? cable.uuid_node_start : cable.uuid_node_end;
 
 			try {
 				const deleteFormData = new FormData();
 				deleteFormData.append('cableUuid', cable.uuid);
-				deleteFormData.append('nodeUuid', oldNodeId);
+				deleteFormData.append('nodeUuid', oldNodeId ?? '');
 
 				const deleteResponse = await fetch('?/deleteCableSplicesAtNode', {
 					method: 'POST',
@@ -294,9 +307,9 @@
 
 	function handleCancelNodeChange() {
 		if (pendingNodeChange?.side === 'start') {
-			selectedNodeStart = cable.uuid_node_start ? [cable.uuid_node_start] : [];
+			selectedNodeStart = cable?.uuid_node_start ? [cable.uuid_node_start] : [];
 		} else if (pendingNodeChange?.side === 'end') {
-			selectedNodeEnd = cable.uuid_node_end ? [cable.uuid_node_end] : [];
+			selectedNodeEnd = cable?.uuid_node_end ? [cable.uuid_node_end] : [];
 		}
 		pendingNodeChange = null;
 	}
@@ -317,9 +330,9 @@
 				bind:value={selectedNodeStart}
 				defaultValue={selectedNodeStart}
 				placeholder={m.placeholder_select_node?.() || 'Select node...'}
-				onValueChange={(e: any) => {
+				onValueChange={(e) => {
 					const newNodeId = e.value?.[0];
-					if (newNodeId && newNodeId !== cable.uuid_node_start) {
+					if (newNodeId && newNodeId !== cable?.uuid_node_start) {
 						handleNodeChange('start', newNodeId);
 					}
 				}}
@@ -366,9 +379,9 @@
 				bind:value={selectedNodeEnd}
 				defaultValue={selectedNodeEnd}
 				placeholder={m.placeholder_select_node?.() || 'Select node...'}
-				onValueChange={(e: any) => {
+				onValueChange={(e) => {
 					const newNodeId = e.value?.[0];
-					if (newNodeId && newNodeId !== cable.uuid_node_end) {
+					if (newNodeId && newNodeId !== cable?.uuid_node_end) {
 						handleNodeChange('end', newNodeId);
 					}
 				}}

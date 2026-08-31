@@ -12,6 +12,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { globalToaster } from '$lib/stores/toaster';
+	import { actionData } from '$lib/utils/forms';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	interface TrenchConnection {
@@ -80,13 +81,11 @@
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				const errorData = (result as any).data as { error?: string };
+				const errorData = actionData(result) as { error?: string } | undefined;
 				throw new Error(errorData?.error || 'Failed to fetch trenches');
 			}
 
-			const successData = (result as any).data as {
-				trenches?: TrenchConnection[];
-			};
+			const successData = actionData(result) as { trenches?: TrenchConnection[] } | undefined;
 			trenches = successData?.trenches || [];
 		} catch (error) {
 			trenchesError = m.message_error_fetching_trenches();
@@ -122,7 +121,7 @@
 		const result = deserialize(await response.text());
 
 		if (result.type === 'failure' || result.type === 'error') {
-			const errorData = (result as any).data as { error?: string };
+			const errorData = actionData(result) as { error?: string } | undefined;
 			console.error('Failed to delete trench connection:', errorData?.error);
 			globalToaster.error({
 				description: m.message_error_deleting_trench_connection()
@@ -176,7 +175,7 @@
 		const result = deserialize(await response.text());
 
 		if (result.type === 'failure' || result.type === 'error') {
-			const errorData = (result as any).data as { error?: string };
+			const errorData = actionData(result) as { error?: string } | undefined;
 			console.error('Failed to save trench connection:', errorData?.error);
 			throw new Error(errorData?.error);
 		}

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import type { GeoJsonFeature } from '$lib/types/geo';
 	import type OlFeature from 'ol/Feature';
+	import type { WriteOptions } from 'ol/format/Feature';
 	import type OlGeometry from 'ol/geom/Geometry';
 	import type OlVectorTileLayer from 'ol/layer/VectorTile';
 	import type OlMap from 'ol/Map';
@@ -40,16 +42,17 @@
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { actionData } from '$lib/utils/forms';
 	import { tooltip } from '$lib/utils/tooltip';
 
 	import { createInquiryContext } from './inquiryContext.svelte.js';
 
 	let { data }: { data: PageData } = $props();
 
-	const nodeTypes = $derived((data.nodeTypes ?? []) as any[]);
-	const surfaces = $derived((data.surfaces ?? []) as any[]);
-	const constructionTypes = $derived((data.constructionTypes ?? []) as any[]);
-	const areaTypes = $derived((data.areaTypes ?? []) as any[]);
+	const nodeTypes = $derived(data.nodeTypes ?? []);
+	const surfaces = $derived(data.surfaces ?? []);
+	const constructionTypes = $derived(data.constructionTypes ?? []);
+	const areaTypes = $derived(data.areaTypes ?? []);
 
 	const mapState = new MapState($selectedProject, get(trenchColorSelected), {
 		trench: true,
@@ -109,12 +112,15 @@
 		const areas = data.inquiryAreas ?? [];
 		if (!areas.length) return;
 
-		const polygons = areas.map((f: any) => ({
-			uuid: f.properties?.uuid ?? f.id,
-			name: f.properties?.name ?? null,
-			geom: f.geometry,
-			created_at: f.properties?.created_at ?? ''
-		}));
+		const polygons = areas.map((f: GeoJsonFeature) => {
+			const props = (f.properties ?? {}) as Record<string, unknown>;
+			return {
+				uuid: (props.uuid ?? f.id) as string,
+				name: (props.name ?? null) as string | null,
+				geom: f.geometry,
+				created_at: (props.created_at ?? '') as string
+			};
+		});
 		ctx.setPolygons(polygons);
 
 		renderPolygonsOnMap();
@@ -181,7 +187,7 @@
 		const writeOptions = {
 			dataProjection: 'EPSG:4326',
 			featureProjection: olMap.getView().getProjection()
-		} as any;
+		} satisfies WriteOptions;
 
 		const geojsonGeom = format.writeGeometryObject(
 			feature.getGeometry() as OlGeometry,
@@ -199,14 +205,14 @@
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success') {
-				const saved = (result as any).data?.polygon;
+				const saved = actionData(result)?.polygon as GeoJsonFeature | undefined;
 				if (saved) {
-					const props = saved.properties ?? saved;
+					const props = (saved.properties ?? saved) as Record<string, unknown>;
 					ctx.addPolygon({
-						uuid: props.uuid ?? saved.id,
-						name: props.name ?? null,
+						uuid: (props.uuid ?? saved.id) as string,
+						name: (props.name ?? null) as string | null,
 						geom: saved.geometry ?? geojsonGeom,
-						created_at: props.created_at ?? ''
+						created_at: (props.created_at ?? '') as string
 					});
 				}
 				renderPolygonsOnMap();
@@ -217,11 +223,15 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: (result as any).data?.message || m.message_inquiry_polygon_save_failed()
+					description:
+						(actionData(result)?.message as string) || m.message_inquiry_polygon_save_failed()
 				});
 			}
-		} catch (err: any) {
-			globalToaster.error({ title: m.common_error(), description: err.message });
+		} catch (err) {
+			globalToaster.error({
+				title: m.common_error(),
+				description: err instanceof Error ? err.message : String(err)
+			});
 		} finally {
 			ctx.setSaving(false);
 		}
@@ -239,7 +249,7 @@
 		const writeOptions = {
 			dataProjection: 'EPSG:4326',
 			featureProjection: olMap.getView().getProjection()
-		} as any;
+		} satisfies WriteOptions;
 
 		const geojsonGeom = format.writeGeometryObject(
 			feature.getGeometry() as OlGeometry,
@@ -258,7 +268,7 @@
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success') {
-				const saved = (result as any).data?.polygon;
+				const saved = actionData(result)?.polygon as GeoJsonFeature | undefined;
 				const storedGeom = saved?.geometry ?? geojsonGeom;
 				ctx.updatePolygonGeom(uuid, storedGeom);
 				drawManager.updatePolygonGeometryCache();
@@ -271,12 +281,16 @@
 				renderPolygonsOnMap();
 				globalToaster.error({
 					title: m.common_error(),
-					description: (result as any).data?.message || m.message_inquiry_polygon_update_failed()
+					description:
+						(actionData(result)?.message as string) || m.message_inquiry_polygon_update_failed()
 				});
 			}
-		} catch (err: any) {
+		} catch (err) {
 			renderPolygonsOnMap();
-			globalToaster.error({ title: m.common_error(), description: err.message });
+			globalToaster.error({
+				title: m.common_error(),
+				description: err instanceof Error ? err.message : String(err)
+			});
 		} finally {
 			ctx.setSaving(false);
 		}
@@ -310,11 +324,15 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: (result as any).data?.message || m.message_inquiry_polygon_rename_failed()
+					description:
+						(actionData(result)?.message as string) || m.message_inquiry_polygon_rename_failed()
 				});
 			}
-		} catch (err: any) {
-			globalToaster.error({ title: m.common_error(), description: err.message });
+		} catch (err) {
+			globalToaster.error({
+				title: m.common_error(),
+				description: err instanceof Error ? err.message : String(err)
+			});
 		}
 	}
 
@@ -340,11 +358,15 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: (result as any).data?.message || m.message_inquiry_polygon_delete_failed()
+					description:
+						(actionData(result)?.message as string) || m.message_inquiry_polygon_delete_failed()
 				});
 			}
-		} catch (err: any) {
-			globalToaster.error({ title: m.common_error(), description: err.message });
+		} catch (err) {
+			globalToaster.error({
+				title: m.common_error(),
+				description: err instanceof Error ? err.message : String(err)
+			});
 		}
 	}
 

@@ -1,4 +1,11 @@
 <script lang="ts">
+	import type {
+		Cable,
+		Fiber,
+		FiberBundle,
+		NodeAddress,
+		ResidentialUnit
+	} from '$lib/classes/CableFiberDataManager.svelte';
 	import { getContext, onMount } from 'svelte';
 	import {
 		IconArrowLeft,
@@ -36,14 +43,14 @@
 
 	let collapsed = $state(false);
 	let lastRefreshTrigger = $state(0);
-	let expandedCables = $state(new Set<any>());
-	let expandedBundles = $state(new Map<any, Set<any>>());
-	let expandedAddresses = $state(new Set<any>());
+	let expandedCables = $state(new Set<string>());
+	let expandedBundles = $state(new Map<string, Set<number>>());
+	let expandedAddresses = $state(new Set<string>());
 
 	/**
 	 * Toggle cable accordion
 	 */
-	function toggleCable(cableUuid: any) {
+	function toggleCable(cableUuid: string) {
 		if (expandedCables.has(cableUuid)) {
 			expandedCables.delete(cableUuid);
 		} else {
@@ -56,7 +63,7 @@
 	/**
 	 * Toggle bundle accordion
 	 */
-	function toggleBundle(cableUuid: any, bundleNumber: any) {
+	function toggleBundle(cableUuid: string, bundleNumber: number) {
 		if (!expandedBundles.has(cableUuid)) {
 			expandedBundles.set(cableUuid, new Set());
 		}
@@ -72,11 +79,11 @@
 	/**
 	 * Check if bundle is expanded
 	 */
-	function isBundleExpanded(cableUuid: any, bundleNumber: any) {
+	function isBundleExpanded(cableUuid: string, bundleNumber: number) {
 		return expandedBundles.get(cableUuid)?.has(bundleNumber) ?? false;
 	}
 
-	function handleCableDragStart(e: DragEvent, cable: any) {
+	function handleCableDragStart(e: DragEvent, cable: Cable) {
 		if (readonly) {
 			e.preventDefault();
 			return;
@@ -86,7 +93,7 @@
 		dragDropManager?.startCableDrag(e, cable, cachedFibers);
 	}
 
-	function handleBundleDragStart(e: DragEvent, cable: any, bundle: any) {
+	function handleBundleDragStart(e: DragEvent, cable: Cable, bundle: FiberBundle) {
 		if (readonly) {
 			e.preventDefault();
 			return;
@@ -94,7 +101,7 @@
 		dragDropManager?.startBundleDrag(e, cable, bundle);
 	}
 
-	function handleFiberDragStart(e: DragEvent, cable: any, bundle: any, fiber: any) {
+	function handleFiberDragStart(e: DragEvent, cable: Cable, bundle: FiberBundle, fiber: Fiber) {
 		if (readonly) {
 			e.preventDefault();
 			return;
@@ -107,7 +114,7 @@
 		dragDropManager?.endDrag();
 	}
 
-	function handleMobileFiberClick(cable: any, bundle: any, fiber: any) {
+	function handleMobileFiberClick(cable: Cable, bundle: FiberBundle, fiber: Fiber) {
 		if (readonly) return;
 		if (isMobile) {
 			dragDropManager?.selectMobileFiber(cable, bundle, fiber);
@@ -117,7 +124,7 @@
 	/**
 	 * Toggle address accordion
 	 */
-	function toggleAddress(addressUuid: any) {
+	function toggleAddress(addressUuid: string) {
 		if (expandedAddresses.has(addressUuid)) {
 			expandedAddresses.delete(addressUuid);
 		} else {
@@ -126,7 +133,7 @@
 		expandedAddresses = new Set(expandedAddresses);
 	}
 
-	function handleAddressDragStart(e: DragEvent, address: any) {
+	function handleAddressDragStart(e: DragEvent, address: NodeAddress) {
 		if (readonly) {
 			e.preventDefault();
 			return;
@@ -134,7 +141,11 @@
 		dragDropManager?.startAddressDrag(e, address, address.residential_units || []);
 	}
 
-	function handleResidentialUnitDragStart(e: DragEvent, address: any, unit: any) {
+	function handleResidentialUnitDragStart(
+		e: DragEvent,
+		address: NodeAddress,
+		unit: ResidentialUnit
+	) {
 		if (readonly) {
 			e.preventDefault();
 			return;
@@ -142,7 +153,7 @@
 		dragDropManager?.startResidentialUnitDrag(e, address, unit);
 	}
 
-	function handleMobileResidentialUnitClick(address: any, unit: any) {
+	function handleMobileResidentialUnitClick(address: NodeAddress, unit: ResidentialUnit) {
 		if (readonly) return;
 		if (isMobile) {
 			dragDropManager?.selectMobileResidentialUnit(address, unit);
@@ -175,9 +186,9 @@
 
 	// Listen for cable connection changes from the diagram
 	$effect(() => {
-		function handleCableConnectionChanged(event: any) {
-			const { nodeIds } = event.detail;
-			if (nodeIds && nodeIds.includes(nodeUuid)) {
+		function handleCableConnectionChanged(event: WindowEventMap['cableConnectionChanged']) {
+			const detail = event.detail;
+			if ('nodeIds' in detail && nodeUuid && detail.nodeIds.includes(nodeUuid)) {
 				dataManager.clearFibersCache();
 				dataManager.fetchCables();
 				dataManager.fetchFiberUsage();

@@ -47,47 +47,47 @@
 	 * Check if a slot is the first slot of a component range in multi-drop preview
 	 */
 	function isComponentRangeStart(slotNumber: number): boolean {
-		return componentRanges.some((r: any) => r.start === slotNumber);
+		return componentRanges.some((r) => r.start === slotNumber);
 	}
 
 	/**
 	 * Check if a slot is the last slot of a component range in multi-drop preview
 	 */
 	function isComponentRangeEnd(slotNumber: number): boolean {
-		return componentRanges.some((r: any) => r.end === slotNumber);
+		return componentRanges.some((r) => r.end === slotNumber);
 	}
 
-	function handleSlotDragOver(e: any, slotNumber: any) {
+	function handleSlotDragOver(e: DragEvent, slotNumber: number) {
 		if (readonly) return;
 		e.preventDefault();
 		context?.slotActions?.onDragOver(e, slotNumber);
 	}
 
-	function handleSlotDragLeave(e: any) {
+	function handleSlotDragLeave(e: DragEvent) {
 		if (readonly) return;
 		// Only clear if leaving the drop zone area entirely
-		const relatedTarget = e.relatedTarget;
-		if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
+		const relatedTarget = e.relatedTarget as Node | null;
+		if (!relatedTarget || !(e.currentTarget as Element)?.contains(relatedTarget)) {
 			// Keep preview if moving within slot rows
 		}
 	}
 
-	function handleGridDragLeave(e: any) {
+	function handleGridDragLeave(e: DragEvent) {
 		if (readonly) return;
-		if (!e.currentTarget.contains(e.relatedTarget)) {
+		if (!(e.currentTarget as Element)?.contains(e.relatedTarget as Node | null)) {
 			if (context) {
 				context.dropPreviewSlots = [];
 			}
 		}
 	}
 
-	function handleSlotDrop(e: any, slotNumber: any) {
+	function handleSlotDrop(e: DragEvent, slotNumber: number) {
 		if (readonly) return;
 		e.preventDefault();
 		context?.slotActions?.onDrop(e, slotNumber);
 	}
 
-	function handleSlotClick(row: any) {
+	function handleSlotClick(row: SlotRow) {
 		if (isMobile && mobileSelectedItem) {
 			context?.slotActions?.onTap(row.slotNumber);
 		} else if (row.structure) {
@@ -95,7 +95,7 @@
 		}
 	}
 
-	function handleStructureDragStart(e: any, structure: any) {
+	function handleStructureDragStart(e: DragEvent, structure: NodeStructure) {
 		if (readonly) {
 			e.preventDefault();
 			return;
@@ -108,12 +108,12 @@
 		context?.structureActions?.onDragEnd();
 	}
 
-	function handleToggleDivider(slotNumber: any) {
+	function handleToggleDivider(slotNumber: number) {
 		if (readonly) return;
 		context?.dividerActions?.onToggle(slotNumber);
 	}
 
-	function handleStartEditingClip(slotNumber: any, currentValue: any) {
+	function handleStartEditingClip(slotNumber: number, currentValue: string | null) {
 		if (readonly) return;
 		context?.clipActions?.onStartEditing(slotNumber, currentValue);
 	}
@@ -122,11 +122,11 @@
 		context?.clipActions?.onSave();
 	}
 
-	function handleClipKeydown(e: any) {
+	function handleClipKeydown(e: KeyboardEvent) {
 		context?.clipActions?.onKeydown(e);
 	}
 
-	function handleClipInput(e: any) {
+	function handleClipInput(e: Event) {
 		if (context) {
 			context.editingClipValue = (e.target as HTMLInputElement).value;
 		}

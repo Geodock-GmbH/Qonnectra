@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { RawConduit } from '$lib/classes/ConduitState.svelte';
+	import type { AttributeOptions, ConduitDrawerProps, FkRef } from '$lib/types/attributeCardTypes';
 	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
 
@@ -11,7 +13,7 @@
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	// Get attribute options from context (set in +page.svelte)
-	const attributes = getContext<any>('attributeOptions') || {
+	const attributes = getContext<AttributeOptions>('attributeOptions') || {
 		conduitTypes: [],
 		statuses: [],
 		networkLevels: [],
@@ -19,28 +21,28 @@
 		flags: []
 	};
 
-	let messageBoxConfirm = $state<any>(null);
+	let messageBoxConfirm = $state<ReturnType<typeof MessageBox> | null>(null);
 
 	// Get conduit data from drawer store props
-	let conduit = $derived($drawerStore.props);
+	let conduit = $derived($drawerStore.props as ConduitDrawerProps | undefined);
 
 	// Mutable state for form fields - required for bind:value to work with GenericCombobox
 	let conduitName = $state('');
 	let conduitOuterConduit = $state('');
-	let conduitType = $state<any[]>([]);
-	let conduitStatus = $state<any[]>([]);
-	let conduitNetworkLevel = $state<any[]>([]);
-	let conduitOwner = $state<any[]>([]);
-	let conduitConstructor = $state<any[]>([]);
-	let conduitManufacturer = $state<any[]>([]);
+	let conduitType = $state<string[]>([]);
+	let conduitStatus = $state<string[]>([]);
+	let conduitNetworkLevel = $state<string[]>([]);
+	let conduitOwner = $state<string[]>([]);
+	let conduitConstructor = $state<string[]>([]);
+	let conduitManufacturer = $state<string[]>([]);
 	let conduitDate = $state('');
-	let conduitFlag = $state<any[]>([]);
+	let conduitFlag = $state<string[]>([]);
 
 	let {
 		onConduitUpdate,
 		onConduitDelete
 	}: {
-		onConduitUpdate?: (conduit: any) => void;
+		onConduitUpdate?: (conduit: RawConduit) => void;
 		onConduitDelete?: (conduitId: string) => void;
 	} = $props();
 
@@ -49,22 +51,24 @@
 		if (conduit) {
 			conduitName = conduit.name || '';
 			conduitOuterConduit = conduit.outer_conduit || '';
-			conduitType = conduit.conduit_type?.id != null ? [conduit.conduit_type.id] : [];
-			conduitStatus = conduit.status?.id != null ? [conduit.status.id] : [];
-			conduitNetworkLevel = conduit.network_level?.id != null ? [conduit.network_level.id] : [];
-			conduitOwner = conduit.owner?.id != null ? [conduit.owner.id] : [];
+			conduitType = conduit.conduit_type?.id != null ? [String(conduit.conduit_type.id)] : [];
+			conduitStatus = conduit.status?.id != null ? [String(conduit.status.id)] : [];
+			conduitNetworkLevel =
+				conduit.network_level?.id != null ? [String(conduit.network_level.id)] : [];
+			conduitOwner = conduit.owner?.id != null ? [String(conduit.owner.id)] : [];
+			const conduitConstructorRef = conduit.constructor as FkRef | null | undefined;
 			conduitConstructor =
-				(conduit.constructor as unknown as { id?: any })?.id != null
-					? [(conduit.constructor as unknown as { id: any }).id]
-					: [];
-			conduitManufacturer = conduit.manufacturer?.id != null ? [conduit.manufacturer.id] : [];
+				conduitConstructorRef?.id != null ? [String(conduitConstructorRef.id)] : [];
+			conduitManufacturer =
+				conduit.manufacturer?.id != null ? [String(conduit.manufacturer.id)] : [];
 			conduitDate = conduit.date || '';
-			conduitFlag = conduit.flag?.id != null ? [conduit.flag.id] : [];
+			conduitFlag = conduit.flag?.id != null ? [String(conduit.flag.id)] : [];
 		}
 	});
 
 	async function handleSubmit(event: SubmitEvent) {
 		event.preventDefault();
+		if (!conduit?.uuid) return;
 		const formData = new FormData(event.target as HTMLFormElement);
 		formData.append('uuid', conduit.uuid);
 		formData.append('conduit_type_id', conduitType?.[0] || '');
@@ -99,7 +103,7 @@
 			// Update drawer title and notify parent
 			if (onConduitUpdate && result.type === 'success' && result.data?.conduit) {
 				drawerStore.setTitle(conduitName);
-				onConduitUpdate(result.data.conduit);
+				onConduitUpdate(result.data.conduit as RawConduit);
 			}
 		} catch (error) {
 			console.error('Error updating conduit:', error);
@@ -124,9 +128,10 @@
 	}
 
 	async function handleDelete() {
-		if (!conduit.uuid) return;
+		if (!conduit?.uuid) return;
+		const conduitUuid = conduit.uuid;
 		const formData = new FormData();
-		formData.append('uuid', conduit.uuid);
+		formData.append('uuid', conduitUuid);
 
 		try {
 			const response = await fetch('?/deleteConduit', {
@@ -142,7 +147,7 @@
 					description: m.message_success_deleting_conduit()
 				});
 				drawerStore.close();
-				onConduitDelete?.(conduit.uuid);
+				onConduitDelete?.(conduitUuid);
 			} else {
 				throw new Error(result.message || m.message_error_deleting_conduit());
 			}
@@ -185,7 +190,7 @@
 			data={attributes.conduitTypes}
 			bind:value={conduitType}
 			defaultValue={conduitType}
-			onValueChange={(e: { value: any[] }) => (conduitType = e.value)}
+			onValueChange={(e) => (conduitType = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -205,7 +210,7 @@
 			data={attributes.statuses}
 			bind:value={conduitStatus}
 			defaultValue={conduitStatus}
-			onValueChange={(e: { value: any[] }) => (conduitStatus = e.value)}
+			onValueChange={(e) => (conduitStatus = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -215,7 +220,7 @@
 			data={attributes.networkLevels}
 			bind:value={conduitNetworkLevel}
 			defaultValue={conduitNetworkLevel}
-			onValueChange={(e: { value: any[] }) => (conduitNetworkLevel = e.value)}
+			onValueChange={(e) => (conduitNetworkLevel = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -225,7 +230,7 @@
 			data={attributes.companies}
 			bind:value={conduitOwner}
 			defaultValue={conduitOwner}
-			onValueChange={(e: { value: any[] }) => (conduitOwner = e.value)}
+			onValueChange={(e) => (conduitOwner = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -235,7 +240,7 @@
 			data={attributes.companies}
 			bind:value={conduitConstructor}
 			defaultValue={conduitConstructor}
-			onValueChange={(e: { value: any[] }) => (conduitConstructor = e.value)}
+			onValueChange={(e) => (conduitConstructor = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -245,7 +250,7 @@
 			data={attributes.companies}
 			bind:value={conduitManufacturer}
 			defaultValue={conduitManufacturer}
-			onValueChange={(e: { value: any[] }) => (conduitManufacturer = e.value)}
+			onValueChange={(e) => (conduitManufacturer = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -265,7 +270,7 @@
 			data={attributes.flags}
 			bind:value={conduitFlag}
 			defaultValue={conduitFlag}
-			onValueChange={(e: { value: any[] }) => (conduitFlag = e.value)}
+			onValueChange={(e) => (conduitFlag = e.value)}
 			renderInPlace={true}
 		/>
 	</label>

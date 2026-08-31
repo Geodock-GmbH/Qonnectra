@@ -36,12 +36,16 @@
 	let innerWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1024);
 	const isMobile = $derived(innerWidth < 768);
 
+	// NOTE: `activeSheet` doubles as MobileBottomSheet's `open` binding — a non-null
+	// string opens the sheet and the sheet resets it to a falsy value on close. The
+	// `any` here reflects that string↔boolean dual use; unifying it is a follow-up.
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let activeSheet = $state<any>(null);
 	let cableRefreshTrigger = $state(0);
 	let showPortTableFullScreen = $state(false);
 
-	let deleteMessageBox = $state<any>(null);
-	let pendingDeleteUuid = $state<any>(null);
+	let deleteMessageBox = $state<ReturnType<typeof MessageBox> | null>(null);
+	let pendingDeleteUuid = $state<string | null>(null);
 	let pendingDeleteSpliceCount = $state(0);
 
 	// Context is created with initial prop values and updated reactively via $effect below
@@ -101,11 +105,14 @@
 		}
 	});
 
-	function handleSideChange(e: any) {
-		context.selectSlotConfig(e.target.value);
+	function handleSideChange(e: Event) {
+		context.selectSlotConfig((e.target as HTMLSelectElement).value);
 	}
 
-	async function handleStructureSelect(structure: any) {
+	async function handleStructureSelect(
+		structure: Parameters<typeof context.structureActions.onSelect>[0] | undefined
+	) {
+		if (!structure) return;
 		const wasSelected = await context.structureActions.onSelect(structure);
 		if (wasSelected) {
 			if (isMobile) {
@@ -125,12 +132,12 @@
 	 * Checks for fiber splices before deleting a structure. Opens a confirmation
 	 * dialog if splices exist, since they will be cascade-deleted.
 	 */
-	async function handleDeleteStructure(structureUuid: any) {
+	async function handleDeleteStructure(structureUuid: string) {
 		const result = await context.structureActions.onDelete(structureUuid);
 		if (result?.needsConfirmation) {
-			pendingDeleteUuid = result.structureUuid;
+			pendingDeleteUuid = result.structureUuid ?? null;
 			pendingDeleteSpliceCount = result.spliceCount;
-			deleteMessageBox.open();
+			deleteMessageBox?.open();
 		}
 	}
 
@@ -142,12 +149,16 @@
 		}
 	}
 
-	function handleMobileComponentSelect(componentType: any) {
+	function handleMobileComponentSelect(
+		componentType: Parameters<typeof context.sidebarActions.onMobileSelect>[0]
+	) {
 		context.sidebarActions.onMobileSelect(componentType);
 		activeSheet = null;
 	}
 
-	function handleMobileFiberSelect(fiberData: any) {
+	function handleMobileFiberSelect(
+		fiberData: Parameters<typeof context.mobileActions.onFiberSelect>[0]
+	) {
 		context.mobileActions.onFiberSelect(fiberData);
 		activeSheet = 'ports';
 	}

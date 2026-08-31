@@ -8,26 +8,9 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { PanelResizeManager } from '$lib/classes/PanelResizeManager.svelte.js';
-	import { drawerStore as rawDrawerStore } from '$lib/stores/drawer';
+	import { drawerStore } from '$lib/stores/drawer';
 	import { drawerSnap } from '$lib/stores/store';
 	import { tooltip } from '$lib/utils/tooltip';
-
-	interface DrawerStoreType {
-		subscribe: (fn: (value: any) => void) => () => void;
-		open: (options?: {
-			title?: string;
-			component?: any;
-			props?: Record<string, any>;
-			width?: number | null;
-		}) => void;
-		close: () => void;
-		setTitle: (title: string) => void;
-		setComponent: (component: any, props?: Record<string, any>) => void;
-		setWidth: (width: number) => void;
-		updateProps: (newProps: Record<string, any>) => void;
-	}
-
-	const drawerStore = rawDrawerStore as any as DrawerStoreType;
 
 	interface Props {
 		children?: import('svelte').Snippet;
@@ -46,18 +29,11 @@
 		onResize: (width) => drawerStore.setWidth(width)
 	});
 
-	const typedStore = drawerStore as any as import('svelte/store').Writable<{
-		open: boolean;
-		title: string;
-		component: any;
-		props: Record<string, any>;
-		width: number;
-	}>;
-	let drawerOpen = $derived($typedStore.open);
-	let drawerTitle = $derived($typedStore.title);
-	let drawerWidth = $derived($typedStore.width);
-	let DrawerComponent = $derived($typedStore.component);
-	let drawerProps = $derived($typedStore.props);
+	let drawerOpen = $derived($drawerStore.open);
+	let drawerTitle = $derived($drawerStore.title);
+	let drawerWidth = $derived($drawerStore.width);
+	let DrawerComponent = $derived($drawerStore.component);
+	let drawerProps = $derived($drawerStore.props);
 
 	$effect(() => {
 		resizer.width = drawerWidth;

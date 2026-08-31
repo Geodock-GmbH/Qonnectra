@@ -33,7 +33,7 @@ from apps.api.services import (
     _validate_and_clean_geometry,
     _valuation_projection,
 )
-from django.contrib.gis.geos import LineString, MultiLineString, Point
+from django.contrib.gis.geos import LineString, MultiLineString
 from shapely.geometry import Point as ShapelyPoint
 
 from .factories import (
@@ -43,7 +43,6 @@ from .factories import (
     ConduitFactory,
     MicroductCableConnectionFactory,
     MicroductFactory,
-    NodeFactory,
     TrenchConduitConnectionFactory,
     TrenchFactory,
 )

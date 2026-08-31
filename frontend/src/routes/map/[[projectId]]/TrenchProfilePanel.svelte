@@ -20,8 +20,18 @@
 	let previousTrenchUuid = $state<string | null>(null);
 	let locked = $state(true);
 
-	// onnodeschange exists but is missing from SvelteFlow types
-	const nodesChangeProps: any = { onnodeschange: handleNodesChange };
+	/** The subset of a SvelteFlow node-change event this panel reacts to. */
+	type NodeDimensionChange = {
+		type: string;
+		id?: string;
+		resizing?: boolean;
+		dimensions?: { width: number; height: number };
+	};
+
+	// onnodeschange exists but is missing from SvelteFlow's prop types
+	const nodesChangeProps: { onnodeschange: (changes: NodeDimensionChange[]) => void } = {
+		onnodeschange: handleNodesChange
+	};
 
 	$effect(() => {
 		if (trenchUuid && trenchUuid !== previousTrenchUuid) {
@@ -53,7 +63,7 @@
 	 * Saves node dimensions when a resize operation completes.
 	 * @param changes - Node change events from SvelteFlow
 	 */
-	function handleNodesChange(changes: any[]) {
+	function handleNodesChange(changes: NodeDimensionChange[]) {
 		for (const change of changes) {
 			if (change.type === 'dimensions' && change.resizing === false) {
 				const node = profileState.nodes.find((n) => n.id === change.id);

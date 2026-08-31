@@ -1,23 +1,31 @@
+import type { FiberColor } from '$lib/server/nodeData';
 import { deserialize } from '$app/forms';
 
 import { m } from '$lib/paraglide/messages';
 
-import type { FiberColor } from '$lib/server/nodeData';
 import { globalToaster } from '$lib/stores/toaster';
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
-interface FiberDetails {
+export interface FiberDetails {
 	uuid: string;
 	fiber_number: number;
 	fiber_color: string;
 	bundle_number: number;
 	cable_name: string;
+	cable_uuid?: string;
+	[key: string]: unknown;
 }
 
-interface ResidentialUnitDetails {
+export interface ResidentialUnitDetails {
 	uuid: string;
-	id_residential_unit: number;
+	id_residential_unit: number | string;
 	display_name: string;
+	resident_name?: string | null;
+	external_id_1?: string | null;
+	external_id_2?: string | null;
+	floor?: number | string | null;
+	side?: string | null;
+	[key: string]: unknown;
 }
 
 interface MergeGroupInfo {
@@ -77,7 +85,7 @@ interface MergeInfo {
 	fiberCount: number;
 }
 
-type PortRowWithMerge = PortRow & {
+export type PortRowWithMerge = PortRow & {
 	mergeInfoA: MergeInfo | null;
 	mergeInfoB: MergeInfo | null;
 };

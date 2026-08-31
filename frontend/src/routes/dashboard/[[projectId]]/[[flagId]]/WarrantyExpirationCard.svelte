@@ -1,17 +1,10 @@
 <script lang="ts">
+	import type { Warranty } from './dashboardUtils';
 	import { navigating } from '$app/stores';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import DashboardCard from './DashboardCard.svelte';
-
-	interface Warranty {
-		id: string | number;
-		name?: string;
-		node_type?: string;
-		warranty: string;
-		days_until_expiry: number;
-	}
 
 	let { warranties }: { warranties: Warranty[] } = $props();
 

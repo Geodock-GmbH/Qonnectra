@@ -30,8 +30,15 @@ from django.db.models.functions import TruncMonth
 from django.http import FileResponse, HttpResponse, StreamingHttpResponse
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    OpenApiResponse,
+    extend_schema,
+    inline_serializer,
+)
 from pathvalidate import sanitize_filename
-from rest_framework import status, viewsets
+from rest_framework import serializers, status, viewsets
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -140,6 +147,7 @@ from .serializers import (
     ContainerTreeSerializer,
     ContainerTypeSerializer,
     ContentTypeSerializer,
+    CustomUserDetailsSerializer,
     FeatureFilesSerializer,
     FiberSerializer,
     FiberSpliceSerializer,
@@ -1006,6 +1014,15 @@ class WebDAVAuthView(APIView):
 
         return False, {"error": "Unauthorized"}, status.HTTP_401_UNAUTHORIZED
 
+    @extend_schema(
+        responses={
+            200: inline_serializer(
+                name="WebDAVAuthResult",
+                fields={"status": serializers.CharField()},
+            ),
+            401: OpenApiResponse(description="Not authenticated."),
+        },
+    )
     def get(self, request, *args, **kwargs):
         """Handle GET requests from Caddy forward_auth."""
         success, data, status_code = self._authenticate_request(request)
@@ -1017,6 +1034,16 @@ class WebDAVAuthView(APIView):
 
         return response
 
+    @extend_schema(
+        request=None,
+        responses={
+            200: inline_serializer(
+                name="WebDAVAuthPostResult",
+                fields={"status": serializers.CharField()},
+            ),
+            401: OpenApiResponse(description="Not authenticated."),
+        },
+    )
     def post(self, request, *args, **kwargs):
         """Handle POST requests."""
         success, data, status_code = self._authenticate_request(request)
@@ -1133,6 +1160,15 @@ class QGISAuthView(APIView):
 
         return False, {"error": "Unauthorized"}, status.HTTP_401_UNAUTHORIZED
 
+    @extend_schema(
+        responses={
+            200: inline_serializer(
+                name="QGISAuthResult",
+                fields={"status": serializers.CharField()},
+            ),
+            401: OpenApiResponse(description="Not authenticated or lacks QGIS access."),
+        },
+    )
     def get(self, request, *args, **kwargs):
         """Handle GET requests from Caddy forward_auth."""
         success, data, status_code = self._authenticate_request(request)
@@ -1144,6 +1180,16 @@ class QGISAuthView(APIView):
 
         return response
 
+    @extend_schema(
+        request=None,
+        responses={
+            200: inline_serializer(
+                name="QGISAuthPostResult",
+                fields={"status": serializers.CharField()},
+            ),
+            401: OpenApiResponse(description="Not authenticated or lacks QGIS access."),
+        },
+    )
     def post(self, request, *args, **kwargs):
         """Handle POST requests."""
         success, data, status_code = self._authenticate_request(request)
@@ -1175,6 +1221,14 @@ class UserPermissionsView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.OBJECT,
+                description="Role-based permission set for the current user.",
+            ),
+        },
+    )
     def get(self, request):
         """Return the authenticated user's role-based permission set."""
         permissions = get_user_permissions(request.user)
@@ -1194,6 +1248,29 @@ class AppLoginView(APIView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "app_login"
 
+    @extend_schema(
+        request=inline_serializer(
+            name="AppLoginRequest",
+            fields={
+                "username": serializers.CharField(),
+                "password": serializers.CharField(),
+            },
+        ),
+        responses={
+            200: inline_serializer(
+                name="AppLoginResult",
+                fields={
+                    "access": serializers.CharField(),
+                    "refresh": serializers.CharField(),
+                    "access_expiration": serializers.IntegerField(),
+                    "refresh_expiration": serializers.IntegerField(),
+                    "user": CustomUserDetailsSerializer(),
+                },
+            ),
+            400: OpenApiResponse(description="Missing username or password."),
+            401: OpenApiResponse(description="Invalid credentials or inactive account."),
+        },
+    )
     def post(self, request):
         from django.contrib.auth import authenticate
         from rest_framework_simplejwt.tokens import RefreshToken
@@ -1223,8 +1300,6 @@ class AppLoginView(APIView):
 
         refresh = RefreshToken.for_user(user)
         access = refresh.access_token
-
-        from apps.api.serializers import CustomUserDetailsSerializer
 
         user_data = CustomUserDetailsSerializer(user).data
 
@@ -1259,6 +1334,20 @@ class AppLogoutView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=inline_serializer(
+            name="AppLogoutRequest",
+            fields={"refresh": serializers.CharField()},
+        ),
+        responses={
+            200: inline_serializer(
+                name="AppLogoutResult",
+                fields={"detail": serializers.CharField()},
+            ),
+            400: OpenApiResponse(description="Refresh token is required."),
+            401: OpenApiResponse(description="Invalid or expired refresh token."),
+        },
+    )
     def post(self, request):
         refresh_token = request.data.get("refresh")
         if not refresh_token:
@@ -1284,6 +1373,19 @@ class OlTrenchTileViewSet(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "project", int, OpenApiParameter.QUERY, required=False,
+                description="Project id to scope the tile features.",
+            ),
+        ],
+        responses={
+            (200, "application/vnd.mapbox-vector-tile"): OpenApiResponse(
+                OpenApiTypes.BINARY, description="Mapbox Vector Tile (MVT)."
+            ),
+        },
+    )
     def get(self, request, z, x, y, format=None):
         """
         Serves MVT tiles for OlTrench.
@@ -2187,6 +2289,19 @@ class OlAddressTileViewSet(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "project", int, OpenApiParameter.QUERY, required=False,
+                description="Project id to scope the tile features.",
+            ),
+        ],
+        responses={
+            (200, "application/vnd.mapbox-vector-tile"): OpenApiResponse(
+                OpenApiTypes.BINARY, description="Mapbox Vector Tile (MVT)."
+            ),
+        },
+    )
     def get(self, request, z, x, y, format=None):
         """
         Serves MVT tiles for OlAddress.
@@ -2870,6 +2985,34 @@ class NodeCanvasCoordinatesView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "project_id", int, OpenApiParameter.QUERY, required=False,
+                description="Filter node stats by project.",
+            ),
+            OpenApiParameter(
+                "flag_id", int, OpenApiParameter.QUERY, required=False,
+                description="Filter node stats by flag.",
+            ),
+        ],
+        responses={
+            200: inline_serializer(
+                name="CanvasSyncStatus",
+                fields={
+                    "total_nodes": serializers.IntegerField(),
+                    "nodes_with_canvas": serializers.IntegerField(),
+                    "nodes_missing_canvas": serializers.IntegerField(),
+                    "sync_needed": serializers.BooleanField(),
+                    "sync_in_progress": serializers.BooleanField(),
+                    "sync_status": serializers.CharField(),
+                    "sync_started_at": serializers.DateTimeField(allow_null=True),
+                    "sync_progress": serializers.FloatField(),
+                    "error_message": serializers.CharField(allow_null=True),
+                },
+            ),
+        },
+    )
     def get(self, request, format=None):
         """
         Check the status of canvas coordinates and sync operations.
@@ -2937,6 +3080,25 @@ class NodeCanvasCoordinatesView(APIView):
             }
         )
 
+    @extend_schema(
+        request=inline_serializer(
+            name="CanvasSyncRequest",
+            fields={
+                "project_id": serializers.IntegerField(required=False),
+                "flag_id": serializers.IntegerField(required=False),
+                "scale": serializers.FloatField(
+                    required=False, help_text="Scale factor (default 1.0)."
+                ),
+            },
+        ),
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.OBJECT, description="Sync result summary."
+            ),
+            409: OpenApiResponse(description="A sync is already in progress."),
+            500: OpenApiResponse(description="Sync failed to start."),
+        },
+    )
     def post(self, request, format=None):
         """
         Calculate and store canvas coordinates with concurrency control.
@@ -3140,6 +3302,19 @@ class OlNodeTileViewSet(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "project", int, OpenApiParameter.QUERY, required=False,
+                description="Project id to scope the tile features.",
+            ),
+        ],
+        responses={
+            (200, "application/vnd.mapbox-vector-tile"): OpenApiResponse(
+                OpenApiTypes.BINARY, description="Mapbox Vector Tile (MVT)."
+            ),
+        },
+    )
     def get(self, request, z, x, y, format=None):
         """
         Serves MVT tiles for OlNode.
@@ -3223,6 +3398,27 @@ class RoutingView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=inline_serializer(
+            name="RoutingRequest",
+            fields={
+                "start_trench_id": serializers.IntegerField(),
+                "end_trench_id": serializers.IntegerField(),
+                "project_id": serializers.IntegerField(),
+                "tolerance": serializers.IntegerField(
+                    required=False, help_text="Snapping tolerance (default 1)."
+                ),
+            },
+        ),
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.OBJECT,
+                description="Shortest path between the two trenches.",
+            ),
+            400: OpenApiResponse(description="Missing trench ids or routing error."),
+            404: OpenApiResponse(description="No path found."),
+        },
+    )
     def post(self, request, format=None):
         """
         Calculates and returns the shortest path between two trenches.
@@ -3281,6 +3477,45 @@ class SpatialIntersectView(APIView):
         "area": AreaSerializer,
     }
 
+    @extend_schema(
+        request=inline_serializer(
+            name="SpatialIntersectRequest",
+            fields={
+                "geom": serializers.DictField(
+                    help_text="GeoJSON geometry (EPSG:25832 unless 'srid' set)."
+                ),
+                "layers": serializers.ListField(
+                    child=serializers.CharField(), required=False
+                ),
+                "project": serializers.IntegerField(required=False),
+                "exclude_projects": serializers.CharField(
+                    required=False,
+                    help_text="Comma-separated or list of project ids to drop.",
+                ),
+                "srid": serializers.IntegerField(required=False),
+            },
+        ),
+        responses={
+            200: inline_serializer(
+                name="SpatialIntersectResult",
+                fields={
+                    "srid": serializers.IntegerField(),
+                    "layers": serializers.DictField(
+                        help_text="Per-layer GeoJSON FeatureCollection."
+                    ),
+                    "counts": serializers.DictField(child=serializers.IntegerField()),
+                    "total": serializers.IntegerField(),
+                },
+            ),
+            400: OpenApiResponse(
+                inline_serializer(
+                    name="SpatialIntersectError",
+                    fields={"error": serializers.CharField()},
+                ),
+                description="Invalid geometry or layer request.",
+            ),
+        },
+    )
     def post(self, request, format=None):
         """Intersect the request geometry against the requested layers.
 
@@ -3342,6 +3577,13 @@ class ConduitImportTemplateView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={
+            (200, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"): OpenApiResponse(
+                OpenApiTypes.BINARY, description="Excel conduit-import template."
+            ),
+        },
+    )
     def get(self, request):
         return generate_conduit_import_template()
 
@@ -3356,6 +3598,25 @@ class ConduitImportView(APIView):
 
     MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
+    @extend_schema(
+        request=inline_serializer(
+            name="ConduitImportRequest",
+            fields={"file": serializers.FileField(help_text="An .xlsx file (max 10 MB).")},
+        ),
+        responses={
+            201: inline_serializer(
+                name="ConduitImportResult",
+                fields={
+                    "message": serializers.CharField(),
+                    "created_count": serializers.IntegerField(),
+                    "warnings": serializers.ListField(
+                        child=serializers.CharField(), required=False
+                    ),
+                },
+            ),
+            400: OpenApiResponse(description="Missing/invalid file or import errors."),
+        },
+    )
     def post(self, request, *args, **kwargs):
         """Import conduits from an uploaded .xlsx file (max 10 MB)."""
         file_obj = request.FILES.get("file")
@@ -3400,6 +3661,14 @@ class NodeStructureExportView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={
+            (200, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"): OpenApiResponse(
+                OpenApiTypes.BINARY, description="Excel export of the node's structure."
+            ),
+            404: OpenApiResponse(description="Node not found."),
+        },
+    )
     def get(self, request, node_uuid):
         """Generate and return an Excel file for the given node's structure."""
         response = generate_node_structure_excel(node_uuid)
@@ -3424,6 +3693,19 @@ class GeoPackageSchemaView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "layers", str, OpenApiParameter.QUERY, required=False,
+                description="Comma-separated layer names to include (default: all).",
+            ),
+        ],
+        responses={
+            (200, "application/geopackage+sqlite3"): OpenApiResponse(
+                OpenApiTypes.BINARY, description="GeoPackage (.gpkg) download."
+            ),
+        },
+    )
     def get(self, request):
         """Generate and return a GeoPackage schema, optionally filtered by ?layers."""
         layers_param = request.query_params.get("layers")
@@ -3623,6 +3905,88 @@ class TrenchesNearNodeView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "node_name",
+                str,
+                OpenApiParameter.QUERY,
+                required=True,
+                description="Name of the node to search around.",
+            ),
+            OpenApiParameter(
+                "distance",
+                float,
+                OpenApiParameter.QUERY,
+                required=False,
+                description="Search radius in meters (default 5).",
+            ),
+            OpenApiParameter(
+                "project",
+                int,
+                OpenApiParameter.QUERY,
+                required=True,
+                description="Project id to filter by.",
+            ),
+        ],
+        responses={
+            200: inline_serializer(
+                name="TrenchesNearNodeResult",
+                fields={
+                    "trenches": inline_serializer(
+                        name="TrenchesNearNodeTrench",
+                        many=True,
+                        fields={
+                            "uuid": serializers.UUIDField(),
+                            "id_trench": serializers.CharField(),
+                            "conduits": inline_serializer(
+                                name="TrenchesNearNodeConduit",
+                                many=True,
+                                fields={
+                                    "uuid": serializers.UUIDField(),
+                                    "name": serializers.CharField(),
+                                    "microducts": inline_serializer(
+                                        name="TrenchesNearNodeMicroduct",
+                                        many=True,
+                                        fields={
+                                            "uuid": serializers.UUIDField(),
+                                            "number": serializers.IntegerField(),
+                                            "color": serializers.CharField(
+                                                allow_null=True
+                                            ),
+                                            "microduct_status": serializers.CharField(
+                                                allow_null=True
+                                            ),
+                                            "hex_code": serializers.CharField(
+                                                allow_null=True
+                                            ),
+                                            "hex_code_secondary": serializers.CharField(
+                                                allow_null=True
+                                            ),
+                                            "name_de": serializers.CharField(
+                                                allow_null=True
+                                            ),
+                                            "name_en": serializers.CharField(
+                                                allow_null=True
+                                            ),
+                                            "is_two_layer": serializers.BooleanField(),
+                                        },
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                    "count": serializers.IntegerField(),
+                    "node_uuid": serializers.UUIDField(),
+                    "node_name": serializers.CharField(),
+                    "distance": serializers.FloatField(),
+                    "project_id": serializers.IntegerField(),
+                },
+            ),
+            400: OpenApiResponse(description="Missing or non-numeric parameters."),
+            404: OpenApiResponse(description="Node not found in the project."),
+        },
+    )
     def get(self, request, format=None):
         """
         Returns trenches near a node with their associated microducts.
@@ -4202,6 +4566,34 @@ class FrontendLogView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=inline_serializer(
+            name="FrontendLogRequest",
+            fields={
+                "level": serializers.ChoiceField(
+                    choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+                    required=False,
+                ),
+                "message": serializers.CharField(required=False, allow_blank=True),
+                "path": serializers.CharField(required=False, allow_blank=True),
+                "extra_data": serializers.DictField(required=False),
+                "project": serializers.IntegerField(required=False, allow_null=True),
+            },
+        ),
+        responses={
+            201: inline_serializer(
+                name="FrontendLogResult",
+                fields={"status": serializers.CharField()},
+            ),
+            500: OpenApiResponse(
+                inline_serializer(
+                    name="FrontendLogError",
+                    fields={"error": serializers.CharField()},
+                ),
+                description="Failed to create the log entry.",
+            ),
+        },
+    )
     def post(self, request, *args, **kwargs):
         """Submit a frontend log entry."""
         try:
@@ -4256,6 +4648,45 @@ class LayerExtentView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "layer",
+                str,
+                OpenApiParameter.QUERY,
+                required=True,
+                enum=["trench", "address", "node", "area"],
+                description="Layer type to compute the extent for.",
+            ),
+            OpenApiParameter(
+                "project",
+                int,
+                OpenApiParameter.QUERY,
+                required=True,
+                description="Project id to filter by.",
+            ),
+        ],
+        responses={
+            200: inline_serializer(
+                name="LayerExtent",
+                fields={
+                    "extent": serializers.ListField(
+                        child=serializers.FloatField(),
+                        allow_null=True,
+                        help_text="[xmin, ymin, xmax, ymax] in EPSG:3857, or null.",
+                    ),
+                    "layer": serializers.CharField(),
+                },
+            ),
+            400: OpenApiResponse(
+                inline_serializer(
+                    name="LayerExtentError",
+                    fields={"error": serializers.CharField()},
+                ),
+                description="Missing or invalid ``layer`` / ``project`` parameter.",
+            ),
+        },
+    )
     def get(self, request, format=None):
         """
         Returns the bounding box extent for a layer filtered by project.
@@ -4426,6 +4857,19 @@ class OlAreaTileViewSet(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "project", int, OpenApiParameter.QUERY, required=False,
+                description="Project id to scope the tile features.",
+            ),
+        ],
+        responses={
+            (200, "application/vnd.mapbox-vector-tile"): OpenApiResponse(
+                OpenApiTypes.BINARY, description="Mapbox Vector Tile (MVT)."
+            ),
+        },
+    )
     def get(self, request, z, x, y, format=None):
         """
         Serves MVT tiles for OlArea.
@@ -5771,6 +6215,24 @@ class ConduitsByTrenchesView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "trench_ids",
+                str,
+                OpenApiParameter.QUERY,
+                description="Comma-separated trench UUIDs.",
+            ),
+            OpenApiParameter(
+                "cable_id",
+                str,
+                OpenApiParameter.QUERY,
+                required=False,
+                description="Cable UUID to mark already-linked conduits.",
+            ),
+        ],
+        responses={200: ConduitForTrenchSelectionSerializer(many=True)},
+    )
     def get(self, request):
         """Return deduplicated conduits across the given trench UUIDs."""
         trench_ids = request.query_params.get("trench_ids", "")
@@ -5835,6 +6297,49 @@ class MicropipesByConduitsView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "conduit_ids",
+                str,
+                OpenApiParameter.QUERY,
+                description="Comma-separated conduit UUIDs.",
+            ),
+            OpenApiParameter(
+                "cable_id",
+                str,
+                OpenApiParameter.QUERY,
+                required=False,
+                description="Cable UUID to flag micropipes linked to it.",
+            ),
+        ],
+        responses={
+            200: inline_serializer(
+                name="MicropipeByConduit",
+                many=True,
+                fields={
+                    "number": serializers.IntegerField(),
+                    "color_name": serializers.CharField(allow_null=True),
+                    "color_hex": serializers.CharField(),
+                    "available_in": serializers.ListField(
+                        child=serializers.UUIDField()
+                    ),
+                    "available_in_all": serializers.BooleanField(),
+                    "linked_to_cable": serializers.BooleanField(),
+                    "linked_cables": inline_serializer(
+                        name="MicropipeLinkedCable",
+                        many=True,
+                        fields={
+                            "uuid": serializers.UUIDField(),
+                            "name": serializers.CharField(),
+                        },
+                    ),
+                    "missing_in": serializers.ListField(child=serializers.CharField()),
+                    "microduct_status": serializers.BooleanField(),
+                },
+            ),
+        },
+    )
     def get(self, request):
         """Return micropipes with availability and cable connection info across conduits."""
         conduit_ids = request.query_params.get("conduit_ids", "")
@@ -5955,6 +6460,26 @@ class CableMicropipeConnectionsView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=inline_serializer(
+            name="CableMicropipeConnectRequest",
+            fields={
+                "micropipe_number": serializers.IntegerField(),
+                "color": serializers.CharField(),
+                "conduit_ids": serializers.ListField(child=serializers.UUIDField()),
+            },
+        ),
+        responses={
+            200: inline_serializer(
+                name="CableMicropipeConnectResult",
+                fields={
+                    "created": serializers.ListField(child=serializers.UUIDField()),
+                    "count": serializers.IntegerField(),
+                },
+            ),
+            400: OpenApiResponse(description="Missing required fields."),
+        },
+    )
     def post(self, request, cable_id):
         """Create connections for a micropipe across multiple conduits."""
         micropipe_number = request.data.get("micropipe_number")
@@ -5982,6 +6507,22 @@ class CableMicropipeConnectionsView(APIView):
 
         return Response({"created": created, "count": len(created)})
 
+    @extend_schema(
+        request=inline_serializer(
+            name="CableMicropipeDisconnectRequest",
+            fields={
+                "micropipe_number": serializers.IntegerField(),
+                "conduit_ids": serializers.ListField(child=serializers.UUIDField()),
+            },
+        ),
+        responses={
+            200: inline_serializer(
+                name="CableMicropipeDisconnectResult",
+                fields={"deleted": serializers.IntegerField()},
+            ),
+            400: OpenApiResponse(description="Missing required fields."),
+        },
+    )
     def delete(self, request, cable_id):
         """Remove connections for a micropipe across conduits."""
         micropipe_number = request.data.get("micropipe_number")
@@ -6007,6 +6548,25 @@ class CableAutoLinkMicropipeView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=inline_serializer(
+            name="CableAutoLinkRequest",
+            fields={
+                "microduct_uuid": serializers.UUIDField(
+                    required=False,
+                    help_text="Link this specific microduct; omit to auto-match both ends.",
+                ),
+            },
+        ),
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.OBJECT,
+                description="Per-end link results, or the single-link result.",
+            ),
+            400: OpenApiResponse(description="Chosen microduct could not be linked."),
+            404: OpenApiResponse(description="Cable or microduct not found."),
+        },
+    )
     def post(self, request, cable_id):
         """Auto-resolve microduct links for both cable ends, or link a chosen microduct.
 
@@ -6062,6 +6622,16 @@ class CableAutoLinkMicropipeView(APIView):
         )
 
 
+@extend_schema(
+    responses={
+        200: inline_serializer(
+            name="CableLinkedTrenches",
+            fields={
+                "trench_uuids": serializers.ListField(child=serializers.UUIDField()),
+            },
+        ),
+    },
+)
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_trenches_for_cable_connections(request, cable_id):
@@ -6080,6 +6650,16 @@ def get_trenches_for_cable_connections(request, cable_id):
     return Response({"trench_uuids": [str(uuid) for uuid in trench_uuids]})
 
 
+@extend_schema(
+    responses={
+        200: inline_serializer(
+            name="CableConduits",
+            fields={
+                "conduit_names": serializers.ListField(child=serializers.CharField()),
+            },
+        ),
+    },
+)
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_conduits_for_cable(request, cable_id):
@@ -6094,6 +6674,15 @@ def get_conduits_for_cable(request, cable_id):
     return Response({"conduit_names": conduit_names})
 
 
+@extend_schema(
+    responses={
+        200: OpenApiResponse(
+            OpenApiTypes.OBJECT,
+            description="Map of cable UUID -> list of connected micropipes "
+            "({number, color_hex, color_name}), for network-schema edge coloring.",
+        ),
+    },
+)
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_cable_micropipe_summary(request, project_id):
@@ -6427,6 +7016,16 @@ class WMSProxyView(APIView):
 
         return True, ""
 
+    @extend_schema(
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.BINARY,
+                description="Upstream WMS response (image or XML), streamed through.",
+            ),
+        },
+        description="Proxies the WMS request to the configured upstream source; "
+        "the response body and content-type mirror upstream.",
+    )
     def get(self, request, source_id):
         """Proxy WMS GET request to upstream server."""
         acquired = _wms_upstream_semaphore.acquire(
@@ -6883,6 +7482,16 @@ class WFS3ProxyView(APIView):
             pass
         return params
 
+    @extend_schema(
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.OBJECT,
+                description="Reprojected WFS3/OGC-API response from the upstream "
+                "QGIS Server (GeoJSON or the upstream content-type).",
+            ),
+            404: OpenApiResponse(description="QGIS project not found."),
+        },
+    )
     def get(self, request, project_name, wfs3_path=""):
         """Handle GET requests to WFS3 endpoints."""
         qgis_project = self._get_qgis_project(project_name)
@@ -6893,6 +7502,17 @@ class WFS3ProxyView(APIView):
             )
         return self._proxy_request(request, qgis_project, wfs3_path)
 
+    @extend_schema(
+        request=None,
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.OBJECT,
+                description="Reprojected WFS3/OGC-API response from the upstream "
+                "QGIS Server.",
+            ),
+            404: OpenApiResponse(description="QGIS project not found."),
+        },
+    )
     def post(self, request, project_name, wfs3_path=""):
         """Handle POST requests to WFS3 endpoints (for complex queries)."""
         qgis_project = self._get_qgis_project(project_name)
@@ -6914,6 +7534,43 @@ class DashboardStatisticsView(APIView):
     permission_classes = [IsAuthenticated]
     CACHE_TIMEOUT = 300  # 5 minutes
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "project",
+                int,
+                OpenApiParameter.QUERY,
+                required=True,
+                description="Project id to scope statistics to.",
+            ),
+            OpenApiParameter(
+                "flag",
+                int,
+                OpenApiParameter.QUERY,
+                required=False,
+                description="Optional flag id to further filter statistics.",
+            ),
+        ],
+        responses={
+            200: inline_serializer(
+                name="DashboardStatistics",
+                fields={
+                    "trench": serializers.DictField(),
+                    "node": serializers.DictField(),
+                    "address": serializers.DictField(),
+                    "conduit": serializers.DictField(),
+                    "area": serializers.DictField(),
+                },
+            ),
+            400: OpenApiResponse(
+                inline_serializer(
+                    name="DashboardStatisticsError",
+                    fields={"error": serializers.CharField()},
+                ),
+                description="Missing required ``project`` parameter.",
+            ),
+        },
+    )
     def get(self, request):
         """Return all dashboard statistics in a single cached response.
 
@@ -7554,6 +8211,44 @@ class TraceSearchView(APIView):
     authentication_classes = [JWTCookieAuthentication, SessionAuthentication]
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "search",
+                str,
+                OpenApiParameter.QUERY,
+                required=True,
+                description="Search term (min 2 characters).",
+            ),
+            OpenApiParameter(
+                "type",
+                str,
+                OpenApiParameter.QUERY,
+                required=True,
+                enum=["address", "node", "cable", "residential_unit"],
+                description="Entity type to search.",
+            ),
+            OpenApiParameter(
+                "project",
+                int,
+                OpenApiParameter.QUERY,
+                required=False,
+                description="Project id to scope results.",
+            ),
+        ],
+        responses={
+            200: inline_serializer(
+                name="TraceSearchResult",
+                fields={
+                    "results": serializers.ListField(
+                        child=serializers.DictField(),
+                        help_text="Lightweight picker items; fields vary by type.",
+                    ),
+                },
+            ),
+            400: OpenApiResponse(description="Invalid entity type."),
+        },
+    )
     def get(self, request):
         """Search across entity types and return lightweight picker results.
 
@@ -7687,6 +8382,51 @@ class FiberTraceView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "fiber_id", str, OpenApiParameter.QUERY, required=False,
+                description="Trace a single fiber (mutually exclusive with the other *_id params).",
+            ),
+            OpenApiParameter(
+                "cable_id", str, OpenApiParameter.QUERY, required=False,
+                description="Trace all fibers of a cable.",
+            ),
+            OpenApiParameter(
+                "node_id", str, OpenApiParameter.QUERY, required=False,
+                description="Trace all fibers passing through a node.",
+            ),
+            OpenApiParameter(
+                "address_id", str, OpenApiParameter.QUERY, required=False,
+                description="Trace fibers via an address's linked nodes/RUs.",
+            ),
+            OpenApiParameter(
+                "residential_unit_id", str, OpenApiParameter.QUERY, required=False,
+                description="Trace fibers connected to a residential unit.",
+            ),
+            OpenApiParameter(
+                "include_geometry", bool, OpenApiParameter.QUERY, required=False,
+                description="Include trench geometry (default false).",
+            ),
+            OpenApiParameter(
+                "geometry_mode", str, OpenApiParameter.QUERY, required=False,
+                enum=["segments", "merged", "routed"],
+                description="Geometry representation (default 'segments').",
+            ),
+            OpenApiParameter(
+                "orient_geometry", bool, OpenApiParameter.QUERY, required=False,
+                description="Orient lines from cable start to end.",
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.OBJECT,
+                description="Path tree of the traced fiber(s); recursive shape "
+                "produced by the trace services.",
+            ),
+            400: OpenApiResponse(description="Missing/ambiguous id or bad parameter."),
+        },
+    )
     def get(self, request):
         """Trace fiber paths through the network and return a path tree."""
         from uuid import UUID as UUIDType
@@ -7802,6 +8542,25 @@ class FiberTraceSummaryView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "fiber_id",
+                str,
+                OpenApiParameter.QUERY,
+                required=True,
+                description="UUID of the fiber to summarize.",
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.OBJECT,
+                description="Compact trace summary (start/end nodes, addresses, "
+                "stats) produced by the trace service.",
+            ),
+            400: OpenApiResponse(description="Missing or invalid fiber_id."),
+        },
+    )
     def get(self, request):
         """Return a compact trace summary with start/end nodes and statistics."""
         from uuid import UUID as UUIDType
@@ -7851,6 +8610,38 @@ class SignalAnalysisView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "fiber_id", str, OpenApiParameter.QUERY, required=True,
+                description="UUID of the fiber to analyze.",
+            ),
+            OpenApiParameter(
+                "signal_source_node_id", str, OpenApiParameter.QUERY, required=False,
+                description="Node where the signal originates (default: root cable start).",
+            ),
+            OpenApiParameter(
+                "include_geometry", bool, OpenApiParameter.QUERY, required=False,
+                description="Include trench geometry (default false).",
+            ),
+            OpenApiParameter(
+                "geometry_mode", str, OpenApiParameter.QUERY, required=False,
+                enum=["segments", "merged", "routed"],
+                description="Geometry representation (default 'segments').",
+            ),
+            OpenApiParameter(
+                "orient_geometry", bool, OpenApiParameter.QUERY, required=False,
+                description="Orient lines from cable start to end.",
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.OBJECT,
+                description="Signal-flow analysis with lit/dark portions and breaks.",
+            ),
+            400: OpenApiResponse(description="Missing/invalid fiber_id or bad parameter."),
+        },
+    )
     def get(self, request):
         """Analyze signal flow through a fiber, identifying breaks and lit/dark portions."""
         from uuid import UUID as UUIDType
@@ -7922,6 +8713,24 @@ class ConfigView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={
+            200: inline_serializer(
+                name="Config",
+                fields={
+                    "srid": serializers.IntegerField(),
+                    "proj4": serializers.CharField(),
+                },
+            ),
+            500: OpenApiResponse(
+                inline_serializer(
+                    name="ConfigError",
+                    fields={"error": serializers.CharField()},
+                ),
+                description="Configured SRID is not a valid EPSG code.",
+            ),
+        },
+    )
     def get(self, request):
         """Return the storage SRID and its proj4 definition.
 
@@ -7964,6 +8773,7 @@ class UserSettingsView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: UserSettingsSerializer})
     def get(self, request):
         """Return the current user's saved settings snapshot.
 
@@ -7981,6 +8791,10 @@ class UserSettingsView(APIView):
 
         return Response(UserSettingsSerializer(instance).data)
 
+    @extend_schema(
+        request=UserSettingsSerializer,
+        responses={200: UserSettingsSerializer},
+    )
     def put(self, request):
         """Create or overwrite the current user's settings snapshot.
 
@@ -8009,6 +8823,28 @@ class FaultSimulationView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=inline_serializer(
+            name="FaultSimulationRequest",
+            fields={
+                "point": serializers.ListField(
+                    child=serializers.FloatField(),
+                    min_length=2,
+                    max_length=2,
+                    help_text="Damage point as [x, y].",
+                ),
+                "project_id": serializers.CharField(help_text="Project UUID."),
+            },
+        ),
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.OBJECT,
+                description="Affected infrastructure (cables, addresses, RUs).",
+            ),
+            400: OpenApiResponse(description="Missing point or project_id."),
+            404: OpenApiResponse(description="No trench found near the point."),
+        },
+    )
     def post(self, request):
         """Run fault simulation for a given damage point.
 
@@ -8211,6 +9047,15 @@ class PipelineInquiryExportView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={
+            (200, "application/zip"): OpenApiResponse(
+                OpenApiTypes.BINARY,
+                description="ZIP of GeoJSON layers and feature files for the inquiry.",
+            ),
+            400: OpenApiResponse(description="No inquiry areas exist for the record."),
+        },
+    )
     def get(self, request, pipeline_record_uuid):
         """Build and return the inquiry export ZIP.
 
@@ -8275,6 +9120,43 @@ class ValuationCalculateView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=ValuationRequestSerializer,
+        responses={
+            200: inline_serializer(
+                name="ValuationResult",
+                fields={
+                    "categories": inline_serializer(
+                        name="ValuationCategory",
+                        many=True,
+                        fields={
+                            "name": serializers.CharField(),
+                            "unit": serializers.CharField(),
+                            "amount": serializers.FloatField(),
+                            "quantity": serializers.FloatField(),
+                            "gp": serializers.FloatField(),
+                            "is_house_connection": serializers.BooleanField(),
+                        },
+                    ),
+                    "total": serializers.FloatField(),
+                    "cost_per_house_connection": serializers.FloatField(
+                        allow_null=True
+                    ),
+                    "cost_per_meter": serializers.FloatField(allow_null=True),
+                    "projection": inline_serializer(
+                        name="ValuationProjectionYear",
+                        many=True,
+                        allow_null=True,
+                        fields={
+                            "year": serializers.IntegerField(),
+                            "net_value": serializers.FloatField(),
+                            "increase": serializers.FloatField(),
+                        },
+                    ),
+                },
+            ),
+        },
+    )
     def post(self, request):
         """Validate the request and return the calculated valuation."""
         serializer = ValuationRequestSerializer(data=request.data)

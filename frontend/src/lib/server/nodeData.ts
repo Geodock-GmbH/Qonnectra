@@ -7,14 +7,22 @@ import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 /**
  * Maps node API responses (GeoJSON, minimal, or flat array) to combobox option format.
  */
+/** A raw node record as returned by the API (GeoJSON feature or flat node). */
+interface RawNodeItem {
+	id?: string;
+	uuid?: string;
+	name?: string;
+	properties?: { uuid?: string; name?: string };
+}
+
 export function mapNodesToOptions(nodesData: unknown): { value: string; label: string }[] {
-	const items =
-		(nodesData as any)?.features || (nodesData as any)?.nodes || (nodesData as any) || [];
-	return items.map((item: any) => {
-		const node = item.properties || item;
+	const bag = nodesData as { features?: RawNodeItem[]; nodes?: RawNodeItem[] } | RawNodeItem[];
+	const items: RawNodeItem[] = Array.isArray(bag) ? bag : (bag?.features ?? bag?.nodes ?? []);
+	return items.map((item) => {
+		const node = item.properties ?? item;
 		return {
-			value: item.id || node.uuid,
-			label: node.name || 'Unnamed Node'
+			value: item.id ?? node.uuid ?? '',
+			label: node.name ?? 'Unnamed Node'
 		};
 	});
 }

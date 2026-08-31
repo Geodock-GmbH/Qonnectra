@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { SlotConfig } from './containerItemTypes';
 	import { IconEye, IconGripVertical, IconPencil, IconTrash } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -14,10 +15,10 @@
 		onDragStart = () => {},
 		onViewStructure
 	}: {
-		config: any;
+		config: SlotConfig;
 		depth?: number;
 		readonly?: boolean;
-		onEdit?: (config: any) => void;
+		onEdit?: (config: SlotConfig) => void;
 		onDelete?: (uuid: string) => void;
 		onDragStart?: () => void;
 		onViewStructure?: (uuid: string) => void;

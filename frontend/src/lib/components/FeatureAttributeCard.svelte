@@ -5,7 +5,7 @@
 
 	interface Props {
 		/** Feature properties from MVT */
-		properties?: Record<string, any>;
+		properties?: Record<string, unknown>;
 		/** Type of feature ('trench', 'address', 'node') */
 		featureType?: string;
 		/** Field name alias mapping (English -> Localized) */
@@ -30,7 +30,7 @@
 	 * @param key - Property key
 	 * @param value
 	 */
-	function formatValue(key: string, value: any): string {
+	function formatValue(key: string, value: unknown): string {
 		if (value === null || value === undefined) return '-';
 		if (typeof value === 'boolean') return value ? m.common_yes() : m.common_no();
 		if (value instanceof Date) return value.toLocaleDateString();

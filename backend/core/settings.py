@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "dj_rest_auth",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
+    "drf_spectacular",
     "corsheaders",
     "django_json_widget",
     "simple_history",
@@ -198,6 +199,10 @@ LOCALE_PATHS = [
 STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
+# Hand-written static source (kept out of STATIC_ROOT so collectstatic --clear
+# never wipes it). Holds the Skeleton legacy admin theme override.
+STATICFILES_DIRS = [BASE_DIR / "static_src"]
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
@@ -221,6 +226,7 @@ REST_FRAMEWORK = {
     "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.NamespaceVersioning",
     "ALLOWED_VERSIONS": ["v1"],
     "DEFAULT_VERSION": "v1",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
     ]
@@ -229,6 +235,14 @@ REST_FRAMEWORK = {
         "app_login": "5/min",
         "app_token_refresh": "30/min",
     },
+}
+
+# drf-spectacular settings — OpenAPI schema generation for frontend type codegen
+# https://drf-spectacular.readthedocs.io/en/latest/settings.html
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Qonnectra API",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }
 
 # dj-rest-auth settings

@@ -11,7 +11,7 @@
 	interface Conduit {
 		label: string;
 		value: string;
-		[key: string]: any;
+		[key: string]: unknown;
 	}
 
 	interface Props {

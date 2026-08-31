@@ -40,6 +40,7 @@
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { actionData } from '$lib/utils/forms';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
 
@@ -53,13 +54,20 @@
 
 	import TrenchTable from './TrenchTable.svelte';
 
+	/** Shape of the routing result returned by the `calculateRoute` action. */
+	interface RouteData {
+		path_geometry_wkt?: string;
+		traversed_trench_uuids?: string[];
+		traversed_trench_ids?: string[];
+	}
+
 	let { data }: { data: PageData } = $props();
 
-	const nodeTypes = $derived((data.nodeTypes ?? []) as any[]);
-	const surfaces = $derived((data.surfaces ?? []) as any[]);
-	const constructionTypes = $derived((data.constructionTypes ?? []) as any[]);
-	const areaTypes = $derived((data.areaTypes ?? []) as any[]);
-	const flags = $derived((data.flags ?? []) as any[]);
+	const nodeTypes = $derived(data.nodeTypes ?? []);
+	const surfaces = $derived(data.surfaces ?? []);
+	const constructionTypes = $derived(data.constructionTypes ?? []);
+	const areaTypes = $derived(data.areaTypes ?? []);
+	const flags = $derived(data.flags ?? []);
 	const flagsError = $derived((data.flagsError ?? undefined) as string | undefined);
 
 	// Sync stores from URL params on initial load to prevent navigation effect from redirecting
@@ -265,10 +273,7 @@
 	 * Initializes all map interactions and layers
 	 */
 	function handleMapReady({ map: olMapInstance }: { map: OlMap; usingFallbackOSM?: boolean }) {
-		mapState.initializeSelectionLayers(
-			olMapInstance,
-			() => selectionManager.getSelectionStore() as any as Record<string, boolean>
-		);
+		mapState.initializeSelectionLayers(olMapInstance, () => selectionManager.getSelectionStore());
 
 		const selectionLayers = mapState.getSelectionLayers();
 		selectionLayers.forEach((layer) => selectionManager.registerSelectionLayer(layer));
@@ -309,7 +314,13 @@
 		});
 		if (mapState.olMap) mapState.olMap.addLayer(highlightLayer);
 
-		if (mapState.olMap) (mapState.olMap as any).on('click', handleMapClick);
+		if (mapState.olMap) {
+			// OL's MapEventHandler intersection type breaks overload resolution for
+			// on('click', listener); the runtime contract (MapBrowserEvent<PointerEvent>)
+			// is correct and enforced on handleMapClick.
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			(mapState.olMap as any).on('click', handleMapClick);
+		}
 	}
 
 	const handleZoomToExtent = createZoomToLayerExtentHandler(
@@ -377,14 +388,14 @@
 					const result = deserialize(await response.text());
 
 					if (result.type === 'failure' || result.type === 'error') {
-						const errorData = (result as any).data as { error?: string; detail?: string };
+						const errorData = actionData(result) as { error?: string; detail?: string } | undefined;
 						throw new Error(errorData?.error || errorData?.detail || 'Routing failed');
 					}
 
-					const successData = (result as any).data as { routeData: any };
+					const successData = actionData(result) as { routeData?: RouteData } | undefined;
 					const routeData = successData?.routeData;
 
-					if (routeData.path_geometry_wkt && routeData.traversed_trench_uuids) {
+					if (routeData?.path_geometry_wkt && routeData.traversed_trench_uuids) {
 						const wktFormat = new WKT();
 						registerStorageProjection(page.data.srid, page.data.proj4Def);
 						const routeFeature = wktFormat.readFeature(routeData.path_geometry_wkt, {
@@ -393,16 +404,11 @@
 						});
 						if (routeLayer) routeLayer.getSource()!.addFeature(routeFeature);
 
-						const newSelection: Record<string, boolean> = {};
-						for (const uuid of routeData.traversed_trench_uuids) {
-							newSelection[uuid] = true;
-						}
-						(selectionManager as any).selectionStore = newSelection;
-						selectionManager.updateSelectionLayers();
+						selectionManager.selectMultipleFeatures(routeData.traversed_trench_uuids);
 
-						const newSelectionForTrenchTable = routeData.traversed_trench_ids.map(
+						const newSelectionForTrenchTable = (routeData.traversed_trench_ids ?? []).map(
 							(id: string, index: number) => ({
-								value: routeData.traversed_trench_uuids[index],
+								value: routeData.traversed_trench_uuids![index],
 								label: id
 							})
 						);
@@ -416,7 +422,7 @@
 						});
 						throw new Error('No route geometry or traversed trench UUIDs found in response.');
 					}
-				} catch (error: any) {
+				} catch (error) {
 					console.error('Routing error:', error);
 					void logToBackendClient({
 						level: 'ERROR',
@@ -429,7 +435,7 @@
 					});
 					globalToaster.error({
 						title: m.title_error_calculating_route(),
-						description: error.message
+						description: error instanceof Error ? error.message : String(error)
 					});
 					startTrenchId = null;
 					endTrenchId = null;

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ComboboxItem } from '$lib/types/attributeCardTypes';
 	import { deserialize } from '$app/forms';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
@@ -15,9 +16,22 @@
 
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { actionData } from '$lib/utils/forms';
 	import { tooltip } from '$lib/utils/tooltip';
 
 	import ResidentialUnitModal from './ResidentialUnitModal.svelte';
+
+	/**
+	 * The residential-unit display row this table renders. Kept loose (the page
+	 * feeds a PDF-oriented shape); only the display fields are read here.
+	 */
+	interface UnitRow {
+		uuid?: string;
+		id_residential_unit?: string | null;
+		residential_unit_type?: { residential_unit_type: string } | null;
+		status?: { status: string } | null;
+		[key: string]: unknown;
+	}
 
 	let {
 		residentialUnits = [],
@@ -26,15 +40,15 @@
 		projectId = '',
 		addressUuid = ''
 	}: {
-		residentialUnits?: any[];
-		residentialUnitTypes?: any[];
-		residentialUnitStatuses?: any[];
+		residentialUnits?: UnitRow[];
+		residentialUnitTypes?: ComboboxItem[];
+		residentialUnitStatuses?: ComboboxItem[];
 		projectId?: string;
 		addressUuid?: string;
 	} = $props();
 
 	let deletingUnitUuid = $state<string | null>(null);
-	let deleteMessageBox = $state<any>(null);
+	let deleteMessageBox = $state<ReturnType<typeof MessageBox> | null>(null);
 	let openModal = $state(false);
 	let page = $state(1);
 	let size = $state(10);
@@ -103,7 +117,7 @@
 	 * @param key - The column key.
 	 * @returns The display value.
 	 */
-	function getCellValue(unit: any, key: string) {
+	function getCellValue(unit: UnitRow, key: string): unknown {
 		if (key === 'residential_unit_type')
 			return unit.residential_unit_type?.residential_unit_type ?? null;
 		if (key === 'status') return unit.status?.status ?? null;
@@ -142,7 +156,8 @@
 	 * Navigates to the detail page for a residential unit.
 	 * @param unitUuid
 	 */
-	function navigateToUnit(unitUuid: string) {
+	function navigateToUnit(unitUuid: string | undefined) {
+		if (!unitUuid) return;
 		goto(`/address/${projectId}/${addressUuid}/unit/${unitUuid}`);
 	}
 
@@ -151,8 +166,9 @@
 	 * @param event
 	 * @param unitUuid
 	 */
-	function confirmDelete(event: MouseEvent, unitUuid: string) {
+	function confirmDelete(event: MouseEvent, unitUuid: string | undefined) {
 		event.stopPropagation();
+		if (!unitUuid) return;
 		deletingUnitUuid = unitUuid;
 		deleteMessageBox?.open();
 	}
@@ -182,7 +198,8 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: (result as any).data?.message || m.message_error_deleting_residential_unit()
+					description:
+						(actionData(result)?.message as string) || m.message_error_deleting_residential_unit()
 				});
 			}
 		} catch (error) {

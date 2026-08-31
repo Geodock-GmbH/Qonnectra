@@ -15,11 +15,18 @@
 
 	import 'ol/ol.css';
 
+	import type {
+		CableInfrastructure,
+		EndpointNode,
+		FiberPathNode,
+		TraceResult
+	} from '../traceUtils';
+
 	import { basemapTheme, tileServerAvailable } from '$lib/stores/store';
 
 	interface Props {
 		/** The trace result data with geometry */
-		traceResult: Record<string, any> | null;
+		traceResult: TraceResult | null;
 		/** Currently selected feature ID */
 		selectedFeatureId?: string | null;
 		/** Selection callback */
@@ -30,18 +37,18 @@
 
 	const TILE_SERVER_URL = env.PUBLIC_TILE_SERVER_URL || '';
 
-	let container = $state<any>(null);
-	let map = $state<any>(null);
-	let vectorSource = $state<any>(null);
-	let markerSource = $state<any>(null);
+	let container = $state<HTMLDivElement | null>(null);
+	let map = $state<import('ol/Map').default | null>(null);
+	let vectorSource = $state<import('ol/source/Vector').default | null>(null);
+	let markerSource = $state<import('ol/source/Vector').default | null>(null);
 
 	const SOURCE_PROJECTION = storageProjection(page.data.srid);
 	const TARGET_PROJECTION = 'EPSG:3857';
 
-	let Style: any;
-	let Stroke: any;
-	let Fill: any;
-	let CircleStyle: any;
+	let Style: typeof import('ol/style/Style').default;
+	let Stroke: typeof import('ol/style/Stroke').default;
+	let Fill: typeof import('ol/style/Fill').default;
+	let CircleStyle: typeof import('ol/style/Circle').default;
 
 	/**
 	 * Check if the tile server is available.
@@ -76,19 +83,19 @@
 			const { apply } = await import('ol-mapbox-style');
 			const styleUrl = `${TILE_SERVER_URL}/styles/${theme}/style.json`;
 
-			const layersToRemove: any[] = [];
-			mapInstance.getLayers().forEach((layer: any) => {
+			const layersToRemove: import('ol/layer/Base').default[] = [];
+			mapInstance.getLayers().forEach((layer) => {
 				if (layer.get('isBaseLayer')) {
 					layersToRemove.push(layer);
 				}
 			});
-			layersToRemove.forEach((layer: any) => mapInstance.removeLayer(layer));
+			layersToRemove.forEach((layer) => mapInstance.removeLayer(layer));
 
 			await apply(mapInstance, styleUrl);
 
-			const baseLayers: any[] = [];
-			const otherLayers: any[] = [];
-			mapInstance.getLayers().forEach((layer: any) => {
+			const baseLayers: import('ol/layer/Base').default[] = [];
+			const otherLayers: import('ol/layer/Base').default[] = [];
+			mapInstance.getLayers().forEach((layer) => {
 				if (layer.get('isTraceLayer')) {
 					otherLayers.push(layer);
 				} else if (!layer.get('isBaseLayer')) {
@@ -101,8 +108,8 @@
 
 			const layerCollection = mapInstance.getLayers();
 			layerCollection.clear();
-			baseLayers.forEach((layer: any) => layerCollection.push(layer));
-			otherLayers.forEach((layer: any) => layerCollection.push(layer));
+			baseLayers.forEach((layer) => layerCollection.push(layer));
+			otherLayers.forEach((layer) => layerCollection.push(layer));
 
 			$tileServerAvailable = true;
 		} catch (error) {
@@ -130,7 +137,8 @@
 	}
 
 	onMount(async () => {
-		if (!browser) return;
+		if (!browser || !container) return;
+		const mapTarget = container;
 
 		const [
 			{ default: OlMap },
@@ -164,18 +172,18 @@
 
 		const vectorLayer = new VectorLayer({
 			source: vectorSource,
-			style: createLineStyle as any
+			style: createLineStyle
 		});
 		vectorLayer.set('isTraceLayer', true);
 
 		const markerLayer = new VectorLayer({
 			source: markerSource,
-			style: createMarkerStyle as any
+			style: createMarkerStyle
 		});
 		markerLayer.set('isTraceLayer', true);
 
 		map = new OlMap({
-			target: container,
+			target: mapTarget,
 			layers: [vectorLayer, markerLayer],
 			view: new OlView({
 				center: [0, 0],
@@ -193,8 +201,9 @@
 			await setupFallbackOSM(map);
 		}
 
-		map.on('click', (evt: any) => {
-			const feature = map.forEachFeatureAtPixel(evt.pixel, (f: any) => f);
+		const olMap = map;
+		olMap.on('click', (evt) => {
+			const feature = olMap.forEachFeatureAtPixel(evt.pixel, (f) => f);
 			if (feature) {
 				const featureId = feature.get('featureId');
 				onFeatureSelect(featureId);
@@ -203,9 +212,9 @@
 			}
 		});
 
-		map.on('pointermove', (evt: any) => {
-			const hit = map.hasFeatureAtPixel(evt.pixel);
-			map.getTargetElement().style.cursor = hit ? 'pointer' : '';
+		olMap.on('pointermove', (evt) => {
+			const hit = olMap.hasFeatureAtPixel(evt.pixel);
+			olMap.getTargetElement().style.cursor = hit ? 'pointer' : '';
 		});
 
 		if (traceResult) loadFeatures(traceResult);
@@ -221,19 +230,20 @@
 	$effect(() => {
 		if (!map || !selectedFeatureId) return;
 
-		let targetFeature: any = null;
-		vectorSource?.forEachFeature((f: any) => {
+		let targetFeature: import('ol').Feature | null = null;
+		vectorSource?.forEachFeature((f) => {
 			if (f.get('featureId') === selectedFeatureId) targetFeature = f;
 		});
 		if (!targetFeature) {
-			markerSource?.forEachFeature((f: any) => {
+			markerSource?.forEachFeature((f) => {
 				if (f.get('featureId') === selectedFeatureId) targetFeature = f;
 			});
 		}
 
 		if (targetFeature) {
-			const geometry = (targetFeature as any).getGeometry();
-			const extent = geometry.getExtent();
+			const geometry = (targetFeature as import('ol').Feature).getGeometry();
+			const extent = geometry?.getExtent();
+			if (!extent) return;
 			map.getView().fit(extent, {
 				padding: [100, 100, 100, 100],
 				maxZoom: 17,
@@ -250,7 +260,9 @@
 	 * @param feature - The OpenLayers feature to style
 	 * @returns The computed line style
 	 */
-	function createLineStyle(feature: any): any {
+	function createLineStyle(
+		feature: import('ol/Feature').FeatureLike
+	): import('ol/style/Style').default {
 		const featureId = feature.get('featureId') || '';
 		const isSelected = featureId === selectedFeatureId;
 		const cableId = feature.get('cableId') || '';
@@ -269,7 +281,7 @@
 			stroke: new Stroke({
 				color: isSelected ? TRACE_SELECTED_COLOR : color,
 				width: isSelected ? 5 : 3,
-				lineDash: lineDash
+				lineDash: lineDash ?? undefined
 			})
 		});
 	}
@@ -280,7 +292,7 @@
 	 * @returns The computed marker style
 	 */
 	function createMarkerStyle(
-		feature: import('ol/Feature').default
+		feature: import('ol/Feature').FeatureLike
 	): import('ol/style/Style').default {
 		const featureType = feature.get('featureType') || '';
 		const featureId = feature.get('featureId') || '';
@@ -327,15 +339,19 @@
 	 * Parse trace result data into OpenLayers features and add them to the map sources.
 	 * @param result - The trace result containing cable_infrastructure, trace_tree, and entry_point
 	 */
-	async function loadFeatures(result: Record<string, any>): Promise<void> {
-		if (!result || !vectorSource || !markerSource) return;
+	async function loadFeatures(result: TraceResult): Promise<void> {
+		if (!result || !vectorSource || !markerSource || !map) return;
+		const olMap = map;
 
 		const { default: GeoJSON } = await import('ol/format/GeoJSON');
 
 		const format = new GeoJSON();
-		const allFeatures = [];
+		const readOne = (
+			...args: Parameters<typeof format.readFeature>
+		): import('ol/Feature').default => format.readFeature(...args) as import('ol/Feature').default;
+		const allFeatures: import('ol/Feature').default[] = [];
 
-		const cableInfra: Record<string, any> = result.cable_infrastructure || {};
+		const cableInfra: Record<string, CableInfrastructure> = result.cable_infrastructure || {};
 		for (const [cableId, infra] of Object.entries(cableInfra)) {
 			if (infra.merged_geometry) {
 				const geojson = {
@@ -343,7 +359,7 @@
 					properties: { featureId: `cable:${cableId}`, cableId, featureType: 'cable' },
 					geometry: infra.merged_geometry
 				};
-				const feature = format.readFeature(geojson, {
+				const feature = readOne(geojson, {
 					dataProjection: SOURCE_PROJECTION,
 					featureProjection: TARGET_PROJECTION
 				});
@@ -360,7 +376,7 @@
 							},
 							geometry: trench.geometry
 						};
-						const feature = format.readFeature(geojson, {
+						const feature = readOne(geojson, {
 							dataProjection: SOURCE_PROJECTION,
 							featureProjection: TARGET_PROJECTION
 						});
@@ -372,7 +388,7 @@
 
 		vectorSource.addFeatures(allFeatures);
 
-		const markers: any[] = [];
+		const markers: import('ol/Feature').default[] = [];
 		const seenIds = new Set<string>();
 		await extractMarkersFromTree(result.trace_tree, markers, seenIds);
 		if (result.trace_trees) {
@@ -382,7 +398,7 @@
 		}
 
 		if (result.entry_point?.geometry) {
-			const entryFeature = format.readFeature(
+			const entryFeature = readOne(
 				{
 					type: 'Feature',
 					properties: {
@@ -407,9 +423,9 @@
 		if (allExtent && allExtent[0] !== Infinity) {
 			const { extend } = await import('ol/extent');
 			const combinedExtent = extend(allExtent, markerExtent);
-			map.getView().fit(combinedExtent, { padding: [50, 50, 50, 50], maxZoom: 18 });
+			olMap.getView().fit(combinedExtent, { padding: [50, 50, 50, 50], maxZoom: 18 });
 		} else if (markerExtent && markerExtent[0] !== Infinity) {
-			map.getView().fit(markerExtent, { padding: [50, 50, 50, 50], maxZoom: 18 });
+			olMap.getView().fit(markerExtent, { padding: [50, 50, 50, 50], maxZoom: 18 });
 		}
 	}
 
@@ -420,14 +436,17 @@
 	 * @param seenIds - Set of already-added feature IDs for deduplication
 	 */
 	async function extractMarkersFromTree(
-		node: Record<string, any>,
-		markers: any[],
+		node: FiberPathNode | null | undefined,
+		markers: import('ol/Feature').default[],
 		seenIds: Set<string>
 	): Promise<void> {
 		if (!node) return;
 
 		const { default: GeoJSON } = await import('ol/format/GeoJSON');
 		const format = new GeoJSON();
+		const readOne = (
+			...args: Parameters<typeof format.readFeature>
+		): import('ol/Feature').default => format.readFeature(...args) as import('ol/Feature').default;
 
 		const signalState = node.signal_state || null;
 
@@ -436,11 +455,11 @@
 		 * @param nodeData - Node data with id, name, geometry, and optional address
 		 * @param signal - Signal state for styling
 		 */
-		function addNodeMarker(nodeData: Record<string, any>, signal: string | null) {
-			if (!nodeData?.geometry || seenIds.has(nodeData.id)) return;
+		function addNodeMarker(nodeData: EndpointNode | undefined, signal: string | null) {
+			if (!nodeData?.geometry || !nodeData.id || seenIds.has(nodeData.id)) return;
 			seenIds.add(nodeData.id);
 			markers.push(
-				format.readFeature(
+				readOne(
 					{
 						type: 'Feature',
 						properties: {
@@ -454,11 +473,11 @@
 					{ dataProjection: SOURCE_PROJECTION, featureProjection: TARGET_PROJECTION }
 				)
 			);
-			if (nodeData.address?.geometry && !seenIds.has(nodeData.address.id)) {
+			if (nodeData.address?.geometry && nodeData.address.id && !seenIds.has(nodeData.address.id)) {
 				seenIds.add(nodeData.address.id);
 				const addr = nodeData.address;
 				markers.push(
-					format.readFeature(
+					readOne(
 						{
 							type: 'Feature',
 							properties: {
@@ -484,10 +503,10 @@
 
 		if (node.residential_units) {
 			for (const ru of node.residential_units) {
-				if (ru.geometry && !seenIds.has(ru.id)) {
+				if (ru.geometry && ru.id && !seenIds.has(ru.id)) {
 					seenIds.add(ru.id);
 					markers.push(
-						format.readFeature(
+						readOne(
 							{
 								type: 'Feature',
 								properties: {

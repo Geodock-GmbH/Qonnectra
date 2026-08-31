@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { RawConduit } from '$lib/classes/ConduitState.svelte';
 	import { onMount } from 'svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -14,9 +15,10 @@
 
 	const conduitDataManager = new ConduitDataManager();
 
-	let allProps: Record<string, any> & {
-		onConduitUpdate?: (conduit: any) => void;
+	let allProps: {
+		onConduitUpdate?: (conduit: RawConduit) => void;
 		onConduitDelete?: (conduitId: string) => void;
+		[key: string]: unknown;
 	} = $props();
 
 	let group = $state('attributes');
@@ -36,9 +38,9 @@
 		{ value: 'files', label: m.form_attachments() }
 	];
 
-	const featureId = $derived(data?.uuid);
+	const featureId = $derived((data?.uuid as string | undefined) ?? '');
 
-	let fileExplorer = $state<any>(null);
+	let fileExplorer = $state<ReturnType<typeof FileExplorer> | null>(null);
 
 	function handleUploadComplete() {
 		if (fileExplorer) {

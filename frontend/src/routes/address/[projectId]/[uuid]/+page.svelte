@@ -19,6 +19,8 @@
 	import 'ol/ol.css';
 
 	import type { PageData } from './$types';
+	import type { GeoJsonFeature } from '$lib/types/geo';
+	import type { ResidentialUnit } from '$lib/utils/addressPdf';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import proj4 from 'proj4';
@@ -40,6 +42,7 @@
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { generateAddressPdf } from '$lib/utils/addressPdf';
+	import { actionData } from '$lib/utils/forms';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { captureMapCanvases, getVisibleWMSAttributions } from '$lib/utils/mapCapture';
 	import { tooltip } from '$lib/utils/tooltip';
@@ -47,6 +50,24 @@
 	import { createWMSLayer } from '$lib/map';
 
 	import ResidentialUnitsSection from './ResidentialUnitsSection.svelte';
+
+	/** The address record from page data / the update action. */
+	type PageAddress = {
+		uuid?: string;
+		id_address?: string;
+		id_address_2?: string;
+		street?: string;
+		housenumber?: string | number;
+		house_number_suffix?: string;
+		zip_code?: string;
+		city?: string;
+		district?: string;
+		status_development?: { id?: number | string; status?: string } | null;
+		flag?: { id?: number | string; flag?: string } | null;
+		project?: { project?: string } | null;
+		geom_3857?: { coordinates?: number[] } | null;
+		[key: string]: unknown;
+	};
 
 	let { data }: { data: PageData } = $props();
 
@@ -66,8 +87,8 @@
 	const linkedNodes = $derived(data.linkedNodes || []);
 	const linkedMicroducts = $derived(data.linkedMicroducts || []);
 	const isLinkedToNode = $derived(linkedNodes.length > 0);
-	const linkedTrenchGeometries = $derived(data.linkedTrenchGeometries || []);
-	const residentialUnits = $derived(data.residentialUnits || []);
+	const linkedTrenchGeometries = $derived((data.linkedTrenchGeometries || []) as GeoJsonFeature[]);
+	const residentialUnits = $derived((data.residentialUnits || []) as ResidentialUnit[]);
 	const residentialUnitTypes = $derived(data.residentialUnitTypes || []);
 	const residentialUnitStatuses = $derived(data.residentialUnitStatuses || []);
 
@@ -78,7 +99,7 @@
 	function getInitialAddress() {
 		return data.address;
 	}
-	const initialAddress = getInitialAddress() as any;
+	const initialAddress = getInitialAddress() as PageAddress | undefined;
 	let id_address = $state(initialAddress?.id_address || '');
 	let id_address_2 = $state(initialAddress?.id_address_2 || '');
 	let street = $state(initialAddress?.street || '');
@@ -90,14 +111,14 @@
 	let status_development_id = $state(initialAddress?.status_development?.id || '');
 	let flag_id = $state(initialAddress?.flag?.id || '');
 	let project = $state(initialAddress?.project?.project || '');
-	let deleteMessageBox = $state<any>(null);
-	let regenerateMessageBox = $state<any>(null);
-	let fileExplorer = $state<any>(null);
+	let deleteMessageBox = $state<ReturnType<typeof MessageBox> | null>(null);
+	let regenerateMessageBox = $state<ReturnType<typeof MessageBox> | null>(null);
+	let fileExplorer = $state<ReturnType<typeof FileExplorer> | null>(null);
 
-	let addressMarkerLayer = $state<any>(null);
-	let trenchLinesLayer = $state<any>(null);
-	let wmsLayers = $state<any[]>([]);
-	let mapCenter = $state<any>(null);
+	let addressMarkerLayer = $state<import('ol/layer/Vector').default | null>(null);
+	let trenchLinesLayer = $state<import('ol/layer/Vector').default | null>(null);
+	let wmsLayers = $state<import('ol/layer/Base').default[]>([]);
+	let mapCenter = $state<number[] | null>(null);
 	let mapReady = $state(false);
 	let mapContainerEl = $state<HTMLElement | null>(null);
 
@@ -186,8 +207,8 @@
 		if (linkedTrenchGeometries.length > 0) {
 			const geoJsonFormat = new GeoJSON();
 			const trenchFeatures = linkedTrenchGeometries
-				.filter((f: any) => f.geometry)
-				.map((f: any) =>
+				.filter((f: GeoJsonFeature) => f.geometry)
+				.map((f: GeoJsonFeature) =>
 					geoJsonFormat.readFeature(f, {
 						dataProjection: 'EPSG:3857',
 						featureProjection: 'EPSG:3857'
@@ -261,7 +282,7 @@
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success') {
-				const updated = (result.data as any)?.address;
+				const updated = actionData(result)?.address as PageAddress | undefined;
 				if (updated?.id_address != null) {
 					id_address = updated.id_address;
 				}
@@ -275,7 +296,7 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: (result as any).data?.message || m.message_error_updating_address()
+					description: (actionData(result)?.message as string) || m.message_error_updating_address()
 				});
 			}
 		} catch (error) {
@@ -322,7 +343,7 @@
 			} else if (result.type === 'failure') {
 				globalToaster.error({
 					title: m.common_error(),
-					description: (result as any).data?.message || m.message_error_deleting_address()
+					description: (actionData(result)?.message as string) || m.message_error_deleting_address()
 				});
 			}
 		} catch (error) {
@@ -361,7 +382,7 @@
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success') {
-				id_address = (result.data as any).id_address;
+				id_address = (actionData(result)?.id_address as string) ?? id_address;
 				globalToaster.success({
 					title: m.title_success(),
 					description: m.message_success_regenerating_id()
@@ -369,7 +390,7 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: (result as any).data?.message || m.message_error_regenerating_id()
+					description: (actionData(result)?.message as string) || m.message_error_regenerating_id()
 				});
 			}
 		} catch (error) {
@@ -408,7 +429,9 @@
 	 * Fetches all fiber connections for all residential units of this address.
 	 * @returns Map of unit UUID to fiber connections array.
 	 */
-	async function fetchAllFiberConnections(): Promise<Record<string, Array<object>>> {
+	async function fetchAllFiberConnections(): Promise<
+		Record<string, import('$lib/utils/addressPdf').FiberConnection[]>
+	> {
 		try {
 			const response = await fetch(`/api/address/${address.uuid}/fiber-connections`);
 			if (response.ok) {
@@ -450,9 +473,9 @@
 			let unitsWithFibers = residentialUnits;
 			if (includeResidentialUnits && residentialUnits?.length > 0) {
 				const fiberConnectionsMap = await fetchAllFiberConnections();
-				unitsWithFibers = residentialUnits.map((unit: any) => ({
+				unitsWithFibers = residentialUnits.map((unit: ResidentialUnit) => ({
 					...unit,
-					fiberConnections: fiberConnectionsMap[unit.uuid] || []
+					fiberConnections: fiberConnectionsMap[(unit.uuid as string) ?? ''] || []
 				}));
 			}
 
@@ -804,7 +827,7 @@
 								addressMarkerLayer
 							]}
 							viewOptions={{
-								center: mapCenter,
+								center: mapCenter ?? undefined,
 								zoom: 18
 							}}
 							showOpacitySlider={false}

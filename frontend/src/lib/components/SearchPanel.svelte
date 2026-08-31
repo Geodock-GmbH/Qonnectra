@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte';
+	import type { SearchFeaturePayload } from '$lib/map/searchUtils';
 	import type VectorLayer from 'ol/layer/Vector';
 	import type OlMap from 'ol/Map';
 	import type VectorSource from 'ol/source/Vector';
@@ -36,7 +38,7 @@
 	interface Props {
 		olMapInstance?: OlMap | null;
 		trenchColorSelected?: string;
-		onFeatureSelect?: (feature: any) => void;
+		onFeatureSelect?: (feature: SearchFeaturePayload) => void;
 		onSearchError?: (error: unknown) => void;
 	}
 
@@ -47,7 +49,9 @@
 		onSearchError = () => {}
 	}: Props = $props();
 
-	const mapManagers = getContext<any>('mapManagers');
+	const mapManagers = getContext<{ selectionManager?: MapSelectionManager } | undefined>(
+		'mapManagers'
+	);
 	const selectionManager = mapManagers?.selectionManager;
 
 	let searchQuery = $state('');
@@ -75,7 +79,7 @@
 
 	const TYPE_CONFIG: Record<
 		string,
-		{ getLabel: () => any; bg: string; text: string; darkBg: string; darkText: string }
+		{ getLabel: () => string; bg: string; text: string; darkBg: string; darkText: string }
 	> = {
 		address: {
 			getLabel: () => m.form_address({ count: 1 }),
@@ -327,7 +331,7 @@
 				highlightLayer.getSource()!.clear();
 				await zoomToMultipleFeatures(olMapInstance, geometries, highlightLayer, {
 					maxZoom: 17
-				} as any);
+				});
 
 				searchQuery = '';
 				searchResults = [];

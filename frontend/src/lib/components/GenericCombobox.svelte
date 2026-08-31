@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ComboboxItem } from '$lib/types/attributeCardTypes';
 	import { browser } from '$app/environment';
 	import { Combobox, Portal, useListCollection } from '@skeletonlabs/skeleton-svelte';
 	import Fuse from 'fuse.js';
@@ -8,11 +9,8 @@
 	import { globalToaster } from '$lib/stores/toaster';
 
 	interface Props {
-		/**
-		 * List of options. Items are read via `.value` and `.label`; callers may pass
-		 * richer objects, so this stays permissive to match existing usage.
-		 */
-		data?: any[];
+		/** List of options; only `.value` and `.label` are read. */
+		data?: ComboboxItem[];
 		value?: Array<string | number>;
 		defaultValue?: Array<string | number>;
 		placeholder?: string;

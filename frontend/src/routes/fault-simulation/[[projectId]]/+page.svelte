@@ -14,6 +14,7 @@
 	import type { MapBrowserEvent } from 'ol';
 	import type { FeatureLike } from 'ol/Feature.js';
 	import type OlMap from 'ol/Map.js';
+	import type RenderFeature from 'ol/render/Feature.js';
 	import type Style from 'ol/style/Style.js';
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
@@ -51,10 +52,10 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const nodeTypes = $derived((data.nodeTypes ?? []) as any[]);
-	const surfaces = $derived((data.surfaces ?? []) as any[]);
-	const constructionTypes = $derived((data.constructionTypes ?? []) as any[]);
-	const areaTypes = $derived((data.areaTypes ?? []) as any[]);
+	const nodeTypes = $derived(data.nodeTypes ?? []);
+	const surfaces = $derived(data.surfaces ?? []);
+	const constructionTypes = $derived(data.constructionTypes ?? []);
+	const areaTypes = $derived(data.areaTypes ?? []);
 
 	const loadError = $derived(
 		data.nodeTypesError || data.surfacesError || data.constructionTypesError || data.areaTypesError
@@ -162,7 +163,7 @@
 			registerStorageProjection(srid, proj4Def);
 		}
 
-		const renderGeom = feature.getGeometry() as any;
+		const renderGeom = feature.getGeometry() as RenderFeature | undefined;
 		let snappedCoord = evt.coordinate;
 		if (renderGeom) {
 			const flatCoords = renderGeom.getFlatCoordinates();
@@ -326,7 +327,7 @@
 
 	onMount(() => {
 		if (dev) {
-			(window as any).__e2eFaultSim = {
+			window.__e2eFaultSim = {
 				injectResult(result: FaultSimulationResult) {
 					ctx.setDamagePoint([0, 0], result.trench ?? null);
 					ctx.setSimulationResult(result);
@@ -339,7 +340,7 @@
 
 		return () => {
 			if (dev) {
-				delete (window as any).__e2eFaultSim;
+				delete window.__e2eFaultSim;
 			}
 			if (olMap && mapMoveListener) {
 				olMap.un('postrender', mapMoveListener);

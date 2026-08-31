@@ -1,7 +1,9 @@
 <script lang="ts">
+	import type { EdgeTypes, NodeTypes } from '@xyflow/svelte';
+	import type { NetworkSchemaInitData } from '$lib/classes/NetworkSchemaState.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
+	import { Background, ConnectionMode, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
 	import { IconArrowLeft, IconChevronDown, IconChevronRight } from '@tabler/icons-svelte';
 
@@ -35,14 +37,17 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const nodeTypes = { cableDiagramNode: CableDiagramNode };
-	const edgeTypes: any = { cableDiagramEdge: CableDiagramEdge };
+	// The custom node/edge components declare stricter `data` props than
+	// SvelteFlow's generic EdgeProps/NodeProps, so cast the registry to the
+	// library types (they are valid flow components at runtime).
+	const nodeTypes = { cableDiagramNode: CableDiagramNode } as unknown as NodeTypes;
+	const edgeTypes = { cableDiagramEdge: CableDiagramEdge } as unknown as EdgeTypes;
 
-	const connectionMode: any = 'loose';
+	const connectionMode: ConnectionMode = ConnectionMode.Loose;
 
-	const svelteFlowExtraProps: any = {
+	const svelteFlowExtraProps = {
 		snapToGrid: true,
-		snapGrid: [120, 120],
+		snapGrid: [120, 120] as [number, number],
 		connectionRadius: 100,
 		noPanClass: 'nopan',
 		minZoom: 0.01
@@ -54,7 +59,7 @@
 
 	$effect(() => {
 		schemaState.isChildView = true;
-		schemaState.initialize(data as any);
+		schemaState.initialize(data as unknown as NetworkSchemaInitData);
 		schemaState.parentNodeContext = data.parentNodeId;
 	});
 
@@ -111,7 +116,7 @@
 	});
 
 	onMount(() => {
-		function handleMicropipeLinkageChanged(event: any) {
+		function handleMicropipeLinkageChanged(event: WindowEventMap['micropipeLinkageChanged']) {
 			const { cableId, connections } = event.detail;
 			schemaState.updateEdgeMicropipeConnections(cableId, connections);
 		}
@@ -122,15 +127,16 @@
 		};
 	});
 
-	async function handleCablePathUpdate(event: any) {
+	async function handleCablePathUpdate(event: WindowEventMap['updateCablePath']) {
 		const { edgeId, waypoints, temporary, save } = event.detail;
 
 		await cablePathManager.updatePath(
 			edgeId,
-			waypoints,
+			waypoints as { x: number; y: number }[],
 			temporary,
 			save,
-			(edgeId: any, updates: any) => {
+			(edgeId, updates) => {
+				const cableUpdate = (updates.data as { cable?: Record<string, unknown> })?.cable ?? {};
 				schemaState.edges = schemaState.edges.map((edge) => {
 					if (edge.id === edgeId) {
 						return {
@@ -139,7 +145,7 @@
 								...edge.data,
 								cable: {
 									...edge.data.cable,
-									...updates.data.cable
+									...cableUpdate
 								}
 							}
 						};
@@ -150,13 +156,13 @@
 		);
 	}
 
-	function handleCableHandleUpdate(event: any) {
+	function handleCableHandleUpdate(event: WindowEventMap['updateCableHandles']) {
 		const { cableId, handleStart, handleEnd } = event.detail;
 		cablePathManager.updateHandles(
 			cableId,
-			handleStart,
-			handleEnd,
-			(cableId: any, handleStart: any, handleEnd: any) => {
+			String(handleStart),
+			String(handleEnd),
+			(cableId, handleStart, handleEnd) => {
 				schemaState.updateCableHandles(cableId, handleStart, handleEnd);
 			}
 		);
@@ -177,10 +183,15 @@
 	});
 
 	$effect(() => {
-		function handleCableConnectionChangedEvent(event: any) {
-			const { cableId, side, newNodeId, handlePosition } = event.detail;
-			if (cableId && side && newNodeId) {
-				schemaState.updateEdgeConnection(cableId, side, newNodeId, handlePosition);
+		function handleCableConnectionChangedEvent(event: WindowEventMap['cableConnectionChanged']) {
+			const detail = event.detail;
+			if ('cableId' in detail && detail.side && detail.newNodeId) {
+				schemaState.updateEdgeConnection(
+					detail.cableId,
+					detail.side,
+					detail.newNodeId,
+					detail.handlePosition ?? 'top'
+				);
 			}
 		}
 
@@ -219,8 +230,8 @@
 			{edgeTypes}
 			{connectionMode}
 			{...svelteFlowExtraProps}
-			onnodedragstop={(e: any) => schemaState.handleNodeDragStop(e)}
-			onconnect={(conn: any) => schemaState.handleConnect(conn, $selectedProject)}
+			onnodedragstop={(e) => schemaState.handleNodeDragStop(e)}
+			onconnect={(conn) => schemaState.handleConnect(conn, $selectedProject)}
 		>
 			<ViewportPersistence isChildView={true} />
 			<Background class="z-0" bgColor="var(--color-surface-100-900)" />
@@ -255,7 +266,7 @@
 								bind:value={schemaState.selectedCableType}
 								defaultValue={schemaState.selectedCableType}
 								placeholder={m.placeholder_select_cable_type()}
-								onValueChange={(e: { value: any }) => {
+								onValueChange={(e) => {
 									schemaState.selectedCableType = e.value;
 								}}
 								contentBase="preset-filled-surface-50-950 max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 shadow-lg"

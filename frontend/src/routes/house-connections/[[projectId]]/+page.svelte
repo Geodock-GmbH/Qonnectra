@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import type { SearchPanelRef } from '$lib/classes/MapInteractionManager.svelte';
 	import type OlMap from 'ol/Map';
 	import { onMount, untrack } from 'svelte';
 	import { get } from 'svelte/store';
@@ -35,8 +36,8 @@
 	import 'ol/ol.css';
 
 	let { data }: { data: PageData } = $props();
-	let mapRef = $state<any>();
-	let searchPanelRef = $state<any>();
+	let mapRef = $state<ReturnType<typeof Map> | null>(null);
+	let searchPanelRef = $state<SearchPanelRef | null>(null);
 
 	let linkedTrenchesLayer = $state<VectorTileLayer | undefined>();
 	let linkedTrenchUuids = $state<Set<string>>(new Set());
@@ -150,10 +151,7 @@
 	 * Initializes map interactions, selection layers, and overlays when the OL map is ready.
 	 */
 	function handleMapReady({ map: olMapInstance }: { map: OlMap; usingFallbackOSM: boolean }) {
-		mapState.initializeSelectionLayers(
-			olMapInstance,
-			() => selectionManager.getSelectionStore() as unknown as Record<string, boolean>
-		);
+		mapState.initializeSelectionLayers(olMapInstance, () => selectionManager.getSelectionStore());
 
 		const selectionLayers = mapState.getSelectionLayers();
 		selectionLayers.forEach((layer) => selectionManager.registerSelectionLayer(layer));
@@ -184,7 +182,7 @@
 
 	$effect(() => {
 		if (mapRef && mapRef.getSearchPanelRef) {
-			searchPanelRef = mapRef.getSearchPanelRef();
+			searchPanelRef = mapRef.getSearchPanelRef() as SearchPanelRef | null;
 			if (searchPanelRef) {
 				interactionManager.setSearchPanelRef(searchPanelRef);
 			}
@@ -229,7 +227,7 @@
 
 	let previousFeatureId = $state<string | null>(null);
 	$effect(() => {
-		const currentFeatureId = $drawerStore.props?.featureId;
+		const currentFeatureId = ($drawerStore.props?.featureId as string | null) ?? null;
 		const isOpen = $drawerStore.open;
 
 		if (!isOpen || (currentFeatureId !== previousFeatureId && previousFeatureId !== null)) {

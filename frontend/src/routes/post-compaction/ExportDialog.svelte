@@ -1,4 +1,11 @@
 <script lang="ts">
+	import type { PointGeom } from '$lib/types/geo';
+	import type {
+		AddressData,
+		FiberConnection,
+		MicroductData,
+		ResidentialUnit
+	} from '$lib/utils/addressPdf';
 	import { deserialize } from '$app/forms';
 	import { page } from '$app/state';
 	import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
@@ -10,8 +17,19 @@
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { generateAddressPdf } from '$lib/utils/addressPdf';
+	import { actionData } from '$lib/utils/forms';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { captureMapCanvases, getVisibleWMSAttributions } from '$lib/utils/mapCapture';
+
+	/**
+	 * The address payload for the export dialog. Fields are optional (the parent
+	 * passes a raw address record); the full AddressData for the PDF is assembled
+	 * in handleExport before calling generateAddressPdf.
+	 */
+	type ExportAddress = Partial<AddressData> & {
+		uuid?: string;
+		status_development?: { id?: number | string; status?: string } | null;
+	};
 
 	let {
 		address,
@@ -23,13 +41,13 @@
 		geom3857 = null,
 		projectId = ''
 	}: {
-		address?: any;
-		residentialUnits?: Record<string, any>[];
-		linkedMicroducts?: Record<string, any>[];
-		statusDevelopments?: any[];
+		address?: ExportAddress | null;
+		residentialUnits?: ResidentialUnit[];
+		linkedMicroducts?: MicroductData[];
+		statusDevelopments?: { value: string; label: string }[];
 		open?: boolean;
 		mapContainerEl?: HTMLElement | null;
-		geom3857?: any;
+		geom3857?: PointGeom;
 		projectId?: string;
 	} = $props();
 
@@ -51,9 +69,9 @@
 	/**
 	 * Fetches all fiber connections for all residential units of this address.
 	 */
-	async function fetchAllFiberConnections(): Promise<Record<string, Array<object>>> {
+	async function fetchAllFiberConnections(): Promise<Record<string, FiberConnection[]>> {
 		try {
-			const response = await fetch(`/api/address/${address.uuid}/fiber-connections`);
+			const response = await fetch(`/api/address/${address?.uuid}/fiber-connections`);
 			if (response.ok) {
 				return await response.json();
 			}
@@ -76,7 +94,7 @@
 	 * Converts EPSG:3857 coordinates to EPSG:4326 (lat/lon) string.
 	 * @param geom - Geometry object with coordinates array.
 	 */
-	function convert3857To4326(geom: any): string | null {
+	function convert3857To4326(geom: PointGeom): string | null {
 		if (!geom?.coordinates) return null;
 		const coords4326 = proj4('EPSG:3857', 'EPSG:4326', geom.coordinates);
 		return `${coords4326[1].toFixed(6)}, ${coords4326[0].toFixed(6)}`;
@@ -86,7 +104,7 @@
 	 * Converts EPSG:3857 coordinates to the project's storage SRID string.
 	 * @param geom - Geometry object with coordinates array.
 	 */
-	function convert3857ToDefault(geom: any): string | null {
+	function convert3857ToDefault(geom: PointGeom): string | null {
 		if (!geom?.coordinates || !page.data.srid || !page.data.proj4Def) return null;
 		registerStorageProjection(page.data.srid, page.data.proj4Def);
 		const coordsDefault = proj4('EPSG:3857', storageProjection(page.data.srid), geom.coordinates);
@@ -94,13 +112,14 @@
 	}
 
 	async function handleExport() {
+		if (!address) return;
 		isExporting = true;
 		try {
-			let updatedAddress = address;
+			let updatedAddress: ExportAddress = address;
 
 			if (statusChanged) {
 				const formData = new FormData();
-				formData.append('uuid', address.uuid);
+				formData.append('uuid', address.uuid ?? '');
 				formData.append('status_development_id', selectedStatus[0]);
 
 				const response = await fetch('?/updateStatus', {
@@ -111,7 +130,7 @@
 				const result = deserialize(await response.text());
 
 				if (result.type === 'success') {
-					updatedAddress = (result.data as any)?.address || address;
+					updatedAddress = (actionData(result)?.address as ExportAddress) ?? address;
 					globalToaster.success({
 						title: m.title_success(),
 						description: m.message_success_updating_address()
@@ -119,7 +138,8 @@
 				} else {
 					globalToaster.error({
 						title: m.common_error(),
-						description: (result as any).data?.message || m.message_error_updating_address()
+						description:
+							(actionData(result)?.message as string) || m.message_error_updating_address()
 					});
 					return;
 				}
@@ -128,9 +148,9 @@
 			let unitsWithFibers = residentialUnits;
 			if (residentialUnits.length > 0) {
 				const fiberConnectionsMap = await fetchAllFiberConnections();
-				unitsWithFibers = residentialUnits.map((unit: any) => ({
+				unitsWithFibers = residentialUnits.map((unit) => ({
 					...unit,
-					fiberConnections: fiberConnectionsMap[unit.uuid] || []
+					fiberConnections: fiberConnectionsMap[(unit.uuid as string) ?? ''] || []
 				}));
 			}
 
@@ -139,12 +159,14 @@
 				mapImage = captureMapCanvases(mapContainerEl);
 			}
 
+			// The runtime address always carries the required AddressData fields;
+			// the prop type is loosened to accept the parent's raw record.
 			const addressData = {
 				...updatedAddress,
-				coordsDefault: convert3857ToDefault(geom3857),
-				coords4326: convert3857To4326(geom3857),
+				coordsDefault: convert3857ToDefault(geom3857) ?? undefined,
+				coords4326: convert3857To4326(geom3857) ?? undefined,
 				srid: page.data.srid
-			};
+			} as AddressData;
 
 			const wmsAttributions = getVisibleWMSAttributions(projectId);
 

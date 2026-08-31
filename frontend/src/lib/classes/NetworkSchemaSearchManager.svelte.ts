@@ -23,7 +23,7 @@ interface EdgeSearchResult {
 	data: SvelteFlowEdge['data'];
 }
 
-type SearchResult = NodeSearchResult | EdgeSearchResult;
+export type SearchResult = NodeSearchResult | EdgeSearchResult;
 
 /**
  * Search manager for the network schema diagram

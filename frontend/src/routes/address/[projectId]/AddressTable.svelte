@@ -13,11 +13,14 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	/** A formatted address list row, accessed by dynamic column key. */
+	type AddressRow = Record<string, unknown>;
+
 	let {
 		addresses,
 		pagination
 	}: {
-		addresses: any[];
+		addresses: AddressRow[];
 		pagination: { totalCount: number; pageSize: number; page: number };
 	} = $props();
 
@@ -114,7 +117,7 @@
 		const activeFilters = Object.entries(filters).filter(([, value]) => value.trim());
 		if (activeFilters.length === 0) return addresses;
 
-		return addresses.filter((address: any) => {
+		return addresses.filter((address: AddressRow) => {
 			return activeFilters.every(([key, filterValue]) => {
 				const cellValue = String(address[key] || '');
 				const columnFuse = new Fuse([{ value: cellValue }], {
@@ -131,15 +134,17 @@
 		const col = sortColumn;
 
 		return [...filteredAddresses].sort((a, b) => {
-			let aVal = a[col] ?? '';
-			let bVal = b[col] ?? '';
+			let aVal: string | number = '';
+			let bVal: string | number = '';
+			const aRaw = a[col];
+			const bRaw = b[col];
 
 			if (col === 'housenumber') {
-				aVal = aVal !== '' ? Number(aVal) : 0;
-				bVal = bVal !== '' ? Number(bVal) : 0;
+				aVal = aRaw != null && aRaw !== '' ? Number(aRaw) : 0;
+				bVal = bRaw != null && bRaw !== '' ? Number(bRaw) : 0;
 			} else {
-				aVal = String(aVal).toLowerCase();
-				bVal = String(bVal).toLowerCase();
+				aVal = String(aRaw ?? '').toLowerCase();
+				bVal = String(bRaw ?? '').toLowerCase();
 			}
 
 			if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
@@ -165,7 +170,7 @@
 	 * Navigates to the detail page for the clicked address.
 	 * @param address - The address row object.
 	 */
-	function handleRowClick(address: any) {
+	function handleRowClick(address: AddressRow) {
 		const projectId = page.params.projectId;
 		goto(`/address/${projectId}/${address.value}`);
 	}

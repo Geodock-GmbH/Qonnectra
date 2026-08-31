@@ -1,5 +1,8 @@
 <script lang="ts">
-	import type { NetworkSchemaSearchManager } from '$lib/classes/NetworkSchemaSearchManager.svelte.js';
+	import type {
+		NetworkSchemaSearchManager,
+		SearchResult
+	} from '$lib/classes/NetworkSchemaSearchManager.svelte.js';
 	import type { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte';
 	import { useSvelteFlow } from '@xyflow/svelte';
 	import { IconLine, IconPoint, IconSearch, IconX } from '@tabler/icons-svelte';
@@ -70,7 +73,7 @@
 	 * Handle result selection - pans to item, highlights it, and optionally opens drawer
 	 * @param result - The search result object
 	 */
-	async function selectResult(result: any) {
+	async function selectResult(result: SearchResult) {
 		isDropdownOpen = false;
 		selectedIndex = -1;
 

@@ -13,6 +13,7 @@ dependencies = [
     "djangorestframework>=3.15.2",
     "djangorestframework-gis>=1.1",
     "djangorestframework-simplejwt>=5.5.0",
+    "drf-spectacular>=0.27",
     "docutils>=0.21.2",
     "geopandas>=1.1.0",
     "gunicorn>=23.0.0",

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Micropipe } from '$lib/classes/CableMicropipeManager.svelte';
 	import { onDestroy } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { page } from '$app/stores';
@@ -40,16 +41,16 @@
 		onClose = () => {},
 		onLinkageChange = () => {}
 	}: {
-		cableId: any;
-		cableName: any;
+		cableId: string;
+		cableName: string;
 		onClose?: () => void;
 		onLinkageChange?: () => void;
 	} = $props();
 
 	const manager = new CableMicropipeManager();
 
-	let olMap = $state<any>();
-	let dragBoxInteraction = $state<any>();
+	let olMap = $state<import('ol/Map').default | undefined>();
+	let dragBoxInteraction = $state<import('ol/interaction/DragBox').default | undefined>();
 	let selectionLayer = $state<VectorTileLayer | undefined>();
 	let selectedFeatureIds = $state<SvelteSet<string>>(new SvelteSet());
 	let cableRouteLayer = $state<VectorTileLayer | undefined>();
@@ -149,14 +150,14 @@
 		}
 	});
 
-	async function handleMapReady({ map }: { map: any }) {
+	async function handleMapReady({ map }: { map: import('ol/Map').default }) {
 		olMap = map;
 		mapState.olMap = olMap;
 
 		const selectedStyle = createSelectedStyle('#ff6600');
 		selectionLayer = new VectorTileLayer({
 			renderMode: 'vector',
-			source: (mapState.vectorTileLayer as any)?.getSource(),
+			source: mapState.vectorTileLayer?.getSource() ?? undefined,
 			style: function (feature) {
 				const featureId = String(feature.getId() || feature.get('uuid'));
 				if (featureId && selectedFeatureIds.has(featureId)) {
@@ -174,7 +175,7 @@
 		const linkedTrenchStyle = createLinkedTrenchStyle('#06b6d4');
 		cableRouteLayer = new VectorTileLayer({
 			renderMode: 'vector',
-			source: (mapState.vectorTileLayer as any)?.getSource(),
+			source: mapState.vectorTileLayer?.getSource() ?? undefined,
 			style: function (feature) {
 				const featureId = String(feature.getId() || feature.get('uuid'));
 				if (featureId && manager.linkedTrenchIds.has(featureId)) {
@@ -194,16 +195,17 @@
 
 	async function setupInteractions() {
 		if (!olMap || !mapState.vectorTileLayer) return;
+		const map = olMap;
 
 		const [{ default: DragBox }, { shiftKeyOnly }] = await Promise.all([
 			import('ol/interaction/DragBox'),
 			import('ol/events/condition')
 		]);
 
-		olMap.on('click', (evt: any) => {
-			const features = olMap.getFeaturesAtPixel(evt.pixel, {
+		map.on('click', (evt) => {
+			const features = map.getFeaturesAtPixel(evt.pixel, {
 				hitTolerance: 10,
-				layerFilter: (layer: any) => layer === mapState.vectorTileLayer
+				layerFilter: (layer) => layer === mapState.vectorTileLayer
 			});
 
 			if (features && features.length > 0) {
@@ -226,27 +228,29 @@
 			}
 		});
 
-		dragBoxInteraction = new DragBox({
+		const dragBox = new DragBox({
 			condition: shiftKeyOnly
 		});
+		dragBoxInteraction = dragBox;
 
-		dragBoxInteraction.on('boxend', () => {
-			const extent = dragBoxInteraction.getGeometry().getExtent();
+		dragBox.on('boxend', () => {
+			const extent = dragBox.getGeometry().getExtent();
 			const newSet = new SvelteSet(selectedFeatureIds);
-			const boxPixelMin = olMap.getPixelFromCoordinate([extent[0], extent[1]]);
-			const boxPixelMax = olMap.getPixelFromCoordinate([extent[2], extent[3]]);
+			const boxPixelMin = map.getPixelFromCoordinate([extent[0], extent[1]]);
+			const boxPixelMax = map.getPixelFromCoordinate([extent[2], extent[3]]);
+			if (!boxPixelMin || !boxPixelMax) return;
 
 			const stepX = Math.max(1, Math.floor((boxPixelMax[0] - boxPixelMin[0]) / 20));
 			const stepY = Math.max(1, Math.floor((boxPixelMin[1] - boxPixelMax[1]) / 20));
 
 			for (let x = boxPixelMin[0]; x <= boxPixelMax[0]; x += stepX) {
 				for (let y = boxPixelMax[1]; y <= boxPixelMin[1]; y += stepY) {
-					const features = olMap.getFeaturesAtPixel([x, y], {
+					const features = map.getFeaturesAtPixel([x, y], {
 						hitTolerance: 10,
-						layerFilter: (layer: any) => layer === mapState.vectorTileLayer
+						layerFilter: (layer) => layer === mapState.vectorTileLayer
 					});
 					if (features) {
-						features.forEach((feature: any) => {
+						features.forEach((feature) => {
 							const featureId = String(feature.getId() || feature.get('uuid'));
 							if (featureId) {
 								newSet.add(featureId);
@@ -263,7 +267,7 @@
 			syncSelectionToManager();
 		});
 
-		olMap.addInteraction(dragBoxInteraction);
+		map.addInteraction(dragBoxInteraction);
 	}
 
 	function syncSelectionToManager() {
@@ -301,7 +305,7 @@
 		return manager.selectedConduitIds.has(conduitId);
 	}
 
-	function isMicropipeSelected(micropipe: any): boolean {
+	function isMicropipeSelected(micropipe: Micropipe): boolean {
 		return (
 			manager.selectedMicropipe?.number === micropipe.number &&
 			manager.selectedMicropipe?.color_name === micropipe.color_name

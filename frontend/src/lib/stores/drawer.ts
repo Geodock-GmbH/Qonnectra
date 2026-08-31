@@ -1,13 +1,18 @@
+import type { Component } from 'svelte';
 import type { Unsubscriber } from 'svelte/store';
 import { get, writable } from 'svelte/store';
 
 import { drawerWidth } from '$lib/stores/store';
 
+/** A Svelte 5 component rendered inside the drawer, with arbitrary props. */
+export type DrawerComponent = Component<Record<string, unknown>>;
+export type DrawerProps = Record<string, unknown>;
+
 export interface DrawerState {
 	open: boolean;
 	title: string;
-	component: any;
-	props: Record<string, any>;
+	component: DrawerComponent | null;
+	props: DrawerProps;
 	width: number;
 }
 
@@ -15,15 +20,15 @@ export interface DrawerStore {
 	subscribe: (cb: (value: DrawerState) => void) => Unsubscriber;
 	open: (options?: {
 		title?: string;
-		component?: any;
-		props?: Record<string, any>;
+		component?: DrawerComponent | null;
+		props?: DrawerProps;
 		width?: number | null;
 	}) => void;
 	close: () => void;
 	setTitle: (title: string) => void;
-	setComponent: (component: any, props?: Record<string, any>) => void;
+	setComponent: (component: DrawerComponent | null, props?: DrawerProps) => void;
 	setWidth: (width: number) => void;
-	updateProps: (newProps: Record<string, any>) => void;
+	updateProps: (newProps: DrawerProps) => void;
 }
 
 /**
@@ -48,8 +53,8 @@ function createDrawerStore(): DrawerStore {
 			width = null
 		}: {
 			title?: string;
-			component?: any;
-			props?: Record<string, any>;
+			component?: DrawerComponent | null;
+			props?: DrawerProps;
 			width?: number | null;
 		} = {}) => {
 			const finalWidth = width ?? get(drawerWidth);
@@ -73,7 +78,7 @@ function createDrawerStore(): DrawerStore {
 				title
 			}));
 		},
-		setComponent: (component: any, props: Record<string, any> = {}) => {
+		setComponent: (component: DrawerComponent | null, props: DrawerProps = {}) => {
 			update((store) => ({
 				...store,
 				component,
@@ -94,7 +99,7 @@ function createDrawerStore(): DrawerStore {
 				width: clampedWidth
 			}));
 		},
-		updateProps: (newProps: Record<string, any>) => {
+		updateProps: (newProps: DrawerProps) => {
 			update((store) => ({
 				...store,
 				props: {

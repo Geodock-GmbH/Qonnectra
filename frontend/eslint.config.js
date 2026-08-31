@@ -1,28 +1,48 @@
-import { fileURLToPath } from 'node:url';
-import { includeIgnoreFile } from '@eslint/compat';
-import js from '@eslint/js';
-import prettier from 'eslint-config-prettier';
 import svelte from 'eslint-plugin-svelte';
-import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
-import svelteConfig from './svelte.config.js';
-
-const gitignorePath = fileURLToPath(new URL('./.gitignore', import.meta.url));
-
-/** @type {import('eslint').Linter.Config[]} */
-export default [
-	includeIgnoreFile(gitignorePath),
-	js.configs.recommended,
+/**
+ * Minimal flat ESLint config enforcing the `any` ban.
+ *
+ * ```
+ * npm run lint:ts
+ * ```
+ *
+ * Generated, vendored and test files are ignored so the rule targets
+ * production code.
+ */
+export default tseslint.config(
+	{
+		ignores: [
+			'src/lib/paraglide/**',
+			'src/lib/types/api.d.ts',
+			'**/*.test.ts',
+			'**/*.spec.ts',
+			'**/test-utils/**',
+			'**/mocks/**',
+			'.svelte-kit/**',
+			'build/**'
+		]
+	},
+	...tseslint.configs.recommended,
 	...svelte.configs.recommended,
-	prettier,
-	...svelte.configs.prettier,
 	{
 		languageOptions: {
-			globals: { ...globals.browser, ...globals.node }
+			parserOptions: {
+				projectService: false,
+				extraFileExtensions: ['.svelte']
+			}
+		},
+		rules: {
+			'@typescript-eslint/no-explicit-any': 'error'
 		}
 	},
 	{
-		files: ['**/*.svelte', '**/*.svelte.js'],
-		languageOptions: { parserOptions: { svelteConfig } }
+		files: ['**/*.svelte'],
+		languageOptions: {
+			parserOptions: {
+				parser: tseslint.parser
+			}
+		}
 	}
-];
+);

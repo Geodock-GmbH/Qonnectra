@@ -1,4 +1,12 @@
 <script lang="ts">
+	import type {
+		AddressInfo,
+		FiberInfo,
+		FiberPathNode,
+		FiberWaypoint,
+		ResidentialUnitInfo,
+		SpliceInfo
+	} from '../traceUtils';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { slide } from 'svelte/transition';
 	import {
@@ -16,7 +24,24 @@
 
 	interface Props {
 		/** Array of fiber path tree objects */
-		traceTrees: Array<Record<string, any>>;
+		traceTrees: FiberPathNode[];
+	}
+
+	/** A flattened fiber-path row derived from a tree for the virtual table. */
+	interface FiberPathRow {
+		index: number;
+		fiberNumber: number;
+		fiberId?: string;
+		cableId?: string;
+		cableName: string;
+		cableType?: string;
+		bundleColor?: string;
+		bundleColorHex?: string;
+		fiberColor?: string;
+		fiberColorHex?: string;
+		destinations: string[];
+		residentialUnitCount: number;
+		tree: FiberPathNode;
 	}
 
 	let { traceTrees }: Props = $props();
@@ -34,11 +59,11 @@
 	 * Extract destinations from a tree (recursive)
 	 * @param tree
 	 */
-	function collectDestinations(tree: Record<string, any>): string[] {
+	function collectDestinations(tree: FiberPathNode): string[] {
 		const destinations = new Set<string>();
 
 		/** @param node */
-		function traverse(node: Record<string, any>) {
+		function traverse(node: FiberPathNode) {
 			if (node.node?.name) {
 				destinations.add(node.node.name);
 			}
@@ -60,11 +85,11 @@
 	 * Count residential units in a tree (recursive)
 	 * @param tree
 	 */
-	function countResidentialUnits(tree: Record<string, any>): number {
+	function countResidentialUnits(tree: FiberPathNode): number {
 		let count = 0;
 
 		/** @param node */
-		function traverse(node: Record<string, any>) {
+		function traverse(node: FiberPathNode) {
 			if (node.residential_units?.length) {
 				count += node.residential_units.length;
 			}
@@ -85,7 +110,7 @@
 	 * @param index
 	 * @returns Flattened row data including fiber info, colors, destinations, and residential unit count
 	 */
-	function extractRowData(tree: Record<string, any>, index: number): Record<string, any> {
+	function extractRowData(tree: FiberPathNode, index: number): FiberPathRow {
 		const fiber = tree.fiber;
 		const destinations = collectDestinations(tree);
 		return {
@@ -228,7 +253,7 @@
 	</div>
 </div>
 
-{#snippet tableRow(row: Record<string, any>)}
+{#snippet tableRow(row: FiberPathRow)}
 	<!-- Mobile card view -->
 	<div class="border-b border-surface-200-800 p-3 sm:hidden">
 		<div class="flex items-center justify-between gap-2">
@@ -236,14 +261,14 @@
 				<button
 					type="button"
 					class="rounded bg-primary-500/15 px-2 py-1 font-mono text-sm font-medium text-primary-500 hover:bg-primary-500/25"
-					onclick={() => traceFrom('fiber', row.fiberId)}
+					onclick={() => traceFrom('fiber', row.fiberId ?? '')}
 				>
 					F{row.fiberNumber}
 				</button>
 				<button
 					type="button"
 					class="truncate rounded bg-success-500/15 px-2 py-1 font-mono text-sm font-medium text-success-500 hover:bg-success-500/25"
-					onclick={() => traceFrom('cable', row.cableId)}
+					onclick={() => traceFrom('cable', row.cableId ?? '')}
 				>
 					{row.cableName}
 				</button>
@@ -303,7 +328,7 @@
 		<button
 			type="button"
 			class="rounded bg-primary-500/15 px-2 py-1 font-mono text-sm font-medium text-primary-500 hover:bg-primary-500/25"
-			onclick={() => traceFrom('fiber', row.fiberId)}
+			onclick={() => traceFrom('fiber', row.fiberId ?? '')}
 			title="Trace this fiber"
 		>
 			F{row.fiberNumber}
@@ -313,7 +338,7 @@
 			<button
 				type="button"
 				class="truncate rounded bg-success-500/15 px-2 py-1 font-mono text-sm font-medium text-success-500 hover:bg-success-500/25"
-				onclick={() => traceFrom('cable', row.cableId)}
+				onclick={() => traceFrom('cable', row.cableId ?? '')}
 				title="Trace this cable"
 			>
 				{row.cableName}
@@ -386,18 +411,18 @@
 			transition:slide={{ duration: 200 }}
 			class="border-b border-surface-200-800 bg-surface-50-950 px-3 py-3 sm:px-4 sm:py-4"
 		>
-			{@render traceNode(row.tree, 0, true)}
+			{@render traceNode(row.tree as FiberWaypoint, 0, true)}
 		</div>
 	{/if}
 {/snippet}
 
-{#snippet traceNode(node: Record<string, any>, depth: number, isLastChild: boolean)}
+{#snippet traceNode(node: FiberWaypoint, depth: number, isLastChild: boolean)}
 	{@const hasDetails =
 		node.splice ||
 		(node.cable_endpoints && (node.cable_endpoints.start_node || node.cable_endpoints.end_node)) ||
 		node.node?.address ||
 		(node.residential_units && node.residential_units.length > 0)}
-	{@const isExpanded = expandedWaypoints.has(node.fiber.id)}
+	{@const isExpanded = expandedWaypoints.has(node.fiber.id ?? '')}
 	{@const hasChildren = node.children && node.children.length > 0}
 	{@const STEP = 28}
 	{@const INDENT = 20}
@@ -446,7 +471,7 @@
 				<button
 					type="button"
 					class="rounded bg-primary-500/15 px-2 py-0.5 font-mono font-medium text-primary-500 transition-colors hover:bg-primary-500/25"
-					onclick={() => traceFrom('fiber', node.fiber.id)}
+					onclick={() => traceFrom('fiber', node.fiber.id ?? '')}
 				>
 					F{node.fiber.fiber_number_absolute}
 				</button>
@@ -454,7 +479,7 @@
 				<button
 					type="button"
 					class="rounded bg-success-500/15 px-2 py-0.5 font-mono font-medium text-success-500 transition-colors hover:bg-success-500/25"
-					onclick={() => traceFrom('cable', node.fiber.cable_id)}
+					onclick={() => traceFrom('cable', node.fiber.cable_id ?? '')}
 				>
 					{node.fiber.cable_name}
 				</button>
@@ -468,7 +493,7 @@
 					<button
 						type="button"
 						class="rounded bg-warning-500/15 px-2 py-0.5 font-mono font-medium text-warning-500 transition-colors hover:bg-warning-500/25"
-						onclick={() => traceFrom('node', node.node.id)}
+						onclick={() => traceFrom('node', node.node?.id ?? '')}
 					>
 						{node.node.name}
 					</button>
@@ -502,7 +527,7 @@
 					<button
 						type="button"
 						class="ml-auto flex items-center gap-1 rounded px-2 py-0.5 text-xs text-surface-500-400 transition-colors hover:bg-surface-100-900 hover:text-surface-700-300"
-						onclick={() => toggleWaypoint(node.fiber.id)}
+						onclick={() => toggleWaypoint(node.fiber.id ?? '')}
 					>
 						<span>{m.trace_details ? m.trace_details() : 'Details'}</span>
 						<IconChevronDown
@@ -540,15 +565,16 @@
 		</div>
 
 		<!-- Children -->
-		{#if hasChildren}
-			{#each node.children as child, i (`${child.fiber.id}-${i}`)}
-				{@render traceNode(child, depth + 1, i === node.children.length - 1)}
+		{#if node.children && node.children.length > 0}
+			{@const children = node.children}
+			{#each children as child, i (`${child.fiber?.id}-${i}`)}
+				{@render traceNode(child as FiberWaypoint, depth + 1, i === children.length - 1)}
 			{/each}
 		{/if}
 	</div>
 {/snippet}
 
-{#snippet fiberDetails(fiber: Record<string, any>)}
+{#snippet fiberDetails(fiber: FiberInfo)}
 	<div class="flex flex-wrap items-center gap-2 text-xs">
 		{#if fiber.bundle_number !== null && fiber.bundle_number !== undefined}
 			<span class="text-surface-900-100"
@@ -590,7 +616,7 @@
 	</div>
 {/snippet}
 
-{#snippet spliceDetails(splice: Record<string, any>)}
+{#snippet spliceDetails(splice: SpliceInfo)}
 	<div class="rounded-lg border border-secondary-500/30 bg-secondary-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 flex items-center gap-2 text-secondary-500">
 			<IconArrowsSplit size={14} />
@@ -636,7 +662,10 @@
 	</div>
 {/snippet}
 
-{#snippet cableEndpointsDetails(endpoints: Record<string, any>, currentNodeId: string | undefined)}
+{#snippet cableEndpointsDetails(
+	endpoints: NonNullable<FiberPathNode['cable_endpoints']>,
+	currentNodeId: string | undefined
+)}
 	<div class="rounded-lg border border-primary-500/30 bg-primary-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 font-semibold text-primary-500">
 			{m.trace_cable_path()}: {endpoints.cable_name}
@@ -651,7 +680,7 @@
 						currentNodeId
 							? 'bg-primary-500/20 text-primary-500'
 							: 'bg-surface-200-800 text-surface-900-100'} hover:bg-surface-300-700"
-						onclick={() => traceFrom('node', endpoints.start_node.id)}
+						onclick={() => traceFrom('node', endpoints.start_node?.id ?? '')}
 					>
 						{endpoints.start_node.name || m.common_unknown()}
 					</button>
@@ -673,7 +702,7 @@
 						class="rounded px-1.5 py-0.5 font-mono text-xs {endpoints.end_node.id === currentNodeId
 							? 'bg-primary-500/20 text-primary-500'
 							: 'bg-surface-200-800 text-surface-900-100'} hover:bg-surface-300-700"
-						onclick={() => traceFrom('node', endpoints.end_node.id)}
+						onclick={() => traceFrom('node', endpoints.end_node?.id ?? '')}
 					>
 						{endpoints.end_node.name || m.common_unknown()}
 					</button>
@@ -694,7 +723,7 @@
 						<button
 							type="button"
 							class="underline decoration-surface-300-700 underline-offset-2 text-surface-900-100 hover:text-primary-500 hover:decoration-primary-500"
-							onclick={() => traceFrom('address', endpoints.start_node.address.id)}
+							onclick={() => traceFrom('address', endpoints.start_node?.address?.id ?? '')}
 						>
 							{endpoints.start_node.address.street}
 							{endpoints.start_node.address.housenumber}{endpoints.start_node.address.suffix || ''},
@@ -709,7 +738,7 @@
 						<button
 							type="button"
 							class="underline decoration-surface-300-700 underline-offset-2 text-surface-900-100 hover:text-primary-500 hover:decoration-primary-500"
-							onclick={() => traceFrom('address', endpoints.end_node.address.id)}
+							onclick={() => traceFrom('address', endpoints.end_node?.address?.id ?? '')}
 						>
 							{endpoints.end_node.address.street}
 							{endpoints.end_node.address.housenumber}{endpoints.end_node.address.suffix || ''},
@@ -723,7 +752,7 @@
 	</div>
 {/snippet}
 
-{#snippet addressDetails(address: Record<string, any>)}
+{#snippet addressDetails(address: AddressInfo)}
 	<div class="rounded-lg border border-error-500/30 bg-error-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 flex items-center gap-2 text-error-500">
 			<IconMapPin size={14} />
@@ -731,7 +760,7 @@
 			<button
 				type="button"
 				class="rounded px-1.5 py-0.5 font-mono text-xs bg-error-500/15 text-error-500 transition-colors hover:bg-error-500/25"
-				onclick={() => traceFrom('address', address.id)}
+				onclick={() => traceFrom('address', address.id ?? '')}
 			>
 				{address.street}
 				{address.housenumber}{address.suffix || ''}, {address.zip_code}
@@ -758,7 +787,7 @@
 	</div>
 {/snippet}
 
-{#snippet residentialUnitDetails(ru: Record<string, any>)}
+{#snippet residentialUnitDetails(ru: ResidentialUnitInfo)}
 	<div class="rounded-lg border border-tertiary-500/30 bg-tertiary-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 flex items-center gap-2 text-tertiary-500">
 			<IconHome size={14} />
@@ -766,7 +795,7 @@
 			<button
 				type="button"
 				class="rounded px-1.5 py-0.5 font-mono text-xs bg-tertiary-500/15 text-tertiary-500 transition-colors hover:bg-tertiary-500/25"
-				onclick={() => traceFrom('residential_unit', ru.id)}
+				onclick={() => traceFrom('residential_unit', ru.id ?? '')}
 			>
 				{ru.id_residential_unit || ru.id}
 			</button>
@@ -797,7 +826,7 @@
 				<button
 					type="button"
 					class="underline decoration-surface-300-700 underline-offset-2 text-surface-900-100 hover:text-primary-500 hover:decoration-primary-500"
-					onclick={() => traceFrom('address', ru.address.id)}
+					onclick={() => traceFrom('address', ru.address?.id ?? '')}
 				>
 					{ru.address.street}
 					{ru.address.housenumber}{ru.address.suffix || ''},

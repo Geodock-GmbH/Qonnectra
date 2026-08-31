@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { EdgeLabelData } from '$lib/classes/NetworkSchemaState.svelte';
 	import { useSvelteFlow } from '@xyflow/svelte';
 	import { parse } from 'devalue';
 
@@ -28,14 +29,14 @@
 		selected = false
 	}: {
 		edgeId: string;
-		labelData?: any;
+		labelData?: Partial<EdgeLabelData> | null;
 		cableData?: CableData | null;
 		defaultX: number;
 		defaultY: number;
 		onPositionUpdate?: (data: { labelId?: string; x: number; y: number; text?: string }) => void;
 		onLabelReset?: (labelId: string) => void;
 		onEdgeDelete?: unknown;
-		onEdgeSelect?: any;
+		onEdgeSelect?: (edgeId: string) => void;
 		selected?: boolean;
 	} = $props();
 

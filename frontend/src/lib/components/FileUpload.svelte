@@ -20,7 +20,7 @@
 
 	let { featureType, featureId, onUploadComplete }: FileUploadProps = $props();
 
-	let uploadedFiles = $state<any[]>([]);
+	let uploadedFiles = $state<Array<Record<string, unknown>>>([]);
 	let isUploading = $state(false);
 	let isLoadingFiles = $state(false);
 	let contentTypeError = $state<string | null>(null);
