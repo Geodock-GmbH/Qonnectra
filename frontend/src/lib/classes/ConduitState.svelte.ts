@@ -60,22 +60,22 @@ interface ConduitInitialData {
 	[key: string]: unknown;
 }
 
-interface SelectOption {
-	value: string | number;
-	label: string;
-}
-
-interface ConduitFormDefaults {
+/**
+ * Persisted form defaults for conduit creation. Selection fields hold the
+ * combobox's value arrays: bare id strings, not {value,label} option objects
+ * (GenericCombobox emits string[] ids — this is also what localStorage holds).
+ */
+export interface ConduitFormDefaults {
 	conduitName?: string;
 	outerConduit?: string;
-	conduitType?: SelectOption[];
-	status?: SelectOption[];
-	networkLevel?: SelectOption[];
-	owner?: SelectOption[];
-	constructor?: SelectOption[];
-	manufacturer?: SelectOption[];
+	conduitType?: string[];
+	status?: string[];
+	networkLevel?: string[];
+	owner?: string[];
+	constructor?: string[];
+	manufacturer?: string[];
 	date?: string;
-	flag?: SelectOption[];
+	flag?: string[];
 }
 
 /**
@@ -87,14 +87,14 @@ export class ConduitState {
 
 	defaultConduitName: string = $state('');
 	defaultOuterConduit: string = $state('');
-	defaultConduitType: SelectOption[] = $state([]);
-	defaultStatus: SelectOption[] = $state([]);
-	defaultNetworkLevel: SelectOption[] = $state([]);
-	defaultOwner: SelectOption[] = $state([]);
-	defaultConstructor: SelectOption[] = $state([]);
-	defaultManufacturer: SelectOption[] = $state([]);
+	defaultConduitType: string[] = $state([]);
+	defaultStatus: string[] = $state([]);
+	defaultNetworkLevel: string[] = $state([]);
+	defaultOwner: string[] = $state([]);
+	defaultConstructor: string[] = $state([]);
+	defaultManufacturer: string[] = $state([]);
 	defaultDate: string = $state('');
-	defaultFlag: SelectOption[] = $state([]);
+	defaultFlag: string[] = $state([]);
 
 	/**
 	 * Initialize state with conduits from load function

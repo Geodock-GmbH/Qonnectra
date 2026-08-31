@@ -1,4 +1,10 @@
 <script lang="ts">
+	import type {
+		ConduitFormDefaults,
+		ConduitState,
+		RawConduit
+	} from '$lib/classes/ConduitState.svelte';
+	import type { AttributeOptions } from '$lib/types/attributeCardTypes';
 	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
@@ -10,7 +16,7 @@
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
-	const noop = (data: any) => {};
+	const noop = () => {};
 
 	let {
 		projectId,
@@ -18,14 +24,14 @@
 		isHidden = false,
 		onPipeCreate = noop
 	}: {
-		projectId?: any;
+		projectId?: string;
 		openPipeModal?: boolean;
 		isHidden?: boolean;
-		onPipeCreate?: (conduit: any) => void;
+		onPipeCreate?: (conduit: RawConduit) => void;
 	} = $props();
 
 	// Get attribute options from context (no more prop drilling)
-	const attributes = getContext<any>('attributeOptions') || {
+	const attributes = getContext<AttributeOptions>('attributeOptions') || {
 		conduitTypes: [],
 		statuses: [],
 		networkLevels: [],
@@ -34,18 +40,18 @@
 	};
 
 	// Get conduit state for form defaults persistence
-	const conduitState = getContext<any>('conduitState');
+	const conduitState = getContext<ConduitState | undefined>('conduitState');
 
 	let selectedConduitName = $state('');
 	let selectedOuterConduit = $state('');
-	let selectedConduitType = $state<any[]>([]);
-	let selectedStatus = $state<any[]>([]);
-	let selectedNetworkLevel = $state<any[]>([]);
-	let selectedOwner = $state<any[]>([]);
-	let selectedConstructor = $state<any[]>([]);
-	let selectedManufacturer = $state<any[]>([]);
+	let selectedConduitType = $state<string[]>([]);
+	let selectedStatus = $state<string[]>([]);
+	let selectedNetworkLevel = $state<string[]>([]);
+	let selectedOwner = $state<string[]>([]);
+	let selectedConstructor = $state<string[]>([]);
+	let selectedManufacturer = $state<string[]>([]);
 	let selectedDate = $state('');
-	let selectedFlag = $state<any[]>([]);
+	let selectedFlag = $state<string[]>([]);
 
 	// Track if we've initialized defaults for this modal open
 	let hasInitialized = $state(false);
@@ -53,7 +59,9 @@
 	// Initialize form fields from defaults when modal opens
 	$effect(() => {
 		if (openPipeModal && !hasInitialized) {
-			const defaults = conduitState?.getDefaults() || {};
+			// The cast is needed because {}'s inherited Object.constructor clashes
+			// with the `constructor: string[]` field (a real conduit-constructor company).
+			const defaults = conduitState?.getDefaults() ?? ({} as ConduitFormDefaults);
 			selectedConduitName = defaults.conduitName || '';
 			selectedOuterConduit = defaults.outerConduit || '';
 			selectedConduitType = defaults.conduitType || [];
@@ -74,7 +82,7 @@
 	async function handleSubmit(event: SubmitEvent) {
 		event.preventDefault();
 		const formData = new FormData(event.target as HTMLFormElement);
-		const formProps = Object.fromEntries(formData.entries()) as Record<string, any>;
+		const formProps = Object.fromEntries(formData.entries());
 
 		// Build form data for server action
 		const actionFormData = new FormData();
@@ -139,7 +147,7 @@
 
 			// Keep modal open, keep all values - just notify parent of new conduit
 			if (result.type === 'success' && result.data) {
-				onPipeCreate(result.data.conduit);
+				onPipeCreate(result.data.conduit as RawConduit);
 			}
 		} catch (error) {
 			console.error('Error creating conduit:', error);

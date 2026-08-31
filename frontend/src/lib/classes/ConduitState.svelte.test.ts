@@ -122,8 +122,8 @@ describe('form defaults persistence', () => {
 	const defaults = {
 		conduitName: 'DA 50',
 		outerConduit: 'outer-1',
-		conduitType: [{ value: 't1', label: 'DA 50' }],
-		status: [{ value: 's1', label: 'verlegt' }],
+		conduitType: ['t1'],
+		status: ['s1'],
 		networkLevel: [],
 		owner: [],
 		constructor: [],
