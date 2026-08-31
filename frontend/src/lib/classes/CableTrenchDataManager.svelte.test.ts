@@ -2,48 +2,49 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { CableTrenchDataManager } from './CableTrenchDataManager.svelte';
 
-vi.mock('$app/forms', () => ({
-	deserialize: vi.fn((text: string) => JSON.parse(text))
+// Reads run through fibers.remote; mock it so the class's calls are observable
+// without a running server.
+const getCablesInTrench = vi.fn();
+const getFibersForCable = vi.fn();
+const getFiberColors = vi.fn();
+
+vi.mock('$lib/remote/network-schema/fibers.remote', () => ({
+	getCablesInTrench: (...a: unknown[]) => getCablesInTrench(...a),
+	getFibersForCable: (...a: unknown[]) => getFibersForCable(...a),
+	getFiberColors: (...a: unknown[]) => getFiberColors(...a)
 }));
 
-const fetchMock = vi.fn();
-
-function mockActionResponse(payload: unknown) {
-	fetchMock.mockResolvedValue({
-		text: () => Promise.resolve(JSON.stringify(payload))
-	});
-}
-
 beforeEach(() => {
-	vi.stubGlobal('fetch', fetchMock);
 	vi.spyOn(console, 'error').mockImplementation(() => {});
 	localStorage.clear();
+	getCablesInTrench.mockResolvedValue([]);
+	getFibersForCable.mockResolvedValue([]);
+	getFiberColors.mockResolvedValue([]);
 });
 
 afterEach(() => {
-	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
-	fetchMock.mockReset();
+	getCablesInTrench.mockReset();
+	getFibersForCable.mockReset();
+	getFiberColors.mockReset();
 });
 
 describe('fetchCablesInTrench', () => {
 	test('should map cables to display items with type in the title', async () => {
-		mockActionResponse({
-			type: 'success',
-			data: [
-				{
-					uuid: 'cable-1',
-					name: 'K-Nord',
-					cable_type: { cable_type: 'LWL 96' },
-					fiber_count: 96
-				},
-				{ uuid: 'abcdef12-3456', name: null }
-			]
-		});
+		getCablesInTrench.mockResolvedValue([
+			{
+				uuid: 'cable-1',
+				name: 'K-Nord',
+				cable_type: { cable_type: 'LWL 96' },
+				fiber_count: 96
+			},
+			{ uuid: 'abcdef12-3456', name: null }
+		]);
 		const manager = new CableTrenchDataManager();
 
 		await manager.fetchCablesInTrench('trench-1');
 
+		expect(getCablesInTrench).toHaveBeenCalledWith('trench-1');
 		expect(manager.loading).toBe(false);
 		expect(manager.error).toBeNull();
 		expect(manager.cablesInTrench).toEqual([
@@ -74,33 +75,24 @@ describe('fetchCablesInTrench', () => {
 
 		await manager.fetchCablesInTrench('');
 
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(getCablesInTrench).not.toHaveBeenCalled();
 	});
 
-	test('should store the failure error message', async () => {
-		mockActionResponse({ type: 'failure', data: { error: 'No access' } });
-		const manager = new CableTrenchDataManager();
-
-		await manager.fetchCablesInTrench('trench-1');
-
-		expect(manager.error).toBe('No access');
-		expect(manager.cablesInTrench).toEqual([]);
-	});
-
-	test('should store a generic message on network errors', async () => {
-		fetchMock.mockRejectedValue(new Error('offline'));
+	test('should store a generic message when the fetch fails', async () => {
+		getCablesInTrench.mockRejectedValue(new Error('No access'));
 		const manager = new CableTrenchDataManager();
 
 		await manager.fetchCablesInTrench('trench-1');
 
 		expect(manager.error).toBe('Failed to load cables');
+		expect(manager.cablesInTrench).toEqual([]);
 		expect(manager.loading).toBe(false);
 	});
 });
 
 describe('fetchFibersForCable', () => {
 	test('should load and cache fibers per cable', async () => {
-		mockActionResponse({ type: 'success', data: { fibers: [{ fiber_number: 1 }] } });
+		getFibersForCable.mockResolvedValue([{ fiber_number: 1 }]);
 		const manager = new CableTrenchDataManager();
 
 		await manager.fetchFibersForCable('cable-1');
@@ -110,56 +102,48 @@ describe('fetchFibersForCable', () => {
 		expect(manager.getFibersError('cable-1')).toBeNull();
 
 		await manager.fetchFibersForCable('cable-1');
-		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(getFibersForCable).toHaveBeenCalledTimes(1);
 	});
 
 	test('should refetch when forced', async () => {
-		mockActionResponse({ type: 'success', data: { fibers: [] } });
+		getFibersForCable.mockResolvedValue([]);
 		const manager = new CableTrenchDataManager();
 
 		await manager.fetchFibersForCable('cable-1');
 		await manager.fetchFibersForCable('cable-1', true);
 
-		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(getFibersForCable).toHaveBeenCalledTimes(2);
 	});
 
-	test('should store per-cable error messages on failure', async () => {
-		mockActionResponse({ type: 'failure', data: { error: 'Fiber fetch failed' } });
+	test('should store a per-cable error message on failure', async () => {
+		getFibersForCable.mockRejectedValue(new Error('Fiber fetch failed'));
 		const manager = new CableTrenchDataManager();
 
 		await manager.fetchFibersForCable('cable-1');
 
-		expect(manager.getFibersError('cable-1')).toBe('Fiber fetch failed');
+		expect(manager.getFibersError('cable-1')).toBe('Failed to load fibers');
 		expect(manager.getFibersForCable('cable-1')).toEqual([]);
 	});
 });
 
 describe('fetchFiberColors', () => {
 	test('should load fiber colors once', async () => {
-		mockActionResponse({
-			type: 'success',
-			data: { fiberColors: [{ id: 1, fiber_color: 'rot', hex_code: '#ff0000' }] }
-		});
+		getFiberColors.mockResolvedValue([{ id: 1, fiber_color: 'rot', hex_code: '#ff0000' }]);
 		const manager = new CableTrenchDataManager();
 
 		await manager.fetchFiberColors();
 		await manager.fetchFiberColors();
 
-		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(getFiberColors).toHaveBeenCalledTimes(1);
 		expect(manager.fiberColors).toHaveLength(1);
 	});
 });
 
 describe('color helpers', () => {
 	async function managerWithColors(): Promise<CableTrenchDataManager> {
-		mockActionResponse({
-			type: 'success',
-			data: {
-				fiberColors: [
-					{ id: 1, fiber_color: 'rot', hex_code: '#ff0000', name_de: 'Rot', name_en: 'Red' }
-				]
-			}
-		});
+		getFiberColors.mockResolvedValue([
+			{ id: 1, fiber_color: 'rot', hex_code: '#ff0000', name_de: 'Rot', name_en: 'Red' }
+		]);
 		const manager = new CableTrenchDataManager();
 		await manager.fetchFiberColors();
 		return manager;
@@ -187,7 +171,7 @@ describe('color helpers', () => {
 
 describe('reset', () => {
 	test('should clear all cached state', async () => {
-		mockActionResponse({ type: 'success', data: [{ uuid: 'cable-1', name: 'K' }] });
+		getCablesInTrench.mockResolvedValue([{ uuid: 'cable-1', name: 'K' }]);
 		const manager = new CableTrenchDataManager();
 		await manager.fetchCablesInTrench('trench-1');
 

@@ -1,8 +1,12 @@
 import type { Fiber } from './CableFiberDataManager.svelte';
 import type { FiberColor } from '$lib/server/nodeData';
-import { deserialize } from '$app/forms';
 
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
+import {
+	getCablesInTrench,
+	getFiberColors,
+	getFibersForCable as getFibersForCableQuery
+} from '$lib/remote/network-schema/fibers.remote';
 
 interface CableTrenchItem {
 	id: string;
@@ -39,41 +43,16 @@ export class CableTrenchDataManager {
 		this.error = null;
 
 		try {
-			const formData = new FormData();
-			formData.append('trenchUuid', trenchUuid);
-
-			const response = await fetch('?/getCablesInTrench', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure') {
-				this.error =
-					((result.data as Record<string, unknown>)?.error as string) || 'Failed to fetch cables';
-				this.cablesInTrench = [];
-				return;
-			}
-
-			if (result.type === 'error') {
-				this.error = result.error?.message || 'An error occurred';
-				this.cablesInTrench = [];
-				return;
-			}
-
-			if (result.type === 'success' && result.data) {
-				const data = result.data as unknown as Array<Record<string, unknown>>;
-				this.cablesInTrench = data.map((cable) => ({
-					id: cable.uuid as string,
-					title: cable.name
-						? `${cable.name}${(cable.cable_type as Record<string, unknown>)?.cable_type ? ` (${(cable.cable_type as Record<string, unknown>).cable_type})` : ''}`
-						: `Cable ${(cable.uuid as string)?.slice(0, 8)}`,
-					fiberCount: (cable.fiber_count as number) || 0,
-					data: cable,
-					cableUuid: cable.uuid as string
-				}));
-			}
+			const data = await getCablesInTrench(trenchUuid);
+			this.cablesInTrench = data.map((cable) => ({
+				id: cable.uuid as string,
+				title: cable.name
+					? `${cable.name}${(cable.cable_type as Record<string, unknown>)?.cable_type ? ` (${(cable.cable_type as Record<string, unknown>).cable_type})` : ''}`
+					: `Cable ${(cable.uuid as string)?.slice(0, 8)}`,
+				fiberCount: (cable.fiber_count as number) || 0,
+				data: cable,
+				cableUuid: cable.uuid as string
+			}));
 		} catch (err) {
 			console.error('Error fetching cables in trench:', err);
 			void logToBackendClient({
@@ -108,47 +87,9 @@ export class CableTrenchDataManager {
 		};
 
 		try {
-			const formData = new FormData();
-			formData.append('cableUuid', cableUuid);
-
-			const response = await fetch('?/getFibersForCable', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure') {
-				this.errorFibers = {
-					...this.errorFibers,
-					[cableUuid]:
-						((result.data as Record<string, unknown>)?.error as string) || 'Failed to fetch fibers'
-				};
-				this.fibers = { ...this.fibers, [cableUuid]: [] };
-				return;
-			}
-
-			if (result.type === 'error') {
-				this.errorFibers = {
-					...this.errorFibers,
-					[cableUuid]: result.error?.message || 'An error occurred'
-				};
-				this.fibers = { ...this.fibers, [cableUuid]: [] };
-				return;
-			}
-
-			if (result.type === 'success' && result.data) {
-				const data = result.data as Record<string, unknown>;
-				this.fibers = {
-					...this.fibers,
-					[cableUuid]: (data.fibers as Fiber[]) || []
-				};
-
-				this.errorFibers = {
-					...this.errorFibers,
-					[cableUuid]: null
-				};
-			}
+			const fibers = await getFibersForCableQuery(cableUuid);
+			this.fibers = { ...this.fibers, [cableUuid]: fibers };
+			this.errorFibers = { ...this.errorFibers, [cableUuid]: null };
 		} catch (err) {
 			console.error('Error fetching fibers:', err);
 			void logToBackendClient({
@@ -182,19 +123,7 @@ export class CableTrenchDataManager {
 		this.loadingFiberColors = true;
 
 		try {
-			const formData = new FormData();
-
-			const response = await fetch('?/getFiberColors', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'success' && result.data) {
-				const data = result.data as Record<string, unknown>;
-				this.fiberColors = (data.fiberColors as FiberColor[]) || [];
-			}
+			this.fiberColors = await getFiberColors();
 		} catch (err) {
 			console.error('Error fetching fiber colors:', err);
 			void logToBackendClient({

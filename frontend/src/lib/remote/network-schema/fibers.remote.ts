@@ -199,3 +199,22 @@ export const updateFiberStatus = command(
 		return (await response.json()) as Fiber;
 	}
 );
+
+/**
+ * Fetch the cables passing through a trench.
+ * @param trenchUuid - Trench UUID.
+ * @returns The cable records in the trench.
+ * @throws When the backend request fails.
+ */
+export const getCablesInTrench = query(v.pipe(v.string(), v.nonEmpty()), async (trenchUuid) => {
+	const response = await fetch(`${API_URL}cable/in-trench/${trenchUuid}/`, {
+		method: 'GET',
+		headers: djangoHeaders()
+	});
+
+	if (!response.ok) {
+		throw new Error(`HTTP ${response.status}: Failed to get cables in trench`);
+	}
+
+	return (await response.json()) as Record<string, unknown>[];
+});

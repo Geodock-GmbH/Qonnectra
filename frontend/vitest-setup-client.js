@@ -80,7 +80,8 @@ vi.mock('$lib/remote/network-schema/fibers.remote', () => ({
 		.fn()
 		.mockResolvedValue({ usedResidentialUnitUuids: [], residentialUnitComponentMap: {} }),
 	getFiberStatusOptions: vi.fn().mockResolvedValue([]),
-	updateFiberStatus: vi.fn().mockResolvedValue(null)
+	updateFiberStatus: vi.fn().mockResolvedValue(null),
+	getCablesInTrench: vi.fn().mockResolvedValue([])
 }));
 vi.mock('$lib/remote/network-schema/cable-connections.remote', () => ({
 	getCableSplicesAtNode: vi.fn().mockResolvedValue([]),
