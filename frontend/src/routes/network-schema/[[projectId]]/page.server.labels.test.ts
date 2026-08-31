@@ -36,40 +36,6 @@ beforeEach(() => {
 	vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
-describe('getCableSplices', () => {
-	test('should merge and dedupe splices from both cable sides', async () => {
-		const fetchMock = vi.fn((url: string) => {
-			if (url.includes('cable_a=')) {
-				return Promise.resolve(okJson([{ uuid: 'splice-1' }, { uuid: 'splice-2' }]));
-			}
-			return Promise.resolve(okJson([{ uuid: 'splice-2' }, { uuid: 'splice-3' }]));
-		});
-
-		const result = (await actions.getCableSplices({
-			request: makeRequest({ cableUuid: 'cable-1' }),
-			fetch: fetchMock,
-			cookies: mockCookies
-		} as never)) as { connectedFiberCount: number; splices: { uuid: string }[] };
-
-		expect(result.connectedFiberCount).toBe(3);
-		expect(result.splices.map((s: { uuid: string }) => s.uuid)).toEqual([
-			'splice-1',
-			'splice-2',
-			'splice-3'
-		]);
-	});
-
-	test('should fail without a cable uuid', async () => {
-		const result = await actions.getCableSplices({
-			request: makeRequest({}),
-			fetch: vi.fn(),
-			cookies: mockCookies
-		} as never);
-
-		expect(result).toMatchObject({ status: 400 });
-	});
-});
-
 describe('updateCableLabel', () => {
 	test('should PATCH directly when a label id is given', async () => {
 		const fetchMock = vi.fn().mockResolvedValue(okJson({ uuid: 'label-1' }));

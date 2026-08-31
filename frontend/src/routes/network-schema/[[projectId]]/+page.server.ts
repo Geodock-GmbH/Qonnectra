@@ -362,113 +362,6 @@ export const load: PageServerLoad = async ({ fetch, cookies, url, params }) => {
  * node structures, fiber splices, micropipe connections, and related entities.
  */
 export const actions = {
-	updateCable: async ({ request, fetch, cookies }) => {
-		const headers = getAuthHeaders(cookies);
-		const formData = await request.formData();
-
-		const cableId = formData.get('uuid');
-		const name = formData.get('cable_name');
-		const cable_type_id = formData.get('cable_type_id');
-		const status_id = formData.get('status_id');
-		const network_level_id = formData.get('network_level_id');
-		const owner_id = formData.get('owner_id');
-		const constructor_id = formData.get('constructor_id');
-		const manufacturer_id = formData.get('manufacturer_id');
-		const flag_id = formData.get('flag_id');
-		const date = formData.get('date');
-		const reserve_at_start = formData.get('reserve_at_start');
-		const reserve_at_end = formData.get('reserve_at_end');
-		const reserve_section = formData.get('reserve_section');
-		const handle_start = formData.get('handle_start');
-		const handle_end = formData.get('handle_end');
-
-		if (!cableId) {
-			return {
-				type: 'error',
-				message: 'Cable ID is required'
-			};
-		}
-
-		try {
-			const requestBody: Record<string, unknown> = {};
-
-			if (name) requestBody.name = name;
-			if (cable_type_id) requestBody.cable_type_id = parseInt(String(cable_type_id));
-			if (status_id) requestBody.status_id = parseInt(String(status_id));
-			if (network_level_id) requestBody.network_level_id = parseInt(String(network_level_id));
-			if (owner_id) requestBody.owner_id = parseInt(String(owner_id));
-			if (constructor_id) requestBody.constructor_id = parseInt(String(constructor_id));
-			if (manufacturer_id) requestBody.manufacturer_id = parseInt(String(manufacturer_id));
-			if (flag_id) requestBody.flag_id = parseInt(String(flag_id));
-			if (date) requestBody.date = date;
-			if (reserve_at_start) requestBody.reserve_at_start = parseInt(String(reserve_at_start));
-			if (reserve_at_end) requestBody.reserve_at_end = parseInt(String(reserve_at_end));
-			if (reserve_section) requestBody.reserve_section = parseInt(String(reserve_section));
-			if (handle_start) requestBody.handle_start = handle_start;
-			if (handle_end) requestBody.handle_end = handle_end;
-
-			const response = await fetch(`${API_URL}cable/${cableId}/`, {
-				method: 'PATCH',
-				credentials: 'include',
-				headers: {
-					...headers,
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(requestBody)
-			});
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				const errorMessage = errorData.detail || `Failed to update cable`;
-				console.error('Error updating cable:', errorMessage);
-				return fail(response.status, { message: errorMessage });
-			}
-
-			const updatedCable = await response.json();
-
-			return {
-				success: true,
-				message: 'Cable updated successfully',
-				cable: updatedCable
-			};
-		} catch (err) {
-			console.error('Error updating cable:', err);
-			return fail(500, { message: (err as Error).message || 'Failed to update cable' });
-		}
-	},
-	deleteCable: async ({ request, fetch, cookies }) => {
-		const headers = getAuthHeaders(cookies);
-		const formData = await request.formData();
-
-		const cableId = formData.get('uuid');
-
-		if (!cableId) {
-			return fail(400, { message: 'Cable ID is required' });
-		}
-
-		try {
-			const response = await fetch(`${API_URL}cable/${cableId}/`, {
-				method: 'DELETE',
-				credentials: 'include',
-				headers: headers
-			});
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				const errorMessage = errorData.detail || `Failed to delete cable`;
-				console.error('Error deleting cable:', errorMessage);
-				return fail(response.status, { message: errorMessage });
-			}
-
-			return {
-				success: true,
-				message: 'Cable deleted successfully'
-			};
-		} catch (err) {
-			console.error('Error deleting cable:', err);
-			return fail(500, { message: (err as Error).message || 'Failed to delete cable' });
-		}
-	},
 	saveCableGeometry: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
 		const formData = await request.formData();
@@ -526,52 +419,6 @@ export const actions = {
 				type: 'error',
 				message: (err as Error).message || 'Failed to save cable path'
 			};
-		}
-	},
-	getCableSplices: async ({ request, fetch, cookies }) => {
-		const headers = getAuthHeaders(cookies);
-		const formData = await request.formData();
-		const cableUuid = formData.get('cableUuid');
-
-		if (!cableUuid) {
-			return fail(400, { error: 'Cable UUID is required' });
-		}
-
-		try {
-			const splicesAResponse = await fetch(`${API_URL}fiber-splice/?cable_a=${cableUuid}`, {
-				method: 'GET',
-				headers
-			});
-
-			const splicesBResponse = await fetch(`${API_URL}fiber-splice/?cable_b=${cableUuid}`, {
-				method: 'GET',
-				headers
-			});
-
-			let splicesA: Record<string, unknown>[] = [];
-			let splicesB: Record<string, unknown>[] = [];
-			if (splicesAResponse.ok) {
-				splicesA = await splicesAResponse.json();
-			}
-			if (splicesBResponse.ok) {
-				splicesB = await splicesBResponse.json();
-			}
-
-			const spliceMap = new Map();
-			[...splicesA, ...splicesB].forEach((splice) => {
-				if (splice.uuid) {
-					spliceMap.set(splice.uuid, splice);
-				}
-			});
-			const splices = Array.from(spliceMap.values());
-
-			return {
-				splices: splices || [],
-				connectedFiberCount: splices.length
-			};
-		} catch (err) {
-			console.error('Error fetching cable splices:', err);
-			return fail(500, { error: 'Failed to fetch cable splices' });
 		}
 	},
 	getSlotConfigurations: async ({ request, fetch, cookies }) => {
@@ -2125,35 +1972,6 @@ export const actions = {
 		} catch (err) {
 			console.error('Error fetching linked trenches for cable:', err);
 			return fail(500, { error: 'Failed to fetch linked trenches' });
-		}
-	},
-	getConduitsForCable: async ({ request, fetch, cookies }) => {
-		const headers = getAuthHeaders(cookies);
-		const formData = await request.formData();
-		const cableId = formData.get('cableId');
-
-		if (!cableId) {
-			return fail(400, { error: 'Cable ID is required' });
-		}
-
-		try {
-			const response = await fetch(`${API_URL}cables/${cableId}/conduits/`, {
-				method: 'GET',
-				headers
-			});
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				return fail(response.status, {
-					error: errorData.detail || 'Failed to fetch conduits'
-				});
-			}
-
-			const data = await response.json();
-			return { conduit_names: data.conduit_names || [] };
-		} catch (err) {
-			console.error('Error fetching conduits for cable:', err);
-			return fail(500, { error: 'Failed to fetch conduits' });
 		}
 	},
 	recalculateCableLength: async ({ request, fetch, cookies }) => {

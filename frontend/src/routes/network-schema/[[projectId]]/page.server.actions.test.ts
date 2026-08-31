@@ -975,7 +975,7 @@ describe('+page.server.js actions', () => {
 	});
 
 	// ---------------------------------------------------------------------------
-	// getLinkedTrenchesForCable / getConduitsForCable
+	// getLinkedTrenchesForCable
 	// ---------------------------------------------------------------------------
 
 	describe('getLinkedTrenchesForCable', () => {
@@ -992,24 +992,6 @@ describe('+page.server.js actions', () => {
 
 		test('returns 400 without cableId', async () => {
 			const result = await runAction('getLinkedTrenchesForCable', []);
-
-			expect(result.status).toBe(400);
-			expect(mockFetch).not.toHaveBeenCalled();
-		});
-	});
-
-	describe('getConduitsForCable', () => {
-		test('returns conduit names', async () => {
-			mockFetch.mockResolvedValueOnce(okJson({ conduit_names: ['C1', 'C2'] }));
-
-			const result = await runAction('getConduitsForCable', [['cableId', 'cab-1']]);
-
-			expect(result.conduit_names).toEqual(['C1', 'C2']);
-			expect(mockFetch.mock.calls[0][0]).toBe('http://localhost:8000/cables/cab-1/conduits/');
-		});
-
-		test('returns 400 without cableId', async () => {
-			const result = await runAction('getConduitsForCable', []);
 
 			expect(result.status).toBe(400);
 			expect(mockFetch).not.toHaveBeenCalled();

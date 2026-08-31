@@ -12,6 +12,7 @@
 	import { actionData } from '$lib/utils/forms';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { getSchemaState } from '$lib/context/networkSchemaContext';
+	import { updateCable } from '$lib/remote/network-schema/cables.remote';
 
 	interface SchemaFlowNode {
 		id: string;
@@ -192,34 +193,9 @@
 		event.preventDefault();
 		if (!cable?.uuid) return;
 		const cableUuid = cable.uuid;
-		const formData = new FormData();
-		formData.append('uuid', cableUuid);
-		formData.append('handle_start', handleStart);
-		formData.append('handle_end', handleEnd);
 
 		try {
-			const response = await fetch('?/updateCable', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure') {
-				globalToaster.error({
-					title: m.common_error(),
-					description: m.message_error_updating_cable()
-				});
-				return;
-			}
-
-			if (result.type === 'error') {
-				globalToaster.error({
-					title: m.common_error(),
-					description: m.message_error_updating_cable()
-				});
-				return;
-			}
+			await updateCable({ cableId: cableUuid, handleStart, handleEnd });
 
 			globalToaster.success({
 				title: m.title_success(),
@@ -239,7 +215,8 @@
 				}
 			});
 			globalToaster.error({
-				title: m.message_error_updating_cable()
+				title: m.common_error(),
+				description: m.message_error_updating_cable()
 			});
 		}
 	}

@@ -32,7 +32,11 @@ vi.mock('$lib/remote/network-schema/labels.remote', () => ({
 }));
 vi.mock('$lib/remote/network-schema/cables.remote', () => ({
 	getCableDetails: vi.fn().mockResolvedValue({}),
-	createCable: vi.fn().mockResolvedValue({ uuid: '' })
+	createCable: vi.fn().mockResolvedValue({ uuid: '' }),
+	updateCable: vi.fn().mockResolvedValue({}),
+	deleteCable: vi.fn().mockResolvedValue(undefined),
+	getConduitsForCable: vi.fn(() => ({ current: [], loading: false, error: undefined })),
+	getCableSplices: vi.fn().mockResolvedValue([])
 }));
 vi.mock('$lib/remote/network-schema/nodes.remote', () => ({
 	getNodeDetails: vi.fn().mockResolvedValue({}),
