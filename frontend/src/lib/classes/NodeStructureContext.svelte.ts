@@ -1,9 +1,8 @@
-import { deserialize } from '$app/forms';
-
 import { m } from '$lib/paraglide/messages';
 
 import { globalToaster } from '$lib/stores/toaster';
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
+import { getFiberSplices } from '$lib/remote/network-schema/fiber-splices.remote';
 
 import { DRAG_DROP_CONTEXT_KEY, DragDropManager } from './DragDropManager.svelte';
 import { FiberSpliceManager } from './FiberSpliceManager.svelte';
@@ -546,19 +545,10 @@ export class NodeStructureContext {
 	async #handleDeleteStructure(structureUuid: string): Promise<DeleteResult> {
 		// Check if the structure has fiber splices before deleting
 		try {
-			const formData = new FormData();
-			formData.append('nodeStructureUuid', structureUuid);
-
-			const response = await fetch('?/getFiberSplices', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text()) as { data?: { splices?: FiberSplice[] } };
-			const splices = result.data?.splices || [];
+			const splices = (await getFiberSplices(structureUuid)) as unknown as FiberSplice[];
 
 			// Count splices that have actual fiber connections
-			const activeSpliceCount = (splices as FiberSplice[]).filter(
+			const activeSpliceCount = splices.filter(
 				(s: FiberSplice) => s.fiber_a_details || s.fiber_b_details
 			).length;
 

@@ -70,6 +70,18 @@ vi.mock('$lib/remote/network-schema/micropipes.remote', () => ({
 vi.mock('$lib/remote/network-schema/component-types.remote', () => ({
 	getComponentTypes: vi.fn(() => ({ current: [], loading: false, error: undefined }))
 }));
+vi.mock('$lib/remote/network-schema/node-structures.remote', () => ({
+	getSlotConfigurationsForNode: vi.fn().mockResolvedValue([]),
+	getSlotDividers: vi.fn().mockResolvedValue([]),
+	getSlotClipNumbers: vi.fn().mockResolvedValue([]),
+	createNodeStructure: vi.fn().mockResolvedValue({}),
+	bulkCreateNodeStructures: vi.fn().mockResolvedValue({ created: [], failed: [] }),
+	moveNodeStructure: vi.fn().mockResolvedValue({}),
+	deleteNodeStructure: vi.fn().mockResolvedValue(undefined),
+	createSlotDivider: vi.fn().mockResolvedValue({}),
+	deleteSlotDivider: vi.fn().mockResolvedValue(undefined),
+	upsertSlotClipNumber: vi.fn().mockResolvedValue({})
+}));
 vi.mock('$lib/remote/network-schema/fiber-splices.remote', () => ({
 	getComponentPorts: vi.fn().mockResolvedValue([]),
 	getFiberSplices: vi.fn().mockResolvedValue([]),

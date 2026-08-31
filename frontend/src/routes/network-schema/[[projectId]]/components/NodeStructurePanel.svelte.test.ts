@@ -8,8 +8,36 @@ vi.mock('$app/environment', () => ({
 	browser: true
 }));
 
-vi.mock('$app/forms', () => ({
-	deserialize: vi.fn((text: string) => JSON.parse(text))
+// The panel drives NodeStructureManager + NodeStructureContext, which read/write
+// via the node-structures and fiber-splices remote modules. Mock them observably.
+const remote = {
+	getSlotConfigurationsForNode: vi.fn(),
+	getNodeStructures: vi.fn(),
+	getSlotDividers: vi.fn(),
+	getSlotClipNumbers: vi.fn(),
+	deleteNodeStructure: vi.fn(),
+	getFiberSplices: vi.fn()
+};
+
+vi.mock('$lib/remote/network-schema/node-structures.remote', () => ({
+	getSlotConfigurationsForNode: (...a: unknown[]) => remote.getSlotConfigurationsForNode(...a),
+	getSlotDividers: (...a: unknown[]) => remote.getSlotDividers(...a),
+	getSlotClipNumbers: (...a: unknown[]) => remote.getSlotClipNumbers(...a),
+	createNodeStructure: vi.fn().mockResolvedValue({}),
+	bulkCreateNodeStructures: vi.fn().mockResolvedValue({ created: [], failed: [] }),
+	moveNodeStructure: vi.fn().mockResolvedValue({}),
+	deleteNodeStructure: (...a: unknown[]) => remote.deleteNodeStructure(...a),
+	createSlotDivider: vi.fn().mockResolvedValue({}),
+	deleteSlotDivider: vi.fn().mockResolvedValue(undefined),
+	upsertSlotClipNumber: vi.fn().mockResolvedValue({})
+}));
+
+vi.mock('$lib/remote/network-schema/containers.remote', () => ({
+	getNodeStructures: (...a: unknown[]) => remote.getNodeStructures(...a)
+}));
+
+vi.mock('$lib/remote/network-schema/fiber-splices.remote', () => ({
+	getFiberSplices: (...a: unknown[]) => remote.getFiberSplices(...a)
 }));
 
 vi.mock('$lib/paraglide/messages', () => ({
@@ -53,8 +81,6 @@ vi.mock('./PortTable.svelte', async () => ({
 	default: (await import('./NodeStructurePanelStubPassthrough.svelte')).default
 }));
 
-const fetchMock = vi.fn();
-
 const slotConfigurations = [
 	{
 		uuid: 'cfg-a',
@@ -66,21 +92,30 @@ const slotConfigurations = [
 ];
 
 /**
- * Route-based fetch stub. Returns SvelteKit-action-shaped JSON envelopes.
+ * Seeds the remote-fn mocks from the old `{ '?/action': { data } }` shape:
+ * slot configs default to the fixture list; splices/structures/etc. resolve to
+ * the unwrapped arrays; deleteNodeStructure resolves void.
  */
-function mockRoutes(routes: Record<string, unknown> = {}) {
-	fetchMock.mockImplementation((url: string) => {
-		const payload =
-			routes[url] ??
-			(url === '?/getSlotConfigurationsForNode'
-				? { type: 'success', data: { configurations: slotConfigurations } }
-				: { type: 'success', data: {} });
-		return Promise.resolve({
-			ok: true,
-			text: () => Promise.resolve(JSON.stringify(payload)),
-			json: () => Promise.resolve(payload)
-		});
-	});
+function mockRoutes(
+	routes: Record<string, { type?: string; data?: Record<string, unknown> }> = {}
+) {
+	const dataFor = (name: string) => routes[`?/${name}`]?.data;
+	remote.getSlotConfigurationsForNode.mockResolvedValue(
+		(dataFor('getSlotConfigurationsForNode')?.configurations as unknown[]) ?? slotConfigurations
+	);
+	remote.getNodeStructures.mockResolvedValue(
+		(dataFor('getNodeStructures')?.structures as unknown[]) ?? []
+	);
+	remote.getSlotDividers.mockResolvedValue(
+		(dataFor('getSlotDividers')?.dividers as unknown[]) ?? []
+	);
+	remote.getSlotClipNumbers.mockResolvedValue(
+		(dataFor('getSlotClipNumbers')?.clipNumbers as unknown[]) ?? []
+	);
+	remote.getFiberSplices.mockResolvedValue(
+		(dataFor('getFiberSplices')?.splices as unknown[]) ?? []
+	);
+	remote.deleteNodeStructure.mockResolvedValue(undefined);
 }
 
 function setViewport(width: number) {
@@ -88,15 +123,14 @@ function setViewport(width: number) {
 }
 
 beforeEach(() => {
-	vi.stubGlobal('fetch', fetchMock);
 	vi.spyOn(console, 'error').mockImplementation(() => {});
 	setViewport(1280);
+	mockRoutes();
 });
 
 afterEach(() => {
-	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
-	fetchMock.mockReset();
+	Object.values(remote).forEach((fn) => fn.mockReset());
 });
 
 describe('NodeStructurePanel (desktop)', () => {
@@ -105,12 +139,9 @@ describe('NodeStructurePanel (desktop)', () => {
 
 		render(NodeStructurePanel, { nodeUuid: 'node-1' });
 
-		await vi.waitFor(() => {
-			const call = fetchMock.mock.calls.find(([url]) => url === '?/getSlotConfigurationsForNode');
-			expect(call).toBeTruthy();
-			const body = call![1].body as FormData;
-			expect(body.get('nodeUuid')).toBe('node-1');
-		});
+		await vi.waitFor(() =>
+			expect(remote.getSlotConfigurationsForNode).toHaveBeenCalledWith('node-1')
+		);
 	});
 
 	test('should render the container path and total slots for the selected config', async () => {
@@ -171,10 +202,7 @@ describe('NodeStructurePanel (desktop)', () => {
 		await screen.findByTestId('slot-grid');
 		await user.click(screen.getByTestId('grid-delete'));
 
-		await vi.waitFor(() => {
-			const call = fetchMock.mock.calls.find(([url]) => url === '?/getFiberSplices');
-			expect(call).toBeTruthy();
-		});
+		await vi.waitFor(() => expect(remote.getFiberSplices).toHaveBeenCalled());
 		// No confirmation dialog opened for a splice-free structure.
 		expect(screen.queryByTestId('message-box')).not.toBeInTheDocument();
 	});
@@ -220,14 +248,9 @@ describe('NodeStructurePanel (desktop)', () => {
 
 		await user.click(await screen.findByTestId('message-box-accept'));
 
-		await vi.waitFor(() => {
-			const call = fetchMock.mock.calls.find(([url]) => url === '?/deleteNodeStructure');
-			expect(call).toBeTruthy();
-			const body = call![1].body as FormData;
-			expect(body.get('uuid') ?? body.get('structureUuid') ?? body.get('nodeStructureUuid')).toBe(
-				'struct-to-delete'
-			);
-		});
+		await vi.waitFor(() =>
+			expect(remote.deleteNodeStructure).toHaveBeenCalledWith('struct-to-delete')
+		);
 	});
 });
 

@@ -4,8 +4,11 @@ import { globalToaster } from '$lib/stores/toaster';
 
 import { NodeStructureContext } from './NodeStructureContext.svelte';
 
-vi.mock('$app/forms', () => ({
-	deserialize: vi.fn((text: string) => JSON.parse(text))
+// The delete flow checks splices via fiber-splices.remote; mock it observably.
+const getFiberSplices = vi.fn();
+
+vi.mock('$lib/remote/network-schema/fiber-splices.remote', () => ({
+	getFiberSplices: (...a: unknown[]) => getFiberSplices(...a)
 }));
 
 vi.mock('$lib/paraglide/messages', () => ({
@@ -107,8 +110,6 @@ vi.mock('./FiberSpliceManager.svelte', () => ({
 	FiberSpliceManager: FakeSpliceManager
 }));
 
-const fetchMock = vi.fn();
-
 function makeDragEvent(payload: unknown = null): DragEvent {
 	return {
 		preventDefault: vi.fn(),
@@ -134,14 +135,13 @@ function newContext(): {
 }
 
 beforeEach(() => {
-	vi.stubGlobal('fetch', fetchMock);
 	vi.spyOn(console, 'error').mockImplementation(() => {});
+	getFiberSplices.mockResolvedValue([]);
 });
 
 afterEach(() => {
-	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
-	fetchMock.mockReset();
+	getFiberSplices.mockReset();
 	structureManagerInstances.length = 0;
 	spliceManagerInstances.length = 0;
 	vi.mocked(globalToaster.error).mockClear();
@@ -276,9 +276,7 @@ describe('mobile tap-to-place', () => {
 
 describe('structure deletion', () => {
 	test('should delete directly when the structure has no active splices', async () => {
-		fetchMock.mockResolvedValue({
-			text: () => Promise.resolve(JSON.stringify({ type: 'success', data: { splices: [] } }))
-		});
+		getFiberSplices.mockResolvedValue([]);
 		const { context, structureManager, spliceManager } = newContext();
 
 		const result = await context.structureActions.onDelete('s1');
@@ -289,20 +287,10 @@ describe('structure deletion', () => {
 	});
 
 	test('should require confirmation when active splices exist', async () => {
-		fetchMock.mockResolvedValue({
-			text: () =>
-				Promise.resolve(
-					JSON.stringify({
-						type: 'success',
-						data: {
-							splices: [
-								{ port_number: 1, fiber_a_details: { uuid: 'f1' } },
-								{ port_number: 2, fiber_a_details: null, fiber_b_details: null }
-							]
-						}
-					})
-				)
-		});
+		getFiberSplices.mockResolvedValue([
+			{ port_number: 1, fiber_a_details: { uuid: 'f1' } },
+			{ port_number: 2, fiber_a_details: null, fiber_b_details: null }
+		]);
 		const { context, structureManager } = newContext();
 
 		const result = await context.structureActions.onDelete('s1');
@@ -312,7 +300,7 @@ describe('structure deletion', () => {
 	});
 
 	test('should fall back to deleting when the splice check fails', async () => {
-		fetchMock.mockRejectedValue(new Error('offline'));
+		getFiberSplices.mockRejectedValue(new Error('offline'));
 		const { context, structureManager } = newContext();
 
 		const result = await context.structureActions.onDelete('s1');

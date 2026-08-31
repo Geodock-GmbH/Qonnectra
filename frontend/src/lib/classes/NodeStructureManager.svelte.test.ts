@@ -4,8 +4,36 @@ import { globalToaster } from '$lib/stores/toaster';
 
 import { NodeStructureManager } from './NodeStructureManager.svelte';
 
-vi.mock('$app/forms', () => ({
-	deserialize: vi.fn((text: string) => JSON.parse(text))
+// Reads/writes run through remote-function modules; mock them observably.
+const remote = {
+	getSlotConfigurationsForNode: vi.fn(),
+	getNodeStructures: vi.fn(),
+	getSlotDividers: vi.fn(),
+	getSlotClipNumbers: vi.fn(),
+	createNodeStructure: vi.fn(),
+	bulkCreateNodeStructures: vi.fn(),
+	moveNodeStructure: vi.fn(),
+	deleteNodeStructure: vi.fn(),
+	createSlotDivider: vi.fn(),
+	deleteSlotDivider: vi.fn(),
+	upsertSlotClipNumber: vi.fn()
+};
+
+vi.mock('$lib/remote/network-schema/node-structures.remote', () => ({
+	getSlotConfigurationsForNode: (...a: unknown[]) => remote.getSlotConfigurationsForNode(...a),
+	getSlotDividers: (...a: unknown[]) => remote.getSlotDividers(...a),
+	getSlotClipNumbers: (...a: unknown[]) => remote.getSlotClipNumbers(...a),
+	createNodeStructure: (...a: unknown[]) => remote.createNodeStructure(...a),
+	bulkCreateNodeStructures: (...a: unknown[]) => remote.bulkCreateNodeStructures(...a),
+	moveNodeStructure: (...a: unknown[]) => remote.moveNodeStructure(...a),
+	deleteNodeStructure: (...a: unknown[]) => remote.deleteNodeStructure(...a),
+	createSlotDivider: (...a: unknown[]) => remote.createSlotDivider(...a),
+	deleteSlotDivider: (...a: unknown[]) => remote.deleteSlotDivider(...a),
+	upsertSlotClipNumber: (...a: unknown[]) => remote.upsertSlotClipNumber(...a)
+}));
+
+vi.mock('$lib/remote/network-schema/containers.remote', () => ({
+	getNodeStructures: (...a: unknown[]) => remote.getNodeStructures(...a)
 }));
 
 vi.mock('$lib/paraglide/messages', () => ({
@@ -26,17 +54,36 @@ vi.mock('$lib/stores/toaster', () => ({
 	}
 }));
 
-const fetchMock = vi.fn();
-
-function actionResponse(payload: unknown) {
-	return { text: () => Promise.resolve(JSON.stringify(payload)) };
-}
-
-function mockRoutes(routes: Record<string, unknown>) {
-	fetchMock.mockImplementation((url: string) => {
-		const payload = routes[url] ?? { type: 'success', data: {} };
-		return Promise.resolve(actionResponse(payload));
+/**
+ * Maps the old `{ '?/action': { data } }` shape onto the remote-fn mocks: reads
+ * resolve to the bare array (unwrapped from configurations/structures/dividers/
+ * clipNumbers); writes resolve to the inner object (structure / {created,failed}
+ * / divider). Every fn defaults to an empty-success value.
+ */
+function mockRoutes(routes: Record<string, { type?: string; data?: Record<string, unknown> }>) {
+	const dataFor = (name: string) => routes[`?/${name}`]?.data ?? {};
+	remote.getSlotConfigurationsForNode.mockResolvedValue(
+		(dataFor('getSlotConfigurationsForNode').configurations as unknown[]) ?? []
+	);
+	remote.getNodeStructures.mockResolvedValue(
+		(dataFor('getNodeStructures').structures as unknown[]) ?? []
+	);
+	remote.getSlotDividers.mockResolvedValue(
+		(dataFor('getSlotDividers').dividers as unknown[]) ?? []
+	);
+	remote.getSlotClipNumbers.mockResolvedValue(
+		(dataFor('getSlotClipNumbers').clipNumbers as unknown[]) ?? []
+	);
+	remote.createNodeStructure.mockResolvedValue(dataFor('createNodeStructure').structure ?? {});
+	remote.bulkCreateNodeStructures.mockResolvedValue({
+		created: (dataFor('bulkCreateNodeStructures').created as unknown[]) ?? [],
+		failed: (dataFor('bulkCreateNodeStructures').failed as unknown[]) ?? []
 	});
+	remote.moveNodeStructure.mockResolvedValue(dataFor('moveNodeStructure').structure ?? {});
+	remote.deleteNodeStructure.mockResolvedValue(undefined);
+	remote.createSlotDivider.mockResolvedValue(dataFor('createSlotDivider').divider ?? {});
+	remote.deleteSlotDivider.mockResolvedValue(undefined);
+	remote.upsertSlotClipNumber.mockResolvedValue({});
 }
 
 const config = {
@@ -59,26 +106,22 @@ function structure(uuid: string, slotStart: number, slotEnd: number) {
 
 async function readyManager(): Promise<NodeStructureManager> {
 	mockRoutes({
-		'?/getSlotConfigurationsForNode': {
-			type: 'success',
-			data: { configurations: [config] }
-		}
+		'?/getSlotConfigurationsForNode': { data: { configurations: [config] } }
 	});
 	const manager = new NodeStructureManager('node-1');
 	await manager.fetchSlotConfigurations();
-	fetchMock.mockReset();
+	Object.values(remote).forEach((fn) => fn.mockClear());
 	return manager;
 }
 
 beforeEach(() => {
-	vi.stubGlobal('fetch', fetchMock);
 	vi.spyOn(console, 'error').mockImplementation(() => {});
+	mockRoutes({});
 });
 
 afterEach(() => {
-	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
-	fetchMock.mockReset();
+	Object.values(remote).forEach((fn) => fn.mockReset());
 	vi.mocked(globalToaster.success).mockClear();
 	vi.mocked(globalToaster.error).mockClear();
 	vi.mocked(globalToaster.warning).mockClear();
@@ -103,7 +146,7 @@ describe('fetchSlotConfigurations', () => {
 
 		await manager.fetchSlotConfigurations();
 
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(remote.getSlotConfigurationsForNode).not.toHaveBeenCalled();
 		expect(manager.slotConfigurations).toEqual([config]);
 		expect(manager.selectedSlotConfigUuid).toBe('cfg-1');
 	});
@@ -119,14 +162,12 @@ describe('fetchSlotConfigurations', () => {
 
 		await manager.fetchSlotConfigurations();
 
-		expect(fetchMock).toHaveBeenCalled();
+		expect(remote.getSlotConfigurationsForNode).toHaveBeenCalled();
 		expect(manager.slotConfigurations).toEqual([config]);
 	});
 
 	test('should toast an error and clear configurations on failure', async () => {
-		mockRoutes({
-			'?/getSlotConfigurationsForNode': { type: 'failure', data: { error: 'nope' } }
-		});
+		remote.getSlotConfigurationsForNode.mockRejectedValue(new Error('nope'));
 		const manager = new NodeStructureManager('node-1');
 
 		await manager.fetchSlotConfigurations();
@@ -140,7 +181,7 @@ describe('fetchSlotConfigurations', () => {
 
 		await manager.fetchSlotConfigurations();
 
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(remote.getSlotConfigurationsForNode).not.toHaveBeenCalled();
 	});
 });
 
@@ -171,7 +212,7 @@ describe('fetchAllForSlotConfig', () => {
 
 		await manager.fetchAllForSlotConfig();
 
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(remote.getNodeStructures).not.toHaveBeenCalled();
 		expect(manager.structures).toEqual([]);
 	});
 });
@@ -200,9 +241,9 @@ describe('createStructure', () => {
 		expect(manager.structures).toEqual([structure('real-1', 3, 6)]);
 		expect(globalToaster.success).toHaveBeenCalled();
 
-		const body = fetchMock.mock.calls[0][1].body as FormData;
-		expect(body.get('slotStart')).toBe('3');
-		expect(body.get('slotEnd')).toBe('6');
+		expect(remote.createNodeStructure).toHaveBeenCalledWith(
+			expect.objectContaining({ slotStart: 3, slotEnd: 6 })
+		);
 	});
 
 	test('should reject placements beyond the last slot', async () => {
@@ -213,7 +254,7 @@ describe('createStructure', () => {
 		expect(globalToaster.error).toHaveBeenCalledWith(
 			expect.objectContaining({ description: 'message_error_not_enough_slots' })
 		);
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(remote.createNodeStructure).not.toHaveBeenCalled();
 	});
 
 	test('should reject placements on occupied slots', async () => {
@@ -225,14 +266,12 @@ describe('createStructure', () => {
 		expect(globalToaster.error).toHaveBeenCalledWith(
 			expect.objectContaining({ description: 'message_error_slots_occupied' })
 		);
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(remote.createNodeStructure).not.toHaveBeenCalled();
 	});
 
 	test('should roll back the optimistic entry and rethrow on failure', async () => {
 		const manager = await readyManager();
-		mockRoutes({
-			'?/createNodeStructure': { type: 'failure', data: { error: 'Backend sagt nein' } }
-		});
+		remote.createNodeStructure.mockRejectedValue(new Error('Backend sagt nein'));
 
 		await expect(
 			manager.createStructure({ id: 1, name: 'Kassette', occupied_slots: 2 }, 1)
@@ -305,7 +344,7 @@ describe('createMultipleStructures', () => {
 			1
 		);
 
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(remote.bulkCreateNodeStructures).not.toHaveBeenCalled();
 		expect(globalToaster.error).toHaveBeenCalled();
 	});
 });
@@ -333,7 +372,7 @@ describe('moveStructure', () => {
 
 		await manager.moveStructure({ uuid: 's1', occupied_slots: 2 }, 2);
 
-		expect(fetchMock).toHaveBeenCalled();
+		expect(remote.moveNodeStructure).toHaveBeenCalled();
 	});
 
 	test('should reject moves onto foreign structures', async () => {
@@ -342,16 +381,14 @@ describe('moveStructure', () => {
 
 		await manager.moveStructure({ uuid: 's1', occupied_slots: 2 }, 4);
 
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(remote.moveNodeStructure).not.toHaveBeenCalled();
 		expect(globalToaster.error).toHaveBeenCalled();
 	});
 
 	test('should roll back on failure', async () => {
 		const manager = await readyManager();
 		manager.structures = [structure('s1', 1, 2)];
-		mockRoutes({
-			'?/moveNodeStructure': { type: 'failure', data: { error: 'nein' } }
-		});
+		remote.moveNodeStructure.mockRejectedValue(new Error('nein'));
 
 		await expect(manager.moveStructure({ uuid: 's1', occupied_slots: 2 }, 5)).rejects.toThrow(
 			'nein'
@@ -376,7 +413,7 @@ describe('deleteStructure', () => {
 	test('should restore the structure and report failure', async () => {
 		const manager = await readyManager();
 		manager.structures = [structure('s1', 1, 2)];
-		mockRoutes({ '?/deleteNodeStructure': { type: 'failure', data: { error: 'nein' } } });
+		remote.deleteNodeStructure.mockRejectedValue(new Error('nein'));
 
 		await expect(manager.deleteStructure('s1')).resolves.toBe(false);
 
@@ -412,7 +449,7 @@ describe('toggleDivider', () => {
 
 	test('should roll back a failed divider creation and toast', async () => {
 		const manager = await readyManager();
-		mockRoutes({ '?/createSlotDivider': { type: 'failure', data: { error: 'nein' } } });
+		remote.createSlotDivider.mockRejectedValue(new Error('nein'));
 
 		await manager.toggleDivider(3);
 
@@ -423,7 +460,7 @@ describe('toggleDivider', () => {
 	test('should restore a divider when deletion fails', async () => {
 		const manager = await readyManager();
 		manager.dividers = [{ uuid: 'd1', slot_configuration: 'cfg-1', after_slot: 3 }];
-		mockRoutes({ '?/deleteSlotDivider': { type: 'failure', data: { error: 'nein' } } });
+		remote.deleteSlotDivider.mockRejectedValue(new Error('nein'));
 
 		await manager.toggleDivider(3);
 
@@ -439,8 +476,9 @@ describe('saveClipNumber', () => {
 		await manager.saveClipNumber(2, ' K-2 ');
 
 		expect(manager.clipNumbers.get(2)).toBe('K-2');
-		const body = fetchMock.mock.calls[0][1].body as FormData;
-		expect(body.get('clipNumber')).toBe('K-2');
+		expect(remote.upsertSlotClipNumber).toHaveBeenCalledWith(
+			expect.objectContaining({ slotNumber: 2, clipNumber: 'K-2' })
+		);
 	});
 
 	test('should ignore empty clip numbers', async () => {
@@ -448,13 +486,13 @@ describe('saveClipNumber', () => {
 
 		await manager.saveClipNumber(2, '   ');
 
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(remote.upsertSlotClipNumber).not.toHaveBeenCalled();
 	});
 
 	test('should roll back on failure', async () => {
 		const manager = await readyManager();
 		manager.clipNumbers = new Map([[2, 'Alt']]);
-		mockRoutes({ '?/upsertSlotClipNumber': { type: 'failure', data: { error: 'nein' } } });
+		remote.upsertSlotClipNumber.mockRejectedValue(new Error('nein'));
 
 		await manager.saveClipNumber(2, 'Neu');
 
