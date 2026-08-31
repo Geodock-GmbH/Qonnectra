@@ -41,7 +41,7 @@ const UpdateSlotConfigSchema = v.object({
  * @throws When the backend request fails.
  */
 export const getContainerTypes = query(async (): Promise<{ id: number; name: string }[]> => {
-	const response = await fetch(`${API_URL}attributes_container_type/`, {
+	const response = await fetch(`${API_URL}container-type/`, {
 		method: 'GET',
 		headers: djangoHeaders()
 	});
