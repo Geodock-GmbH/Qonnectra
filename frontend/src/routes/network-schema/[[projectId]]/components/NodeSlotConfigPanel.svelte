@@ -1,9 +1,7 @@
 <script lang="ts">
 	import type { ContainerNode, Hierarchy, SlotConfig } from './containerItemTypes';
-	import type { ActionResult } from '@sveltejs/kit';
 	import type { SharedSlotState } from '$lib/classes/NodeStructureContext.svelte.js';
 	import { flip } from 'svelte/animate';
-	import { deserialize } from '$app/forms';
 	import { IconCheck, IconDownload, IconFolder, IconPlus, IconX } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -11,9 +9,22 @@
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { actionData } from '$lib/utils/forms';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
+	import {
+		createContainer,
+		createSlotConfiguration,
+		deleteContainer,
+		deleteSlotConfiguration,
+		exportNodeExcel,
+		getContainerHierarchy,
+		getContainerTypes,
+		getNodeStructures,
+		moveItem,
+		toggleContainerExpanded,
+		updateContainerName,
+		updateSlotConfiguration
+	} from '$lib/remote/network-schema/containers.remote';
 
 	import ContainerItem from './ContainerItem.svelte';
 	import SlotConfigItem from './SlotConfigItem.svelte';
@@ -57,16 +68,7 @@
 
 	async function fetchContainerTypes() {
 		try {
-			const formData = new FormData();
-			const response = await fetch('?/getContainerTypes', {
-				method: 'POST',
-				body: formData
-			});
-			const result = deserialize(await response.text()) as ActionResult;
-			if (result.type === 'success') {
-				containerTypes =
-					(actionData(result)?.containerTypes as { id: number; name: string }[]) || [];
-			}
+			containerTypes = await getContainerTypes();
 		} catch (err) {
 			console.error('Error fetching container types:', err);
 			void logToBackendClient({
@@ -91,21 +93,7 @@
 		resetForm();
 
 		try {
-			const formData = new FormData();
-			formData.append('nodeUuid', nodeUuid);
-
-			const response = await fetch('?/getContainerHierarchy', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text()) as ActionResult;
-
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error((actionData(result)?.error as string) || 'Failed to fetch hierarchy');
-			}
-
-			hierarchy = (actionData(result)?.hierarchy as Hierarchy) || {
+			hierarchy = (await getContainerHierarchy(nodeUuid)) || {
 				containers: [],
 				root_slot_configurations: []
 			};
@@ -165,23 +153,11 @@
 		if (!selectedContainerTypeId) return;
 
 		try {
-			const formData = new FormData();
-			formData.append('nodeUuid', nodeUuid);
-			formData.append('containerTypeId', selectedContainerTypeId.toString());
-			if (containerName.trim()) {
-				formData.append('name', containerName.trim());
-			}
-
-			const response = await fetch('?/createContainer', {
-				method: 'POST',
-				body: formData
+			await createContainer({
+				nodeUuid,
+				containerTypeId: selectedContainerTypeId,
+				name: containerName.trim() || undefined
 			});
-
-			const result = deserialize(await response.text()) as ActionResult;
-
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error((actionData(result)?.error as string) || 'Failed to create container');
-			}
 
 			globalToaster.success({
 				title: m.title_success(),
@@ -209,19 +185,7 @@
 
 	async function handleDeleteContainer(uuid: string) {
 		try {
-			const formData = new FormData();
-			formData.append('containerUuid', uuid);
-
-			const response = await fetch('?/deleteContainer', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text()) as ActionResult;
-
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error((actionData(result)?.error as string) || 'Failed to delete container');
-			}
+			await deleteContainer(uuid);
 
 			globalToaster.success({
 				title: m.title_success(),
@@ -248,20 +212,7 @@
 
 	async function handleUpdateContainerName(uuid: string, newName: string) {
 		try {
-			const formData = new FormData();
-			formData.append('containerUuid', uuid);
-			formData.append('name', newName);
-
-			const response = await fetch('?/updateContainerName', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text()) as ActionResult;
-
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error((actionData(result)?.error as string) || 'Failed to update container name');
-			}
+			await updateContainerName({ containerUuid: uuid, name: newName });
 
 			globalToaster.success({
 				title: m.title_success(),
@@ -291,21 +242,11 @@
 		targetContainerId: string | null
 	) {
 		try {
-			const formData = new FormData();
-			formData.append('itemType', dragData.type);
-			formData.append('itemUuid', dragData.uuid);
-			formData.append('targetContainerId', targetContainerId || '');
-
-			const response = await fetch('?/moveItem', {
-				method: 'POST',
-				body: formData
+			await moveItem({
+				itemType: dragData.type as 'container' | 'slot_configuration',
+				itemUuid: dragData.uuid,
+				targetContainerId: targetContainerId || undefined
 			});
-
-			const result = deserialize(await response.text()) as ActionResult;
-
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error((actionData(result)?.error as string) || 'Failed to move item');
-			}
 
 			await fetchHierarchy();
 			globalToaster.success({
@@ -369,15 +310,12 @@
 		}
 	}
 
-	async function handleToggleExpand(uuid: string) {
+	function handleToggleExpand(uuid: string) {
 		hierarchy = updateContainerExpanded(hierarchy, uuid);
 
-		// Fire-and-forget: persist expand state without blocking
-		const formData = new FormData();
-		formData.append('containerUuid', uuid);
-		fetch('?/toggleContainerExpanded', {
-			method: 'POST',
-			body: formData
+		// Fire-and-forget: persist expand state without blocking the optimistic UI.
+		void toggleContainerExpanded(uuid).catch((err) => {
+			console.error('Error toggling container:', err);
 		});
 	}
 
@@ -407,21 +345,11 @@
 		if (!formSide.trim() || formTotalSlots < 1) return;
 
 		try {
-			const formData = new FormData();
-			formData.append('nodeUuid', nodeUuid);
-			formData.append('side', formSide.trim());
-			formData.append('totalSlots', formTotalSlots.toString());
-
-			const response = await fetch('?/createSlotConfiguration', {
-				method: 'POST',
-				body: formData
+			await createSlotConfiguration({
+				nodeUuid,
+				side: formSide.trim(),
+				totalSlots: formTotalSlots
 			});
-
-			const result = deserialize(await response.text()) as ActionResult;
-
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error((actionData(result)?.error as string) || 'Failed to create configuration');
-			}
 
 			globalToaster.success({
 				title: m.title_success(),
@@ -451,21 +379,11 @@
 		if (!formSide.trim() || formTotalSlots < 1) return;
 
 		try {
-			const formData = new FormData();
-			formData.append('configUuid', uuid);
-			formData.append('side', formSide.trim());
-			formData.append('totalSlots', formTotalSlots.toString());
-
-			const response = await fetch('?/updateSlotConfiguration', {
-				method: 'POST',
-				body: formData
+			await updateSlotConfiguration({
+				configUuid: uuid,
+				side: formSide.trim(),
+				totalSlots: formTotalSlots
 			});
-
-			const result = deserialize(await response.text()) as ActionResult;
-
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error((actionData(result)?.error as string) || 'Failed to update configuration');
-			}
 
 			globalToaster.success({
 				title: m.title_success(),
@@ -497,16 +415,7 @@
 	 */
 	async function handleDelete(uuid: string) {
 		try {
-			const formData = new FormData();
-			formData.append('slotConfigUuid', uuid);
-
-			const response = await fetch('?/getNodeStructures', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text()) as ActionResult;
-			const structures = (actionData(result)?.structures as unknown[]) || [];
+			const structures = await getNodeStructures(uuid);
 
 			if (structures.length > 0) {
 				pendingDeleteConfigUuid = uuid;
@@ -533,19 +442,7 @@
 
 	async function executeDeleteSlotConfig(uuid: string) {
 		try {
-			const formData = new FormData();
-			formData.append('configUuid', uuid);
-
-			const response = await fetch('?/deleteSlotConfiguration', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text()) as ActionResult;
-
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error((actionData(result)?.error as string) || 'Failed to delete configuration');
-			}
+			await deleteSlotConfiguration(uuid);
 
 			globalToaster.success({
 				title: m.title_success(),
@@ -619,26 +516,16 @@
 		if (exporting || !nodeUuid) return;
 		exporting = true;
 		try {
-			const formData = new FormData();
-			formData.append('nodeUuid', nodeUuid);
-			const response = await fetch('?/exportExcel', {
-				method: 'POST',
-				body: formData
-			});
-			const result = deserialize(await response.text()) as ActionResult;
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error((actionData(result)?.error as string) || 'Export failed');
-			}
-			const exportData = actionData(result);
+			const exportData = await exportNodeExcel(nodeUuid);
 			if (exportData?.fileData) {
-				const bytes = Uint8Array.from(atob(exportData.fileData as string), (c) => c.charCodeAt(0));
+				const bytes = Uint8Array.from(atob(exportData.fileData), (c) => c.charCodeAt(0));
 				const blob = new Blob([bytes], {
 					type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 				});
 				const url = URL.createObjectURL(blob);
 				const a = document.createElement('a');
 				a.href = url;
-				a.download = (exportData.fileName as string) || 'structure.xlsx';
+				a.download = exportData.fileName || 'structure.xlsx';
 				document.body.appendChild(a);
 				a.click();
 				document.body.removeChild(a);

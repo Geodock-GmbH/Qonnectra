@@ -70,6 +70,22 @@ vi.mock('$lib/remote/network-schema/cable-connections.remote', () => ({
 	updateCableConnection: vi.fn().mockResolvedValue({}),
 	deleteCableSplicesAtNode: vi.fn().mockResolvedValue({ deletedCount: 0, failedCount: 0 })
 }));
+vi.mock('$lib/remote/network-schema/containers.remote', () => ({
+	getContainerTypes: vi.fn().mockResolvedValue([]),
+	getContainerHierarchy: vi
+		.fn()
+		.mockResolvedValue({ containers: [], root_slot_configurations: [] }),
+	getNodeStructures: vi.fn().mockResolvedValue([]),
+	createContainer: vi.fn().mockResolvedValue({}),
+	deleteContainer: vi.fn().mockResolvedValue(undefined),
+	updateContainerName: vi.fn().mockResolvedValue({}),
+	moveItem: vi.fn().mockResolvedValue(undefined),
+	toggleContainerExpanded: vi.fn().mockResolvedValue(undefined),
+	createSlotConfiguration: vi.fn().mockResolvedValue({}),
+	updateSlotConfiguration: vi.fn().mockResolvedValue({}),
+	deleteSlotConfiguration: vi.fn().mockResolvedValue(undefined),
+	exportNodeExcel: vi.fn().mockResolvedValue({ fileData: '', fileName: 'x.xlsx' })
+}));
 
 // jsdom does not provide ResizeObserver (required by @zag-js/tabs / Skeleton Tabs)
 global.ResizeObserver = class ResizeObserver {

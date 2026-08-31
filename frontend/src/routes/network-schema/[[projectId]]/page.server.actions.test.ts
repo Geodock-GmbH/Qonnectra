@@ -102,19 +102,6 @@ describe('+page.server.js actions', () => {
 		});
 	});
 
-	describe('getNodeStructures', () => {
-		test('returns structures filtered by slot configuration', async () => {
-			mockFetch.mockResolvedValueOnce(okJson([{ uuid: 's-1' }]));
-
-			const result = await runAction('getNodeStructures', [['slotConfigUuid', 'cfg-9']]);
-
-			expect(result.structures).toEqual([{ uuid: 's-1' }]);
-			expect(mockFetch.mock.calls[0][0]).toBe(
-				'http://localhost:8000/node-structure/?slot_configuration=cfg-9'
-			);
-		});
-	});
-
 	describe('getSlotDividers', () => {
 		test('returns dividers array', async () => {
 			mockFetch.mockResolvedValueOnce(okJson([{ uuid: 'd-1' }]));
@@ -922,39 +909,6 @@ describe('+page.server.js actions', () => {
 
 			expect(result.status).toBe(400);
 			expect(mockFetch).not.toHaveBeenCalled();
-		});
-	});
-
-	// ---------------------------------------------------------------------------
-	// exportExcel
-	// ---------------------------------------------------------------------------
-
-	describe('exportExcel', () => {
-		test('returns base64 file data and parsed filename', async () => {
-			const bytes = new Uint8Array([1, 2, 3, 4]);
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				arrayBuffer: () => Promise.resolve(bytes.buffer),
-				headers: {
-					get: (name: string) =>
-						name === 'Content-Disposition' ? 'attachment; filename="node-export.xlsx"' : null
-				}
-			});
-
-			const result = await runAction('exportExcel', [['nodeUuid', 'node-1']]);
-
-			expect(result.fileName).toBe('node-export.xlsx');
-			expect(result.fileData).toBe(Buffer.from(bytes).toString('base64'));
-			expect(mockFetch.mock.calls[0][0]).toBe('http://localhost:8000/node-export/excel/node-1/');
-		});
-
-		test('propagates export failure', async () => {
-			mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
-
-			const result = await runAction('exportExcel', [['nodeUuid', 'node-1']]);
-
-			expect(result.status).toBe(500);
-			expect((result.data as Record<string, unknown>).error).toBe('Export failed');
 		});
 	});
 });

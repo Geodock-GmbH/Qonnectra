@@ -10,8 +10,34 @@ vi.mock('$app/environment', () => ({
 	browser: true
 }));
 
-vi.mock('$app/forms', () => ({
-	deserialize: vi.fn((text: string) => JSON.parse(text))
+// The panel talks to the container/slot-config remote module; mock it so the
+// component's calls are observable without a running server.
+const getContainerTypes = vi.fn();
+const getContainerHierarchy = vi.fn();
+const getNodeStructures = vi.fn();
+const createContainer = vi.fn();
+const deleteContainer = vi.fn();
+const updateContainerName = vi.fn();
+const moveItem = vi.fn();
+const toggleContainerExpanded = vi.fn();
+const createSlotConfiguration = vi.fn();
+const updateSlotConfiguration = vi.fn();
+const deleteSlotConfiguration = vi.fn();
+const exportNodeExcel = vi.fn();
+
+vi.mock('$lib/remote/network-schema/containers.remote', () => ({
+	getContainerTypes: (...a: unknown[]) => getContainerTypes(...a),
+	getContainerHierarchy: (...a: unknown[]) => getContainerHierarchy(...a),
+	getNodeStructures: (...a: unknown[]) => getNodeStructures(...a),
+	createContainer: (...a: unknown[]) => createContainer(...a),
+	deleteContainer: (...a: unknown[]) => deleteContainer(...a),
+	updateContainerName: (...a: unknown[]) => updateContainerName(...a),
+	moveItem: (...a: unknown[]) => moveItem(...a),
+	toggleContainerExpanded: (...a: unknown[]) => toggleContainerExpanded(...a),
+	createSlotConfiguration: (...a: unknown[]) => createSlotConfiguration(...a),
+	updateSlotConfiguration: (...a: unknown[]) => updateSlotConfiguration(...a),
+	deleteSlotConfiguration: (...a: unknown[]) => deleteSlotConfiguration(...a),
+	exportNodeExcel: (...a: unknown[]) => exportNodeExcel(...a)
 }));
 
 vi.mock('$lib/paraglide/messages', () => ({
@@ -31,8 +57,6 @@ vi.mock('$lib/stores/toaster', () => ({
 	}
 }));
 
-const fetchMock = vi.fn();
-
 const containerTypes = [
 	{ id: 1, name: 'Rack' },
 	{ id: 2, name: 'Muffe' }
@@ -46,88 +70,79 @@ const rootSlotConfig = {
 	free_slots: 3
 };
 
-/**
- * Stub form-action responses keyed by URL. Unlisted URLs resolve to an empty
- * success payload so incidental fetches never reject.
- */
-function mockRoutes(routes: Record<string, unknown> = {}) {
-	fetchMock.mockImplementation((url: string) => {
-		const payload = routes[url] ?? { type: 'success', data: {} };
-		return Promise.resolve({
-			ok: true,
-			text: () => Promise.resolve(JSON.stringify(payload))
-		});
-	});
-}
+const emptyHierarchy = { containers: [], root_slot_configurations: [] };
+const defaultHierarchy = { containers: [], root_slot_configurations: [rootSlotConfig] };
 
 /**
  * The export button carries only an icon and a tooltip (no accessible name),
  * so it is located structurally as the header's outlined button.
  */
 function getExportButton(): HTMLButtonElement {
-	const btn = document.querySelector('button.preset-outlined');
-	return btn as HTMLButtonElement;
+	return document.querySelector('button.preset-outlined') as HTMLButtonElement;
 }
 
-const emptyHierarchy = { containers: [], root_slot_configurations: [] };
-
-const defaultRoutes = {
-	'?/getContainerTypes': { type: 'success', data: { containerTypes } },
-	'?/getContainerHierarchy': {
-		type: 'success',
-		data: { hierarchy: { containers: [], root_slot_configurations: [rootSlotConfig] } }
-	}
-};
-
 beforeEach(() => {
-	vi.stubGlobal('fetch', fetchMock);
 	vi.spyOn(console, 'error').mockImplementation(() => {});
+	getContainerTypes.mockResolvedValue(containerTypes);
+	getContainerHierarchy.mockResolvedValue(defaultHierarchy);
+	getNodeStructures.mockResolvedValue([]);
+	createContainer.mockResolvedValue({});
+	deleteContainer.mockResolvedValue(undefined);
+	updateContainerName.mockResolvedValue({});
+	moveItem.mockResolvedValue(undefined);
+	toggleContainerExpanded.mockResolvedValue(undefined);
+	createSlotConfiguration.mockResolvedValue({});
+	updateSlotConfiguration.mockResolvedValue({});
+	deleteSlotConfiguration.mockResolvedValue(undefined);
+	exportNodeExcel.mockResolvedValue({ fileData: btoa('hello'), fileName: 'node.xlsx' });
 });
 
 afterEach(() => {
-	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
-	fetchMock.mockReset();
+	[
+		getContainerTypes,
+		getContainerHierarchy,
+		getNodeStructures,
+		createContainer,
+		deleteContainer,
+		updateContainerName,
+		moveItem,
+		toggleContainerExpanded,
+		createSlotConfiguration,
+		updateSlotConfiguration,
+		deleteSlotConfiguration,
+		exportNodeExcel
+	].forEach((fn) => fn.mockReset());
 	vi.mocked(globalToaster.success).mockClear();
 	vi.mocked(globalToaster.error).mockClear();
 });
 
 describe('NodeSlotConfigPanel', () => {
 	test('should render the node name heading when nodeName is given', async () => {
-		mockRoutes(defaultRoutes);
 		render(NodeSlotConfigPanel, {
 			nodeUuid: 'node-1',
 			nodeName: 'PoP-Nord',
 			onViewStructure: () => {}
 		});
 
-		// Heading combines form_node label with the node name.
 		expect(await screen.findByText(/PoP-Nord/)).toBeInTheDocument();
 	});
 
 	test('should show the empty state when the hierarchy has no items', async () => {
-		mockRoutes({
-			...defaultRoutes,
-			'?/getContainerHierarchy': { type: 'success', data: { hierarchy: emptyHierarchy } }
-		});
+		getContainerHierarchy.mockResolvedValue(emptyHierarchy);
 		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 
 		expect(await screen.findByText('message_no_slot_configurations')).toBeInTheDocument();
 	});
 
 	test('should render root slot configurations from the hierarchy', async () => {
-		mockRoutes(defaultRoutes);
 		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 
-		// The SlotConfigItem shows the config side.
 		expect(await screen.findByText('A')).toBeInTheDocument();
-
-		const getCall = fetchMock.mock.calls.find(([url]) => url === '?/getContainerHierarchy');
-		expect((getCall![1].body as FormData).get('nodeUuid')).toBe('node-1');
+		expect(getContainerHierarchy).toHaveBeenCalledWith('node-1');
 	});
 
 	test('should sync sharedSlotState with the fetched configurations', async () => {
-		mockRoutes(defaultRoutes);
 		const sharedSlotState = { nodeUuid: null, slotConfigurations: [], lastUpdated: 0 };
 		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', sharedSlotState, onViewStructure: () => {} });
 
@@ -141,11 +156,9 @@ describe('NodeSlotConfigPanel', () => {
 
 	test('should create a slot configuration from the add form and post the values', async () => {
 		const user = userEvent.setup();
-		mockRoutes(defaultRoutes);
 		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 
 		await screen.findByText('A');
-		fetchMock.mockClear();
 
 		await user.click(screen.getByRole('button', { name: /action_add$/ }));
 
@@ -158,23 +171,19 @@ describe('NodeSlotConfigPanel', () => {
 
 		await user.click(screen.getByRole('button', { name: 'action_save' }));
 
-		await vi.waitFor(() => {
-			const call = fetchMock.mock.calls.find(([url]) => url === '?/createSlotConfiguration');
-			expect(call).toBeTruthy();
-			const body = call![1].body as FormData;
-			expect(body.get('side')).toBe('B');
-			expect(body.get('totalSlots')).toBe('6');
-			expect(body.get('nodeUuid')).toBe('node-1');
-		});
+		await vi.waitFor(() =>
+			expect(createSlotConfiguration).toHaveBeenCalledWith({
+				nodeUuid: 'node-1',
+				side: 'B',
+				totalSlots: 6
+			})
+		);
 		expect(globalToaster.success).toHaveBeenCalled();
 	});
 
 	test('should toast an error when creating a slot configuration fails', async () => {
 		const user = userEvent.setup();
-		mockRoutes({
-			...defaultRoutes,
-			'?/createSlotConfiguration': { type: 'failure', data: { error: 'nope' } }
-		});
+		createSlotConfiguration.mockRejectedValue(new Error('nope'));
 		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 
 		await screen.findByText('A');
@@ -187,12 +196,10 @@ describe('NodeSlotConfigPanel', () => {
 		expect(globalToaster.success).not.toHaveBeenCalled();
 	});
 
-	test('should move a dropped item to root and post to moveItem', async () => {
-		mockRoutes(defaultRoutes);
+	test('should move a dropped item to root and call moveItem', async () => {
 		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 
 		await screen.findByText('A');
-		fetchMock.mockClear();
 
 		const tree = screen.getByRole('tree');
 		const dropEvent = new Event('drop', {
@@ -206,25 +213,17 @@ describe('NodeSlotConfigPanel', () => {
 		});
 		tree.dispatchEvent(dropEvent);
 
-		await vi.waitFor(() => {
-			const call = fetchMock.mock.calls.find(([url]) => url === '?/moveItem');
-			expect(call).toBeTruthy();
-			const body = call![1].body as FormData;
-			expect(body.get('itemType')).toBe('slot_configuration');
-			expect(body.get('itemUuid')).toBe('cfg-9');
-			expect(body.get('targetContainerId')).toBe('');
-		});
+		await vi.waitFor(() =>
+			expect(moveItem).toHaveBeenCalledWith({
+				itemType: 'slot_configuration',
+				itemUuid: 'cfg-9',
+				targetContainerId: undefined
+			})
+		);
 	});
 
 	test('should export Excel and download when export succeeds', async () => {
 		const user = userEvent.setup();
-		mockRoutes({
-			...defaultRoutes,
-			'?/exportExcel': {
-				type: 'success',
-				data: { fileData: btoa('hello'), fileName: 'node.xlsx' }
-			}
-		});
 		const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 		vi.stubGlobal('URL', {
 			createObjectURL: vi.fn(() => 'blob:mock'),
@@ -236,38 +235,25 @@ describe('NodeSlotConfigPanel', () => {
 
 		await user.click(getExportButton());
 
-		await vi.waitFor(() => {
-			const call = fetchMock.mock.calls.find(([url]) => url === '?/exportExcel');
-			expect(call).toBeTruthy();
-		});
+		await vi.waitFor(() => expect(exportNodeExcel).toHaveBeenCalledWith('node-1'));
 		await vi.waitFor(() => expect(clickSpy).toHaveBeenCalled());
+		vi.unstubAllGlobals();
 	});
 
 	test('should confirm before deleting a slot config that has structures', async () => {
 		const user = userEvent.setup();
-		mockRoutes({
-			...defaultRoutes,
-			'?/getNodeStructures': { type: 'success', data: { structures: [{ uuid: 'st-1' }] } }
-		});
+		getNodeStructures.mockResolvedValue([{ uuid: 'st-1' }]);
 		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 
 		await screen.findByText('A');
 
-		// The SlotConfigItem exposes a delete button labelled common_delete.
 		const item = screen.getByText('A').closest('[role="treeitem"]') as HTMLElement;
 		await user.click(within(item).getByRole('button', { name: 'common_delete' }));
 
 		// A confirmation MessageBox opens rather than deleting immediately.
-		await vi.waitFor(() => {
-			const call = fetchMock.mock.calls.find(([url]) => url === '?/getNodeStructures');
-			expect(call).toBeTruthy();
-		});
-		expect(
-			fetchMock.mock.calls.find(([url]) => url === '?/deleteSlotConfiguration')
-		).toBeUndefined();
+		await vi.waitFor(() => expect(getNodeStructures).toHaveBeenCalledWith('cfg-1'));
+		expect(deleteSlotConfiguration).not.toHaveBeenCalled();
 
-		// Accepting the dialog performs the delete. The dialog's accept button is
-		// the error-preset button rendered inside the MessageBox footer.
 		const acceptBtn = await vi.waitFor(() => {
 			const btn = document.querySelector('footer button.preset-filled-error-500');
 			expect(btn).toBeTruthy();
@@ -275,19 +261,12 @@ describe('NodeSlotConfigPanel', () => {
 		});
 		await user.click(acceptBtn);
 
-		await vi.waitFor(() => {
-			const call = fetchMock.mock.calls.find(([url]) => url === '?/deleteSlotConfiguration');
-			expect(call).toBeTruthy();
-			expect((call![1].body as FormData).get('configUuid')).toBe('cfg-1');
-		});
+		await vi.waitFor(() => expect(deleteSlotConfiguration).toHaveBeenCalledWith('cfg-1'));
 	});
 
 	test('should delete a slot config immediately when it has no structures', async () => {
 		const user = userEvent.setup();
-		mockRoutes({
-			...defaultRoutes,
-			'?/getNodeStructures': { type: 'success', data: { structures: [] } }
-		});
+		getNodeStructures.mockResolvedValue([]);
 		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 
 		await screen.findByText('A');
@@ -295,17 +274,12 @@ describe('NodeSlotConfigPanel', () => {
 		const item = screen.getByText('A').closest('[role="treeitem"]') as HTMLElement;
 		await user.click(within(item).getByRole('button', { name: 'common_delete' }));
 
-		await vi.waitFor(() => {
-			const call = fetchMock.mock.calls.find(([url]) => url === '?/deleteSlotConfiguration');
-			expect(call).toBeTruthy();
-			expect((call![1].body as FormData).get('configUuid')).toBe('cfg-1');
-		});
+		await vi.waitFor(() => expect(deleteSlotConfiguration).toHaveBeenCalledWith('cfg-1'));
 		expect(globalToaster.success).toHaveBeenCalled();
 	});
 
 	test('should start editing a slot config when its edit button is clicked', async () => {
 		const user = userEvent.setup();
-		mockRoutes(defaultRoutes);
 		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 
 		await screen.findByText('A');
@@ -313,7 +287,6 @@ describe('NodeSlotConfigPanel', () => {
 		const item = screen.getByText('A').closest('[role="treeitem"]') as HTMLElement;
 		await user.click(within(item).getByRole('button', { name: 'common_edit' }));
 
-		// The edit form prefills the side input with the config's current side.
 		expect(screen.getByDisplayValue('A')).toBeInTheDocument();
 	});
 
@@ -327,12 +300,9 @@ describe('NodeSlotConfigPanel', () => {
 			children: [],
 			slot_configurations: []
 		};
-		mockRoutes({
-			...defaultRoutes,
-			'?/getContainerHierarchy': {
-				type: 'success',
-				data: { hierarchy: { containers: [container], root_slot_configurations: [] } }
-			}
+		getContainerHierarchy.mockResolvedValue({
+			containers: [container],
+			root_slot_configurations: []
 		});
 		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 
@@ -341,16 +311,11 @@ describe('NodeSlotConfigPanel', () => {
 		const item = screen.getByText('Rack-1').closest('[role="treeitem"]') as HTMLElement;
 		await user.click(within(item).getByRole('button', { name: 'common_delete' }));
 
-		await vi.waitFor(() => {
-			const call = fetchMock.mock.calls.find(([url]) => url === '?/deleteContainer');
-			expect(call).toBeTruthy();
-			expect((call![1].body as FormData).get('containerUuid')).toBe('con-1');
-		});
+		await vi.waitFor(() => expect(deleteContainer).toHaveBeenCalledWith('con-1'));
 	});
 
 	test('should show the add-container form when Add Container is clicked', async () => {
 		const user = userEvent.setup();
-		mockRoutes(defaultRoutes);
 		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 
 		await screen.findByText('A');
@@ -359,21 +324,17 @@ describe('NodeSlotConfigPanel', () => {
 		await user.click(screen.getByRole('button', { name: /action_add_container/ }));
 
 		expect(screen.getByPlaceholderText('placeholder_container_name')).toBeInTheDocument();
-		// Save is disabled until a container type is picked.
 		const saveBtn = screen.getByRole('button', { name: 'action_save' }) as HTMLButtonElement;
 		expect(saveBtn.disabled).toBe(true);
 	});
 
 	test('should hide add/edit controls in readonly mode', async () => {
-		mockRoutes(defaultRoutes);
 		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', readonly: true, onViewStructure: () => {} });
 
 		await screen.findByText('A');
 
 		expect(screen.queryByRole('button', { name: /action_add$/ })).not.toBeInTheDocument();
-		// The SlotConfigItem hides its edit/delete buttons in readonly mode.
 		expect(screen.queryByRole('button', { name: 'common_delete' })).not.toBeInTheDocument();
-		// The export button remains available regardless of readonly.
 		expect(getExportButton()).toBeTruthy();
 	});
 });
