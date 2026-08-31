@@ -4,8 +4,35 @@ import { globalToaster } from '$lib/stores/toaster';
 
 import { FiberSpliceManager } from './FiberSpliceManager.svelte';
 
-vi.mock('$app/forms', () => ({
-	deserialize: vi.fn((text: string) => JSON.parse(text))
+// Splice/fiber reads and writes run through remote-function modules; mock them
+// so the class's calls are observable without a running server.
+const remote = {
+	getComponentPorts: vi.fn(),
+	getFiberSplices: vi.fn(),
+	upsertFiberSplice: vi.fn(),
+	bulkUpsertFiberSplices: vi.fn(),
+	clearFiberSplice: vi.fn(),
+	mergePorts: vi.fn(),
+	unmergePorts: vi.fn(),
+	upsertMergedSplice: vi.fn(),
+	getFiberColors: vi.fn(),
+	getFibersForCable: vi.fn()
+};
+
+vi.mock('$lib/remote/network-schema/fiber-splices.remote', () => ({
+	getComponentPorts: (...a: unknown[]) => remote.getComponentPorts(...a),
+	getFiberSplices: (...a: unknown[]) => remote.getFiberSplices(...a),
+	upsertFiberSplice: (...a: unknown[]) => remote.upsertFiberSplice(...a),
+	bulkUpsertFiberSplices: (...a: unknown[]) => remote.bulkUpsertFiberSplices(...a),
+	clearFiberSplice: (...a: unknown[]) => remote.clearFiberSplice(...a),
+	mergePorts: (...a: unknown[]) => remote.mergePorts(...a),
+	unmergePorts: (...a: unknown[]) => remote.unmergePorts(...a),
+	upsertMergedSplice: (...a: unknown[]) => remote.upsertMergedSplice(...a)
+}));
+
+vi.mock('$lib/remote/network-schema/fibers.remote', () => ({
+	getFiberColors: (...a: unknown[]) => remote.getFiberColors(...a),
+	getFibersForCable: (...a: unknown[]) => remote.getFibersForCable(...a)
 }));
 
 vi.mock('$lib/paraglide/messages', () => ({
@@ -26,17 +53,35 @@ vi.mock('$lib/stores/toaster', () => ({
 	}
 }));
 
-const fetchMock = vi.fn();
-
-function actionResponse(payload: unknown) {
-	return { text: () => Promise.resolve(JSON.stringify(payload)) };
-}
-
-function mockRoutes(routes: Record<string, unknown>) {
-	fetchMock.mockImplementation((url: string) => {
-		const payload = routes[url] ?? { type: 'success', data: {} };
-		return Promise.resolve(actionResponse(payload));
+/**
+ * Maps the old `{ '?/action': { data } }` shape onto the remote-fn mocks: each
+ * listed action's remote fn resolves to that entry's unwrapped `data`. Reads
+ * return the bare array (ports/splices/fiberColors/fibers); writes return the
+ * inner object (splice / {created,failed} / {deleted} / merged results).
+ */
+function mockRoutes(routes: Record<string, { type?: string; data?: Record<string, unknown> }>) {
+	const dataFor = (name: string) => routes[`?/${name}`]?.data ?? {};
+	remote.getComponentPorts.mockResolvedValue(
+		(dataFor('getComponentPorts').ports as unknown[]) ?? []
+	);
+	remote.getFiberSplices.mockResolvedValue((dataFor('getFiberSplices').splices as unknown[]) ?? []);
+	remote.getFiberColors.mockResolvedValue(
+		(dataFor('getFiberColors').fiberColors as unknown[]) ?? []
+	);
+	remote.getFibersForCable.mockResolvedValue(
+		(dataFor('getFibersForCable').fibers as unknown[]) ?? []
+	);
+	remote.upsertFiberSplice.mockResolvedValue(dataFor('upsertFiberSplice').splice ?? {});
+	remote.bulkUpsertFiberSplices.mockResolvedValue({
+		created: (dataFor('bulkUpsertFiberSplices').created as unknown[]) ?? [],
+		failed: (dataFor('bulkUpsertFiberSplices').failed as unknown[]) ?? []
 	});
+	remote.clearFiberSplice.mockResolvedValue({
+		deleted: dataFor('clearFiberSplice').deleted ?? 0
+	});
+	remote.mergePorts.mockResolvedValue(dataFor('mergePorts'));
+	remote.unmergePorts.mockResolvedValue(dataFor('unmergePorts'));
+	remote.upsertMergedSplice.mockResolvedValue(dataFor('upsertMergedSplice'));
 }
 
 function makePorts(count: number) {
@@ -99,14 +144,15 @@ const fiberDrop = {
 };
 
 beforeEach(() => {
-	vi.stubGlobal('fetch', fetchMock);
 	vi.spyOn(console, 'error').mockImplementation(() => {});
+	// Default every remote fn to an empty-success value; individual tests seed
+	// specifics via mockRoutes.
+	mockRoutes({});
 });
 
 afterEach(() => {
-	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
-	fetchMock.mockReset();
+	Object.values(remote).forEach((fn) => fn.mockReset());
 	vi.mocked(globalToaster.success).mockClear();
 	vi.mocked(globalToaster.error).mockClear();
 	vi.mocked(globalToaster.warning).mockClear();
@@ -238,10 +284,9 @@ describe('handleSingleFiberDrop', () => {
 		expect(globalToaster.success).toHaveBeenCalled();
 		expect(eventSpy).toHaveBeenCalled();
 
-		const body = fetchMock.mock.calls[0][1].body as FormData;
-		expect(body.get('portNumber')).toBe('2');
-		expect(body.get('side')).toBe('a');
-		expect(body.get('fiberUuid')).toBe('fiber-1');
+		expect(remote.upsertFiberSplice).toHaveBeenCalledWith(
+			expect.objectContaining({ portNumber: 2, side: 'a', fiberUuid: 'fiber-1' })
+		);
 		window.removeEventListener('fiberSpliceChanged', eventSpy);
 	});
 
@@ -262,7 +307,7 @@ describe('handleSingleFiberDrop', () => {
 	});
 
 	test('should roll back and toast on failure', async () => {
-		mockRoutes({ '?/upsertFiberSplice': { type: 'failure', data: { error: 'Belegt' } } });
+		remote.upsertFiberSplice.mockRejectedValue(new Error('Belegt'));
 		const manager = readyManager();
 
 		const success = await manager.handleSingleFiberDrop(2, 'a', fiberDrop);
@@ -287,7 +332,7 @@ describe('handleSingleFiberDrop', () => {
 
 		await manager.handleSingleFiberDrop(1, 'a', fiberDrop);
 
-		expect(fetchMock.mock.calls.map(([url]) => url)).toContain('?/getFiberSplices');
+		expect(remote.getFiberSplices).toHaveBeenCalled();
 	});
 });
 
@@ -311,10 +356,8 @@ describe('handleFiberMove', () => {
 		});
 
 		expect(success).toBe(true);
-		expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-			'?/upsertFiberSplice',
-			'?/clearFiberSplice'
-		]);
+		expect(remote.upsertFiberSplice).toHaveBeenCalled();
+		expect(remote.clearFiberSplice).toHaveBeenCalled();
 	});
 
 	test('should be a no-op when source and target are identical', async () => {
@@ -323,7 +366,8 @@ describe('handleFiberMove', () => {
 		const success = await manager.handleFiberMove(1, 'a', 1, 'a', fiberDrop);
 
 		expect(success).toBe(false);
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(remote.upsertFiberSplice).not.toHaveBeenCalled();
+		expect(remote.clearFiberSplice).not.toHaveBeenCalled();
 	});
 });
 
@@ -352,13 +396,12 @@ describe('handleBundleDrop', () => {
 		expect(manager.fiberSplices).toEqual(created);
 		expect(manager.bulkOperationInProgress).toBe(false);
 
-		const body = fetchMock.mock.calls[0][1].body as FormData;
-		const splices = JSON.parse(body.get('splices') as string);
-		expect(splices.map((s: { fiber_uuid: string }) => s.fiber_uuid)).toEqual([
-			'fiber-1',
-			'fiber-2'
-		]);
-		expect(splices.map((s: { port_number: number }) => s.port_number)).toEqual([1, 2]);
+		const splices = remote.bulkUpsertFiberSplices.mock.calls[0][0] as {
+			fiber_uuid: string;
+			port_number: number;
+		}[];
+		expect(splices.map((s) => s.fiber_uuid)).toEqual(['fiber-1', 'fiber-2']);
+		expect(splices.map((s) => s.port_number)).toEqual([1, 2]);
 	});
 
 	test('should warn for an empty bundle', async () => {
@@ -383,7 +426,7 @@ describe('handleBundleDrop', () => {
 	});
 
 	test('should roll back on failure', async () => {
-		mockRoutes({ '?/bulkUpsertFiberSplices': { type: 'failure', data: { error: 'nein' } } });
+		remote.bulkUpsertFiberSplices.mockRejectedValue(new Error('nein'));
 		const manager = readyManager();
 
 		const success = await manager.handleBundleDrop(1, 'a', bundleDrop);
@@ -437,7 +480,7 @@ describe('handleCableDrop', () => {
 		);
 
 		expect(success).toBe(true);
-		expect(fetchMock.mock.calls.map(([url]) => url)).toContain('?/getFibersForCable');
+		expect(remote.getFibersForCable).toHaveBeenCalledWith('cable-1');
 	});
 
 	test('should warn when the cable has no fibers at all', async () => {
@@ -482,7 +525,7 @@ describe('handleResidentialUnitDrop', () => {
 	});
 
 	test('should roll back on failure', async () => {
-		mockRoutes({ '?/upsertFiberSplice': { type: 'failure', data: { error: 'nein' } } });
+		remote.upsertFiberSplice.mockRejectedValue(new Error('nein'));
 		const manager = readyManager();
 
 		const success = await manager.handleResidentialUnitDrop(1, 'b', unitDrop);
@@ -507,12 +550,10 @@ describe('handleAddressDrop', () => {
 		});
 
 		expect(success).toBe(true);
-		const body = fetchMock.mock.calls[0][1].body as FormData;
-		const splices = JSON.parse(body.get('splices') as string);
-		expect(splices.map((s: { residential_unit_uuid: string }) => s.residential_unit_uuid)).toEqual([
-			'ru-1',
-			'ru-2'
-		]);
+		const splices = remote.bulkUpsertFiberSplices.mock.calls[0][0] as {
+			residential_unit_uuid: string;
+		}[];
+		expect(splices.map((s) => s.residential_unit_uuid)).toEqual(['ru-1', 'ru-2']);
 	});
 
 	test('should warn for an address without units', async () => {
@@ -570,7 +611,7 @@ describe('handleClearPort', () => {
 	});
 
 	test('should roll back on failure', async () => {
-		mockRoutes({ '?/clearFiberSplice': { type: 'failure', data: { error: 'nein' } } });
+		remote.clearFiberSplice.mockRejectedValue(new Error('nein'));
 		const manager = readyManager();
 		const splices = [emptySplice(1, { fiber_a_details: fiberDetails('fiber-1', 1) })];
 		manager.fiberSplices = splices as never;
@@ -619,14 +660,10 @@ describe('merge operations', () => {
 		manager.togglePortSelection(3, 'a');
 
 		await expect(manager.mergeSelectedPorts()).resolves.toBe(false);
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(remote.mergePorts).not.toHaveBeenCalled();
 	});
 
 	test('should merge consecutive ports and refresh splices', async () => {
-		mockRoutes({
-			'?/mergePorts': { type: 'success', data: {} },
-			'?/getFiberSplices': { type: 'success', data: { splices: [] } }
-		});
 		const manager = readyManager();
 		manager.mergeSelectionMode = true;
 		manager.togglePortSelection(1, 'a');
@@ -634,17 +671,14 @@ describe('merge operations', () => {
 
 		await expect(manager.mergeSelectedPorts()).resolves.toBe(true);
 
-		const body = fetchMock.mock.calls[0][1].body as FormData;
-		expect(JSON.parse(body.get('portNumbers') as string)).toEqual([1, 2]);
+		expect(remote.mergePorts).toHaveBeenCalledWith(
+			expect.objectContaining({ portNumbers: [1, 2] })
+		);
 		expect(manager.mergeSelectionMode).toBe(false);
 		expect(manager.selectedForMerge.size).toBe(0);
 	});
 
 	test('should resolve group ports when unmerging without explicit ports', async () => {
-		mockRoutes({
-			'?/unmergePorts': { type: 'success', data: {} },
-			'?/getFiberSplices': { type: 'success', data: { splices: [] } }
-		});
 		const manager = readyManager();
 		manager.fiberSplices = [
 			emptySplice(1, {
@@ -655,13 +689,14 @@ describe('merge operations', () => {
 
 		await expect(manager.unmergePorts('g1')).resolves.toBe(true);
 
-		const body = fetchMock.mock.calls[0][1].body as FormData;
-		expect(JSON.parse(body.get('portNumbers') as string)).toEqual([1, 2]);
+		expect(remote.unmergePorts).toHaveBeenCalledWith(
+			expect.objectContaining({ portNumbers: [1, 2] })
+		);
 	});
 
 	test('should route fiber drops on a merged group to its first port', async () => {
 		const serverSplice = emptySplice(1, { fiber_a_details: fiberDetails('fiber-1', 3) });
-		mockRoutes({ '?/upsertFiberSplice': { type: 'success', data: { splice: serverSplice } } });
+		mockRoutes({ '?/upsertFiberSplice': { data: { splice: serverSplice } } });
 		const manager = readyManager();
 		manager.fiberSplices = [
 			emptySplice(1, {
@@ -674,15 +709,12 @@ describe('merge operations', () => {
 		const success = await manager.handleMergedPortDrop('g1', 'a', fiberDrop);
 
 		expect(success).toBe(true);
-		const body = fetchMock.mock.calls[0][1].body as FormData;
-		expect(body.get('portNumber')).toBe('1');
+		expect(remote.upsertFiberSplice).toHaveBeenCalledWith(
+			expect.objectContaining({ portNumber: 1 })
+		);
 	});
 
 	test('should connect bundle fibers to a merged group via the merged endpoint', async () => {
-		mockRoutes({
-			'?/upsertMergedSplice': { type: 'success', data: {} },
-			'?/getFiberSplices': { type: 'success', data: { splices: [] } }
-		});
 		const manager = readyManager();
 		manager.fiberSplices = [
 			emptySplice(1, {
@@ -703,8 +735,7 @@ describe('merge operations', () => {
 		});
 
 		expect(success).toBe(true);
-		const body = fetchMock.mock.calls[0][1].body as FormData;
-		const fibers = JSON.parse(body.get('fibers') as string);
+		const fibers = (remote.upsertMergedSplice.mock.calls[0][0] as { fibers: unknown[] }).fibers;
 		expect(fibers).toHaveLength(2);
 		expect(fibers[0]).toEqual({ uuid: 'fiber-1', cable_uuid: 'cable-1' });
 	});
