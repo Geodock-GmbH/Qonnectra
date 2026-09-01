@@ -5,3 +5,4 @@ yarn.lock
 bun.lock
 bun.lockb
 coverage
+src/lib/types/api.d.ts
