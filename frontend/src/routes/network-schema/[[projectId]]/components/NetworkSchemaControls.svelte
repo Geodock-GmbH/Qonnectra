@@ -17,7 +17,11 @@
 	{#snippet after()}
 		<ControlButton
 			class="svelte-flow__controls-interactive"
-			onclick={() => (schemaState.locked = !schemaState.locked)}
+			onclick={() => {
+				const next = !schemaState.locked;
+				schemaState.locked = next;
+				if (next) schemaState.exitEditMode();
+			}}
 			title={lockLabel}
 			aria-label={lockLabel}
 			aria-pressed={schemaState.locked}

@@ -32,6 +32,7 @@
 	import CableDiagramNode from './components/CableDiagramNode.svelte';
 	import MicroductChoiceDialog from './components/MicroductChoiceDialog.svelte';
 	import NetworkSchemaControls from './components/NetworkSchemaControls.svelte';
+	import NetworkSchemaEditModeBadge from './components/NetworkSchemaEditModeBadge.svelte';
 	import NetworkSchemaSearch from './components/NetworkSchemaSearch.svelte';
 	import ViewportPersistence from './components/ViewportPersistence.svelte';
 
@@ -167,7 +168,12 @@
 </svelte:head>
 
 <svelte:window
-	onkeydown={(e) => schemaState.setShiftFromKeyboard(e)}
+	onkeydown={(e) => {
+		schemaState.setShiftFromKeyboard(e);
+		if (e.key === 'Escape' && schemaState.editingCableId) {
+			schemaState.exitEditMode();
+		}
+	}}
 	onkeyup={(e) => schemaState.setShiftFromKeyboard(e)}
 	onblur={() => schemaState.clearShift()}
 />
@@ -192,6 +198,7 @@
 			<ViewportPersistence />
 			<Background class="z-0" bgColor="var(--color-surface-100-900) " />
 			<NetworkSchemaControls />
+			<NetworkSchemaEditModeBadge />
 			<Panel position="top-left">
 				<div class="card bg-surface-50-950 p-2 rounded-lg shadow-lg w-72">
 					<!-- Collapsible Panel Header -->

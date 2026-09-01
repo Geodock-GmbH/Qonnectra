@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { EdgeLabelData } from '$lib/classes/NetworkSchemaState.svelte';
 	import { useSvelteFlow } from '@xyflow/svelte';
+	import { Menu, Portal } from '@skeletonlabs/skeleton-svelte';
+	import { IconPencil, IconPencilOff } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -83,9 +85,10 @@
 	 * @param event - The mouse event
 	 */
 	function handleLongPressStart(event: MouseEvent) {
-		// While the canvas is locked, labels can be clicked to open details but
-		// never moved, so the long-press that arms move mode must not start.
-		if (schemaState.locked) {
+		// A label can always be clicked to open details, but it can only be moved
+		// when its own cable is in edit mode (canvas unlocked + this edit target),
+		// so the long-press that arms move mode must not start otherwise.
+		if (!schemaState.isEditing(edgeId)) {
 			return;
 		}
 		// A Shift+Click is a reset gesture; starting the long-press here would
@@ -210,11 +213,11 @@
 			return;
 		}
 
-		// Shift+Click to reset label position. Blocked while locked so a locked
-		// canvas cannot mutate label positions. The event's own modifier is
-		// authoritative; the tracked shiftPressed state can go stale when the
-		// keydown happened while focus was outside the window.
-		if (!schemaState.locked && event.shiftKey && labelData?.uuid && onLabelReset) {
+		// Shift+Click to reset label position. Only allowed while this cable is in
+		// edit mode so an idle canvas cannot mutate label positions. The event's
+		// own modifier is authoritative; the tracked shiftPressed state can go
+		// stale when the keydown happened while focus was outside the window.
+		if (schemaState.isEditing(edgeId) && event.shiftKey && labelData?.uuid && onLabelReset) {
 			event.preventDefault();
 			event.stopPropagation();
 			// Optimistically show the default position, but roll back if the
@@ -347,8 +350,41 @@
 			event.preventDefault();
 			handleLabelClick(event as unknown as MouseEvent);
 		}
+		// Escape leaves the label's local move mode; exiting edit mode itself is
+		// handled once at the page's window-level keydown so it works canvas-wide.
 		if (event.key === 'Escape' && isMoveLabelMode) {
 			isMoveLabelMode = false;
+		}
+	}
+
+	let isEditingThis = $derived(schemaState.isEditing(edgeId));
+
+	/**
+	 * Handle right-click on the label. A plain right-click falls through to the
+	 * Skeleton context menu; a Shift+right-click is the fast-switch gesture that
+	 * enters this cable's edit mode immediately without opening the menu.
+	 * @param event - The contextmenu mouse event
+	 */
+	function handleContextMenu(event: MouseEvent) {
+		if (event.shiftKey) {
+			event.preventDefault();
+			event.stopPropagation();
+			schemaState.enterEditMode(edgeId);
+		}
+	}
+
+	/**
+	 * Handle a selection from the label's context menu.
+	 * @param detail - The selected item, carrying its string value
+	 */
+	function handleMenuSelect(detail: { value: string }) {
+		switch (detail.value) {
+			case 'edit-cable':
+				schemaState.enterEditMode(edgeId);
+				break;
+			case 'stop-editing':
+				schemaState.exitEditMode();
+				break;
 		}
 	}
 </script>
@@ -356,7 +392,7 @@
 <!-- Label -->
 {#if currentLabel}
 	{@const isResetMode =
-		!schemaState.locked && schemaState?.shiftPressed && labelHovered && labelData?.uuid}
+		schemaState.isEditing(edgeId) && schemaState?.shiftPressed && labelHovered && labelData?.uuid}
 	{@const cursorStyle = isResetMode ? 'crosshair' : isMoveLabelMode ? 'move' : 'pointer'}
 	<foreignObject
 		x={labelWidth > 0 ? position.x - labelWidth / 2 : position.x - 50}
@@ -366,6 +402,7 @@
 		style="cursor: {cursorStyle}; pointer-events: bounding-box; outline: none;"
 		onmousedown={handleMouseDown}
 		onmouseup={handleLongPressCancel}
+		oncontextmenucapture={handleContextMenu}
 		onmouseenter={() => (labelHovered = true)}
 		onmouseleave={() => {
 			labelHovered = false;
@@ -374,30 +411,57 @@
 		role="presentation"
 		class="nopan"
 	>
-		<div
-			class="flex items-center justify-center focus:outline-none"
-			role="button"
-			tabindex="0"
-			onclick={handleLabelClick}
-			onkeydown={handleKeydown}
-			aria-label={isResetMode
-				? m.tooltip_click_to_reset_label_position()
-				: isMoveLabelMode
-					? m.tooltip_move_label_click_to_exit()
-					: m.tooltip_open_cable_details({ label: currentLabel })}
-		>
-			<div
-				bind:clientWidth={null, (w) => (labelWidth = w && w > 0 ? w + 20 : 0)}
-				bind:clientHeight={null, (h) => (labelHeight = h && h > 0 ? h + 20 : 0)}
-				class="z-10 bg-surface-50-950 border rounded px-2 py-1 text-xs text-center shadow-sm font-medium {isResetMode
-					? 'border-error-500  ring-error-400 bg-error-50 dark:bg-error-950'
-					: isMoveLabelMode || selected
-						? 'border-primary-500  ring-primary-400'
-						: 'border-surface-200-700'}"
-			>
-				{currentLabel}
-			</div>
-		</div>
+		<Menu onSelect={handleMenuSelect}>
+			<Menu.ContextTrigger class="contents">
+				<div
+					class="flex items-center justify-center focus:outline-none"
+					role="button"
+					tabindex="0"
+					onclick={handleLabelClick}
+					onkeydown={handleKeydown}
+					aria-label={isResetMode
+						? m.tooltip_click_to_reset_label_position()
+						: isMoveLabelMode
+							? m.tooltip_move_label_click_to_exit()
+							: m.tooltip_open_cable_details({ label: currentLabel })}
+				>
+					<div
+						bind:clientWidth={null, (w) => (labelWidth = w && w > 0 ? w + 20 : 0)}
+						bind:clientHeight={null, (h) => (labelHeight = h && h > 0 ? h + 20 : 0)}
+						class="z-10 bg-surface-50-950 border rounded px-2 py-1 text-xs text-center shadow-sm font-medium {isResetMode
+							? 'border-error-500  ring-error-400 bg-error-50 dark:bg-error-950'
+							: isEditingThis
+								? 'border-primary-500 ring-2 ring-primary-400'
+								: isMoveLabelMode || selected
+									? 'border-primary-500  ring-primary-400'
+									: 'border-surface-200-700'}"
+					>
+						{currentLabel}
+					</div>
+				</div>
+			</Menu.ContextTrigger>
+			<Portal>
+				<Menu.Positioner>
+					<Menu.Content class="card p-2 shadow-xl space-y-1 min-w-48 z-50">
+						{#if isEditingThis}
+							<Menu.Item value="stop-editing">
+								<span class="flex items-center gap-2 w-full">
+									<IconPencilOff size={16} class="shrink-0" />
+									<span>{m.action_stop_editing_cable()}</span>
+								</span>
+							</Menu.Item>
+						{:else}
+							<Menu.Item value="edit-cable">
+								<span class="flex items-center gap-2 w-full">
+									<IconPencil size={16} class="shrink-0" />
+									<span>{m.action_edit_cable()}</span>
+								</span>
+							</Menu.Item>
+						{/if}
+					</Menu.Content>
+				</Menu.Positioner>
+			</Portal>
+		</Menu>
 	</foreignObject>
 {/if}
 

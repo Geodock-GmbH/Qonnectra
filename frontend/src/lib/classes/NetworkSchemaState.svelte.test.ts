@@ -295,6 +295,59 @@ describe('NetworkSchemaState selection', () => {
 	});
 });
 
+describe('NetworkSchemaState edit mode', () => {
+	let state: NetworkSchemaState;
+	beforeEach(() => {
+		state = new NetworkSchemaState();
+		state.edges = [
+			{ id: 'e1', selected: false } as SvelteFlowEdge,
+			{ id: 'e2', selected: false } as SvelteFlowEdge
+		];
+	});
+
+	test('isEditing is false by default (no edit target)', () => {
+		state.locked = false;
+		expect(state.isEditing('e1')).toBe(false);
+	});
+
+	test('enterEditMode unlocks, sets the target, and selects the edge', () => {
+		state.locked = true;
+		state.enterEditMode('e1');
+
+		expect(state.locked).toBe(false);
+		expect(state.editingCableId).toBe('e1');
+		expect(state.isEditing('e1')).toBe(true);
+		expect(state.isEditing('e2')).toBe(false);
+		expect(state.edges.find((e) => e.id === 'e1')?.selected).toBe(true);
+	});
+
+	test('enterEditMode switches the target directly to another cable', () => {
+		state.enterEditMode('e1');
+		state.enterEditMode('e2');
+
+		expect(state.isEditing('e1')).toBe(false);
+		expect(state.isEditing('e2')).toBe(true);
+		expect(state.edges.find((e) => e.id === 'e2')?.selected).toBe(true);
+	});
+
+	test('exitEditMode clears the target and edge selection but keeps the lock as-is', () => {
+		state.enterEditMode('e1');
+		state.exitEditMode();
+
+		expect(state.editingCableId).toBeNull();
+		expect(state.isEditing('e1')).toBe(false);
+		expect(state.locked).toBe(false);
+		expect(state.edges.every((e) => !e.selected)).toBe(true);
+	});
+
+	test('isEditing is false when locked even if a stale edit target remains', () => {
+		state.enterEditMode('e1');
+		state.locked = true;
+
+		expect(state.isEditing('e1')).toBe(false);
+	});
+});
+
 describe('NetworkSchemaState deletion', () => {
 	let state: NetworkSchemaState;
 	let dispatchSpy: ReturnType<typeof vi.spyOn>;

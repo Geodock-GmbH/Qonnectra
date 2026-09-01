@@ -176,6 +176,30 @@ describe('DynamicEdgeLabel', () => {
 		expect(onLabelReset).not.toHaveBeenCalled();
 	});
 
+	test('should not reset the label position on Shift+Click when a different cable is the edit target', async () => {
+		const onLabelReset = vi.fn();
+
+		renderLabel({ ...baseProps, onLabelReset }, { editingCableId: 'other-cable' });
+
+		const button = screen.getByRole('button', { name: /tooltip_open_cable_details/ });
+		await fireEvent.click(button, { shiftKey: true });
+
+		expect(onLabelReset).not.toHaveBeenCalled();
+	});
+
+	test('should still open cable details on a plain click when a different cable is the edit target', async () => {
+		const user = userEvent.setup();
+		const onEdgeSelect = vi.fn();
+		loadCableDetailsMock.mockResolvedValue({ name: 'K-Details', uuid: 'cab-1' });
+
+		renderLabel({ ...baseProps, onEdgeSelect }, { editingCableId: 'other-cable' });
+
+		await user.click(screen.getByRole('button', { name: /tooltip_open_cable_details/ }));
+
+		expect(onEdgeSelect).toHaveBeenCalledWith('edge-1');
+		await vi.waitFor(() => expect(loadCableDetailsMock).toHaveBeenCalledWith('cab-1'));
+	});
+
 	test('should still open cable details on a plain click when the canvas is locked', async () => {
 		const user = userEvent.setup();
 		const onEdgeSelect = vi.fn();
@@ -278,6 +302,70 @@ describe('DynamicEdgeLabel', () => {
 		} finally {
 			vi.useRealTimers();
 		}
+	});
+
+	test('should enter edit mode instantly on Shift+right-click without opening the menu', async () => {
+		const enterEditMode = vi.fn();
+
+		const { container } = renderLabel(
+			{ ...baseProps },
+			{ locked: true, editingCableId: null, enterEditMode }
+		);
+
+		const foreignObject = container.querySelector('foreignObject') as SVGForeignObjectElement;
+		await fireEvent.contextMenu(foreignObject, { shiftKey: true });
+
+		expect(enterEditMode).toHaveBeenCalledWith('edge-1');
+		// The fast-switch must skip the context menu: its content stays hidden
+		// (Skeleton keeps the item in the DOM but not visible until opened).
+		expect(screen.getByText('action_edit_cable')).not.toBeVisible();
+	});
+
+	test('should not enter edit mode directly on a plain right-click (menu handles it)', async () => {
+		const enterEditMode = vi.fn();
+
+		const { container } = renderLabel(
+			{ ...baseProps },
+			{ locked: true, editingCableId: null, enterEditMode }
+		);
+
+		const foreignObject = container.querySelector('foreignObject') as SVGForeignObjectElement;
+		await fireEvent.contextMenu(foreignObject);
+
+		expect(enterEditMode).not.toHaveBeenCalled();
+	});
+
+	test('should enter edit mode when the "Edit cable" menu item is selected', async () => {
+		const user = userEvent.setup({ pointerEventsCheck: 0 });
+		const enterEditMode = vi.fn();
+
+		renderLabel({ ...baseProps }, { locked: true, editingCableId: null, enterEditMode });
+
+		await user.pointer({
+			keys: '[MouseRight]',
+			target: screen.getByRole('button', { name: /tooltip_open_cable_details/ })
+		});
+		await vi.waitFor(() => expect(screen.getByText('action_edit_cable')).toBeVisible());
+		await user.click(screen.getByText('action_edit_cable'));
+
+		expect(enterEditMode).toHaveBeenCalledWith('edge-1');
+	});
+
+	test('should exit edit mode when the "Stop editing" menu item is selected', async () => {
+		const user = userEvent.setup({ pointerEventsCheck: 0 });
+		const exitEditMode = vi.fn();
+
+		// editingCableId defaults to the label's own edge, so it is in edit mode.
+		renderLabel({ ...baseProps }, { exitEditMode });
+
+		await user.pointer({
+			keys: '[MouseRight]',
+			target: screen.getByRole('button', { name: /tooltip_open_cable_details/ })
+		});
+		await vi.waitFor(() => expect(screen.getByText('action_stop_editing_cable')).toBeVisible());
+		await user.click(screen.getByText('action_stop_editing_cable'));
+
+		expect(exitEditMode).toHaveBeenCalledTimes(1);
 	});
 
 	test('should open the drawer on Enter keydown for accessibility', async () => {

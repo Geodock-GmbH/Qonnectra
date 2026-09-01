@@ -78,6 +78,11 @@
 	});
 
 	let edgeStyle = $derived.by(() => {
+		// The cable in edit mode gets a primary-colored halo to stand out; a merely
+		// selected cable keeps its own-color glow. Both thicken the stroke.
+		if (schemaState.isEditing(id)) {
+			return `stroke: ${strokeColor}; stroke-width: 4; filter: drop-shadow(0 0 6px var(--color-primary-500));`;
+		}
 		if (selected) {
 			return `stroke: ${strokeColor}; stroke-width: 4; filter: drop-shadow(0 0 4px ${strokeColor});`;
 		}
@@ -153,7 +158,7 @@
 	 * Handle click on edge to add a new vertex
 	 */
 	function handleEdgeClick(event: MouseEvent) {
-		if (schemaState.locked) return;
+		if (!schemaState.isEditing(id)) return;
 
 		const svg = (event.currentTarget as Element).closest('svg') as SVGSVGElement;
 		const pt = svg.createSVGPoint();
@@ -198,7 +203,7 @@
 	 * Handle vertex click - delete if Shift is pressed, otherwise start drag
 	 */
 	function handleVertexMouseDown(event: MouseEvent, index: number) {
-		if (schemaState.locked) return;
+		if (!schemaState.isEditing(id)) return;
 
 		event.stopPropagation();
 		event.preventDefault();
@@ -295,7 +300,7 @@
 	}}
 	onmouseenter={() => (edgeHovered = true)}
 	onmouseleave={() => (edgeHovered = false)}
-	style="cursor: {schemaState.locked ? 'default' : 'pointer'}; outline: none;"
+	style="cursor: {schemaState.isEditing(id) ? 'pointer' : 'default'}; outline: none;"
 	role="button"
 	tabindex="0"
 >
@@ -322,8 +327,8 @@
 	/>
 {/if}
 
-<!-- Vertex handles (hidden while the canvas is locked) -->
-{#if !schemaState.locked && data?.cable?.diagram_path && Array.isArray(data.cable.diagram_path)}
+<!-- Vertex handles (only shown for the cable in edit mode) -->
+{#if schemaState.isEditing(id) && data?.cable?.diagram_path && Array.isArray(data.cable.diagram_path)}
 	{#each data.cable.diagram_path as vertex, index (index)}
 		{@const isHovered = hoveredVertexIndex === index}
 		{@const isDeleteMode = schemaState.shiftPressed && isHovered}

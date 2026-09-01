@@ -205,6 +205,16 @@ export class NetworkSchemaState {
 	 */
 	shiftPressed: boolean = $state(false);
 
+	/**
+	 * The single cable (edge) currently in edit mode, or null. Layered on top of
+	 * `locked`: a cable's vertex and label interactions are only live when the
+	 * canvas is unlocked AND that cable is the edit target. This scopes editing to
+	 * one cable at a time so overlapping cables/labels no longer steal each other's
+	 * clicks. Nodes are unaffected — they stay gated by `locked` alone. Read
+	 * through `isEditing(edgeId)` so the `!locked` condition lives in one place.
+	 */
+	editingCableId: string | null = $state(null);
+
 	/** Track if already initialized to prevent duplicate initialization */
 	#initialized: boolean = $state(false);
 
@@ -402,6 +412,37 @@ export class NetworkSchemaState {
 			...e,
 			selected: false
 		}));
+	}
+
+	/**
+	 * Whether the given cable is currently editable: the canvas must be unlocked
+	 * AND this cable must be the edit target. The `!locked` guard means a stale
+	 * `editingCableId` can never re-enable editing after the canvas is re-locked.
+	 * @param edgeId - The cable (edge) UUID to test
+	 */
+	isEditing(edgeId: string): boolean {
+		return !this.locked && this.editingCableId === edgeId;
+	}
+
+	/**
+	 * Enter edit mode for a single cable. Auto-unlocks the canvas (editing implies
+	 * an intent to edit) and selects the cable so it is visibly highlighted.
+	 * Switching directly from one cable to another just calls this again.
+	 * @param edgeId - The cable (edge) UUID to edit
+	 */
+	enterEditMode(edgeId: string): void {
+		this.locked = false;
+		this.editingCableId = edgeId;
+		this.selectEdge(edgeId);
+	}
+
+	/**
+	 * Leave edit mode. Clears the edit target and edge selection but leaves the
+	 * canvas lock as-is, since the user unlocked it deliberately.
+	 */
+	exitEditMode(): void {
+		this.editingCableId = null;
+		this.deselectAllEdges();
 	}
 
 	/**

@@ -85,8 +85,10 @@ function buildProps(diagramPath: { x: number; y: number }[]) {
  */
 function seededState(diagramPath: { x: number; y: number }[]): NetworkSchemaState {
 	const state = new NetworkSchemaState();
-	// The canvas defaults to locked; vertex editing requires an unlocked canvas.
+	// The canvas defaults to locked; vertex editing requires an unlocked canvas
+	// AND this cable being the edit target (isEditing('cab-1') must be true).
 	state.locked = false;
+	state.editingCableId = 'cab-1';
 	state.edges = [
 		{
 			id: 'cab-1',
@@ -206,7 +208,7 @@ describe('CableDiagramEdge locking', () => {
 		expect(updateSpy).not.toHaveBeenCalled();
 	});
 
-	test('should add a vertex on edge click when the canvas is unlocked', async () => {
+	test('should add a vertex on edge click when the cable is in edit mode', async () => {
 		const schemaState = seededState([]);
 		const updateSpy = vi.spyOn(schemaState, 'updateCablePathWaypoints');
 
@@ -220,5 +222,35 @@ describe('CableDiagramEdge locking', () => {
 		await fireEvent.click(edgeGroup);
 
 		expect(updateSpy).toHaveBeenCalled();
+	});
+
+	test('should not render vertex handles when unlocked but not the edit target', () => {
+		const schemaState = seededState([{ x: 100, y: 100 }]);
+		// Unlocked, but a different cable is being edited.
+		schemaState.editingCableId = 'other-cable';
+
+		const { container } = render(CableDiagramEdgeFixture, {
+			edgeProps: buildProps([{ x: 100, y: 100 }]),
+			schemaState
+		});
+
+		expect(container.querySelector('circle.nopan')).toBeNull();
+	});
+
+	test('should not add a vertex on edge click when unlocked but not the edit target', async () => {
+		const schemaState = seededState([]);
+		schemaState.editingCableId = 'other-cable';
+		const updateSpy = vi.spyOn(schemaState, 'updateCablePathWaypoints');
+
+		const { container } = render(CableDiagramEdgeFixture, {
+			edgeProps: buildProps([]),
+			schemaState
+		});
+
+		stubSvgGeometry(container.querySelector('svg')!);
+		const edgeGroup = container.querySelector('g')!;
+		await fireEvent.click(edgeGroup);
+
+		expect(updateSpy).not.toHaveBeenCalled();
 	});
 });
