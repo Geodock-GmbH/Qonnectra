@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { EdgeLabelData } from '$lib/classes/NetworkSchemaState.svelte';
 	import { useSvelteFlow } from '@xyflow/svelte';
-	import { Menu, Portal } from '@skeletonlabs/skeleton-svelte';
+	import { Portal } from '@skeletonlabs/skeleton-svelte';
 	import { IconPencil, IconPencilOff } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -359,18 +359,21 @@
 
 	let isEditingThis = $derived(schemaState.isEditing(edgeId));
 
-	// Controlled context-menu state. The menu is anchored to the pointer's
-	// viewport coordinates instead of the trigger's rect: the label lives inside
-	// an SVG `foreignObject` under SvelteFlow's transformed viewport, where the
-	// trigger's `getBoundingClientRect` resolves wrong and Skeleton's default
-	// positioning drops the menu at the top-left of the window.
+	// Right-click menu, positioned at the pointer with `position: fixed` in a
+	// Portal. Skeleton/Zag's Menu positions from the trigger's bounding rect,
+	// which is distorted for this label because it lives inside an SVG
+	// `foreignObject` under SvelteFlow's transformed viewport — the menu ended up
+	// at the top-left of the window. A `contextmenu` event's client coordinates
+	// are true viewport pixels regardless of ancestor transforms, so a fixed-
+	// positioned menu at those coordinates lands exactly under the cursor.
 	let menuOpen = $state(false);
-	let menuAnchor = $state<{ x: number; y: number } | null>(null);
+	let menuX = $state(0);
+	let menuY = $state(0);
 
 	/**
 	 * Handle right-click on the label. Shift+right-click is the fast-switch
 	 * gesture: it enters this cable's edit mode immediately without a menu. A
-	 * plain right-click opens the context menu anchored at the pointer.
+	 * plain right-click opens the context menu at the pointer.
 	 * @param event - The contextmenu mouse event
 	 */
 	function handleContextMenu(event: MouseEvent) {
@@ -382,25 +385,40 @@
 			return;
 		}
 
-		menuAnchor = { x: event.clientX, y: event.clientY };
+		menuX = event.clientX;
+		menuY = event.clientY;
 		menuOpen = true;
 	}
 
 	/**
-	 * Handle a selection from the label's context menu.
-	 * @param detail - The selected item, carrying its string value
+	 * Close the context menu.
 	 */
-	function handleMenuSelect(detail: { value: string }) {
-		switch (detail.value) {
-			case 'edit-cable':
-				schemaState.enterEditMode(edgeId);
-				break;
-			case 'stop-editing':
-				schemaState.exitEditMode();
-				break;
-		}
+	function closeMenu() {
+		menuOpen = false;
+	}
+
+	/**
+	 * Enter this cable's edit mode from the menu, then close it.
+	 */
+	function editFromMenu() {
+		schemaState.enterEditMode(edgeId);
+		closeMenu();
+	}
+
+	/**
+	 * Leave edit mode from the menu, then close it.
+	 */
+	function stopEditingFromMenu() {
+		schemaState.exitEditMode();
+		closeMenu();
 	}
 </script>
+
+<svelte:window
+	onkeydown={(e) => {
+		if (menuOpen && e.key === 'Escape') closeMenu();
+	}}
+/>
 
 <!-- Label -->
 {#if currentLabel}
@@ -424,61 +442,77 @@
 		role="presentation"
 		class="nopan"
 	>
-		<Menu
-			open={menuOpen}
-			anchorPoint={menuAnchor}
-			onOpenChange={(details) => (menuOpen = details.open)}
-			onSelect={handleMenuSelect}
+		<div
+			class="flex items-center justify-center focus:outline-none"
+			role="button"
+			tabindex="0"
+			onclick={handleLabelClick}
+			onkeydown={handleKeydown}
+			aria-label={isResetMode
+				? m.tooltip_click_to_reset_label_position()
+				: isMoveLabelMode
+					? m.tooltip_move_label_click_to_exit()
+					: m.tooltip_open_cable_details({ label: currentLabel })}
 		>
 			<div
-				class="flex items-center justify-center focus:outline-none"
-				role="button"
-				tabindex="0"
-				onclick={handleLabelClick}
-				onkeydown={handleKeydown}
-				aria-label={isResetMode
-					? m.tooltip_click_to_reset_label_position()
-					: isMoveLabelMode
-						? m.tooltip_move_label_click_to_exit()
-						: m.tooltip_open_cable_details({ label: currentLabel })}
+				bind:clientWidth={null, (w) => (labelWidth = w && w > 0 ? w + 20 : 0)}
+				bind:clientHeight={null, (h) => (labelHeight = h && h > 0 ? h + 20 : 0)}
+				class="z-10 bg-surface-50-950 border rounded px-2 py-1 text-xs text-center shadow-sm font-medium {isResetMode
+					? 'border-error-500  ring-error-400 bg-error-50 dark:bg-error-950'
+					: isEditingThis
+						? 'border-primary-500 ring-2 ring-primary-400'
+						: isMoveLabelMode || selected
+							? 'border-primary-500  ring-primary-400'
+							: 'border-surface-200-700'}"
 			>
-				<div
-					bind:clientWidth={null, (w) => (labelWidth = w && w > 0 ? w + 20 : 0)}
-					bind:clientHeight={null, (h) => (labelHeight = h && h > 0 ? h + 20 : 0)}
-					class="z-10 bg-surface-50-950 border rounded px-2 py-1 text-xs text-center shadow-sm font-medium {isResetMode
-						? 'border-error-500  ring-error-400 bg-error-50 dark:bg-error-950'
-						: isEditingThis
-							? 'border-primary-500 ring-2 ring-primary-400'
-							: isMoveLabelMode || selected
-								? 'border-primary-500  ring-primary-400'
-								: 'border-surface-200-700'}"
-				>
-					{currentLabel}
-				</div>
+				{currentLabel}
 			</div>
-			<Portal>
-				<Menu.Positioner>
-					<Menu.Content class="card p-2 shadow-xl space-y-1 min-w-48 z-50">
-						{#if isEditingThis}
-							<Menu.Item value="stop-editing">
-								<span class="flex items-center gap-2 w-full">
-									<IconPencilOff size={16} class="shrink-0" />
-									<span>{m.action_stop_editing_cable()}</span>
-								</span>
-							</Menu.Item>
-						{:else}
-							<Menu.Item value="edit-cable">
-								<span class="flex items-center gap-2 w-full">
-									<IconPencil size={16} class="shrink-0" />
-									<span>{m.action_edit_cable()}</span>
-								</span>
-							</Menu.Item>
-						{/if}
-					</Menu.Content>
-				</Menu.Positioner>
-			</Portal>
-		</Menu>
+		</div>
 	</foreignObject>
+{/if}
+
+<!-- Right-click menu, portalled out of the SVG and pinned at the pointer -->
+{#if menuOpen}
+	<Portal>
+		<!-- Full-screen catcher closes the menu on any outside click / right-click -->
+		<div
+			class="fixed inset-0 z-40"
+			role="presentation"
+			onpointerdown={closeMenu}
+			oncontextmenu={(e) => {
+				e.preventDefault();
+				closeMenu();
+			}}
+		></div>
+		<div
+			class="card bg-surface-50-950 p-2 shadow-xl space-y-1 min-w-48 fixed z-50 border border-surface-200-700 rounded"
+			style="left: {menuX}px; top: {menuY}px;"
+			role="menu"
+			tabindex="-1"
+		>
+			{#if isEditingThis}
+				<button
+					type="button"
+					role="menuitem"
+					class="flex items-center gap-2 w-full px-2 py-1.5 rounded hover:bg-surface-100-900 text-sm"
+					onclick={stopEditingFromMenu}
+				>
+					<IconPencilOff size={16} class="shrink-0" />
+					<span>{m.action_stop_editing_cable()}</span>
+				</button>
+			{:else}
+				<button
+					type="button"
+					role="menuitem"
+					class="flex items-center gap-2 w-full px-2 py-1.5 rounded hover:bg-surface-100-900 text-sm"
+					onclick={editFromMenu}
+				>
+					<IconPencil size={16} class="shrink-0" />
+					<span>{m.action_edit_cable()}</span>
+				</button>
+			{/if}
+		</div>
+	</Portal>
 {/if}
 
 <!-- Progress ring overlay near mouse cursor -->

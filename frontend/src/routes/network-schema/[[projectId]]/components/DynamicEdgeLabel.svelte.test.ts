@@ -347,7 +347,7 @@ describe('DynamicEdgeLabel', () => {
 			{ locked: true, editingCableId: null, enterEditMode }
 		);
 
-		// A plain right-click opens the controlled menu (anchored at the pointer).
+		// A plain right-click opens the menu at the pointer.
 		const foreignObject = container.querySelector('foreignObject') as SVGForeignObjectElement;
 		await fireEvent.contextMenu(foreignObject);
 
