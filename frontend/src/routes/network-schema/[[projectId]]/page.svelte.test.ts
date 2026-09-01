@@ -88,7 +88,8 @@ vi.mock('$app/stores', () => {
 });
 
 vi.mock('$app/navigation', () => ({
-	goto: vi.fn()
+	goto: vi.fn(),
+	afterNavigate: vi.fn()
 }));
 
 vi.mock('$lib/stores/store', () => ({

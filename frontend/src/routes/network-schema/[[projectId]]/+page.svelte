@@ -2,7 +2,7 @@
 	import type { PageData } from './$types';
 	import type { EdgeTypes, NodeTypes } from '@xyflow/svelte';
 	import type { NetworkSchemaInitData } from '$lib/classes/NetworkSchemaState.svelte';
-	import { page } from '$app/stores';
+	import { afterNavigate } from '$app/navigation';
 	import { Background, ConnectionMode, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
 	import { IconChevronDown, IconChevronRight } from '@tabler/icons-svelte';
@@ -53,8 +53,6 @@
 
 	const schemaState = new NetworkSchemaState();
 	const searchManager = new NetworkSchemaSearchManager(schemaState);
-
-	let prevUrl = $state($page.url.href);
 
 	$effect(() => {
 		schemaState.isChildView = false;
@@ -129,10 +127,14 @@
 		}
 	});
 
-	/** Force a full reload when the project changes via URL, since the schema is not designed for partial re-initialization. */
-	$effect(() => {
-		if ($page.url.href !== prevUrl) {
-			prevUrl = $page.url.href;
+	/**
+	 * Force a full reload when the project changes while staying on this route
+	 * (SvelteKit reuses the component instance for same-route param changes and
+	 * the schema is not designed for partial re-initialization). Cross-route
+	 * arrivals always get a fresh mount, so they must not trigger a reload.
+	 */
+	afterNavigate(({ from, to }) => {
+		if (from?.route.id === to?.route.id && from?.params?.projectId !== to?.params?.projectId) {
 			window.location.reload();
 		}
 	});

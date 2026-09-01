@@ -85,4 +85,26 @@ test.describe('Network schema page', () => {
 
 		await expect.poll(() => readPersisted(page, 'edgeSnappingEnabled')).toBe(false);
 	});
+
+	test('client-side navigation into the schema does not trigger a full page reload', async ({
+		page
+	}) => {
+		// Regression: a URL-diffing $effect captured the previous page's URL on
+		// mount and fired window.location.reload() on every client-side arrival,
+		// making the canvas load twice.
+		await page.goto('/dashboard');
+		await page.waitForLoadState('networkidle');
+
+		// A hard reload replaces the document and wipes this window marker.
+		await page.evaluate(() => {
+			/** @type {any} */ (window).__reloadCanary = 'alive';
+		});
+
+		await page.locator('a[href="/network-schema"]').first().click();
+		await page.waitForURL(/\/network-schema\/\d+/);
+		await expect(page.locator('.svelte-flow').first()).toBeVisible({ timeout: 15000 });
+
+		const canary = await page.evaluate(() => /** @type {any} */ (window).__reloadCanary ?? null);
+		expect(canary).toBe('alive');
+	});
 });
