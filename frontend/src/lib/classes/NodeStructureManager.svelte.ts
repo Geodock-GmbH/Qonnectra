@@ -191,7 +191,11 @@ export class NodeStructureManager {
 
 		this.loading = true;
 		try {
-			const configurations = await getSlotConfigurationsForNode(this.nodeUuid);
+			// Remote queries are cached per argument — refresh() forces a fetch so
+			// re-runs after mutations don't return the stale cached value.
+			const configurationsQuery = getSlotConfigurationsForNode(this.nodeUuid);
+			await configurationsQuery.refresh();
+			const configurations = configurationsQuery.current ?? [];
 
 			if (this.#fetchVersion !== requestVersion) return;
 
@@ -237,7 +241,9 @@ export class NodeStructureManager {
 
 		this.loadingStructures = true;
 		try {
-			const structures = await getNodeStructures(this.selectedSlotConfigUuid);
+			const structuresQuery = getNodeStructures(this.selectedSlotConfigUuid);
+			await structuresQuery.refresh();
+			const structures = structuresQuery.current ?? [];
 
 			if (this.#fetchVersion !== requestVersion) return;
 
@@ -278,7 +284,9 @@ export class NodeStructureManager {
 		const requestVersion = this.#fetchVersion;
 
 		try {
-			const dividers = await getSlotDividers(this.selectedSlotConfigUuid);
+			const dividersQuery = getSlotDividers(this.selectedSlotConfigUuid);
+			await dividersQuery.refresh();
+			const dividers = dividersQuery.current ?? [];
 
 			if (this.#fetchVersion !== requestVersion) return;
 
@@ -311,7 +319,9 @@ export class NodeStructureManager {
 		const requestVersion = this.#fetchVersion;
 
 		try {
-			const clips = await getSlotClipNumbers(this.selectedSlotConfigUuid);
+			const clipsQuery = getSlotClipNumbers(this.selectedSlotConfigUuid);
+			await clipsQuery.refresh();
+			const clips = clipsQuery.current ?? [];
 
 			if (this.#fetchVersion !== requestVersion) return;
 

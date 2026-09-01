@@ -2,6 +2,8 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { remoteQueryStub } from '$lib/test-utils/remoteQueryStub';
+
 import NodeStructurePanel from './NodeStructurePanel.svelte';
 
 vi.mock('$app/environment', () => ({
@@ -20,9 +22,10 @@ const remote = {
 };
 
 vi.mock('$lib/remote/network-schema/node-structures.remote', () => ({
-	getSlotConfigurationsForNode: (...a: unknown[]) => remote.getSlotConfigurationsForNode(...a),
-	getSlotDividers: (...a: unknown[]) => remote.getSlotDividers(...a),
-	getSlotClipNumbers: (...a: unknown[]) => remote.getSlotClipNumbers(...a),
+	getSlotConfigurationsForNode: (...a: unknown[]) =>
+		remoteQueryStub(remote.getSlotConfigurationsForNode)(...a),
+	getSlotDividers: (...a: unknown[]) => remoteQueryStub(remote.getSlotDividers)(...a),
+	getSlotClipNumbers: (...a: unknown[]) => remoteQueryStub(remote.getSlotClipNumbers)(...a),
 	createNodeStructure: vi.fn().mockResolvedValue({}),
 	bulkCreateNodeStructures: vi.fn().mockResolvedValue({ created: [], failed: [] }),
 	moveNodeStructure: vi.fn().mockResolvedValue({}),
@@ -33,7 +36,7 @@ vi.mock('$lib/remote/network-schema/node-structures.remote', () => ({
 }));
 
 vi.mock('$lib/remote/network-schema/containers.remote', () => ({
-	getNodeStructures: (...a: unknown[]) => remote.getNodeStructures(...a)
+	getNodeStructures: (...a: unknown[]) => remoteQueryStub(remote.getNodeStructures)(...a)
 }));
 
 vi.mock('$lib/remote/network-schema/fiber-splices.remote', () => ({

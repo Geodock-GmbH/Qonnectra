@@ -93,7 +93,11 @@
 		resetForm();
 
 		try {
-			hierarchy = (await getContainerHierarchy(nodeUuid)) || {
+			// Remote queries are cached per argument, so a plain re-call after a
+			// mutation would return the stale cached tree — refresh() forces a fetch.
+			const hierarchyQuery = getContainerHierarchy(nodeUuid);
+			await hierarchyQuery.refresh();
+			hierarchy = hierarchyQuery.current || {
 				containers: [],
 				root_slot_configurations: []
 			};
@@ -415,7 +419,9 @@
 	 */
 	async function handleDelete(uuid: string) {
 		try {
-			const structures = await getNodeStructures(uuid);
+			const structuresQuery = getNodeStructures(uuid);
+			await structuresQuery.refresh();
+			const structures = structuresQuery.current ?? [];
 
 			if (structures.length > 0) {
 				pendingDeleteConfigUuid = uuid;

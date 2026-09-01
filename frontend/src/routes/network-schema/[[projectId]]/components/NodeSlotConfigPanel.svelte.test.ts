@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalToaster } from '$lib/stores/toaster';
+import { remoteQueryStub } from '$lib/test-utils/remoteQueryStub';
 
 import NodeSlotConfigPanel from './NodeSlotConfigPanel.svelte';
 
@@ -27,8 +28,8 @@ const exportNodeExcel = vi.fn();
 
 vi.mock('$lib/remote/network-schema/containers.remote', () => ({
 	getContainerTypes: (...a: unknown[]) => getContainerTypes(...a),
-	getContainerHierarchy: (...a: unknown[]) => getContainerHierarchy(...a),
-	getNodeStructures: (...a: unknown[]) => getNodeStructures(...a),
+	getContainerHierarchy: (...a: unknown[]) => remoteQueryStub(getContainerHierarchy)(...a),
+	getNodeStructures: (...a: unknown[]) => remoteQueryStub(getNodeStructures)(...a),
 	createContainer: (...a: unknown[]) => createContainer(...a),
 	deleteContainer: (...a: unknown[]) => deleteContainer(...a),
 	updateContainerName: (...a: unknown[]) => updateContainerName(...a),
