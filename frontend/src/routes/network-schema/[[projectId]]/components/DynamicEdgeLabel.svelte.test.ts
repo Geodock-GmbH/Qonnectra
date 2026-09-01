@@ -220,12 +220,12 @@ describe('DynamicEdgeLabel', () => {
 
 			const { container } = renderLabel({ ...baseProps, onPositionUpdate }, { locked: true });
 
-			const foreignObject = container.querySelector('foreignObject') as SVGForeignObjectElement;
+			const labelBox = container.querySelector('[role="button"]') as HTMLElement;
 
 			// A long-press that would normally arm move mode after 500ms.
-			foreignObject.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+			labelBox.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
 			await vi.advanceTimersByTimeAsync(600);
-			foreignObject.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+			labelBox.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
 
 			expect(onPositionUpdate).not.toHaveBeenCalled();
 		} finally {
@@ -279,16 +279,16 @@ describe('DynamicEdgeLabel', () => {
 				onLabelReset
 			});
 
-			const foreignObject = container.querySelector('foreignObject')!;
+			const labelBox = container.querySelector('[role="button"]') as HTMLElement;
 
 			// With async mode on, testing-library's awaited `fireEvent` resolves via
 			// `tick()`, which races requestAnimationFrame/setTimeout — both frozen by
 			// fake timers, so awaiting it here would deadlock. Dispatch natively and
 			// flush synchronously; the long-press timers advance as usual.
-			foreignObject.dispatchEvent(new MouseEvent('mousedown', { shiftKey: true, bubbles: true }));
+			labelBox.dispatchEvent(new MouseEvent('mousedown', { shiftKey: true, bubbles: true }));
 			flushSync();
 			vi.advanceTimersByTime(600);
-			foreignObject.dispatchEvent(new MouseEvent('mouseup', { shiftKey: true, bubbles: true }));
+			labelBox.dispatchEvent(new MouseEvent('mouseup', { shiftKey: true, bubbles: true }));
 			flushSync();
 			screen
 				.getByRole('button', { name: /tooltip/ })
@@ -312,8 +312,10 @@ describe('DynamicEdgeLabel', () => {
 			{ locked: true, editingCableId: null, enterEditMode }
 		);
 
-		const foreignObject = container.querySelector('foreignObject') as SVGForeignObjectElement;
-		await fireEvent.contextMenu(foreignObject, { shiftKey: true });
+		// The right-click handler lives on the visible label box (only it has
+		// pointer-events; the foreignObject is transparent to them).
+		const labelBox = container.querySelector('[role="button"]') as HTMLElement;
+		await fireEvent.contextMenu(labelBox, { shiftKey: true });
 
 		expect(enterEditMode).toHaveBeenCalledWith('edge-1');
 		// The fast-switch must skip the context menu entirely: it never opens.
@@ -329,8 +331,8 @@ describe('DynamicEdgeLabel', () => {
 			{ locked: true, editingCableId: null, enterEditMode }
 		);
 
-		const foreignObject = container.querySelector('foreignObject') as SVGForeignObjectElement;
-		await fireEvent.contextMenu(foreignObject);
+		const labelBox = container.querySelector('[role="button"]') as HTMLElement;
+		await fireEvent.contextMenu(labelBox);
 
 		// The menu opens (so the user can pick "Edit cable"); entering edit mode
 		// happens on item selection, not on the right-click itself.
@@ -348,8 +350,8 @@ describe('DynamicEdgeLabel', () => {
 		);
 
 		// A plain right-click opens the menu at the pointer.
-		const foreignObject = container.querySelector('foreignObject') as SVGForeignObjectElement;
-		await fireEvent.contextMenu(foreignObject);
+		const labelBox = container.querySelector('[role="button"]') as HTMLElement;
+		await fireEvent.contextMenu(labelBox);
 
 		await vi.waitFor(() => expect(screen.getByText('action_edit_cable')).toBeVisible());
 		await user.click(screen.getByText('action_edit_cable'));
@@ -364,8 +366,8 @@ describe('DynamicEdgeLabel', () => {
 		// editingCableId defaults to the label's own edge, so it is in edit mode.
 		const { container } = renderLabel({ ...baseProps }, { exitEditMode });
 
-		const foreignObject = container.querySelector('foreignObject') as SVGForeignObjectElement;
-		await fireEvent.contextMenu(foreignObject);
+		const labelBox = container.querySelector('[role="button"]') as HTMLElement;
+		await fireEvent.contextMenu(labelBox);
 
 		await vi.waitFor(() => expect(screen.getByText('action_stop_editing_cable')).toBeVisible());
 		await user.click(screen.getByText('action_stop_editing_cable'));

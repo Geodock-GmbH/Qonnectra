@@ -307,7 +307,7 @@
 	<BaseEdge
 		{id}
 		path={edgePath}
-		interactionWidth={20}
+		interactionWidth={schemaState.isEditing(id) ? 20 : 0}
 		style={edgeStyle}
 		aria-label={m.tooltip_open_cable_details({ label: data.label ?? '' })}
 	/>

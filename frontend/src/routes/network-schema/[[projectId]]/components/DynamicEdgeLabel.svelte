@@ -260,6 +260,14 @@
 	 * @param event - The mouse event
 	 */
 	function handleMouseDown(event: MouseEvent) {
+		// Only the left button drives move/long-press. A right-button press must
+		// fall through to the contextmenu handler untouched — otherwise it arms
+		// the long-press timer and window listeners, which then swallow the
+		// right-click (and a following Shift+right-click switch to another label).
+		if (event.button !== 0) {
+			return;
+		}
+
 		if (!isMoveLabelMode) {
 			handleLongPressStart(event);
 			return;
@@ -430,34 +438,40 @@
 		y={position.y - 12}
 		width={labelWidth > 0 ? labelWidth : 100}
 		height={labelHeight > 0 ? labelHeight : 100}
-		style="cursor: {cursorStyle}; pointer-events: bounding-box; outline: none;"
-		onmousedown={handleMouseDown}
-		onmouseup={handleLongPressCancel}
-		oncontextmenucapture={handleContextMenu}
-		onmouseenter={() => (labelHovered = true)}
-		onmouseleave={() => {
-			labelHovered = false;
-			handleLongPressCancel();
-		}}
+		style="pointer-events: none; outline: none;"
 		role="presentation"
 		class="nopan"
 	>
-		<div
-			class="flex items-center justify-center focus:outline-none"
-			role="button"
-			tabindex="0"
-			onclick={handleLabelClick}
-			onkeydown={handleKeydown}
-			aria-label={isResetMode
-				? m.tooltip_click_to_reset_label_position()
-				: isMoveLabelMode
-					? m.tooltip_move_label_click_to_exit()
-					: m.tooltip_open_cable_details({ label: currentLabel })}
-		>
+		<!--
+			Only the visible label box is interactive: the foreignObject has
+			`pointer-events: none` and the inner box re-enables them. The old
+			`pointer-events: bounding-box` on the foreignObject let its full (often
+			oversized) rect capture clicks, so overlapping labels stole each other's
+			right-clicks — which broke the edit-mode switch this feature exists to fix.
+		-->
+		<div class="flex w-full h-full items-center justify-center" style="pointer-events: none;">
 			<div
 				bind:clientWidth={null, (w) => (labelWidth = w && w > 0 ? w + 20 : 0)}
 				bind:clientHeight={null, (h) => (labelHeight = h && h > 0 ? h + 20 : 0)}
-				class="z-10 bg-surface-50-950 border rounded px-2 py-1 text-xs text-center shadow-sm font-medium {isResetMode
+				style="pointer-events: auto; cursor: {cursorStyle};"
+				role="button"
+				tabindex="0"
+				onmousedown={handleMouseDown}
+				onmouseup={handleLongPressCancel}
+				oncontextmenucapture={handleContextMenu}
+				onmouseenter={() => (labelHovered = true)}
+				onmouseleave={() => {
+					labelHovered = false;
+					handleLongPressCancel();
+				}}
+				onclick={handleLabelClick}
+				onkeydown={handleKeydown}
+				aria-label={isResetMode
+					? m.tooltip_click_to_reset_label_position()
+					: isMoveLabelMode
+						? m.tooltip_move_label_click_to_exit()
+						: m.tooltip_open_cable_details({ label: currentLabel })}
+				class="z-10 bg-surface-50-950 border rounded px-2 py-1 text-xs text-center shadow-sm font-medium focus:outline-none {isResetMode
 					? 'border-error-500  ring-error-400 bg-error-50 dark:bg-error-950'
 					: isEditingThis
 						? 'border-primary-500 ring-2 ring-primary-400'

@@ -192,6 +192,7 @@
 			nodesDraggable={!schemaState.locked}
 			nodesConnectable={!schemaState.locked}
 			elementsSelectable={!schemaState.locked}
+			elevateEdgesOnSelect={true}
 			onnodedragstop={(e) => schemaState.handleNodeDragStop(e)}
 			onconnect={(conn) => schemaState.handleConnect(conn, $selectedProject)}
 		>
