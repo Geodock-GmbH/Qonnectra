@@ -42,7 +42,7 @@
 			text?: string;
 		}) => boolean | Promise<boolean>;
 		onLabelReset?: (labelId: string) => boolean | Promise<boolean>;
-		onEdgeDelete?: unknown;
+		onEdgeDelete?: (edgeId: string) => void;
 		onEdgeSelect?: (edgeId: string) => void;
 		onNameUpdate?: (label: string) => void;
 		selected?: boolean;
