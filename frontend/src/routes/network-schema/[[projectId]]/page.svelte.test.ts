@@ -40,10 +40,6 @@ vi.mock('$lib/utils/tokenHeartbeat.svelte.js', () => ({
 	stopHeartbeat: vi.fn()
 }));
 
-vi.mock('$lib/utils/svelteFlowLock', () => ({
-	autoLockSvelteFlow: vi.fn().mockResolvedValue(undefined)
-}));
-
 // Mock SvelteFlow components with actual Svelte component mocks
 vi.mock('@xyflow/svelte', async () => {
 	const mocks = await import('$lib/test-utils/mocks/xyflow-svelte.js');
@@ -189,6 +185,7 @@ vi.mock('$lib/classes/NetworkSchemaState.svelte', () => ({
 		initialized = true;
 		parentNodeContext = null;
 		shiftPressed = false;
+		locked = true;
 		initialize = vi.fn();
 		handleNodeDragStop = vi.fn();
 		handleConnect = vi.fn();

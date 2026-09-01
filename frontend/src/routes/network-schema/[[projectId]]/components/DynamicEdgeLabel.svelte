@@ -83,6 +83,11 @@
 	 * @param event - The mouse event
 	 */
 	function handleLongPressStart(event: MouseEvent) {
+		// While the canvas is locked, labels can be clicked to open details but
+		// never moved, so the long-press that arms move mode must not start.
+		if (schemaState.locked) {
+			return;
+		}
 		// A Shift+Click is a reset gesture; starting the long-press here would
 		// flip into move mode on a slow click and re-save the label instead.
 		if (event.shiftKey) {
@@ -205,10 +210,11 @@
 			return;
 		}
 
-		// Shift+Click to reset label position. The event's own modifier is
+		// Shift+Click to reset label position. Blocked while locked so a locked
+		// canvas cannot mutate label positions. The event's own modifier is
 		// authoritative; the tracked shiftPressed state can go stale when the
 		// keydown happened while focus was outside the window.
-		if (event.shiftKey && labelData?.uuid && onLabelReset) {
+		if (!schemaState.locked && event.shiftKey && labelData?.uuid && onLabelReset) {
 			event.preventDefault();
 			event.stopPropagation();
 			// Optimistically show the default position, but roll back if the
@@ -349,7 +355,8 @@
 
 <!-- Label -->
 {#if currentLabel}
-	{@const isResetMode = schemaState?.shiftPressed && labelHovered && labelData?.uuid}
+	{@const isResetMode =
+		!schemaState.locked && schemaState?.shiftPressed && labelHovered && labelData?.uuid}
 	{@const cursorStyle = isResetMode ? 'crosshair' : isMoveLabelMode ? 'move' : 'pointer'}
 	<foreignObject
 		x={labelWidth > 0 ? position.x - labelWidth / 2 : position.x - 50}

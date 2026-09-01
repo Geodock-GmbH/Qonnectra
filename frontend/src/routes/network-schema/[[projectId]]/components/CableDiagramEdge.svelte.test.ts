@@ -85,6 +85,8 @@ function buildProps(diagramPath: { x: number; y: number }[]) {
  */
 function seededState(diagramPath: { x: number; y: number }[]): NetworkSchemaState {
 	const state = new NetworkSchemaState();
+	// The canvas defaults to locked; vertex editing requires an unlocked canvas.
+	state.locked = false;
 	state.edges = [
 		{
 			id: 'cab-1',
@@ -171,5 +173,52 @@ describe('CableDiagramEdge vertex handling', () => {
 
 		// endPathDrag saves the buffered waypoint, not the stale prop path.
 		expect(saveSpy).toHaveBeenCalledWith('cab-1', [{ x: 300, y: 300 }]);
+	});
+});
+
+describe('CableDiagramEdge locking', () => {
+	test('should not render vertex handles while the canvas is locked', () => {
+		const schemaState = seededState([{ x: 100, y: 100 }]);
+		schemaState.locked = true;
+
+		const { container } = render(CableDiagramEdgeFixture, {
+			edgeProps: buildProps([{ x: 100, y: 100 }]),
+			schemaState
+		});
+
+		expect(container.querySelector('circle.nopan')).toBeNull();
+	});
+
+	test('should not add a vertex on edge click while the canvas is locked', async () => {
+		const schemaState = seededState([]);
+		schemaState.locked = true;
+		const updateSpy = vi.spyOn(schemaState, 'updateCablePathWaypoints');
+
+		const { container } = render(CableDiagramEdgeFixture, {
+			edgeProps: buildProps([]),
+			schemaState
+		});
+
+		stubSvgGeometry(container.querySelector('svg')!);
+		const edgeGroup = container.querySelector('g')!;
+		await fireEvent.click(edgeGroup);
+
+		expect(updateSpy).not.toHaveBeenCalled();
+	});
+
+	test('should add a vertex on edge click when the canvas is unlocked', async () => {
+		const schemaState = seededState([]);
+		const updateSpy = vi.spyOn(schemaState, 'updateCablePathWaypoints');
+
+		const { container } = render(CableDiagramEdgeFixture, {
+			edgeProps: buildProps([]),
+			schemaState
+		});
+
+		stubSvgGeometry(container.querySelector('svg')!);
+		const edgeGroup = container.querySelector('g')!;
+		await fireEvent.click(edgeGroup);
+
+		expect(updateSpy).toHaveBeenCalled();
 	});
 });

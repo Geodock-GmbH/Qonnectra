@@ -153,6 +153,8 @@
 	 * Handle click on edge to add a new vertex
 	 */
 	function handleEdgeClick(event: MouseEvent) {
+		if (schemaState.locked) return;
+
 		const svg = (event.currentTarget as Element).closest('svg') as SVGSVGElement;
 		const pt = svg.createSVGPoint();
 		pt.x = event.clientX;
@@ -196,6 +198,8 @@
 	 * Handle vertex click - delete if Shift is pressed, otherwise start drag
 	 */
 	function handleVertexMouseDown(event: MouseEvent, index: number) {
+		if (schemaState.locked) return;
+
 		event.stopPropagation();
 		event.preventDefault();
 
@@ -291,7 +295,7 @@
 	}}
 	onmouseenter={() => (edgeHovered = true)}
 	onmouseleave={() => (edgeHovered = false)}
-	style="cursor: pointer; outline: none;"
+	style="cursor: {schemaState.locked ? 'default' : 'pointer'}; outline: none;"
 	role="button"
 	tabindex="0"
 >
@@ -318,8 +322,8 @@
 	/>
 {/if}
 
-<!-- Vertex handles -->
-{#if data?.cable?.diagram_path && Array.isArray(data.cable.diagram_path)}
+<!-- Vertex handles (hidden while the canvas is locked) -->
+{#if !schemaState.locked && data?.cable?.diagram_path && Array.isArray(data.cable.diagram_path)}
 	{#each data.cable.diagram_path as vertex, index (index)}
 		{@const isHovered = hoveredVertexIndex === index}
 		{@const isDeleteMode = schemaState.shiftPressed && isHovered}

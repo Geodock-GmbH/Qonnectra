@@ -13,10 +13,13 @@ import DynamicEdgeLabel from './DynamicEdgeLabel.svelte';
  * Renders the label through a fixture component that provides the schema-state context
  * the component reads for shift-cue styling.
  */
-function renderLabel(labelProps: ComponentProps<typeof DynamicEdgeLabel>) {
+function renderLabel(
+	labelProps: ComponentProps<typeof DynamicEdgeLabel>,
+	schemaStateOverrides: Record<string, unknown> = {}
+) {
 	return render(DynamicEdgeLabelFixture, {
 		labelProps,
-		schemaState: { loadCableDetails: loadCableDetailsMock }
+		schemaState: { loadCableDetails: loadCableDetailsMock, ...schemaStateOverrides }
 	});
 }
 
@@ -160,6 +163,50 @@ describe('DynamicEdgeLabel', () => {
 
 		expect(onLabelReset).toHaveBeenCalledWith('label-1');
 		expect(loadCableDetailsMock).not.toHaveBeenCalled();
+	});
+
+	test('should not reset the label position on Shift+Click when the canvas is locked', async () => {
+		const onLabelReset = vi.fn();
+
+		renderLabel({ ...baseProps, onLabelReset }, { locked: true });
+
+		const button = screen.getByRole('button', { name: /tooltip_open_cable_details/ });
+		await fireEvent.click(button, { shiftKey: true });
+
+		expect(onLabelReset).not.toHaveBeenCalled();
+	});
+
+	test('should still open cable details on a plain click when the canvas is locked', async () => {
+		const user = userEvent.setup();
+		const onEdgeSelect = vi.fn();
+		loadCableDetailsMock.mockResolvedValue({ name: 'K-Details', uuid: 'cab-1' });
+
+		renderLabel({ ...baseProps, onEdgeSelect }, { locked: true });
+
+		await user.click(screen.getByRole('button', { name: /tooltip_open_cable_details/ }));
+
+		expect(onEdgeSelect).toHaveBeenCalledWith('edge-1');
+		await vi.waitFor(() => expect(loadCableDetailsMock).toHaveBeenCalledWith('cab-1'));
+	});
+
+	test('should not enter move mode or save a position when dragged while locked', async () => {
+		vi.useFakeTimers();
+		try {
+			const onPositionUpdate = vi.fn();
+
+			const { container } = renderLabel({ ...baseProps, onPositionUpdate }, { locked: true });
+
+			const foreignObject = container.querySelector('foreignObject') as SVGForeignObjectElement;
+
+			// A long-press that would normally arm move mode after 500ms.
+			foreignObject.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+			await vi.advanceTimersByTimeAsync(600);
+			foreignObject.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+
+			expect(onPositionUpdate).not.toHaveBeenCalled();
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	test('should roll the label position back when the reset fails to persist', async () => {

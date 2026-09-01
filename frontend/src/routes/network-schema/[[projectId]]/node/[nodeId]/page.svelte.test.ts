@@ -21,10 +21,6 @@ vi.mock('$env/dynamic/public', () => ({
 	env: { PUBLIC_TILE_SERVER_URL: '' }
 }));
 
-vi.mock('$lib/utils/svelteFlowLock', () => ({
-	autoLockSvelteFlow: vi.fn().mockResolvedValue(undefined)
-}));
-
 vi.mock('@xyflow/svelte', async () => {
 	const mocks = await import('$lib/test-utils/mocks/xyflow-svelte.js');
 	return mocks;

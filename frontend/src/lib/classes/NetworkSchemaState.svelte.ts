@@ -187,6 +187,17 @@ export class NetworkSchemaState {
 	isChildView: boolean = $state(false);
 
 	/**
+	 * Single source of truth for the canvas lock. When true the whole schema is
+	 * frozen: SvelteFlow node dragging/selection/connecting is disabled via the
+	 * `nodesDraggable`/`elementsSelectable`/`nodesConnectable` props, and the
+	 * custom cable (edge waypoint) and label interactions read this flag to
+	 * suppress their own drag/click handlers. The lock button in the Controls
+	 * toggles this instead of the built-in interactivity (which SvelteFlow
+	 * derives from these props and so cannot be written to directly).
+	 */
+	locked: boolean = $state(true);
+
+	/**
 	 * True while the Shift key is held. Single source for the delete/reset hover
 	 * cues across every edge and label instance, replacing per-instance window
 	 * listeners. The page registers one keydown/keyup pair plus blur/visibility
