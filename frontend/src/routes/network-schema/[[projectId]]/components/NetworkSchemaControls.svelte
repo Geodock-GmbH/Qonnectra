@@ -23,9 +23,9 @@
 			aria-pressed={schemaState.locked}
 		>
 			{#if schemaState.locked}
-				<IconLock size={14} />
+				<IconLock size={12} />
 			{:else}
-				<IconLockOpen size={14} />
+				<IconLockOpen size={12} />
 			{/if}
 		</ControlButton>
 	{/snippet}
