@@ -1,19 +1,24 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { remoteQueryStub } from '$lib/test-utils/remoteQueryStub';
+
 import { CableFiberDataManager } from './CableFiberDataManager.svelte';
 
 // Reads run through the fibers.remote module; mock it so the class's calls are
-// observable without a running server.
+// observable without a running server. Cached queries that are force-refreshed
+// after mutations (cables, fiber usage, residential-unit usage) are wrapped as
+// remote-query stubs so .refresh()/.current behave like the real functions.
+const getCablesAtNode = vi.fn().mockResolvedValue([]);
 const getFiberUsageInNode = vi.fn();
 const getUsedResidentialUnits = vi.fn();
 
 vi.mock('$lib/remote/network-schema/fibers.remote', () => ({
-	getCablesAtNode: vi.fn().mockResolvedValue([]),
+	getCablesAtNode: (...a: unknown[]) => remoteQueryStub(getCablesAtNode)(...a),
 	getFibersForCable: vi.fn().mockResolvedValue([]),
 	getFiberColors: vi.fn().mockResolvedValue([]),
-	getFiberUsageInNode: (...a: unknown[]) => getFiberUsageInNode(...a),
+	getFiberUsageInNode: (...a: unknown[]) => remoteQueryStub(getFiberUsageInNode)(...a),
 	getAddressesForNode: vi.fn().mockResolvedValue([]),
-	getUsedResidentialUnits: (...a: unknown[]) => getUsedResidentialUnits(...a),
+	getUsedResidentialUnits: (...a: unknown[]) => remoteQueryStub(getUsedResidentialUnits)(...a),
 	getFiberStatusOptions: vi.fn().mockResolvedValue([]),
 	updateFiberStatus: vi.fn().mockResolvedValue(null)
 }));
@@ -25,6 +30,7 @@ describe('CableFiberDataManager', () => {
 		manager = new CableFiberDataManager();
 		manager.nodeUuid = 'node-1';
 		vi.restoreAllMocks();
+		getCablesAtNode.mockResolvedValue([]);
 		getFiberUsageInNode.mockResolvedValue({ usedFiberUuids: [], fiberComponentMap: {} });
 		getUsedResidentialUnits.mockResolvedValue({
 			usedResidentialUnitUuids: [],

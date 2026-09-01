@@ -98,8 +98,11 @@ export class CableMicropipeManager {
 		}
 
 		try {
-			const trenchUuids = await getLinkedTrenchesForCable(this.cableId);
-			this.linkedTrenchIds = new SvelteSet(trenchUuids);
+			// Remote queries are cached per argument, so a plain re-call after a
+			// mutation returns the stale cached value — refresh() forces a fetch.
+			const trenchesQuery = getLinkedTrenchesForCable(this.cableId);
+			await trenchesQuery.refresh();
+			this.linkedTrenchIds = new SvelteSet(trenchesQuery.current ?? []);
 		} catch (error) {
 			console.error('Error fetching linked trenches:', error);
 			void logToBackendClient({
@@ -135,10 +138,14 @@ export class CableMicropipeManager {
 
 		this.loading = true;
 		try {
-			this.conduits = await getConduitsByTrenches({
+			// Remote queries are cached per argument, so a plain re-call after a
+			// mutation returns the stale cached value — refresh() forces a fetch.
+			const conduitsQuery = getConduitsByTrenches({
 				trenchIds: Array.from(this.selectedTrenchIds),
 				cableId: this.cableId ?? undefined
 			});
+			await conduitsQuery.refresh();
+			this.conduits = conduitsQuery.current ?? [];
 		} catch (error) {
 			console.error('Error fetching conduits:', error);
 			void logToBackendClient({
@@ -188,10 +195,14 @@ export class CableMicropipeManager {
 
 		this.loading = true;
 		try {
-			this.micropipes = await getMicropipesByConduits({
+			// Remote queries are cached per argument, so a plain re-call after a
+			// mutation returns the stale cached value — refresh() forces a fetch.
+			const micropipesQuery = getMicropipesByConduits({
 				conduitIds: Array.from(this.selectedConduitIds),
 				cableId: this.cableId ?? undefined
 			});
+			await micropipesQuery.refresh();
+			this.micropipes = micropipesQuery.current ?? [];
 			this.step = 2;
 		} catch (error) {
 			console.error('Error fetching micropipes:', error);

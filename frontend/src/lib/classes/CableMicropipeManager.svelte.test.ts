@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalToaster } from '$lib/stores/toaster';
+import { remoteQueryStub } from '$lib/test-utils/remoteQueryStub';
 
 import { CableMicropipeManager } from './CableMicropipeManager.svelte';
 
@@ -13,9 +14,9 @@ const createMicropipeConnections = vi.fn();
 const deleteMicropipeConnections = vi.fn();
 
 vi.mock('$lib/remote/network-schema/micropipes.remote', () => ({
-	getLinkedTrenchesForCable: (...a: unknown[]) => getLinkedTrenchesForCable(...a),
-	getConduitsByTrenches: (...a: unknown[]) => getConduitsByTrenches(...a),
-	getMicropipesByConduits: (...a: unknown[]) => getMicropipesByConduits(...a),
+	getLinkedTrenchesForCable: (...a: unknown[]) => remoteQueryStub(getLinkedTrenchesForCable)(...a),
+	getConduitsByTrenches: (...a: unknown[]) => remoteQueryStub(getConduitsByTrenches)(...a),
+	getMicropipesByConduits: (...a: unknown[]) => remoteQueryStub(getMicropipesByConduits)(...a),
 	createMicropipeConnections: (...a: unknown[]) => createMicropipeConnections(...a),
 	deleteMicropipeConnections: (...a: unknown[]) => deleteMicropipeConnections(...a)
 }));

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalToaster } from '$lib/stores/toaster';
+import { remoteQueryStub } from '$lib/test-utils/remoteQueryStub';
 
 import { FiberSpliceManager } from './FiberSpliceManager.svelte';
 
@@ -21,7 +22,7 @@ const remote = {
 
 vi.mock('$lib/remote/network-schema/fiber-splices.remote', () => ({
 	getComponentPorts: (...a: unknown[]) => remote.getComponentPorts(...a),
-	getFiberSplices: (...a: unknown[]) => remote.getFiberSplices(...a),
+	getFiberSplices: (...a: unknown[]) => remoteQueryStub(remote.getFiberSplices)(...a),
 	upsertFiberSplice: (...a: unknown[]) => remote.upsertFiberSplice(...a),
 	bulkUpsertFiberSplices: (...a: unknown[]) => remote.bulkUpsertFiberSplices(...a),
 	clearFiberSplice: (...a: unknown[]) => remote.clearFiberSplice(...a),

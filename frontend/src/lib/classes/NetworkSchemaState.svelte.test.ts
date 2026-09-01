@@ -11,15 +11,18 @@ import type {
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalToaster } from '$lib/stores/toaster';
+import { remoteQueryStub } from '$lib/test-utils/remoteQueryStub';
 
 import { NetworkSchemaState } from './NetworkSchemaState.svelte';
 
 // Node persistence runs through a remote-function command; mock the module so
 // the class's call is observable without a running server.
 const saveNodeGeometry = vi.fn();
+const getNodeDetails = vi.fn().mockResolvedValue({});
 
 vi.mock('$lib/remote/network-schema/nodes.remote', () => ({
-	getNodeDetails: vi.fn().mockResolvedValue({}),
+	// loadNodeDetails force-refreshes this cached query, so mock it as a query stub.
+	getNodeDetails: (...a: unknown[]) => remoteQueryStub(getNodeDetails)(...a),
 	saveNodeGeometry: (...args: unknown[]) => saveNodeGeometry(...args)
 }));
 

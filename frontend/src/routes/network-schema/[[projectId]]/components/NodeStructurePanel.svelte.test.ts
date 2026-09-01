@@ -40,7 +40,7 @@ vi.mock('$lib/remote/network-schema/containers.remote', () => ({
 }));
 
 vi.mock('$lib/remote/network-schema/fiber-splices.remote', () => ({
-	getFiberSplices: (...a: unknown[]) => remote.getFiberSplices(...a)
+	getFiberSplices: (...a: unknown[]) => remoteQueryStub(remote.getFiberSplices)(...a)
 }));
 
 vi.mock('$lib/paraglide/messages', () => ({

@@ -1081,8 +1081,12 @@ export class NetworkSchemaState {
 	 * @param uuid - Cable UUID
 	 * @returns The cable detail object from the backend
 	 */
-	loadCableDetails(uuid: string): Promise<Record<string, unknown>> {
-		return getCableDetails(uuid);
+	async loadCableDetails(uuid: string): Promise<Record<string, unknown>> {
+		// Remote queries are cached per argument; refresh() forces a fetch so a
+		// drawer re-opened after a cable mutation shows the current record.
+		const detailsQuery = getCableDetails(uuid);
+		await detailsQuery.refresh();
+		return detailsQuery.current ?? {};
 	}
 
 	/**
@@ -1090,8 +1094,12 @@ export class NetworkSchemaState {
 	 * @param uuid - Node UUID
 	 * @returns The node detail object from the backend
 	 */
-	loadNodeDetails(uuid: string): Promise<Record<string, unknown>> {
-		return getNodeDetails(uuid);
+	async loadNodeDetails(uuid: string): Promise<Record<string, unknown>> {
+		// Remote queries are cached per argument; refresh() forces a fetch so a
+		// drawer re-opened after a node mutation shows the current record.
+		const detailsQuery = getNodeDetails(uuid);
+		await detailsQuery.refresh();
+		return detailsQuery.current ?? {};
 	}
 
 	/**

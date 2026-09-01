@@ -9,6 +9,8 @@
 		IconX
 	} from '@tabler/icons-svelte';
 
+	import { nextTopZIndex } from '$lib/utils/topLayer';
+
 	interface Props {
 		open?: boolean;
 		title?: string;
@@ -38,19 +40,15 @@
 	// svelte-ignore state_referenced_locally
 	let size = $state({ width, height });
 
-	// Global z-index counter for focus management
+	// Draws from the shared top-layer counter so a panel brought to front sits
+	// above other panels — and a modal dialog opened afterwards sits above it.
 	let zIndex = $state(50);
 
 	/**
-	 * Brings this panel to front by increasing its z-index
+	 * Brings this panel to front by taking the next shared top-layer z-index.
 	 */
 	function bringToFront() {
-		if (typeof window === 'undefined') return;
-		const win = window as Window & { __floatingPanelZIndex?: number };
-		const currentMax = win.__floatingPanelZIndex ?? 50;
-		const newZIndex = currentMax + 1;
-		win.__floatingPanelZIndex = newZIndex;
-		zIndex = newZIndex;
+		zIndex = nextTopZIndex();
 	}
 
 	/**

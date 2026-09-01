@@ -140,7 +140,11 @@ export class CableFiberDataManager {
 
 		this.loading = true;
 		try {
-			this.cables = await getCablesAtNode(this.nodeUuid);
+			// Remote queries are cached per argument, so a plain re-call after a
+			// mutation returns the stale cached value — refresh() forces a fetch.
+			const cablesQuery = getCablesAtNode(this.nodeUuid);
+			await cablesQuery.refresh();
+			this.cables = cablesQuery.current ?? [];
 		} catch (err) {
 			console.error('Error fetching cables:', err);
 			void logToBackendClient({
@@ -166,7 +170,11 @@ export class CableFiberDataManager {
 
 		this.loadingFiberUsage = true;
 		try {
-			const data = await getFiberUsageInNode(this.nodeUuid);
+			// Remote queries are cached per argument, so a plain re-call after a
+			// mutation returns the stale cached value — refresh() forces a fetch.
+			const usageQuery = getFiberUsageInNode(this.nodeUuid);
+			await usageQuery.refresh();
+			const data = usageQuery.current ?? { usedFiberUuids: [], fiberComponentMap: {} };
 			this.usedFiberUuids = new Set(data.usedFiberUuids);
 			this.fiberComponentMap = new Map(Object.entries(data.fiberComponentMap));
 		} catch (err) {
@@ -243,7 +251,14 @@ export class CableFiberDataManager {
 
 		this.loadingResidentialUnitUsage = true;
 		try {
-			const data = await getUsedResidentialUnits(this.nodeUuid);
+			// Remote queries are cached per argument, so a plain re-call after a
+			// mutation returns the stale cached value — refresh() forces a fetch.
+			const usageQuery = getUsedResidentialUnits(this.nodeUuid);
+			await usageQuery.refresh();
+			const data = usageQuery.current ?? {
+				usedResidentialUnitUuids: [],
+				residentialUnitComponentMap: {}
+			};
 			this.usedResidentialUnitUuids = new Set(data.usedResidentialUnitUuids);
 			this.residentialUnitComponentMap = new Map(Object.entries(data.residentialUnitComponentMap));
 		} catch (err) {

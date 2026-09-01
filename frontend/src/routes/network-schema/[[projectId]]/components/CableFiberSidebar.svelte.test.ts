@@ -3,6 +3,8 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { remoteQueryStub } from '$lib/test-utils/remoteQueryStub';
+
 import Fixture from './CableFiberSidebar.fixture.svelte';
 
 vi.mock('$app/environment', () => ({
@@ -19,12 +21,12 @@ const getAddressesForNode = vi.fn();
 const getUsedResidentialUnits = vi.fn();
 
 vi.mock('$lib/remote/network-schema/fibers.remote', () => ({
-	getCablesAtNode: (...a: unknown[]) => getCablesAtNode(...a),
+	getCablesAtNode: (...a: unknown[]) => remoteQueryStub(getCablesAtNode)(...a),
 	getFibersForCable: (...a: unknown[]) => getFibersForCable(...a),
 	getFiberColors: (...a: unknown[]) => getFiberColors(...a),
-	getFiberUsageInNode: (...a: unknown[]) => getFiberUsageInNode(...a),
+	getFiberUsageInNode: (...a: unknown[]) => remoteQueryStub(getFiberUsageInNode)(...a),
 	getAddressesForNode: (...a: unknown[]) => getAddressesForNode(...a),
-	getUsedResidentialUnits: (...a: unknown[]) => getUsedResidentialUnits(...a),
+	getUsedResidentialUnits: (...a: unknown[]) => remoteQueryStub(getUsedResidentialUnits)(...a),
 	getFiberStatusOptions: vi.fn().mockResolvedValue([]),
 	updateFiberStatus: vi.fn().mockResolvedValue(null)
 }));

@@ -388,7 +388,11 @@ export class FiberSpliceManager {
 	 */
 	async fetchFiberSplices(nodeStructureUuid: string): Promise<void> {
 		try {
-			this.fiberSplices = await getFiberSplices(nodeStructureUuid);
+			// Remote queries are cached per argument, so a plain re-call after a
+			// splice mutation returns the stale cached value — refresh() forces a fetch.
+			const splicesQuery = getFiberSplices(nodeStructureUuid);
+			await splicesQuery.refresh();
+			this.fiberSplices = splicesQuery.current ?? [];
 		} catch (err: unknown) {
 			console.error('Error fetching fiber splices:', err);
 			void logToBackendClient({
@@ -1254,7 +1258,11 @@ export class FiberSpliceManager {
 	 * Fetches fiber splice data for a given node structure.
 	 */
 	async #fetchSplicessForStructure(nodeStructureUuid: string): Promise<FiberSplice[]> {
-		return getFiberSplices(nodeStructureUuid);
+		// Cross-structure occupancy read during cable cascade; refresh() forces a
+		// fetch so available-port calc isn't computed from stale cached splices.
+		const splicesQuery = getFiberSplices(nodeStructureUuid);
+		await splicesQuery.refresh();
+		return splicesQuery.current ?? [];
 	}
 
 	/**

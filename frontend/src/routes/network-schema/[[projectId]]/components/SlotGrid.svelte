@@ -236,14 +236,16 @@
 								{#if !readonly}
 									<button
 										type="button"
-										class="btn-sm rounded-md opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 bg-error-500 hover:bg-error-600 text-white transition-all shrink-0"
+										class="grid place-items-center size-8 rounded-md bg-error-500 hover:bg-error-600 text-white transition-colors shrink-0"
 										onclick={(e) => {
 											e.stopPropagation();
 											row.structure && onStructureDelete(row.structure.uuid);
 										}}
+										onpointerdown={(e) => e.stopPropagation()}
 										aria-label={m.common_delete?.() || 'Delete'}
+										{@attach tooltip(m.common_delete?.() || 'Delete')}
 									>
-										<IconTrash size={20} />
+										<IconTrash size={18} />
 									</button>
 								{/if}
 							</div>
