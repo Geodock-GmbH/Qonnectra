@@ -1,9 +1,8 @@
-import { deserialize } from '$app/forms';
-
 import { m } from '$lib/paraglide/messages';
 
 import { globalToaster } from '$lib/stores/toaster';
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
+import { getFiberSplices } from '$lib/remote/network-schema/fiber-splices.remote';
 
 import { DRAG_DROP_CONTEXT_KEY, DragDropManager } from './DragDropManager.svelte';
 import { FiberSpliceManager } from './FiberSpliceManager.svelte';
@@ -88,23 +87,17 @@ export const NODE_STRUCTURE_CONTEXT_KEY = 'nodeStructureContext';
  * - Action handlers grouped by domain for easy extension/removal
  */
 export class NodeStructureContext {
-	// ========== Sub-Managers (Encapsulated) ==========
-
 	#structureManager: NodeStructureManager;
 
 	#spliceManager: FiberSpliceManager;
 
 	#dragDropManager: DragDropManager;
 
-	// ========== UI State ==========
-
 	editingClipSlot: number | null = $state(null);
 
 	editingClipValue: string = $state('');
 
 	isMobile: boolean = $state(false);
-
-	// ========== Constructor ==========
 
 	/**
 	 * @param nodeUuid - Node UUID (optional, can be set later via setNodeUuid)
@@ -128,9 +121,6 @@ export class NodeStructureContext {
 		this.#structureManager.selectSlotConfig(uuid);
 	}
 
-	// ========== Exposed State (Read-Only via Getters) ==========
-
-	// --- Structure Manager State ---
 	get nodeUuid() {
 		return this.#structureManager.nodeUuid;
 	}
@@ -171,7 +161,6 @@ export class NodeStructureContext {
 		return this.#structureManager.creatingMultiple;
 	}
 
-	// --- Splice Manager State ---
 	get selectedStructure() {
 		return this.#spliceManager.selectedStructure;
 	}
@@ -200,7 +189,6 @@ export class NodeStructureContext {
 		return this.#spliceManager.mergeSide;
 	}
 
-	// --- Drag Drop Manager State ---
 	get isDragging() {
 		return this.#dragDropManager.isDragging;
 	}
@@ -225,8 +213,6 @@ export class NodeStructureContext {
 		return this.#dragDropManager.mobileSelectedItem;
 	}
 
-	// ========== Computed State ==========
-
 	/**
 	 * Compute slot rows for rendering with drop preview info
 	 */
@@ -237,8 +223,6 @@ export class NodeStructureContext {
 			isDropTarget: this.#dragDropManager.dropPreviewSlots.includes(row.slotNumber)
 		}));
 	}
-
-	// ========== Action Handlers ==========
 
 	/**
 	 * Slot-related actions (drop, drag over, tap)
@@ -341,8 +325,6 @@ export class NodeStructureContext {
 		};
 	}
 
-	// ========== Configuration Methods ==========
-
 	/**
 	 * Select a slot configuration
 	 */
@@ -357,8 +339,6 @@ export class NodeStructureContext {
 		this.isMobile = isMobile;
 		this.#dragDropManager.handleResponsiveChange(isMobile);
 	}
-
-	// ========== Lifecycle Methods ==========
 
 	/**
 	 * Initialize the context - fetch initial data
@@ -414,8 +394,6 @@ export class NodeStructureContext {
 	getDragDropManager(): DragDropManager {
 		return this.#dragDropManager;
 	}
-
-	// ========== Private Handler Methods ==========
 
 	/**
 	 * Handle slot drag over
@@ -546,19 +524,10 @@ export class NodeStructureContext {
 	async #handleDeleteStructure(structureUuid: string): Promise<DeleteResult> {
 		// Check if the structure has fiber splices before deleting
 		try {
-			const formData = new FormData();
-			formData.append('nodeStructureUuid', structureUuid);
-
-			const response = await fetch('?/getFiberSplices', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text()) as { data?: { splices?: FiberSplice[] } };
-			const splices = result.data?.splices || [];
+			const splices = (await getFiberSplices(structureUuid)) as unknown as FiberSplice[];
 
 			// Count splices that have actual fiber connections
-			const activeSpliceCount = (splices as FiberSplice[]).filter(
+			const activeSpliceCount = splices.filter(
 				(s: FiberSplice) => s.fiber_a_details || s.fiber_b_details
 			).length;
 

@@ -1,11 +1,21 @@
-import type { ActionResult } from '@sveltejs/kit';
-import { deserialize } from '$app/forms';
 import { page } from '$app/state';
 
 import { m } from '$lib/paraglide/messages';
 
 import { globalToaster } from '$lib/stores/toaster';
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
+import { trackPendingWrite } from '$lib/utils/pendingWrites';
+import { createCable, getCableDetails } from '$lib/remote/network-schema/cables.remote';
+import {
+	deleteCableLabel as deleteCableLabelCommand,
+	upsertCableLabel
+} from '$lib/remote/network-schema/labels.remote';
+import {
+	autoLinkMicropipe as autoLinkMicropipeCommand,
+	getMicropipeConnectionsForCable
+} from '$lib/remote/network-schema/micropipes.remote';
+import { getNodeDetails, saveNodeGeometry } from '$lib/remote/network-schema/nodes.remote';
+import { saveCableGeometry as saveCableGeometryCommand } from '$lib/remote/network-schema/paths.remote';
 
 export interface NodeProperties {
 	uuid: string;
@@ -40,6 +50,11 @@ export interface EdgeLabelData {
 	uuid: string;
 }
 
+export interface Waypoint {
+	x: number;
+	y: number;
+}
+
 export interface CableData {
 	uuid: string;
 	name: string;
@@ -48,13 +63,14 @@ export interface CableData {
 	handle_start?: string;
 	handle_end?: string;
 	labelData?: EdgeLabelData | null;
+	diagram_path?: Waypoint[];
 	warning?: string;
 }
 
 export interface MicropipeConnection {
-	uuid: string;
 	number: number;
-	color?: string;
+	color_hex: string;
+	color_name?: string | null;
 }
 
 export type MicropipeConnectionMap = Record<string, MicropipeConnection[]>;
@@ -67,9 +83,6 @@ export interface SvelteFlowNode {
 	data: {
 		label: string;
 		node: NodeProperties | NodeFeature;
-		onNodeSelect: (nodeId: string) => void;
-		onNodeDelete: (nodeId: string) => void;
-		onNameUpdate: (newName: string) => void;
 	};
 }
 
@@ -88,9 +101,6 @@ export interface SvelteFlowEdge {
 		micropipeConnections?: MicropipeConnection[];
 		lowestMicropipe?: MicropipeConnection | null;
 		isConnected?: boolean;
-		onEdgeDelete: (edgeId: string) => void;
-		onEdgeSelect: (edgeId: string) => void;
-		onNameUpdate: (newName: string) => void;
 	};
 }
 
@@ -141,7 +151,7 @@ export interface PendingMicroductChoice {
 	candidates: MicroductCandidate[];
 }
 
-interface AutoLinkEndResult {
+export interface AutoLinkEndResult {
 	status: 'linked' | 'multiple_candidates' | string;
 	microduct?: MicroductCandidate;
 	end?: string;
@@ -150,7 +160,7 @@ interface AutoLinkEndResult {
 	candidates?: MicroductCandidate[];
 }
 
-interface AutoLinkResponse {
+export interface AutoLinkResponse {
 	results?: AutoLinkEndResult[];
 	linked_count?: number;
 	microduct?: MicroductCandidate;
@@ -176,8 +186,44 @@ export class NetworkSchemaState {
 	/** Whether currently in child view mode */
 	isChildView: boolean = $state(false);
 
+	/**
+	 * Single source of truth for the canvas lock. When true the whole schema is
+	 * frozen: SvelteFlow node dragging/selection/connecting is disabled via the
+	 * `nodesDraggable`/`elementsSelectable`/`nodesConnectable` props, and the
+	 * custom cable (edge waypoint) and label interactions read this flag to
+	 * suppress their own drag/click handlers. The lock button in the Controls
+	 * toggles this instead of the built-in interactivity (which SvelteFlow
+	 * derives from these props and so cannot be written to directly).
+	 */
+	locked: boolean = $state(true);
+
+	/**
+	 * True while the Shift key is held. Single source for the delete/reset hover
+	 * cues across every edge and label instance, replacing per-instance window
+	 * listeners. The page registers one keydown/keyup pair plus blur/visibility
+	 * resets so the cue can never get stuck when a keyup is missed off-window.
+	 */
+	shiftPressed: boolean = $state(false);
+
+	/**
+	 * The single cable (edge) currently in edit mode, or null. Layered on top of
+	 * `locked`: a cable's vertex and label interactions are only live when the
+	 * canvas is unlocked AND that cable is the edit target. This scopes editing to
+	 * one cable at a time so overlapping cables/labels no longer steal each other's
+	 * clicks. Nodes are unaffected — they stay gated by `locked` alone. Read
+	 * through `isEditing(edgeId)` so the `!locked` condition lives in one place.
+	 */
+	editingCableId: string | null = $state(null);
+
 	/** Track if already initialized to prevent duplicate initialization */
 	#initialized: boolean = $state(false);
+
+	/**
+	 * Latest waypoints produced during an in-flight vertex drag, keyed by edge.
+	 * The drag end saves from this buffer instead of `edge.data.cable.diagram_path`,
+	 * which may not have round-tripped through state yet when the drag finishes.
+	 */
+	#dragWaypoints: Map<string, Waypoint[]> = new Map();
 
 	constructor(initialData: NetworkSchemaInitData | null = null) {
 		if (initialData) {
@@ -245,10 +291,7 @@ export class NetworkSchemaState {
 				selected: false,
 				data: {
 					label: node.name || m.form_unnamed_node(),
-					node: node,
-					onNodeSelect: (nId: string) => this.selectNode(nId),
-					onNodeDelete: (nId: string) => this.handleNodeDelete(nId),
-					onNameUpdate: (newName: string) => this.updateNodeName(nodeId, newName)
+					node: node
 				}
 			};
 		});
@@ -293,10 +336,7 @@ export class NetworkSchemaState {
 						labelData: cable.labelData,
 						micropipeConnections: connections,
 						lowestMicropipe: lowestMicropipe,
-						isConnected: connections.length > 0,
-						onEdgeDelete: (edgeId: string) => this.handleEdgeDelete(edgeId),
-						onEdgeSelect: (edgeId: string) => this.selectEdge(edgeId),
-						onNameUpdate: (newName: string) => this.updateEdgeName(cable.uuid, newName)
+						isConnected: connections.length > 0
 					}
 				};
 			});
@@ -375,6 +415,55 @@ export class NetworkSchemaState {
 	}
 
 	/**
+	 * Whether the given cable is currently editable: the canvas must be unlocked
+	 * AND this cable must be the edit target. The `!locked` guard means a stale
+	 * `editingCableId` can never re-enable editing after the canvas is re-locked.
+	 * @param edgeId - The cable (edge) UUID to test
+	 */
+	isEditing(edgeId: string): boolean {
+		return !this.locked && this.editingCableId === edgeId;
+	}
+
+	/**
+	 * Enter edit mode for a single cable. Auto-unlocks the canvas (editing implies
+	 * an intent to edit) and selects the cable so it is visibly highlighted.
+	 * Switching directly from one cable to another just calls this again.
+	 * @param edgeId - The cable (edge) UUID to edit
+	 */
+	enterEditMode(edgeId: string): void {
+		this.locked = false;
+		this.editingCableId = edgeId;
+		this.selectEdge(edgeId);
+	}
+
+	/**
+	 * Leave edit mode. Clears the edit target and edge selection but leaves the
+	 * canvas lock as-is, since the user unlocked it deliberately.
+	 */
+	exitEditMode(): void {
+		this.editingCableId = null;
+		this.deselectAllEdges();
+	}
+
+	/**
+	 * Update Shift state from a keyboard event. Registered once at page root.
+	 * @param event - The keydown/keyup event
+	 */
+	setShiftFromKeyboard(event: KeyboardEvent): void {
+		if (event.key === 'Shift') {
+			this.shiftPressed = event.type === 'keydown';
+		}
+	}
+
+	/**
+	 * Force-clear Shift. Called on window blur / tab hide so the hover cue can
+	 * never lie after a keyup was missed while focus was outside the window.
+	 */
+	clearShift(): void {
+		this.shiftPressed = false;
+	}
+
+	/**
 	 * Handle node drag stop - saves position via form action
 	 * @param event - Event object from SvelteFlow
 	 */
@@ -389,26 +478,12 @@ export class NetworkSchemaState {
 		const originalPosition = { ...originalNode.position };
 
 		try {
-			const formData = new FormData();
-			formData.append('nodeId', nodeId);
-			if (this.isChildView) {
-				formData.append('child_canvas_x', newPosition.x.toString());
-				formData.append('child_canvas_y', newPosition.y.toString());
-			} else {
-				formData.append('canvas_x', newPosition.x.toString());
-				formData.append('canvas_y', newPosition.y.toString());
-			}
-
-			const response = await fetch('?/saveNodeGeometry', {
-				method: 'POST',
-				body: formData
+			await saveNodeGeometry({
+				nodeId,
+				x: newPosition.x,
+				y: newPosition.y,
+				isChildView: this.isChildView
 			});
-
-			const result = await response.json();
-
-			if (!response.ok || result.type === 'error') {
-				throw new Error(result.message || 'Failed to save node position');
-			}
 
 			globalToaster.success({
 				title: m.title_success(),
@@ -504,37 +579,18 @@ export class NetworkSchemaState {
 		const cableUuid = crypto.randomUUID();
 
 		try {
-			const formData = new FormData();
-			formData.append('uuid', cableUuid);
-			formData.append('name', cableName);
-			formData.append('cable_type_id', this.selectedCableType?.[0]);
-			formData.append('project_id', selectedProject);
-			formData.append('flag_id', '1');
-			formData.append('uuid_node_start_id', target);
-			formData.append('uuid_node_end_id', source);
-			if (handleEnd) formData.append('handle_start', handleEnd);
-			if (handleStart) formData.append('handle_end', handleStart);
-			if (this.parentNodeContext) {
-				formData.append('parent_node_context_id', this.parentNodeContext);
-			}
-
-			const response = await fetch('?/createCable', {
-				method: 'POST',
-				body: formData
+			const cableData = await createCable({
+				uuid: cableUuid,
+				name: cableName,
+				cableTypeId: parseInt(this.selectedCableType[0], 10),
+				projectId: parseInt(selectedProject, 10),
+				flagId: 1,
+				nodeStartId: target,
+				nodeEndId: source,
+				handleStart: handleEnd ?? undefined,
+				handleEnd: handleStart ?? undefined,
+				parentNodeContextId: this.parentNodeContext ?? undefined
 			});
-
-			const result: ActionResult = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				const errorData = result.type === 'failure' ? result.data : undefined;
-				throw new Error(
-					((errorData as Record<string, unknown> | undefined)?.error as string) ||
-						'Failed to create cable'
-				);
-			}
-
-			const successData = result.type === 'success' ? result.data : undefined;
-			const cableData = (successData as Record<string, unknown> | undefined)?.data as CableData;
 
 			if (cableData.uuid !== cableUuid) {
 				console.warn(
@@ -553,10 +609,7 @@ export class NetworkSchemaState {
 					type: 'cableDiagramEdge',
 					data: {
 						label: cableName,
-						cable: { ...cableData, uuid: cableUuid },
-						onEdgeDelete: (edgeId: string) => this.handleEdgeDelete(edgeId),
-						onEdgeSelect: (edgeId: string) => this.selectEdge(edgeId),
-						onNameUpdate: (newName: string) => this.updateEdgeName(cableUuid, newName)
+						cable: { ...cableData, uuid: cableUuid }
 					}
 				}
 			];
@@ -766,9 +819,9 @@ export class NetworkSchemaState {
 	/**
 	 * Update edge label data (position and text) in local state
 	 * @param edgeId - Edge UUID
-	 * @param labelData - Label data with position_x, position_y, text, uuid
+	 * @param labelData - Label data with position_x, position_y, text, uuid, or null to clear
 	 */
-	updateEdgeLabelData(edgeId: string, labelData: EdgeLabelData): void {
+	updateEdgeLabelData(edgeId: string, labelData: EdgeLabelData | null): void {
 		this.edges = this.edges.map((edge) => {
 			if (edge.id === edgeId) {
 				return {
@@ -809,6 +862,247 @@ export class NetworkSchemaState {
 	}
 
 	/**
+	 * Set an edge's diagram path waypoints in local state without persisting.
+	 * Used for adding a vertex and for the live frames of a vertex drag.
+	 * @param edgeId - Edge/cable UUID
+	 * @param waypoints - Full waypoint list for the edge
+	 */
+	updateCablePathWaypoints(edgeId: string, waypoints: Waypoint[]): void {
+		this.edges = this.edges.map((edge) => {
+			if (edge.id === edgeId) {
+				return {
+					...edge,
+					data: {
+						...edge.data,
+						cable: {
+							...edge.data.cable,
+							diagram_path: waypoints
+						}
+					}
+				};
+			}
+			return edge;
+		});
+	}
+
+	/**
+	 * Persist an edge's diagram path to the backend, optimistically updating local
+	 * state first and rolling back on failure.
+	 * @param edgeId - Edge/cable UUID
+	 * @param waypoints - Full waypoint list to save
+	 */
+	async saveCablePath(edgeId: string, waypoints: Waypoint[]): Promise<void> {
+		const originalEdge = this.edges.find((e) => e.id === edgeId);
+		const originalWaypoints = originalEdge?.data.cable.diagram_path
+			? [...(originalEdge.data.cable.diagram_path as Waypoint[])]
+			: undefined;
+
+		this.updateCablePathWaypoints(edgeId, waypoints);
+
+		try {
+			await trackPendingWrite(
+				saveCableGeometryCommand({ cableId: edgeId, diagramPath: waypoints })
+			);
+
+			globalToaster.success({
+				title: m.title_success(),
+				description: m.message_success_updating_cable_path()
+			});
+		} catch (error: unknown) {
+			console.error('Error saving cable path:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error saving cable path',
+				extraData: {
+					from: 'NetworkSchemaState.saveCablePath',
+					edgeId,
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
+
+			if (originalWaypoints !== undefined) {
+				this.updateCablePathWaypoints(edgeId, originalWaypoints);
+			}
+
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_error_updating_cable_path()
+			});
+		}
+	}
+
+	/**
+	 * Seed the drag buffer for an edge from its current diagram path.
+	 * @param edgeId - Edge/cable UUID
+	 */
+	beginPathDrag(edgeId: string): void {
+		const edge = this.edges.find((e) => e.id === edgeId);
+		const current = (edge?.data.cable.diagram_path as Waypoint[] | undefined) ?? [];
+		this.#dragWaypoints.set(edgeId, [...current]);
+	}
+
+	/**
+	 * Move a single waypoint during a drag: update the buffer and the live edge.
+	 * @param edgeId - Edge/cable UUID
+	 * @param index - Index of the waypoint being dragged
+	 * @param point - New snapped waypoint position
+	 */
+	dragPathVertex(edgeId: string, index: number, point: Waypoint): void {
+		const edge = this.edges.find((e) => e.id === edgeId);
+		const base =
+			this.#dragWaypoints.get(edgeId) ??
+			(edge?.data.cable.diagram_path as Waypoint[] | undefined) ??
+			[];
+		const waypoints = [...base];
+		waypoints[index] = point;
+		this.#dragWaypoints.set(edgeId, waypoints);
+		this.updateCablePathWaypoints(edgeId, waypoints);
+	}
+
+	/**
+	 * Finish a drag: persist the buffered waypoints, then clear the buffer.
+	 * @param edgeId - Edge/cable UUID
+	 */
+	async endPathDrag(edgeId: string): Promise<void> {
+		const edge = this.edges.find((e) => e.id === edgeId);
+		const waypoints =
+			this.#dragWaypoints.get(edgeId) ??
+			(edge?.data.cable.diagram_path as Waypoint[] | undefined) ??
+			[];
+		this.#dragWaypoints.delete(edgeId);
+		await this.saveCablePath(edgeId, waypoints);
+	}
+
+	/**
+	 * Reset (delete) a cable's label, optimistically clearing it and rolling back
+	 * on failure.
+	 * @param edgeId - Edge/cable UUID
+	 * @param labelId - UUID of the label to delete
+	 * @returns Whether the delete persisted, so callers can roll back their own optimistic state
+	 */
+	async resetLabel(edgeId: string, labelId: string): Promise<boolean> {
+		if (!labelId) return false;
+
+		const originalEdge = this.edges.find((e) => e.id === edgeId);
+		const originalLabelData = originalEdge?.data.labelData ?? null;
+
+		this.updateEdgeLabelData(edgeId, null);
+
+		try {
+			await trackPendingWrite(deleteCableLabelCommand({ labelId }));
+			return true;
+		} catch (error: unknown) {
+			console.error('Failed to reset label:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Failed to reset label',
+				extraData: {
+					from: 'NetworkSchemaState.resetLabel',
+					edgeId,
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
+
+			this.updateEdgeLabelData(edgeId, originalLabelData);
+
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_error_saving_cable_label()
+			});
+			return false;
+		}
+	}
+
+	/**
+	 * Persist a cable label's position (and text), optimistically updating local
+	 * state and rolling back on failure.
+	 * @param edgeId - Edge/cable UUID
+	 * @param positionData - New position, optional text override, and optional existing label id
+	 * @returns Whether the save persisted, so callers can clear their optimistic override
+	 */
+	async saveLabelPosition(
+		edgeId: string,
+		positionData: { x: number; y: number; text?: string; labelId?: string }
+	): Promise<boolean> {
+		const edge = this.edges.find((e) => e.id === edgeId);
+		if (!edge) return false;
+
+		const cableUuid = edge.data.cable.uuid;
+		if (!cableUuid) return false;
+
+		const originalLabelData = edge.data.labelData ?? null;
+		const text = positionData.text || edge.data.label || edge.data.cable.name || '';
+
+		try {
+			const label = await trackPendingWrite(
+				upsertCableLabel({
+					cableId: cableUuid,
+					positionX: positionData.x,
+					positionY: positionData.y,
+					text,
+					order: 0,
+					labelId: positionData.labelId
+				})
+			);
+
+			this.updateEdgeLabelData(edgeId, label);
+			globalToaster.success({
+				title: m.title_success(),
+				description: m.message_success_saving_cable_label()
+			});
+			return true;
+		} catch (error: unknown) {
+			console.error('Failed to save label position:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Failed to save label position',
+				extraData: {
+					from: 'NetworkSchemaState.saveLabelPosition',
+					edgeId,
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
+
+			this.updateEdgeLabelData(edgeId, originalLabelData);
+
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_error_saving_cable_label()
+			});
+			return false;
+		}
+	}
+
+	/**
+	 * Load a cable's full detail record for the cable-details drawer.
+	 * @param uuid - Cable UUID
+	 * @returns The cable detail object from the backend
+	 */
+	async loadCableDetails(uuid: string): Promise<Record<string, unknown>> {
+		// Remote queries are cached per argument; refresh() forces a fetch so a
+		// drawer re-opened after a cable mutation shows the current record.
+		const detailsQuery = getCableDetails(uuid);
+		await detailsQuery.refresh();
+		return detailsQuery.current ?? {};
+	}
+
+	/**
+	 * Load a node's full detail record for the node-details drawer.
+	 * @param uuid - Node UUID
+	 * @returns The node detail object from the backend
+	 */
+	async loadNodeDetails(uuid: string): Promise<Record<string, unknown>> {
+		// Remote queries are cached per argument; refresh() forces a fetch so a
+		// drawer re-opened after a node mutation shows the current record.
+		const detailsQuery = getNodeDetails(uuid);
+		await detailsQuery.refresh();
+		return detailsQuery.current ?? {};
+	}
+
+	/**
 	 * Auto-link a freshly created cable to microducts matched via its end-node addresses.
 	 * Single matches are linked directly with a toast; ambiguous ends are queued
 	 * in pendingMicroductChoices for the user to resolve in a dialog.
@@ -817,17 +1111,8 @@ export class NetworkSchemaState {
 	 */
 	async autoLinkMicropipe(cableId: string, cableName: string): Promise<void> {
 		try {
-			const formData = new FormData();
-			formData.append('cableId', cableId);
+			const data = await autoLinkMicropipeCommand({ cableId });
 
-			const response = await fetch('?/autoLinkMicropipe', {
-				method: 'POST',
-				body: formData
-			});
-			const result: ActionResult = deserialize(await response.text());
-			if (result.type !== 'success' || !result.data) return;
-
-			const data = result.data as unknown as AutoLinkResponse;
 			for (const endResult of data.results ?? []) {
 				if (endResult.status === 'linked') {
 					globalToaster.success({
@@ -879,20 +1164,11 @@ export class NetworkSchemaState {
 		if (!choice) return;
 
 		try {
-			const formData = new FormData();
-			formData.append('cableId', choice.cableId);
-			formData.append('microductUuid', microductUuid);
-
-			const response = await fetch('?/autoLinkMicropipe', {
-				method: 'POST',
-				body: formData
+			const data = await autoLinkMicropipeCommand({
+				cableId: choice.cableId,
+				microductUuid
 			});
-			const result: ActionResult = deserialize(await response.text());
-			if (result.type !== 'success' || !result.data) {
-				throw new Error('Failed to link chosen microduct');
-			}
 
-			const data = result.data as unknown as AutoLinkResponse;
 			globalToaster.success({
 				title: m.title_success(),
 				description: m.message_auto_link_micropipe_linked({
@@ -940,20 +1216,8 @@ export class NetworkSchemaState {
 	 */
 	async refreshEdgeMicropipes(cableId: string): Promise<void> {
 		try {
-			const formData = new FormData();
-			formData.append('uuid', cableId);
-
-			const response = await fetch('?/getMicropipeConnectionsForCable', {
-				method: 'POST',
-				body: formData
-			});
-			const result: ActionResult = deserialize(await response.text());
-			if (result.type === 'success' && result.data?.connections) {
-				this.updateEdgeMicropipeConnections(
-					cableId,
-					result.data.connections as MicropipeConnection[]
-				);
-			}
+			const connections = await getMicropipeConnectionsForCable(cableId);
+			this.updateEdgeMicropipeConnections(cableId, connections);
 		} catch (error: unknown) {
 			console.error('Error refreshing edge micropipe connections:', error);
 			void logToBackendClient({

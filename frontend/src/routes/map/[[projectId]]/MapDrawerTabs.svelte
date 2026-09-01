@@ -18,8 +18,8 @@
 	import FloatingPanel from '$lib/components/FloatingPanel.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
 
-	import NodeSlotConfigPanel from '../../network-schema/[[projectId]]/NodeSlotConfigPanel.svelte';
-	import NodeStructurePanel from '../../network-schema/[[projectId]]/NodeStructurePanel.svelte';
+	import NodeSlotConfigPanel from '../../network-schema/[[projectId]]/components/NodeSlotConfigPanel.svelte';
+	import NodeStructurePanel from '../../network-schema/[[projectId]]/components/NodeStructurePanel.svelte';
 	import MapCableAccordion from './MapCableAccordion.svelte';
 	import MapConduitAccordion from './MapConduitAccordion.svelte';
 	import TrenchProfilePanel from './TrenchProfilePanel.svelte';

@@ -35,10 +35,6 @@ vi.mock('$lib/server/conduitData', () => ({
 	saveTrenchProfilePosition: vi.fn()
 }));
 
-vi.mock('$lib/server/cableData', () => ({
-	getCablesInTrench: vi.fn()
-}));
-
 vi.mock('$lib/server/featureSearch', () => ({
 	searchFeaturesInProject: vi.fn(),
 	getFeatureDetailsByType: vi.fn(),
@@ -188,18 +184,6 @@ describe('map +page.server.js', () => {
 
 			expect(getMicroducts).toHaveBeenCalledWith(mockFetch, mockCookies, 'pipe-456');
 			expect(result).toEqual([{ uuid: 'md-1', color: 'red' }]);
-		});
-	});
-
-	describe('getCablesInTrench', () => {
-		test('should call getCablesInTrench with trench UUID', async () => {
-			const { getCablesInTrench } = await import('$lib/server/cableData');
-			vi.mocked(getCablesInTrench).mockResolvedValueOnce([{ uuid: 'cable-1' }] as never);
-
-			const result = await actions.getCablesInTrench(createEvent({ trenchUuid: 'trench-1' }));
-
-			expect(getCablesInTrench).toHaveBeenCalledWith(mockFetch, mockCookies, 'trench-1');
-			expect(result).toEqual([{ uuid: 'cable-1' }]);
 		});
 	});
 

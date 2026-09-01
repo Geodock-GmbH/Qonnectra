@@ -4,12 +4,24 @@ import type {
 	SlotConfiguration,
 	SlotRow
 } from './NodeStructureContext.svelte';
-import { deserialize } from '$app/forms';
 
 import { m } from '$lib/paraglide/messages';
 
 import { globalToaster } from '$lib/stores/toaster';
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
+import { getNodeStructures } from '$lib/remote/network-schema/containers.remote';
+import {
+	bulkCreateNodeStructures,
+	createNodeStructure,
+	createSlotDivider,
+	deleteNodeStructure,
+	deleteSlotDivider,
+	getSlotClipNumbers,
+	getSlotConfigurationsForNode,
+	getSlotDividers,
+	moveNodeStructure,
+	upsertSlotClipNumber
+} from '$lib/remote/network-schema/node-structures.remote';
 
 export interface SlotDivider {
 	uuid: string;
@@ -179,25 +191,15 @@ export class NodeStructureManager {
 
 		this.loading = true;
 		try {
-			const formData = new FormData();
-			formData.append('nodeUuid', this.nodeUuid);
-
-			const response = await fetch('?/getSlotConfigurationsForNode', {
-				method: 'POST',
-				body: formData
-			});
+			// Remote queries are cached per argument — refresh() forces a fetch so
+			// re-runs after mutations don't return the stale cached value.
+			const configurationsQuery = getSlotConfigurationsForNode(this.nodeUuid);
+			await configurationsQuery.refresh();
+			const configurations = configurationsQuery.current ?? [];
 
 			if (this.#fetchVersion !== requestVersion) return;
 
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				const data = (result as { data?: Record<string, unknown> }).data;
-				throw new Error((data?.error as string) || 'Failed to fetch slot configurations');
-			}
-
-			const successData = (result as { data?: Record<string, unknown> }).data;
-			this.localSlotConfigurations = (successData?.configurations as SlotConfiguration[]) || [];
+			this.localSlotConfigurations = configurations as SlotConfiguration[];
 
 			if (!this.selectedSlotConfigUuid && this.localSlotConfigurations.length > 0) {
 				this.selectedSlotConfigUuid = this.localSlotConfigurations[0].uuid;
@@ -239,25 +241,13 @@ export class NodeStructureManager {
 
 		this.loadingStructures = true;
 		try {
-			const formData = new FormData();
-			formData.append('slotConfigUuid', this.selectedSlotConfigUuid);
-
-			const response = await fetch('?/getNodeStructures', {
-				method: 'POST',
-				body: formData
-			});
+			const structuresQuery = getNodeStructures(this.selectedSlotConfigUuid);
+			await structuresQuery.refresh();
+			const structures = structuresQuery.current ?? [];
 
 			if (this.#fetchVersion !== requestVersion) return;
 
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				const data = (result as { data?: Record<string, unknown> }).data;
-				throw new Error((data?.error as string) || 'Failed to fetch structures');
-			}
-
-			const successData = (result as { data?: Record<string, unknown> }).data;
-			this.structures = (successData?.structures as NodeStructure[]) || [];
+			this.structures = structures as unknown as NodeStructure[];
 		} catch (err: unknown) {
 			if (this.#fetchVersion !== requestVersion) return;
 			console.error('Error fetching structures:', err);
@@ -294,25 +284,13 @@ export class NodeStructureManager {
 		const requestVersion = this.#fetchVersion;
 
 		try {
-			const formData = new FormData();
-			formData.append('slotConfigUuid', this.selectedSlotConfigUuid);
-
-			const response = await fetch('?/getSlotDividers', {
-				method: 'POST',
-				body: formData
-			});
+			const dividersQuery = getSlotDividers(this.selectedSlotConfigUuid);
+			await dividersQuery.refresh();
+			const dividers = dividersQuery.current ?? [];
 
 			if (this.#fetchVersion !== requestVersion) return;
 
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				const data = (result as { data?: Record<string, unknown> }).data;
-				throw new Error((data?.error as string) || 'Failed to fetch dividers');
-			}
-
-			const successData = (result as { data?: Record<string, unknown> }).data;
-			this.dividers = (successData?.dividers as SlotDivider[]) || [];
+			this.dividers = dividers;
 		} catch (err: unknown) {
 			if (this.#fetchVersion !== requestVersion) return;
 			console.error('Error fetching dividers:', err);
@@ -341,25 +319,12 @@ export class NodeStructureManager {
 		const requestVersion = this.#fetchVersion;
 
 		try {
-			const formData = new FormData();
-			formData.append('slotConfigUuid', this.selectedSlotConfigUuid);
-
-			const response = await fetch('?/getSlotClipNumbers', {
-				method: 'POST',
-				body: formData
-			});
+			const clipsQuery = getSlotClipNumbers(this.selectedSlotConfigUuid);
+			await clipsQuery.refresh();
+			const clips = clipsQuery.current ?? [];
 
 			if (this.#fetchVersion !== requestVersion) return;
 
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				const data = (result as { data?: Record<string, unknown> }).data;
-				throw new Error((data?.error as string) || 'Failed to fetch clip numbers');
-			}
-
-			const successData = (result as { data?: Record<string, unknown> }).data;
-			const clips = (successData?.clipNumbers as ClipNumberEntry[]) || [];
 			const newMap = new Map<number, string>();
 			for (const clip of clips) {
 				newMap.set(clip.slot_number, clip.clip_number);
@@ -425,30 +390,16 @@ export class NodeStructureManager {
 		this.structures = [...this.structures, optimisticStructure];
 
 		try {
-			const formData = new FormData();
-			formData.append('nodeUuid', this.nodeUuid as string);
-			formData.append('slotConfigUuid', this.selectedSlotConfigUuid as string);
-			formData.append('componentTypeId', componentData.id.toString());
-			formData.append('slotStart', slotStart.toString());
-			formData.append('slotEnd', slotEnd.toString());
-			formData.append('purpose', 'component');
-
-			const response = await fetch('?/createNodeStructure', {
-				method: 'POST',
-				body: formData
+			const structure = await createNodeStructure({
+				nodeUuid: this.nodeUuid as string,
+				slotConfigUuid: this.selectedSlotConfigUuid as string,
+				componentTypeId: componentData.id,
+				slotStart,
+				slotEnd,
+				purpose: 'component'
 			});
 
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				const data = (result as { data?: Record<string, unknown> }).data;
-				throw new Error((data?.error as string) || 'Failed to create structure');
-			}
-
-			const successData = (result as { data?: { structure: NodeStructure } }).data!;
-			this.structures = this.structures.map((s) =>
-				s.uuid === tempUuid ? successData.structure : s
-			);
+			this.structures = this.structures.map((s) => (s.uuid === tempUuid ? structure : s));
 
 			globalToaster.success({
 				title: m.title_success(),
@@ -506,31 +457,17 @@ export class NodeStructureManager {
 		this.creatingMultiple = true;
 
 		try {
-			const formData = new FormData();
-			formData.append('nodeUuid', this.nodeUuid as string);
-			formData.append('slotConfigUuid', this.selectedSlotConfigUuid as string);
-			formData.append('componentTypeId', componentData.id.toString());
-			formData.append('slotStart', slotStart.toString());
-			formData.append('count', count.toString());
-			formData.append('occupiedSlotsPerComponent', singleSlots.toString());
-
-			const response = await fetch('?/bulkCreateNodeStructures', {
-				method: 'POST',
-				body: formData
+			const result = await bulkCreateNodeStructures({
+				nodeUuid: this.nodeUuid as string,
+				slotConfigUuid: this.selectedSlotConfigUuid as string,
+				componentTypeId: componentData.id,
+				slotStart,
+				count,
+				occupiedSlotsPerComponent: singleSlots
 			});
 
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				const data = (result as { data?: Record<string, unknown> }).data;
-				throw new Error((data?.error as string) || 'Failed to create structures');
-			}
-
-			const successData = (
-				result as { data?: { created?: NodeStructure[]; failed?: FailedPlacement[] } }
-			).data;
-			const created = successData?.created || [];
-			const failed = successData?.failed || [];
+			const created = result.created;
+			const failed = result.failed as FailedPlacement[];
 
 			this.structures = this.structures.filter((s) => !s.uuid.startsWith('temp-')).concat(created);
 
@@ -592,26 +529,12 @@ export class NodeStructureManager {
 		});
 
 		try {
-			const formData = new FormData();
-			formData.append('structureUuid', structureData.uuid);
-			formData.append('slotStart', newSlotStart.toString());
-
-			const response = await fetch('?/moveNodeStructure', {
-				method: 'POST',
-				body: formData
+			const structure = await moveNodeStructure({
+				structureUuid: structureData.uuid,
+				slotStart: newSlotStart
 			});
 
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				const data = (result as { data?: Record<string, unknown> }).data;
-				throw new Error((data?.error as string) || 'Failed to move structure');
-			}
-
-			const successData = (result as { data?: { structure: NodeStructure } }).data!;
-			this.structures = this.structures.map((s) =>
-				s.uuid === structureData.uuid ? successData.structure : s
-			);
+			this.structures = this.structures.map((s) => (s.uuid === structureData.uuid ? structure : s));
 
 			globalToaster.success({
 				title: m.title_success(),
@@ -631,20 +554,7 @@ export class NodeStructureManager {
 		this.structures = this.structures.filter((s) => s.uuid !== structureUuid);
 
 		try {
-			const formData = new FormData();
-			formData.append('structureUuid', structureUuid);
-
-			const response = await fetch('?/deleteNodeStructure', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				const data = (result as { data?: Record<string, unknown> }).data;
-				throw new Error((data?.error as string) || 'Failed to delete structure');
-			}
+			await deleteNodeStructure(structureUuid);
 
 			globalToaster.success({
 				title: m.title_success(),
@@ -672,20 +582,7 @@ export class NodeStructureManager {
 			this.dividers = this.dividers.filter((d) => d.uuid !== existingDivider.uuid);
 
 			try {
-				const formData = new FormData();
-				formData.append('dividerUuid', existingDivider.uuid);
-
-				const response = await fetch('?/deleteSlotDivider', {
-					method: 'POST',
-					body: formData
-				});
-
-				const result = deserialize(await response.text());
-
-				if (result.type === 'failure' || result.type === 'error') {
-					const data = (result as { data?: Record<string, unknown> }).data;
-					throw new Error((data?.error as string) || 'Failed to delete divider');
-				}
+				await deleteSlotDivider(existingDivider.uuid);
 			} catch (err: unknown) {
 				console.error('Error deleting divider:', err);
 				void logToBackendClient({
@@ -713,24 +610,12 @@ export class NodeStructureManager {
 			this.dividers = [...this.dividers, optimisticDivider];
 
 			try {
-				const formData = new FormData();
-				formData.append('slotConfigUuid', this.selectedSlotConfigUuid as string);
-				formData.append('afterSlot', slotNumber.toString());
-
-				const response = await fetch('?/createSlotDivider', {
-					method: 'POST',
-					body: formData
+				const divider = await createSlotDivider({
+					slotConfigUuid: this.selectedSlotConfigUuid as string,
+					afterSlot: slotNumber
 				});
 
-				const result = deserialize(await response.text());
-
-				if (result.type === 'failure' || result.type === 'error') {
-					const data = (result as { data?: Record<string, unknown> }).data;
-					throw new Error((data?.error as string) || 'Failed to create divider');
-				}
-
-				const successData = (result as { data?: { divider: SlotDivider } }).data!;
-				this.dividers = this.dividers.map((d) => (d.uuid === tempUuid ? successData.divider : d));
+				this.dividers = this.dividers.map((d) => (d.uuid === tempUuid ? divider : d));
 			} catch (err: unknown) {
 				console.error('Error creating divider:', err);
 				void logToBackendClient({
@@ -763,22 +648,11 @@ export class NodeStructureManager {
 		this.clipNumbers = new Map(this.clipNumbers);
 
 		try {
-			const formData = new FormData();
-			formData.append('slotConfigUuid', this.selectedSlotConfigUuid as string);
-			formData.append('slotNumber', slotNumber.toString());
-			formData.append('clipNumber', newClipNumber);
-
-			const response = await fetch('?/upsertSlotClipNumber', {
-				method: 'POST',
-				body: formData
+			await upsertSlotClipNumber({
+				slotConfigUuid: this.selectedSlotConfigUuid as string,
+				slotNumber,
+				clipNumber: newClipNumber
 			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				const data = (result as { data?: Record<string, unknown> }).data;
-				throw new Error((data?.error as string) || 'Failed to save clip number');
-			}
 		} catch (err: unknown) {
 			console.error('Error saving clip number:', err);
 			void logToBackendClient({

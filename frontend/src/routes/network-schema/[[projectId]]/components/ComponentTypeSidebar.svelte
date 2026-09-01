@@ -1,0 +1,319 @@
+<script lang="ts">
+	import type { ComponentType } from '$lib/classes/DragDropManager.svelte';
+	import { getContext, onMount } from 'svelte';
+	import {
+		IconChevronLeft,
+		IconChevronRight,
+		IconGripVertical,
+		IconMinus,
+		IconPlus
+	} from '@tabler/icons-svelte';
+
+	import { m } from '$lib/paraglide/messages';
+
+	import { DRAG_DROP_CONTEXT_KEY, DragDropManager } from '$lib/classes/DragDropManager.svelte';
+	import { PanelResizeManager } from '$lib/classes/PanelResizeManager.svelte.js';
+	import { tooltip } from '$lib/utils/tooltip';
+	import { getComponentTypes } from '$lib/remote/network-schema/component-types.remote';
+
+	let {
+		onDragStart = () => {},
+		onDragEnd = () => {},
+		isMobile = false,
+		onMobileSelect = () => {},
+		disabled = false
+	}: {
+		onDragStart?: (componentType: ComponentType) => void;
+		onDragEnd?: () => void;
+		isMobile?: boolean;
+		onMobileSelect?: (componentType: ComponentType) => void;
+		disabled?: boolean;
+	} = $props();
+
+	const dragDropManager = getContext<DragDropManager | undefined>(DRAG_DROP_CONTEXT_KEY);
+
+	const resizer = new PanelResizeManager({ defaultWidth: 260, side: 'left' });
+
+	// Component types are server truth rendered as a list; the query's reactive
+	// `.current`/`.loading` drive the template without an onMount fetch. Errors
+	// bubble to the nearest boundary.
+	const componentTypesQuery = getComponentTypes();
+	const componentTypes = $derived<ComponentType[]>(componentTypesQuery.current ?? []);
+	const loading = $derived(componentTypesQuery.loading);
+	let collapsed = $state(false);
+
+	/** Track quantity per component type ID */
+	let quantities = $state(new Map<number, number>());
+
+	/**
+	 * Get quantity for a component type (default 1)
+	 */
+	function getQuantity(ctId: number): number {
+		return quantities.get(ctId) || 1;
+	}
+
+	/**
+	 * Update quantity for a component type
+	 */
+	function updateQuantity(ctId: number, delta: number) {
+		const current = getQuantity(ctId);
+		const newValue = Math.max(1, Math.min(99, current + delta));
+		quantities.set(ctId, newValue);
+		quantities = new Map(quantities);
+	}
+
+	/**
+	 * Set quantity directly for a component type
+	 */
+	function setQuantity(ctId: number, value: string | number) {
+		const numValue = parseInt(String(value), 10);
+		if (isNaN(numValue)) return;
+		const clampedValue = Math.max(1, Math.min(99, numValue));
+		quantities.set(ctId, clampedValue);
+		quantities = new Map(quantities);
+	}
+
+	function handleDragStart(e: DragEvent, componentType: ComponentType) {
+		if (disabled) {
+			e.preventDefault();
+			return;
+		}
+		const count = getQuantity(componentType.id);
+		const isMulti = count > 1;
+
+		e.dataTransfer!.setData(
+			'application/json',
+			JSON.stringify({
+				type: isMulti ? 'multi_component_type' : 'component_type',
+				id: componentType.id,
+				name: componentType.component_type,
+				occupied_slots: componentType.occupied_slots,
+				...(isMulti && { count, total_slots: componentType.occupied_slots * count })
+			})
+		);
+		e.dataTransfer!.effectAllowed = 'copy';
+
+		if (dragDropManager) {
+			if (isMulti) {
+				dragDropManager.startMultiComponentDrag(componentType, count);
+			} else {
+				dragDropManager.startComponentDrag(componentType);
+			}
+		}
+		onDragStart(componentType);
+	}
+
+	function handleDragEnd() {
+		if (dragDropManager) {
+			dragDropManager.endDrag();
+		}
+		onDragEnd();
+	}
+
+	function handleItemClick(componentType: ComponentType) {
+		if (isMobile) {
+			const count = getQuantity(componentType.id);
+			if (dragDropManager) {
+				dragDropManager.selectMobileComponent(componentType, count);
+			}
+			onMobileSelect(componentType);
+		}
+	}
+
+	onMount(() => resizer.listen());
+</script>
+
+{#if isMobile}
+	<div class="space-y-2">
+		{#if loading}
+			<div class="text-center py-4 text-surface-500">{m.common_loading()}</div>
+		{:else if componentTypes.length === 0}
+			<div class="text-center py-4 text-surface-500">{m.message_no_component_types()}</div>
+		{:else}
+			{#each componentTypes as ct (ct.id)}
+				{@const qty = getQuantity(ct.id)}
+				<div
+					class="w-full flex items-center gap-3 p-3 rounded-lg bg-surface-200-800 border border-surface-300-700 hover:bg-surface-300-700 transition-colors text-left cursor-pointer"
+					onclick={() => handleItemClick(ct)}
+					onkeydown={(e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.preventDefault();
+							handleItemClick(ct);
+						}
+					}}
+					role="button"
+					tabindex="0"
+				>
+					<div
+						class="w-10 h-10 rounded-lg bg-primary-500/20 flex items-center justify-center shrink-0"
+					>
+						<IconGripVertical size={20} class="text-primary-500" />
+					</div>
+					<div class="flex-1 min-w-0">
+						<div class="font-medium truncate">{ct.component_type}</div>
+						<div class="text-sm text-surface-500">
+							{ct.occupied_slots * qty}
+							{m.form_slot({ count: ct.occupied_slots * qty })}
+							{#if qty > 1}
+								<span class="text-primary-500">({qty}x)</span>
+							{/if}
+						</div>
+					</div>
+					<div
+						class="flex items-center gap-1 shrink-0"
+						role="toolbar"
+						tabindex="-1"
+						onclick={(e) => e.stopPropagation()}
+						onkeydown={(e) => e.stopPropagation()}
+					>
+						<button
+							type="button"
+							class="w-8 h-8 flex items-center justify-center rounded bg-surface-300-700 hover:bg-surface-400-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+							onclick={(e) => {
+								e.stopPropagation();
+								updateQuantity(ct.id, -1);
+							}}
+							disabled={qty <= 1}
+						>
+							<IconMinus size={14} />
+						</button>
+						<input
+							type="number"
+							min="1"
+							max="99"
+							class="w-10 h-8 text-center text-sm font-mono bg-surface-300-700 rounded border-none focus:ring-1 focus:ring-primary-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+							value={qty}
+							onclick={(e) => e.stopPropagation()}
+							oninput={(e) => setQuantity(ct.id, (e.target as HTMLInputElement).value)}
+							onblur={(e) => setQuantity(ct.id, (e.target as HTMLInputElement).value)}
+						/>
+						<button
+							type="button"
+							class="w-8 h-8 flex items-center justify-center rounded bg-surface-300-700 hover:bg-surface-400-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+							onclick={(e) => {
+								e.stopPropagation();
+								updateQuantity(ct.id, 1);
+							}}
+							disabled={qty >= 99}
+						>
+							<IconPlus size={14} />
+						</button>
+					</div>
+				</div>
+			{/each}
+		{/if}
+	</div>
+{:else}
+	<div
+		class="relative border-r border-(--color-surface-200-800) bg-(--color-surface-100-900) flex flex-col {resizer.isResizing
+			? ''
+			: 'transition-all duration-200 ease-in-out'}"
+		style:width={collapsed ? '40px' : `${resizer.width}px`}
+		style:min-width={collapsed ? '40px' : `${resizer.minWidth}px`}
+	>
+		{#if !collapsed}
+			<button
+				bind:this={resizer.handleElement}
+				type="button"
+				class="touch-manipulation absolute right-0 top-0 h-full w-2 bg-transparent hover:bg-surface-300-700 active:bg-surface-300-700 cursor-col-resize transition-colors duration-200 border-none p-0 z-10"
+				style="touch-action: none;"
+				onpointerdown={resizer.start}
+				aria-label={m.tooltip_resize_drawer()}
+				{@attach tooltip(m.tooltip_resize_drawer())}
+			></button>
+		{/if}
+
+		<button
+			type="button"
+			class="absolute top-2 -right-3 z-20 w-6 h-6 rounded-full bg-(--color-surface-100-900) border border-(--color-surface-300-700) flex items-center justify-center cursor-pointer transition-colors duration-150 hover:bg-(--color-surface-200-800)"
+			onclick={() => (collapsed = !collapsed)}
+			aria-label={collapsed ? m.action_expand() : m.action_collapse()}
+			{@attach tooltip(collapsed ? m.action_expand() : m.action_collapse())}
+		>
+			{#if collapsed}
+				<IconChevronRight size={16} />
+			{:else}
+				<IconChevronLeft size={16} />
+			{/if}
+		</button>
+
+		{#if !collapsed}
+			<div class="flex-1 overflow-y-auto p-2 px-1">
+				<h3 class="text-sm font-semibold mb-2 px-2">{m.form_component_types()}</h3>
+
+				{#if loading}
+					<div class="text-center py-4 text-surface-500">{m.common_loading()}</div>
+				{:else if componentTypes.length === 0}
+					<div class="text-center py-4 text-surface-500">{m.message_no_component_types()}</div>
+				{:else}
+					<div class="space-y-1">
+						{#each componentTypes as ct (ct.id)}
+							{@const qty = getQuantity(ct.id)}
+							<div
+								class="flex items-center gap-1.5 px-2 py-1.5 mx-1 rounded bg-(--color-surface-100-900) border border-(--color-surface-200-800) transition-colors duration-150 {disabled
+									? 'opacity-50 cursor-not-allowed'
+									: 'cursor-grab hover:bg-(--color-surface-200-800) hover:border-(--color-primary-500) active:cursor-grabbing'}"
+								draggable={!disabled}
+								ondragstart={(e) => handleDragStart(e, ct)}
+								ondragend={handleDragEnd}
+								role="listitem"
+							>
+								<IconGripVertical size={14} class="text-surface-400 shrink-0" />
+								<div class="flex-1 min-w-0" {@attach tooltip(ct.component_type)}>
+									<div class="text-sm font-medium truncate">{ct.component_type}</div>
+									<div class="text-xs text-surface-950-50">
+										{ct.occupied_slots * qty}
+										{m.form_slot({ count: ct.occupied_slots * qty })}
+										{#if qty > 1}
+											<span class="text-primary-500">({qty}x)</span>
+										{/if}
+									</div>
+								</div>
+								<div class="flex items-center gap-0.5 shrink-0">
+									<button
+										type="button"
+										class="w-5 h-5 flex items-center justify-center rounded bg-surface-200-800 hover:bg-surface-300-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+										onclick={(e) => {
+											e.stopPropagation();
+											updateQuantity(ct.id, -1);
+										}}
+										onmousedown={(e) => e.stopPropagation()}
+										disabled={qty <= 1}
+										draggable="false"
+									>
+										<IconMinus size={10} />
+									</button>
+									<input
+										type="number"
+										min="1"
+										max="99"
+										class="w-8 h-5 text-center text-xs font-mono bg-surface-200-800 rounded border-none focus:ring-1 focus:ring-primary-500 p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+										value={qty}
+										onclick={(e) => e.stopPropagation()}
+										onmousedown={(e) => e.stopPropagation()}
+										oninput={(e) => setQuantity(ct.id, (e.target as HTMLInputElement).value)}
+										onblur={(e) => setQuantity(ct.id, (e.target as HTMLInputElement).value)}
+										draggable="false"
+									/>
+									<button
+										type="button"
+										class="w-5 h-5 flex items-center justify-center rounded bg-surface-200-800 hover:bg-surface-300-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+										onclick={(e) => {
+											e.stopPropagation();
+											updateQuantity(ct.id, 1);
+										}}
+										onmousedown={(e) => e.stopPropagation()}
+										disabled={qty >= 99}
+										draggable="false"
+									>
+										<IconPlus size={10} />
+									</button>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		{/if}
+	</div>
+{/if}

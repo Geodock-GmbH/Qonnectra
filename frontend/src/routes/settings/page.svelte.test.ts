@@ -1,3 +1,4 @@
+import type { PageData } from './$types';
 import { get } from 'svelte/store';
 import { render, screen } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
@@ -11,7 +12,6 @@ import {
 } from '$lib/stores/store';
 
 import SettingsPage from './+page.svelte';
-import type { PageData } from './$types';
 
 vi.mock('$app/environment', () => ({
 	browser: true

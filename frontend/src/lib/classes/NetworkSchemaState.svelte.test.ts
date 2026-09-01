@@ -11,11 +11,19 @@ import type {
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalToaster } from '$lib/stores/toaster';
+import { remoteQueryStub } from '$lib/test-utils/remoteQueryStub';
 
 import { NetworkSchemaState } from './NetworkSchemaState.svelte';
 
-vi.mock('$app/forms', () => ({
-	deserialize: vi.fn((text: string) => JSON.parse(text))
+// Node persistence runs through a remote-function command; mock the module so
+// the class's call is observable without a running server.
+const saveNodeGeometry = vi.fn();
+const getNodeDetails = vi.fn().mockResolvedValue({});
+
+vi.mock('$lib/remote/network-schema/nodes.remote', () => ({
+	// loadNodeDetails force-refreshes this cached query, so mock it as a query stub.
+	getNodeDetails: (...a: unknown[]) => remoteQueryStub(getNodeDetails)(...a),
+	saveNodeGeometry: (...args: unknown[]) => saveNodeGeometry(...args)
 }));
 
 vi.mock('$app/state', () => ({
@@ -220,8 +228,8 @@ describe('NetworkSchemaState.transformCablesToSvelteFlowEdges', () => {
 
 	test('sorts micropipe connections and derives lowest + isConnected', () => {
 		const connections: MicropipeConnection[] = [
-			{ uuid: 'm2', number: 5 },
-			{ uuid: 'm1', number: 2 }
+			{ number: 5, color_hex: '#0000ff', color_name: 'blau' },
+			{ number: 2, color_hex: '#ff0000', color_name: 'rot' }
 		];
 		const map: MicropipeConnectionMap = { 'cable-1': connections };
 		const [edge] = state.transformCablesToSvelteFlowEdges([makeCable()], map);
@@ -287,6 +295,59 @@ describe('NetworkSchemaState selection', () => {
 	test('deselectAllEdges clears all edge selection', () => {
 		state.deselectAllEdges();
 		expect(state.edges.every((e) => !e.selected)).toBe(true);
+	});
+});
+
+describe('NetworkSchemaState edit mode', () => {
+	let state: NetworkSchemaState;
+	beforeEach(() => {
+		state = new NetworkSchemaState();
+		state.edges = [
+			{ id: 'e1', selected: false } as SvelteFlowEdge,
+			{ id: 'e2', selected: false } as SvelteFlowEdge
+		];
+	});
+
+	test('isEditing is false by default (no edit target)', () => {
+		state.locked = false;
+		expect(state.isEditing('e1')).toBe(false);
+	});
+
+	test('enterEditMode unlocks, sets the target, and selects the edge', () => {
+		state.locked = true;
+		state.enterEditMode('e1');
+
+		expect(state.locked).toBe(false);
+		expect(state.editingCableId).toBe('e1');
+		expect(state.isEditing('e1')).toBe(true);
+		expect(state.isEditing('e2')).toBe(false);
+		expect(state.edges.find((e) => e.id === 'e1')?.selected).toBe(true);
+	});
+
+	test('enterEditMode switches the target directly to another cable', () => {
+		state.enterEditMode('e1');
+		state.enterEditMode('e2');
+
+		expect(state.isEditing('e1')).toBe(false);
+		expect(state.isEditing('e2')).toBe(true);
+		expect(state.edges.find((e) => e.id === 'e2')?.selected).toBe(true);
+	});
+
+	test('exitEditMode clears the target and edge selection but keeps the lock as-is', () => {
+		state.enterEditMode('e1');
+		state.exitEditMode();
+
+		expect(state.editingCableId).toBeNull();
+		expect(state.isEditing('e1')).toBe(false);
+		expect(state.locked).toBe(false);
+		expect(state.edges.every((e) => !e.selected)).toBe(true);
+	});
+
+	test('isEditing is false when locked even if a stale edit target remains', () => {
+		state.enterEditMode('e1');
+		state.locked = true;
+
+		expect(state.isEditing('e1')).toBe(false);
 	});
 });
 
@@ -416,8 +477,8 @@ describe('NetworkSchemaState update helpers', () => {
 	test('updateEdgeMicropipeConnections sorts, sets lowest and isConnected', () => {
 		state.edges = [{ id: 'e1', data: { label: 'x' } } as unknown as SvelteFlowEdge];
 		state.updateEdgeMicropipeConnections('e1', [
-			{ uuid: 'b', number: 7 },
-			{ uuid: 'a', number: 1 }
+			{ number: 7, color_hex: '#0000ff', color_name: 'blau' },
+			{ number: 1, color_hex: '#ff0000', color_name: 'rot' }
 		]);
 		const data = state.edges[0].data;
 		expect(data.lowestMicropipe?.number).toBe(1);
@@ -557,57 +618,49 @@ describe('NetworkSchemaState.handleNodeDragStop', () => {
 		state = new NetworkSchemaState();
 		state.nodes = [{ id: 'n1', position: { x: 1, y: 2 } } as SvelteFlowNode];
 		vi.clearAllMocks();
+		saveNodeGeometry.mockResolvedValue({});
 	});
 
 	test('returns early when the dragged node is unknown', async () => {
-		const fetchSpy = vi.spyOn(globalThis, 'fetch');
 		await state.handleNodeDragStop({
 			targetNode: { id: 'unknown', position: { x: 5, y: 5 } }
 		});
-		expect(fetchSpy).not.toHaveBeenCalled();
+		expect(saveNodeGeometry).not.toHaveBeenCalled();
 	});
 
-	test('posts new coordinates and toasts success', async () => {
-		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-			ok: true,
-			json: () => Promise.resolve({ type: 'success' })
-		} as unknown as Response);
-
+	test('persists new coordinates and toasts success', async () => {
 		await state.handleNodeDragStop({
 			targetNode: { id: 'n1', position: { x: 42, y: 84 } }
 		});
 
-		expect(fetchSpy).toHaveBeenCalledTimes(1);
-		const body = fetchSpy.mock.calls[0][1]?.body as FormData;
-		expect(body.get('nodeId')).toBe('n1');
-		expect(body.get('canvas_x')).toBe('42');
-		expect(body.get('canvas_y')).toBe('84');
+		expect(saveNodeGeometry).toHaveBeenCalledTimes(1);
+		expect(saveNodeGeometry).toHaveBeenCalledWith({
+			nodeId: 'n1',
+			x: 42,
+			y: 84,
+			isChildView: false
+		});
 		expect(globalToaster.success).toHaveBeenCalled();
 	});
 
-	test('posts child coordinates in child view', async () => {
+	test('persists child coordinates in child view', async () => {
 		state.isChildView = true;
-		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-			ok: true,
-			json: () => Promise.resolve({ type: 'success' })
-		} as unknown as Response);
 
 		await state.handleNodeDragStop({
 			targetNode: { id: 'n1', position: { x: 7, y: 8 } }
 		});
 
-		const body = fetchSpy.mock.calls[0][1]?.body as FormData;
-		expect(body.get('child_canvas_x')).toBe('7');
-		expect(body.get('child_canvas_y')).toBe('8');
-		expect(body.get('canvas_x')).toBeNull();
+		expect(saveNodeGeometry).toHaveBeenCalledWith({
+			nodeId: 'n1',
+			x: 7,
+			y: 8,
+			isChildView: true
+		});
 	});
 
 	test('reverts position and toasts error when the save fails', async () => {
 		const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-		vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-			ok: false,
-			json: () => Promise.resolve({ type: 'error', message: 'boom' })
-		} as unknown as Response);
+		saveNodeGeometry.mockRejectedValue(new Error('boom'));
 
 		await state.handleNodeDragStop({
 			targetNode: { id: 'n1', position: { x: 99, y: 99 } }

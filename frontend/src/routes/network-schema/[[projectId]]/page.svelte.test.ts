@@ -40,10 +40,6 @@ vi.mock('$lib/utils/tokenHeartbeat.svelte.js', () => ({
 	stopHeartbeat: vi.fn()
 }));
 
-vi.mock('$lib/utils/svelteFlowLock', () => ({
-	autoLockSvelteFlow: vi.fn().mockResolvedValue(undefined)
-}));
-
 // Mock SvelteFlow components with actual Svelte component mocks
 vi.mock('@xyflow/svelte', async () => {
 	const mocks = await import('$lib/test-utils/mocks/xyflow-svelte.js');
@@ -88,7 +84,8 @@ vi.mock('$app/stores', () => {
 });
 
 vi.mock('$app/navigation', () => ({
-	goto: vi.fn()
+	goto: vi.fn(),
+	afterNavigate: vi.fn()
 }));
 
 vi.mock('$lib/stores/store', () => ({
@@ -140,31 +137,31 @@ vi.mock('$lib/components/GenericCombobox.svelte', async () => {
 	return { default: MockGenericCombobox };
 });
 
-vi.mock('./CableDiagramNode.svelte', async () => {
+vi.mock('./components/CableDiagramNode.svelte', async () => {
 	const { default: MockCableDiagramNode } =
 		await import('$lib/test-utils/mocks/MockCableDiagramNode.svelte');
 	return { default: MockCableDiagramNode };
 });
 
-vi.mock('./CableDiagramEdge.svelte', async () => {
+vi.mock('./components/CableDiagramEdge.svelte', async () => {
 	const { default: MockCableDiagramEdge } =
 		await import('$lib/test-utils/mocks/MockCableDiagramEdge.svelte');
 	return { default: MockCableDiagramEdge };
 });
 
-vi.mock('./NetworkSchemaSearch.svelte', async () => {
+vi.mock('./components/NetworkSchemaSearch.svelte', async () => {
 	const { default: MockNetworkSchemaSearch } =
 		await import('$lib/test-utils/mocks/MockNetworkSchemaSearch.svelte');
 	return { default: MockNetworkSchemaSearch };
 });
 
-vi.mock('./ViewportPersistence.svelte', async () => {
+vi.mock('./components/ViewportPersistence.svelte', async () => {
 	const { default: MockViewportPersistence } =
 		await import('$lib/test-utils/mocks/MockViewportPersistence.svelte');
 	return { default: MockViewportPersistence };
 });
 
-vi.mock('./MicroductChoiceDialog.svelte', async () => {
+vi.mock('./components/MicroductChoiceDialog.svelte', async () => {
 	const { default: MockMicroductChoiceDialog } =
 		await import('$lib/test-utils/mocks/MockMicroductChoiceDialog.svelte');
 	return { default: MockMicroductChoiceDialog };
@@ -187,6 +184,8 @@ vi.mock('$lib/classes/NetworkSchemaState.svelte', () => ({
 		userCableName = '';
 		initialized = true;
 		parentNodeContext = null;
+		shiftPressed = false;
+		locked = true;
 		initialize = vi.fn();
 		handleNodeDragStop = vi.fn();
 		handleConnect = vi.fn();
@@ -194,15 +193,10 @@ vi.mock('$lib/classes/NetworkSchemaState.svelte', () => ({
 		updateCableHandles = vi.fn();
 		updateEdgeConnection = vi.fn();
 		deselectAllNodes = vi.fn();
+		setShiftFromKeyboard = vi.fn();
+		clearShift = vi.fn();
 		transformNodesToSvelteFlow = vi.fn().mockReturnValue([]);
 		transformCablesToSvelteFlowEdges = vi.fn().mockReturnValue([]);
-	}
-}));
-
-vi.mock('$lib/classes/CablePathManager.svelte.js', () => ({
-	CablePathManager: class MockCablePathManager {
-		updatePath = vi.fn();
-		updateHandles = vi.fn();
 	}
 }));
 

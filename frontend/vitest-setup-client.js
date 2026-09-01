@@ -1,6 +1,131 @@
 import '@testing-library/jest-dom/vitest';
 
-import { vi } from 'vitest';
+import { settled, tick } from 'svelte';
+import { cleanup } from '@testing-library/svelte';
+import { afterEach, vi } from 'vitest';
+
+// With `compilerOptions.experimental.async` on, component unmount is deferred:
+// testing-library's auto-cleanup calls `unmount()` but the DOM removal and any
+// in-flight async teardown settle on a later microtask. Without awaiting that,
+// stale DOM from one test leaks into the next → `getByRole` "multiple elements"
+// and hook timeouts. This afterEach registers last, so it runs first in
+// vitest's reverse-order teardown: it settles pending async work, unmounts, and
+// waits for the deferred teardown to flush before the next test renders.
+afterEach(async () => {
+	await settled();
+	cleanup();
+	await tick();
+	await settled();
+});
+
+// The remote functions ($app/server query/command) can't load in the jsdom
+// unit-test SSR context (the SvelteKit remote plugin references build-time
+// path globals). Any component/class that imports them transitively gets
+// these inert stubs; tests that need to observe a call override with their
+// own vi.mock in the test file.
+vi.mock('$lib/remote/network-schema/paths.remote', () => ({
+	saveCableGeometry: vi.fn().mockResolvedValue({})
+}));
+vi.mock('$lib/remote/network-schema/labels.remote', () => ({
+	upsertCableLabel: vi.fn().mockResolvedValue({ position_x: 0, position_y: 0, text: '', uuid: '' }),
+	deleteCableLabel: vi.fn().mockResolvedValue(undefined)
+}));
+vi.mock('$lib/remote/network-schema/cables.remote', () => ({
+	getCableDetails: vi.fn().mockResolvedValue({}),
+	createCable: vi.fn().mockResolvedValue({ uuid: '' }),
+	updateCable: vi.fn().mockResolvedValue({}),
+	deleteCable: vi.fn().mockResolvedValue(undefined),
+	getConduitsForCable: vi.fn(() => ({ current: [], loading: false, error: undefined })),
+	getCableSplices: vi.fn().mockResolvedValue([]),
+	recalculateCableLength: vi.fn().mockResolvedValue({ length: 0, length_total: 0 })
+}));
+vi.mock('$lib/remote/network-schema/nodes.remote', () => ({
+	getNodeDetails: vi.fn().mockResolvedValue({}),
+	saveNodeGeometry: vi.fn().mockResolvedValue({}),
+	getNodeDependencies: vi.fn(() => ({
+		loading: false,
+		error: undefined,
+		current: {
+			cables: [],
+			structures: [],
+			children: [],
+			childrenWithCables: [],
+			hasChildren: false,
+			hasCables: false,
+			hasChildrenWithCables: false
+		}
+	})),
+	updateNode: vi.fn().mockResolvedValue({}),
+	deleteNode: vi.fn().mockResolvedValue(undefined)
+}));
+vi.mock('$lib/remote/network-schema/micropipes.remote', () => ({
+	autoLinkMicropipe: vi.fn().mockResolvedValue({ results: [], linked_count: 0 }),
+	getMicropipeConnectionsForCable: vi.fn().mockResolvedValue([]),
+	getLinkedTrenchesForCable: vi.fn().mockResolvedValue([]),
+	getConduitsByTrenches: vi.fn().mockResolvedValue([]),
+	getMicropipesByConduits: vi.fn().mockResolvedValue([]),
+	createMicropipeConnections: vi.fn().mockResolvedValue(undefined),
+	deleteMicropipeConnections: vi.fn().mockResolvedValue(undefined)
+}));
+vi.mock('$lib/remote/network-schema/component-types.remote', () => ({
+	getComponentTypes: vi.fn(() => ({ current: [], loading: false, error: undefined }))
+}));
+vi.mock('$lib/remote/network-schema/node-structures.remote', () => ({
+	getSlotConfigurationsForNode: vi.fn().mockResolvedValue([]),
+	getSlotDividers: vi.fn().mockResolvedValue([]),
+	getSlotClipNumbers: vi.fn().mockResolvedValue([]),
+	createNodeStructure: vi.fn().mockResolvedValue({}),
+	bulkCreateNodeStructures: vi.fn().mockResolvedValue({ created: [], failed: [] }),
+	moveNodeStructure: vi.fn().mockResolvedValue({}),
+	deleteNodeStructure: vi.fn().mockResolvedValue(undefined),
+	createSlotDivider: vi.fn().mockResolvedValue({}),
+	deleteSlotDivider: vi.fn().mockResolvedValue(undefined),
+	upsertSlotClipNumber: vi.fn().mockResolvedValue({})
+}));
+vi.mock('$lib/remote/network-schema/fiber-splices.remote', () => ({
+	getComponentPorts: vi.fn().mockResolvedValue([]),
+	getFiberSplices: vi.fn().mockResolvedValue([]),
+	upsertFiberSplice: vi.fn().mockResolvedValue({}),
+	bulkUpsertFiberSplices: vi.fn().mockResolvedValue({ created: [], failed: [] }),
+	clearFiberSplice: vi.fn().mockResolvedValue({ deleted: 0 }),
+	mergePorts: vi.fn().mockResolvedValue({}),
+	unmergePorts: vi.fn().mockResolvedValue({}),
+	upsertMergedSplice: vi.fn().mockResolvedValue({})
+}));
+vi.mock('$lib/remote/network-schema/fibers.remote', () => ({
+	getCablesAtNode: vi.fn().mockResolvedValue([]),
+	getFibersForCable: vi.fn().mockResolvedValue([]),
+	getFiberColors: vi.fn().mockResolvedValue([]),
+	getFiberUsageInNode: vi.fn().mockResolvedValue({ usedFiberUuids: [], fiberComponentMap: {} }),
+	getAddressesForNode: vi.fn().mockResolvedValue([]),
+	getUsedResidentialUnits: vi
+		.fn()
+		.mockResolvedValue({ usedResidentialUnitUuids: [], residentialUnitComponentMap: {} }),
+	getFiberStatusOptions: vi.fn().mockResolvedValue([]),
+	updateFiberStatus: vi.fn().mockResolvedValue(null),
+	getCablesInTrench: vi.fn().mockResolvedValue([])
+}));
+vi.mock('$lib/remote/network-schema/cable-connections.remote', () => ({
+	getCableSplicesAtNode: vi.fn().mockResolvedValue([]),
+	updateCableConnection: vi.fn().mockResolvedValue({}),
+	deleteCableSplicesAtNode: vi.fn().mockResolvedValue({ deletedCount: 0, failedCount: 0 })
+}));
+vi.mock('$lib/remote/network-schema/containers.remote', () => ({
+	getContainerTypes: vi.fn().mockResolvedValue([]),
+	getContainerHierarchy: vi
+		.fn()
+		.mockResolvedValue({ containers: [], root_slot_configurations: [] }),
+	getNodeStructures: vi.fn().mockResolvedValue([]),
+	createContainer: vi.fn().mockResolvedValue({}),
+	deleteContainer: vi.fn().mockResolvedValue(undefined),
+	updateContainerName: vi.fn().mockResolvedValue({}),
+	moveItem: vi.fn().mockResolvedValue(undefined),
+	toggleContainerExpanded: vi.fn().mockResolvedValue(undefined),
+	createSlotConfiguration: vi.fn().mockResolvedValue({}),
+	updateSlotConfiguration: vi.fn().mockResolvedValue({}),
+	deleteSlotConfiguration: vi.fn().mockResolvedValue(undefined),
+	exportNodeExcel: vi.fn().mockResolvedValue({ fileData: '', fileName: 'x.xlsx' })
+}));
 
 // jsdom does not provide ResizeObserver (required by @zag-js/tabs / Skeleton Tabs)
 global.ResizeObserver = class ResizeObserver {

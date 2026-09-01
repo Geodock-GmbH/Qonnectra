@@ -1,12 +1,18 @@
 import { SvelteSet } from 'svelte/reactivity';
-import { deserialize } from '$app/forms';
 
 import { m } from '$lib/paraglide/messages';
 
 import { globalToaster } from '$lib/stores/toaster';
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
+import {
+	createMicropipeConnections,
+	deleteMicropipeConnections,
+	getConduitsByTrenches,
+	getLinkedTrenchesForCable,
+	getMicropipesByConduits
+} from '$lib/remote/network-schema/micropipes.remote';
 
-interface Conduit {
+export interface Conduit {
 	uuid: string;
 	name: string;
 	conduit_type_name: string;
@@ -92,28 +98,11 @@ export class CableMicropipeManager {
 		}
 
 		try {
-			const formData = new FormData();
-			formData.append('cableId', this.cableId);
-
-			const response = await fetch('?/getLinkedTrenchesForCable', {
-				method: 'POST',
-				body: formData
-			});
-
-			const textResponse = await response.text();
-			const result = deserialize(textResponse);
-
-			if (result.type !== 'success') {
-				console.error(
-					'Failed to fetch linked trenches:',
-					result.type === 'failure' ? result.data?.error : result.type
-				);
-				this.linkedTrenchIds = new SvelteSet();
-				return;
-			}
-
-			const data = result.data as { trench_uuids?: string[] };
-			this.linkedTrenchIds = new SvelteSet(data?.trench_uuids || []);
+			// Remote queries are cached per argument, so a plain re-call after a
+			// mutation returns the stale cached value — refresh() forces a fetch.
+			const trenchesQuery = getLinkedTrenchesForCable(this.cableId);
+			await trenchesQuery.refresh();
+			this.linkedTrenchIds = new SvelteSet(trenchesQuery.current ?? []);
 		} catch (error) {
 			console.error('Error fetching linked trenches:', error);
 			void logToBackendClient({
@@ -149,28 +138,14 @@ export class CableMicropipeManager {
 
 		this.loading = true;
 		try {
-			const formData = new FormData();
-			formData.append('trenchIds', Array.from(this.selectedTrenchIds).join(','));
-			if (this.cableId) {
-				formData.append('cableId', this.cableId);
-			}
-
-			const response = await fetch('?/getConduitsByTrenches', {
-				method: 'POST',
-				body: formData
+			// Remote queries are cached per argument, so a plain re-call after a
+			// mutation returns the stale cached value — refresh() forces a fetch.
+			const conduitsQuery = getConduitsByTrenches({
+				trenchIds: Array.from(this.selectedTrenchIds),
+				cableId: this.cableId ?? undefined
 			});
-
-			const textResponse = await response.text();
-			const result = deserialize(textResponse);
-
-			if (result.type !== 'success') {
-				const msg =
-					result.type === 'failure' ? (result.data?.error as string | undefined) : undefined;
-				throw new Error(msg || 'Failed to fetch conduits');
-			}
-
-			const data = result.data as { conduits?: Conduit[] };
-			this.conduits = data?.conduits || [];
+			await conduitsQuery.refresh();
+			this.conduits = conduitsQuery.current ?? [];
 		} catch (error) {
 			console.error('Error fetching conduits:', error);
 			void logToBackendClient({
@@ -220,28 +195,14 @@ export class CableMicropipeManager {
 
 		this.loading = true;
 		try {
-			const formData = new FormData();
-			formData.append('conduitIds', Array.from(this.selectedConduitIds).join(','));
-			if (this.cableId) {
-				formData.append('cableId', this.cableId);
-			}
-
-			const response = await fetch('?/getMicropipesByConduits', {
-				method: 'POST',
-				body: formData
+			// Remote queries are cached per argument, so a plain re-call after a
+			// mutation returns the stale cached value — refresh() forces a fetch.
+			const micropipesQuery = getMicropipesByConduits({
+				conduitIds: Array.from(this.selectedConduitIds),
+				cableId: this.cableId ?? undefined
 			});
-
-			const textResponse = await response.text();
-			const result = deserialize(textResponse);
-
-			if (result.type !== 'success') {
-				const msg =
-					result.type === 'failure' ? (result.data?.error as string | undefined) : undefined;
-				throw new Error(msg || 'Failed to fetch micropipes');
-			}
-
-			const data = result.data as { micropipes?: Micropipe[] };
-			this.micropipes = data?.micropipes || [];
+			await micropipesQuery.refresh();
+			this.micropipes = micropipesQuery.current ?? [];
 			this.step = 2;
 		} catch (error) {
 			console.error('Error fetching micropipes:', error);
@@ -299,25 +260,12 @@ export class CableMicropipeManager {
 
 		this.saving = true;
 		try {
-			const formData = new FormData();
-			formData.append('cableId', this.cableId as string);
-			formData.append('micropipeNumber', this.selectedMicropipe.number.toString());
-			formData.append('color', this.selectedMicropipe.color_name);
-			formData.append('conduitIds', JSON.stringify(Array.from(this.selectedConduitIds)));
-
-			const response = await fetch('?/createMicropipeConnections', {
-				method: 'POST',
-				body: formData
+			await createMicropipeConnections({
+				cableId: this.cableId as string,
+				micropipeNumber: this.selectedMicropipe.number,
+				color: this.selectedMicropipe.color_name,
+				conduitIds: Array.from(this.selectedConduitIds)
 			});
-
-			const textResponse = await response.text();
-			const result = deserialize(textResponse);
-
-			if (result.type !== 'success') {
-				const msg =
-					result.type === 'failure' ? (result.data?.error as string | undefined) : undefined;
-				throw new Error(msg || 'Failed to save linkage');
-			}
 
 			globalToaster.success({
 				title: m.title_success(),
@@ -356,24 +304,11 @@ export class CableMicropipeManager {
 	async removeLinkage(micropipeNumber: number, conduitIds: string[]): Promise<void> {
 		this.saving = true;
 		try {
-			const formData = new FormData();
-			formData.append('cableId', this.cableId as string);
-			formData.append('micropipeNumber', micropipeNumber.toString());
-			formData.append('conduitIds', JSON.stringify(conduitIds));
-
-			const response = await fetch('?/deleteMicropipeConnections', {
-				method: 'POST',
-				body: formData
+			await deleteMicropipeConnections({
+				cableId: this.cableId as string,
+				micropipeNumber,
+				conduitIds
 			});
-
-			const textResponse = await response.text();
-			const result = deserialize(textResponse);
-
-			if (result.type !== 'success') {
-				const msg =
-					result.type === 'failure' ? (result.data?.error as string | undefined) : undefined;
-				throw new Error(msg || 'Failed to remove linkage');
-			}
 
 			globalToaster.success({
 				title: m.title_success(),

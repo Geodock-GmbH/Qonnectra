@@ -3,13 +3,12 @@
 	import type { NetworkSchemaInitData } from '$lib/classes/NetworkSchemaState.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { Background, ConnectionMode, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
+	import { Background, ConnectionMode, Panel, SvelteFlow } from '@xyflow/svelte';
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
 	import { IconArrowLeft, IconChevronDown, IconChevronRight } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { CablePathManager } from '$lib/classes/CablePathManager.svelte.js';
 	import { NetworkSchemaSearchManager } from '$lib/classes/NetworkSchemaSearchManager.svelte.js';
 	import { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte';
 	import Drawer from '$lib/components/Drawer.svelte';
@@ -22,18 +21,20 @@
 		networkSchemaPanelExpanded,
 		selectedProject
 	} from '$lib/stores/store';
-	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
+	import { setSchemaState } from '$lib/context/networkSchemaContext';
 
 	import '@xyflow/svelte/dist/style.css';
 
 	import type { PageData } from './$types';
 	import { onMount, setContext } from 'svelte';
 
-	import CableDiagramEdge from '../../CableDiagramEdge.svelte';
-	import CableDiagramNode from '../../CableDiagramNode.svelte';
-	import MicroductChoiceDialog from '../../MicroductChoiceDialog.svelte';
-	import NetworkSchemaSearch from '../../NetworkSchemaSearch.svelte';
-	import ViewportPersistence from '../../ViewportPersistence.svelte';
+	import CableDiagramEdge from '../../components/CableDiagramEdge.svelte';
+	import CableDiagramNode from '../../components/CableDiagramNode.svelte';
+	import MicroductChoiceDialog from '../../components/MicroductChoiceDialog.svelte';
+	import NetworkSchemaControls from '../../components/NetworkSchemaControls.svelte';
+	import NetworkSchemaEditModeBadge from '../../components/NetworkSchemaEditModeBadge.svelte';
+	import NetworkSchemaSearch from '../../components/NetworkSchemaSearch.svelte';
+	import ViewportPersistence from '../../components/ViewportPersistence.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -54,7 +55,6 @@
 	};
 
 	const schemaState = new NetworkSchemaState();
-	const cablePathManager = new CablePathManager();
 	const searchManager = new NetworkSchemaSearchManager(schemaState);
 
 	$effect(() => {
@@ -105,15 +105,7 @@
 		}
 	});
 
-	setContext('schemaState', {
-		get nodes() {
-			return schemaState.nodes;
-		}
-	});
-
-	onMount(() => {
-		autoLockSvelteFlow();
-	});
+	setSchemaState(schemaState);
 
 	onMount(() => {
 		function handleMicropipeLinkageChanged(event: WindowEventMap['micropipeLinkageChanged']) {
@@ -124,80 +116,6 @@
 		window.addEventListener('micropipeLinkageChanged', handleMicropipeLinkageChanged);
 		return () => {
 			window.removeEventListener('micropipeLinkageChanged', handleMicropipeLinkageChanged);
-		};
-	});
-
-	async function handleCablePathUpdate(event: WindowEventMap['updateCablePath']) {
-		const { edgeId, waypoints, temporary, save } = event.detail;
-
-		await cablePathManager.updatePath(
-			edgeId,
-			waypoints as { x: number; y: number }[],
-			temporary,
-			save,
-			(edgeId, updates) => {
-				const cableUpdate = (updates.data as { cable?: Record<string, unknown> })?.cable ?? {};
-				schemaState.edges = schemaState.edges.map((edge) => {
-					if (edge.id === edgeId) {
-						return {
-							...edge,
-							data: {
-								...edge.data,
-								cable: {
-									...edge.data.cable,
-									...cableUpdate
-								}
-							}
-						};
-					}
-					return edge;
-				});
-			}
-		);
-	}
-
-	function handleCableHandleUpdate(event: WindowEventMap['updateCableHandles']) {
-		const { cableId, handleStart, handleEnd } = event.detail;
-		cablePathManager.updateHandles(
-			cableId,
-			String(handleStart),
-			String(handleEnd),
-			(cableId, handleStart, handleEnd) => {
-				schemaState.updateCableHandles(cableId, handleStart, handleEnd);
-			}
-		);
-	}
-
-	$effect(() => {
-		window.addEventListener('updateCablePath', handleCablePathUpdate);
-		return () => {
-			window.removeEventListener('updateCablePath', handleCablePathUpdate);
-		};
-	});
-
-	$effect(() => {
-		window.addEventListener('updateCableHandles', handleCableHandleUpdate);
-		return () => {
-			window.removeEventListener('updateCableHandles', handleCableHandleUpdate);
-		};
-	});
-
-	$effect(() => {
-		function handleCableConnectionChangedEvent(event: WindowEventMap['cableConnectionChanged']) {
-			const detail = event.detail;
-			if ('cableId' in detail && detail.side && detail.newNodeId) {
-				schemaState.updateEdgeConnection(
-					detail.cableId,
-					detail.side,
-					detail.newNodeId,
-					detail.handlePosition ?? 'top'
-				);
-			}
-		}
-
-		window.addEventListener('cableConnectionChanged', handleCableConnectionChangedEvent);
-		return () => {
-			window.removeEventListener('cableConnectionChanged', handleCableConnectionChangedEvent);
 		};
 	});
 
@@ -220,6 +138,18 @@
 	<title>{m.nav_network_schema()} - {m.action_open_child_network()}</title>
 </svelte:head>
 
+<svelte:window
+	onkeydown={(e) => {
+		schemaState.setShiftFromKeyboard(e);
+		if (e.key === 'Escape' && schemaState.editingCableId) {
+			schemaState.exitEditMode();
+		}
+	}}
+	onkeyup={(e) => schemaState.setShiftFromKeyboard(e)}
+	onblur={() => schemaState.clearShift()}
+/>
+<svelte:document onvisibilitychange={() => schemaState.clearShift()} />
+
 <div class="relative flex gap-4 h-full overflow-hidden">
 	<div class="flex-1 border-2 rounded-lg border-surface-200-800 h-full">
 		<SvelteFlow
@@ -230,12 +160,17 @@
 			{edgeTypes}
 			{connectionMode}
 			{...svelteFlowExtraProps}
+			nodesDraggable={!schemaState.locked}
+			nodesConnectable={!schemaState.locked}
+			elementsSelectable={!schemaState.locked}
+			elevateEdgesOnSelect={true}
 			onnodedragstop={(e) => schemaState.handleNodeDragStop(e)}
 			onconnect={(conn) => schemaState.handleConnect(conn, $selectedProject)}
 		>
 			<ViewportPersistence isChildView={true} />
 			<Background class="z-0" bgColor="var(--color-surface-100-900)" />
-			<Controls />
+			<NetworkSchemaControls />
+			<NetworkSchemaEditModeBadge />
 			<Panel position="top-left">
 				<div class="card bg-surface-50-950 p-2 rounded-lg shadow-lg w-72">
 					<button

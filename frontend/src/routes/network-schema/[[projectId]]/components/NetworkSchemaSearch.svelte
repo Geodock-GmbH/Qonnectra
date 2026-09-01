@@ -1,0 +1,226 @@
+<script lang="ts">
+	import type {
+		NetworkSchemaSearchManager,
+		SearchResult
+	} from '$lib/classes/NetworkSchemaSearchManager.svelte.js';
+	import type { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte';
+	import { useSvelteFlow } from '@xyflow/svelte';
+	import { IconLine, IconPoint, IconSearch, IconX } from '@tabler/icons-svelte';
+
+	import { m } from '$lib/paraglide/messages';
+
+	import { drawerStore } from '$lib/stores/drawer';
+
+	import DrawerTabs from './DrawerTabs.svelte';
+
+	let {
+		searchManager,
+		schemaState,
+		onNodeDelete = null
+	}: {
+		searchManager: NetworkSchemaSearchManager;
+		schemaState: NetworkSchemaState;
+		onNodeDelete?: ((uuid: string) => void) | null;
+	} = $props();
+
+	const { setCenter } = useSvelteFlow();
+
+	let inputElement = $state<HTMLInputElement | null>(null);
+	let isDropdownOpen = $state(false);
+	let selectedIndex = $state(-1);
+
+	let results = $derived(searchManager.searchResults);
+
+	function handleInput(e: Event) {
+		searchManager.searchTerm = (e.target as HTMLInputElement).value;
+		isDropdownOpen = searchManager.searchTerm.length > 0;
+		selectedIndex = -1;
+	}
+
+	function handleKeyDown(e: KeyboardEvent) {
+		if (!isDropdownOpen || results.length === 0) return;
+
+		switch (e.key) {
+			case 'ArrowDown':
+				e.preventDefault();
+				selectedIndex = Math.min(selectedIndex + 1, results.length - 1);
+				break;
+			case 'ArrowUp':
+				e.preventDefault();
+				selectedIndex = Math.max(selectedIndex - 1, -1);
+				break;
+			case 'Enter':
+				e.preventDefault();
+				if (selectedIndex >= 0 && selectedIndex < results.length) {
+					selectResult(results[selectedIndex]);
+				}
+				break;
+			case 'Escape':
+				e.preventDefault();
+				clearSearch();
+				break;
+		}
+	}
+
+	function clearSearch() {
+		searchManager.clearSearch();
+		isDropdownOpen = false;
+		selectedIndex = -1;
+	}
+
+	/**
+	 * Handle result selection - pans to item, highlights it, and optionally opens drawer
+	 * @param result - The search result object
+	 */
+	async function selectResult(result: SearchResult) {
+		isDropdownOpen = false;
+		selectedIndex = -1;
+
+		const position = searchManager.getResultPosition(result);
+
+		if (searchManager.panToResult && position) {
+			setCenter(position.x, position.y, { duration: 500, zoom: 1 });
+		}
+
+		if (searchManager.highlightResult) {
+			if (result.type === 'node') {
+				schemaState.selectNode(result.id);
+			} else {
+				schemaState.selectEdge(result.id);
+			}
+		}
+
+		if (searchManager.openDrawer) {
+			if (result.type === 'node') {
+				await openNodeDrawer(result.id);
+			} else {
+				await openCableDrawer(result.id);
+			}
+		}
+
+		searchManager.searchTerm = '';
+	}
+
+	/**
+	 * Fetch and open node details in drawer
+	 * @param nodeId - Node UUID
+	 */
+	async function openNodeDrawer(nodeId: string) {
+		const parsedData = await schemaState.loadNodeDetails(nodeId);
+		const properties = (parsedData?.properties ?? {}) as Record<string, unknown>;
+
+		drawerStore.open({
+			title: (properties.name as string) || m.title_node_details(),
+			component: DrawerTabs,
+			props: {
+				id: nodeId,
+				...properties,
+				type: 'node',
+				onLabelUpdate: (newLabel: string) => {
+					drawerStore.setTitle(newLabel);
+					schemaState.updateNodeName(nodeId, newLabel);
+				},
+				onNodeDelete
+			}
+		});
+	}
+
+	/**
+	 * Fetch and open cable details in drawer
+	 * @param cableId - Cable UUID
+	 */
+	async function openCableDrawer(cableId: string) {
+		const parsedData = await schemaState.loadCableDetails(cableId);
+
+		drawerStore.open({
+			title: (parsedData?.name as string) || m.title_cable_details(),
+			component: DrawerTabs,
+			props: {
+				...parsedData,
+				type: 'edge',
+				onLabelUpdate: (newLabel: string) => {
+					drawerStore.setTitle(newLabel);
+					schemaState.updateEdgeName(cableId, newLabel);
+				}
+			}
+		});
+	}
+
+	function handleBlur() {
+		// Defer closing so a mousedown on a dropdown item fires before the dropdown disappears
+		setTimeout(() => {
+			isDropdownOpen = false;
+		}, 200);
+	}
+</script>
+
+<div class="relative w-full">
+	<div class="field-group grid-cols-[1fr_auto] rounded-lg overflow-hidden shadow-sm">
+		<input
+			bind:this={inputElement}
+			type="text"
+			class="input touch-manipulation text-sm min-h-10 px-3 bg-surface-50-950 border-0 focus:ring-2 focus:ring-primary-500/50 transition-shadow"
+			placeholder={m.common_search()}
+			value={searchManager.searchTerm}
+			oninput={handleInput}
+			onkeydown={handleKeyDown}
+			onblur={handleBlur}
+			onfocus={() => {
+				if (searchManager.searchTerm.length > 0) {
+					isDropdownOpen = true;
+				}
+			}}
+			autocomplete="off"
+		/>
+		<button
+			type="button"
+			class="btn preset-filled-primary-500 min-h-10 min-w-10 flex items-center justify-center"
+			onclick={() => {
+				if (searchManager.searchTerm.length > 0) {
+					clearSearch();
+				}
+			}}
+			aria-label={m.common_search()}
+		>
+			{#if searchManager.searchTerm.length > 0}
+				<IconX size={18} />
+			{:else}
+				<IconSearch size={18} />
+			{/if}
+		</button>
+	</div>
+
+	{#if isDropdownOpen && results.length > 0}
+		<div
+			class="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg"
+		>
+			{#each results as result, index (result.id)}
+				<button
+					type="button"
+					class="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-surface-200-800 {selectedIndex ===
+					index
+						? 'bg-surface-200-800'
+						: ''}"
+					onclick={() => selectResult(result)}
+					onmouseenter={() => (selectedIndex = index)}
+				>
+					{#if result.type === 'node'}
+						<IconPoint size={16} class="text-primary-500 shrink-0" />
+					{:else}
+						<IconLine size={16} class="text-secondary-500 shrink-0" />
+					{/if}
+					<span class="truncate flex-1">{result.name}</span>
+					<span class="text-xs text-surface-400 shrink-0">
+						{result.type === 'node' ? m.form_node() : m.form_cables()}
+					</span>
+				</button>
+			{/each}
+		</div>
+	{:else if isDropdownOpen && searchManager.searchTerm.length > 0 && results.length === 0}
+		<div
+			class="absolute z-50 mt-1 w-full rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg p-3 text-center text-sm text-surface-400"
+		>
+			{m.message_no_results_found()}
+		</div>
+	{/if}
+</div>

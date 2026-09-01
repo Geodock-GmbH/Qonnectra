@@ -1,7 +1,16 @@
 import type { ComponentPlacement, FiberColor } from '$lib/server/nodeData';
-import { deserialize } from '$app/forms';
 
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
+import {
+	getAddressesForNode,
+	getCablesAtNode,
+	getFiberColors,
+	getFibersForCable as getFibersForCableQuery,
+	getFiberStatusOptions,
+	getFiberUsageInNode,
+	getUsedResidentialUnits,
+	updateFiberStatus as updateFiberStatusCommand
+} from '$lib/remote/network-schema/fibers.remote';
 
 export interface Cable {
 	uuid: string;
@@ -131,19 +140,11 @@ export class CableFiberDataManager {
 
 		this.loading = true;
 		try {
-			const formData = new FormData();
-			formData.append('nodeUuid', this.nodeUuid);
-
-			const response = await fetch('?/getCablesAtNode', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'success') {
-				this.cables = ((result.data as Record<string, unknown>)?.cables as Cable[]) || [];
-			}
+			// Remote queries are cached per argument, so a plain re-call after a
+			// mutation returns the stale cached value — refresh() forces a fetch.
+			const cablesQuery = getCablesAtNode(this.nodeUuid);
+			await cablesQuery.refresh();
+			this.cables = cablesQuery.current ?? [];
 		} catch (err) {
 			console.error('Error fetching cables:', err);
 			void logToBackendClient({
@@ -169,23 +170,13 @@ export class CableFiberDataManager {
 
 		this.loadingFiberUsage = true;
 		try {
-			const formData = new FormData();
-			formData.append('nodeUuid', this.nodeUuid);
-
-			const response = await fetch('?/getFiberUsageInNode', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'success') {
-				const data = result.data as Record<string, unknown>;
-				this.usedFiberUuids = new Set((data?.usedFiberUuids as string[]) || []);
-				this.fiberComponentMap = new Map(
-					Object.entries((data?.fiberComponentMap as Record<string, ComponentPlacement>) || {})
-				);
-			}
+			// Remote queries are cached per argument, so a plain re-call after a
+			// mutation returns the stale cached value — refresh() forces a fetch.
+			const usageQuery = getFiberUsageInNode(this.nodeUuid);
+			await usageQuery.refresh();
+			const data = usageQuery.current ?? { usedFiberUuids: [], fiberComponentMap: {} };
+			this.usedFiberUuids = new Set(data.usedFiberUuids);
+			this.fiberComponentMap = new Map(Object.entries(data.fiberComponentMap));
 		} catch (err) {
 			console.error('Error fetching fiber usage:', err);
 			void logToBackendClient({
@@ -235,19 +226,7 @@ export class CableFiberDataManager {
 
 		this.loadingAddresses = true;
 		try {
-			const formData = new FormData();
-			formData.append('nodeUuid', this.nodeUuid);
-
-			const response = await fetch('?/getAddressesForNode', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-			if (result.type === 'success') {
-				this.addresses =
-					((result.data as Record<string, unknown>)?.addresses as NodeAddress[]) || [];
-			}
+			this.addresses = await getAddressesForNode(this.nodeUuid);
 		} catch (err) {
 			console.error('Error fetching addresses:', err);
 			void logToBackendClient({
@@ -272,24 +251,16 @@ export class CableFiberDataManager {
 
 		this.loadingResidentialUnitUsage = true;
 		try {
-			const formData = new FormData();
-			formData.append('nodeUuid', this.nodeUuid);
-
-			const response = await fetch('?/getUsedResidentialUnits', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-			if (result.type === 'success') {
-				const data = result.data as Record<string, unknown>;
-				this.usedResidentialUnitUuids = new Set((data?.used_uuids as string[]) || []);
-				this.residentialUnitComponentMap = new Map(
-					Object.entries(
-						(data?.residentialUnitComponentMap as Record<string, ComponentPlacement>) || {}
-					)
-				);
-			}
+			// Remote queries are cached per argument, so a plain re-call after a
+			// mutation returns the stale cached value — refresh() forces a fetch.
+			const usageQuery = getUsedResidentialUnits(this.nodeUuid);
+			await usageQuery.refresh();
+			const data = usageQuery.current ?? {
+				usedResidentialUnitUuids: [],
+				residentialUnitComponentMap: {}
+			};
+			this.usedResidentialUnitUuids = new Set(data.usedResidentialUnitUuids);
+			this.residentialUnitComponentMap = new Map(Object.entries(data.residentialUnitComponentMap));
 		} catch (err) {
 			console.error('Error fetching residential unit usage:', err);
 			void logToBackendClient({
@@ -378,17 +349,7 @@ export class CableFiberDataManager {
 		if (this.fiberColors.length > 0) return;
 
 		try {
-			const response = await fetch('?/getFiberColors', {
-				method: 'POST',
-				body: new FormData()
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'success') {
-				this.fiberColors =
-					((result.data as Record<string, unknown>)?.fiberColors as FiberColor[]) || [];
-			}
+			this.fiberColors = await getFiberColors();
 		} catch (err) {
 			console.error('Error fetching fiber colors:', err);
 			void logToBackendClient({
@@ -414,23 +375,9 @@ export class CableFiberDataManager {
 		this.loadingFibers = new Set(this.loadingFibers);
 
 		try {
-			const formData = new FormData();
-			formData.append('cableUuid', cableUuid);
-
-			const response = await fetch('?/getFibersForCable', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'success') {
-				this.fibersCache.set(
-					cableUuid,
-					((result.data as Record<string, unknown>)?.fibers as Fiber[]) || []
-				);
-				this.fibersCache = new Map(this.fibersCache);
-			}
+			const fibers = await getFibersForCableQuery(cableUuid);
+			this.fibersCache.set(cableUuid, fibers);
+			this.fibersCache = new Map(this.fibersCache);
 		} catch (err) {
 			console.error('Error fetching fibers:', err);
 			void logToBackendClient({
@@ -529,16 +476,7 @@ export class CableFiberDataManager {
 
 		this.loadingFiberStatusOptions = true;
 		try {
-			const response = await fetch('?/getFiberStatusOptions', {
-				method: 'POST',
-				body: new FormData()
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'success' && Array.isArray(result.data)) {
-				this.fiberStatusOptions = result.data;
-			}
+			this.fiberStatusOptions = await getFiberStatusOptions();
 		} catch (err) {
 			console.error('Error fetching fiber status options:', err);
 			void logToBackendClient({
@@ -562,21 +500,7 @@ export class CableFiberDataManager {
 	 */
 	async updateFiberStatus(fiberUuid: string, statusId: number | null): Promise<Fiber | null> {
 		try {
-			const formData = new FormData();
-			formData.append('uuid', fiberUuid);
-			formData.append('fiber_status_id', statusId === null ? 'null' : String(statusId));
-
-			const response = await fetch('?/updateFiberStatus', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'success') {
-				return (result.data as unknown as Fiber | null) ?? null;
-			}
-			return null;
+			return await updateFiberStatusCommand({ fiberUuid, statusId });
 		} catch (err) {
 			console.error('Error updating fiber status:', err);
 			void logToBackendClient({

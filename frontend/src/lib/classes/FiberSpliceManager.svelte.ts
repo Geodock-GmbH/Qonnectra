@@ -1,10 +1,20 @@
 import type { FiberColor } from '$lib/server/nodeData';
-import { deserialize } from '$app/forms';
 
 import { m } from '$lib/paraglide/messages';
 
 import { globalToaster } from '$lib/stores/toaster';
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
+import {
+	bulkUpsertFiberSplices,
+	clearFiberSplice,
+	getComponentPorts,
+	getFiberSplices,
+	mergePorts,
+	unmergePorts,
+	upsertFiberSplice,
+	upsertMergedSplice
+} from '$lib/remote/network-schema/fiber-splices.remote';
+import { getFiberColors, getFibersForCable } from '$lib/remote/network-schema/fibers.remote';
 
 export interface FiberDetails {
 	uuid: string;
@@ -33,7 +43,7 @@ interface MergeGroupInfo {
 	port_count: number;
 }
 
-interface FiberSplice {
+export interface FiberSplice {
 	uuid: string;
 	port_number: number;
 	fiber_a_details: FiberDetails | null;
@@ -47,7 +57,7 @@ interface FiberSplice {
 	[key: string]: unknown;
 }
 
-interface ComponentPort {
+export interface ComponentPort {
 	id: number;
 	port: number;
 	in_or_out: 'in' | 'out';
@@ -148,17 +158,6 @@ type DropData =
 	| CableDropData
 	| ResidentialUnitDropData
 	| AddressDropData;
-
-interface ActionSuccessData {
-	error?: string;
-	ports?: ComponentPort[];
-	splices?: FiberSplice[];
-	splice?: FiberSplice;
-	fiberColors?: FiberColor[];
-	fibers?: BundleFiber[];
-	created?: FiberSplice[];
-	failed?: unknown[];
-}
 
 type Side = 'a' | 'b';
 
@@ -368,23 +367,7 @@ export class FiberSpliceManager {
 	 */
 	async fetchComponentPorts(componentTypeId: number): Promise<void> {
 		try {
-			const formData = new FormData();
-			formData.append('componentTypeId', componentTypeId.toString());
-
-			const response = await fetch('?/getComponentPorts', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(
-					(result as { data?: ActionSuccessData }).data?.error || 'Failed to fetch component ports'
-				);
-			}
-
-			this.componentPorts = (result as { data?: ActionSuccessData }).data?.ports || [];
+			this.componentPorts = await getComponentPorts(componentTypeId.toString());
 		} catch (err: unknown) {
 			console.error('Error fetching component ports:', err);
 			void logToBackendClient({
@@ -405,23 +388,11 @@ export class FiberSpliceManager {
 	 */
 	async fetchFiberSplices(nodeStructureUuid: string): Promise<void> {
 		try {
-			const formData = new FormData();
-			formData.append('nodeStructureUuid', nodeStructureUuid);
-
-			const response = await fetch('?/getFiberSplices', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(
-					(result as { data?: ActionSuccessData }).data?.error || 'Failed to fetch fiber splices'
-				);
-			}
-
-			this.fiberSplices = (result as { data?: ActionSuccessData }).data?.splices || [];
+			// Remote queries are cached per argument, so a plain re-call after a
+			// splice mutation returns the stale cached value — refresh() forces a fetch.
+			const splicesQuery = getFiberSplices(nodeStructureUuid);
+			await splicesQuery.refresh();
+			this.fiberSplices = splicesQuery.current ?? [];
 		} catch (err: unknown) {
 			console.error('Error fetching fiber splices:', err);
 			void logToBackendClient({
@@ -444,20 +415,7 @@ export class FiberSpliceManager {
 		if (this.fiberColors.length > 0) return;
 
 		try {
-			const response = await fetch('?/getFiberColors', {
-				method: 'POST',
-				body: new FormData()
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(
-					(result as { data?: ActionSuccessData }).data?.error || 'Failed to fetch fiber colors'
-				);
-			}
-
-			this.fiberColors = (result as { data?: ActionSuccessData }).data?.fiberColors || [];
+			this.fiberColors = await getFiberColors();
 		} catch (err: unknown) {
 			console.error('Error fetching fiber colors:', err);
 			void logToBackendClient({
@@ -640,30 +598,17 @@ export class FiberSpliceManager {
 		}
 
 		try {
-			const formData = new FormData();
-			formData.append('nodeStructureUuid', this.selectedStructure!.uuid);
-			formData.append('portNumber', portNumber.toString());
-			formData.append('side', side);
-			formData.append('fiberUuid', fiberData.uuid);
-			formData.append('cableUuid', fiberData.cable_uuid);
-
-			const response = await fetch('?/upsertFiberSplice', {
-				method: 'POST',
-				body: formData
+			const serverSplice = await upsertFiberSplice({
+				nodeStructureUuid: this.selectedStructure!.uuid,
+				portNumber,
+				side,
+				fiberUuid: fiberData.uuid,
+				cableUuid: fiberData.cable_uuid
 			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(
-					(result as { data?: ActionSuccessData }).data?.error || 'Failed to save fiber splice'
-				);
-			}
 
 			if (isMergedOnThisSide) {
 				await this.fetchFiberSplices(this.selectedStructure!.uuid);
 			} else {
-				const serverSplice = (result as { data?: ActionSuccessData }).data!.splice!;
 				this.fiberSplices = this.fiberSplices.map((s) =>
 					s.port_number === portNumber ? serverSplice : s
 				);
@@ -805,25 +750,7 @@ export class FiberSpliceManager {
 		}
 
 		try {
-			const formData = new FormData();
-			formData.append('splices', JSON.stringify(spliceData));
-
-			const response = await fetch('?/bulkUpsertFiberSplices', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(
-					(result as { data?: ActionSuccessData }).data?.error || 'Failed to save fiber splices'
-				);
-			}
-
-			const resultData = (result as { data?: ActionSuccessData }).data;
-			const created: FiberSplice[] = resultData?.created || [];
-			const failed: unknown[] = resultData?.failed || [];
+			const { created, failed } = await bulkUpsertFiberSplices(spliceData);
 
 			this.fiberSplices = this.fiberSplices
 				.filter((s) => !s.uuid?.toString().startsWith('temp-'))
@@ -882,23 +809,7 @@ export class FiberSpliceManager {
 	 */
 	async #fetchFibersForCable(cableUuid: string): Promise<BundleFiber[]> {
 		try {
-			const formData = new FormData();
-			formData.append('cableUuid', cableUuid);
-
-			const response = await fetch('?/getFibersForCable', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(
-					(result as { data?: ActionSuccessData }).data?.error || 'Failed to fetch fibers'
-				);
-			}
-
-			return (result as { data?: ActionSuccessData }).data?.fibers || [];
+			return (await getFibersForCable(cableUuid)) as unknown as BundleFiber[];
 		} catch (err: unknown) {
 			console.error('Error fetching fibers for cable:', err);
 			void logToBackendClient({
@@ -1055,24 +966,7 @@ export class FiberSpliceManager {
 			if (spliceData.length === 0) continue;
 
 			try {
-				const formData = new FormData();
-				formData.append('splices', JSON.stringify(spliceData));
-
-				const response = await fetch('?/bulkUpsertFiberSplices', {
-					method: 'POST',
-					body: formData
-				});
-
-				const result = deserialize(await response.text());
-
-				if (result.type === 'failure' || result.type === 'error') {
-					throw new Error(
-						(result as { data?: ActionSuccessData }).data?.error || 'Failed to save fiber splices'
-					);
-				}
-
-				const resultData = (result as { data?: ActionSuccessData }).data;
-				const created: FiberSplice[] = resultData?.created || [];
+				const { created } = await bulkUpsertFiberSplices(spliceData);
 
 				if (structure.uuid === this.selectedStructure?.uuid) {
 					for (const serverSplice of created) {
@@ -1192,26 +1086,12 @@ export class FiberSpliceManager {
 		}
 
 		try {
-			const formData = new FormData();
-			formData.append('nodeStructureUuid', this.selectedStructure!.uuid);
-			formData.append('portNumber', portNumber.toString());
-			formData.append('side', side);
-			formData.append('residentialUnitUuid', unitData.uuid);
-
-			const response = await fetch('?/upsertFiberSplice', {
-				method: 'POST',
-				body: formData
+			const serverSplice = await upsertFiberSplice({
+				nodeStructureUuid: this.selectedStructure!.uuid,
+				portNumber,
+				side,
+				residentialUnitUuid: unitData.uuid
 			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(
-					(result as { data?: ActionSuccessData }).data?.error || 'Failed to save connection'
-				);
-			}
-
-			const serverSplice = (result as { data?: ActionSuccessData }).data!.splice!;
 			this.fiberSplices = this.fiberSplices.map((s) =>
 				s.port_number === portNumber ? serverSplice : s
 			);
@@ -1304,25 +1184,7 @@ export class FiberSpliceManager {
 		}
 
 		try {
-			const formData = new FormData();
-			formData.append('splices', JSON.stringify(spliceData));
-
-			const response = await fetch('?/bulkUpsertFiberSplices', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(
-					(result as { data?: ActionSuccessData }).data?.error || 'Failed to save connections'
-				);
-			}
-
-			const resultData = (result as { data?: ActionSuccessData }).data;
-			const created: FiberSplice[] = resultData?.created || [];
-			const failed: unknown[] = resultData?.failed || [];
+			const { created, failed } = await bulkUpsertFiberSplices(spliceData);
 
 			this.fiberSplices = this.fiberSplices
 				.filter((s) => !s.uuid?.toString().startsWith('temp-'))
@@ -1389,46 +1251,18 @@ export class FiberSpliceManager {
 	 * Fetches component port definitions for a given component type.
 	 */
 	async #fetchPortsForStructure(componentTypeId: number): Promise<ComponentPort[]> {
-		const formData = new FormData();
-		formData.append('componentTypeId', componentTypeId.toString());
-
-		const response = await fetch('?/getComponentPorts', {
-			method: 'POST',
-			body: formData
-		});
-
-		const result = deserialize(await response.text());
-
-		if (result.type === 'failure' || result.type === 'error') {
-			throw new Error(
-				(result as { data?: ActionSuccessData }).data?.error || 'Failed to fetch component ports'
-			);
-		}
-
-		return (result as { data?: ActionSuccessData }).data?.ports || [];
+		return getComponentPorts(componentTypeId.toString());
 	}
 
 	/**
 	 * Fetches fiber splice data for a given node structure.
 	 */
 	async #fetchSplicessForStructure(nodeStructureUuid: string): Promise<FiberSplice[]> {
-		const formData = new FormData();
-		formData.append('nodeStructureUuid', nodeStructureUuid);
-
-		const response = await fetch('?/getFiberSplices', {
-			method: 'POST',
-			body: formData
-		});
-
-		const result = deserialize(await response.text());
-
-		if (result.type === 'failure' || result.type === 'error') {
-			throw new Error(
-				(result as { data?: ActionSuccessData }).data?.error || 'Failed to fetch fiber splices'
-			);
-		}
-
-		return (result as { data?: ActionSuccessData }).data?.splices || [];
+		// Cross-structure occupancy read during cable cascade; refresh() forces a
+		// fetch so available-port calc isn't computed from stale cached splices.
+		const splicesQuery = getFiberSplices(nodeStructureUuid);
+		await splicesQuery.refresh();
+		return splicesQuery.current ?? [];
 	}
 
 	/**
@@ -1517,23 +1351,11 @@ export class FiberSpliceManager {
 		}
 
 		try {
-			const formData = new FormData();
-			formData.append('nodeStructureUuid', this.selectedStructure!.uuid);
-			formData.append('portNumber', portNumber.toString());
-			formData.append('side', side);
-
-			const response = await fetch('?/clearFiberSplice', {
-				method: 'POST',
-				body: formData
+			await clearFiberSplice({
+				nodeStructureUuid: this.selectedStructure!.uuid,
+				portNumber,
+				side
 			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(
-					(result as { data?: ActionSuccessData }).data?.error || 'Failed to clear fiber splice'
-				);
-			}
 
 			if (isMergedOnThisSide) {
 				await this.fetchFiberSplices(this.selectedStructure!.uuid);
@@ -1669,23 +1491,11 @@ export class FiberSpliceManager {
 		}
 
 		try {
-			const formData = new FormData();
-			formData.append('nodeStructureUuid', this.selectedStructure!.uuid);
-			formData.append('portNumbers', JSON.stringify(portNumbers));
-			formData.append('side', side!);
-
-			const response = await fetch('?/mergePorts', {
-				method: 'POST',
-				body: formData
+			await mergePorts({
+				nodeStructureUuid: this.selectedStructure!.uuid,
+				portNumbers,
+				side: side!
 			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(
-					(result as { data?: ActionSuccessData }).data?.error || 'Failed to merge ports'
-				);
-			}
 
 			await this.fetchFiberSplices(this.selectedStructure!.uuid);
 			this.selectedForMerge = new Set();
@@ -1740,22 +1550,7 @@ export class FiberSpliceManager {
 		if (portNumbers.length === 0) return false;
 
 		try {
-			const formData = new FormData();
-			formData.append('mergeGroup', mergeGroupId);
-			formData.append('portNumbers', JSON.stringify(portNumbers));
-
-			const response = await fetch('?/unmergePorts', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(
-					(result as { data?: ActionSuccessData }).data?.error || 'Failed to unmerge ports'
-				);
-			}
+			await unmergePorts({ mergeGroup: mergeGroupId, portNumbers });
 
 			await this.fetchFiberSplices(this.selectedStructure!.uuid);
 
@@ -1838,23 +1633,7 @@ export class FiberSpliceManager {
 		}));
 
 		try {
-			const formData = new FormData();
-			formData.append('mergeGroup', mergeGroupId);
-			formData.append('side', side);
-			formData.append('fibers', JSON.stringify(fiberData));
-
-			const response = await fetch('?/upsertMergedSplice', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(
-					(result as { data?: ActionSuccessData }).data?.error || 'Failed to connect fibers'
-				);
-			}
+			await upsertMergedSplice({ mergeGroup: mergeGroupId, side, fibers: fiberData });
 
 			await this.fetchFiberSplices(this.selectedStructure!.uuid);
 
