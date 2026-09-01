@@ -91,9 +91,10 @@
 		if (!schemaState.isEditing(edgeId)) {
 			return;
 		}
-		// A Shift+Click is a reset gesture; starting the long-press here would
-		// flip into move mode on a slow click and re-save the label instead.
-		if (event.shiftKey) {
+		// A Shift+Click is a reset gesture and an Alt+Click is the fast edit-mode
+		// switch; starting the long-press for either would flip into move mode on a
+		// slow click and re-save the label instead.
+		if (event.shiftKey || event.altKey) {
 			return;
 		}
 		if (longPressTimer) {
@@ -196,8 +197,9 @@
 	}
 
 	/**
-	 * Handle label click - opens cable details if not in move mode
-	 * Shift+Click resets label position to edge midpoint
+	 * Handle label click - opens cable details if not in move mode.
+	 * Alt+Click fast-switches edit mode to this cable; Shift+Click resets the
+	 * label position to the edge midpoint.
 	 * @param event - The mouse event
 	 */
 	async function handleLabelClick(event: MouseEvent) {
@@ -210,6 +212,17 @@
 
 		if (isMoveLabelMode) {
 			isMoveLabelMode = false;
+			return;
+		}
+
+		// Alt+Click is the fast edit-mode switch: it moves editing to this cable
+		// instantly, without opening the details drawer. It replaces the old
+		// Shift+right-click switch, which Firefox and Safari intercept for their
+		// native context menu before any page handler runs.
+		if (event.altKey) {
+			event.preventDefault();
+			event.stopPropagation();
+			schemaState.enterEditMode(edgeId);
 			return;
 		}
 
@@ -263,7 +276,7 @@
 		// Only the left button drives move/long-press. A right-button press must
 		// fall through to the contextmenu handler untouched — otherwise it arms
 		// the long-press timer and window listeners, which then swallow the
-		// right-click (and a following Shift+right-click switch to another label).
+		// right-click that should open the menu.
 		if (event.button !== 0) {
 			return;
 		}
@@ -379,19 +392,15 @@
 	let menuY = $state(0);
 
 	/**
-	 * Handle right-click on the label. Shift+right-click is the fast-switch
-	 * gesture: it enters this cable's edit mode immediately without a menu. A
-	 * plain right-click opens the context menu at the pointer.
+	 * Handle right-click on the label: open the context menu at the pointer. The
+	 * fast edit-mode switch is Alt+Click (see `handleLabelClick`), not a modified
+	 * right-click — Firefox and Safari intercept Shift+right-click for their own
+	 * native menu before any page handler runs, so it could never work here.
 	 * @param event - The contextmenu mouse event
 	 */
 	function handleContextMenu(event: MouseEvent) {
 		event.preventDefault();
 		event.stopPropagation();
-
-		if (event.shiftKey) {
-			schemaState.enterEditMode(edgeId);
-			return;
-		}
 
 		menuX = event.clientX;
 		menuY = event.clientY;

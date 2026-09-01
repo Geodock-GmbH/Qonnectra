@@ -304,23 +304,50 @@ describe('DynamicEdgeLabel', () => {
 		}
 	});
 
-	test('should enter edit mode instantly on Shift+right-click without opening the menu', async () => {
+	test('should enter edit mode instantly on Alt+click without opening the drawer', async () => {
 		const enterEditMode = vi.fn();
+		const openSpy = vi.spyOn(drawerStore, 'open');
 
+		// The label starts on a locked, non-editing cable — Alt+click must switch
+		// editing to it regardless of the current edit target.
 		const { container } = renderLabel(
 			{ ...baseProps },
 			{ locked: true, editingCableId: null, enterEditMode }
 		);
 
-		// The right-click handler lives on the visible label box (only it has
+		// The click handler lives on the visible label box (only it has
 		// pointer-events; the foreignObject is transparent to them).
 		const labelBox = container.querySelector('[role="button"]') as HTMLElement;
-		await fireEvent.contextMenu(labelBox, { shiftKey: true });
+		await fireEvent.click(labelBox, { altKey: true });
 
 		expect(enterEditMode).toHaveBeenCalledWith('edge-1');
-		// The fast-switch must skip the context menu entirely: it never opens.
-		const editItem = screen.queryByText('action_edit_cable');
-		expect(editItem === null || !editItem.checkVisibility?.()).toBe(true);
+		// The fast-switch must not open the cable-details drawer.
+		expect(openSpy).not.toHaveBeenCalled();
+	});
+
+	test('should not arm move mode when an Alt+press is held past the long-press delay', async () => {
+		vi.useFakeTimers();
+		try {
+			const onPositionUpdate = vi.fn();
+
+			// Already editing this cable, so the long-press is otherwise eligible —
+			// only the Alt modifier must keep move mode from arming.
+			const { container } = renderLabel(
+				{ ...baseProps, onPositionUpdate },
+				{ locked: false, editingCableId: 'edge-1' }
+			);
+
+			const labelBox = container.querySelector('[role="button"]') as HTMLElement;
+
+			labelBox.dispatchEvent(new MouseEvent('mousedown', { altKey: true, bubbles: true }));
+			await vi.advanceTimersByTimeAsync(600);
+			labelBox.dispatchEvent(new MouseEvent('mouseup', { altKey: true, bubbles: true }));
+
+			// Move mode never armed, so no drag-save is attempted.
+			expect(onPositionUpdate).not.toHaveBeenCalled();
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	test('should not enter edit mode directly on a plain right-click; it opens the menu instead', async () => {
