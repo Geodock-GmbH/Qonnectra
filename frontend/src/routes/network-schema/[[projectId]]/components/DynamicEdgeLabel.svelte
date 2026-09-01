@@ -359,18 +359,31 @@
 
 	let isEditingThis = $derived(schemaState.isEditing(edgeId));
 
+	// Controlled context-menu state. The menu is anchored to the pointer's
+	// viewport coordinates instead of the trigger's rect: the label lives inside
+	// an SVG `foreignObject` under SvelteFlow's transformed viewport, where the
+	// trigger's `getBoundingClientRect` resolves wrong and Skeleton's default
+	// positioning drops the menu at the top-left of the window.
+	let menuOpen = $state(false);
+	let menuAnchor = $state<{ x: number; y: number } | null>(null);
+
 	/**
-	 * Handle right-click on the label. A plain right-click falls through to the
-	 * Skeleton context menu; a Shift+right-click is the fast-switch gesture that
-	 * enters this cable's edit mode immediately without opening the menu.
+	 * Handle right-click on the label. Shift+right-click is the fast-switch
+	 * gesture: it enters this cable's edit mode immediately without a menu. A
+	 * plain right-click opens the context menu anchored at the pointer.
 	 * @param event - The contextmenu mouse event
 	 */
 	function handleContextMenu(event: MouseEvent) {
+		event.preventDefault();
+		event.stopPropagation();
+
 		if (event.shiftKey) {
-			event.preventDefault();
-			event.stopPropagation();
 			schemaState.enterEditMode(edgeId);
+			return;
 		}
+
+		menuAnchor = { x: event.clientX, y: event.clientY };
+		menuOpen = true;
 	}
 
 	/**
@@ -411,35 +424,38 @@
 		role="presentation"
 		class="nopan"
 	>
-		<Menu onSelect={handleMenuSelect}>
-			<Menu.ContextTrigger class="contents">
+		<Menu
+			open={menuOpen}
+			anchorPoint={menuAnchor}
+			onOpenChange={(details) => (menuOpen = details.open)}
+			onSelect={handleMenuSelect}
+		>
+			<div
+				class="flex items-center justify-center focus:outline-none"
+				role="button"
+				tabindex="0"
+				onclick={handleLabelClick}
+				onkeydown={handleKeydown}
+				aria-label={isResetMode
+					? m.tooltip_click_to_reset_label_position()
+					: isMoveLabelMode
+						? m.tooltip_move_label_click_to_exit()
+						: m.tooltip_open_cable_details({ label: currentLabel })}
+			>
 				<div
-					class="flex items-center justify-center focus:outline-none"
-					role="button"
-					tabindex="0"
-					onclick={handleLabelClick}
-					onkeydown={handleKeydown}
-					aria-label={isResetMode
-						? m.tooltip_click_to_reset_label_position()
-						: isMoveLabelMode
-							? m.tooltip_move_label_click_to_exit()
-							: m.tooltip_open_cable_details({ label: currentLabel })}
+					bind:clientWidth={null, (w) => (labelWidth = w && w > 0 ? w + 20 : 0)}
+					bind:clientHeight={null, (h) => (labelHeight = h && h > 0 ? h + 20 : 0)}
+					class="z-10 bg-surface-50-950 border rounded px-2 py-1 text-xs text-center shadow-sm font-medium {isResetMode
+						? 'border-error-500  ring-error-400 bg-error-50 dark:bg-error-950'
+						: isEditingThis
+							? 'border-primary-500 ring-2 ring-primary-400'
+							: isMoveLabelMode || selected
+								? 'border-primary-500  ring-primary-400'
+								: 'border-surface-200-700'}"
 				>
-					<div
-						bind:clientWidth={null, (w) => (labelWidth = w && w > 0 ? w + 20 : 0)}
-						bind:clientHeight={null, (h) => (labelHeight = h && h > 0 ? h + 20 : 0)}
-						class="z-10 bg-surface-50-950 border rounded px-2 py-1 text-xs text-center shadow-sm font-medium {isResetMode
-							? 'border-error-500  ring-error-400 bg-error-50 dark:bg-error-950'
-							: isEditingThis
-								? 'border-primary-500 ring-2 ring-primary-400'
-								: isMoveLabelMode || selected
-									? 'border-primary-500  ring-primary-400'
-									: 'border-surface-200-700'}"
-					>
-						{currentLabel}
-					</div>
+					{currentLabel}
 				</div>
-			</Menu.ContextTrigger>
+			</div>
 			<Portal>
 				<Menu.Positioner>
 					<Menu.Content class="card p-2 shadow-xl space-y-1 min-w-48 z-50">

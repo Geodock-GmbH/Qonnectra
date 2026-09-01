@@ -316,12 +316,12 @@ describe('DynamicEdgeLabel', () => {
 		await fireEvent.contextMenu(foreignObject, { shiftKey: true });
 
 		expect(enterEditMode).toHaveBeenCalledWith('edge-1');
-		// The fast-switch must skip the context menu: its content stays hidden
-		// (Skeleton keeps the item in the DOM but not visible until opened).
-		expect(screen.getByText('action_edit_cable')).not.toBeVisible();
+		// The fast-switch must skip the context menu entirely: it never opens.
+		const editItem = screen.queryByText('action_edit_cable');
+		expect(editItem === null || !editItem.checkVisibility?.()).toBe(true);
 	});
 
-	test('should not enter edit mode directly on a plain right-click (menu handles it)', async () => {
+	test('should not enter edit mode directly on a plain right-click; it opens the menu instead', async () => {
 		const enterEditMode = vi.fn();
 
 		const { container } = renderLabel(
@@ -332,6 +332,9 @@ describe('DynamicEdgeLabel', () => {
 		const foreignObject = container.querySelector('foreignObject') as SVGForeignObjectElement;
 		await fireEvent.contextMenu(foreignObject);
 
+		// The menu opens (so the user can pick "Edit cable"); entering edit mode
+		// happens on item selection, not on the right-click itself.
+		await vi.waitFor(() => expect(screen.getByText('action_edit_cable')).toBeVisible());
 		expect(enterEditMode).not.toHaveBeenCalled();
 	});
 
@@ -339,12 +342,15 @@ describe('DynamicEdgeLabel', () => {
 		const user = userEvent.setup({ pointerEventsCheck: 0 });
 		const enterEditMode = vi.fn();
 
-		renderLabel({ ...baseProps }, { locked: true, editingCableId: null, enterEditMode });
+		const { container } = renderLabel(
+			{ ...baseProps },
+			{ locked: true, editingCableId: null, enterEditMode }
+		);
 
-		await user.pointer({
-			keys: '[MouseRight]',
-			target: screen.getByRole('button', { name: /tooltip_open_cable_details/ })
-		});
+		// A plain right-click opens the controlled menu (anchored at the pointer).
+		const foreignObject = container.querySelector('foreignObject') as SVGForeignObjectElement;
+		await fireEvent.contextMenu(foreignObject);
+
 		await vi.waitFor(() => expect(screen.getByText('action_edit_cable')).toBeVisible());
 		await user.click(screen.getByText('action_edit_cable'));
 
@@ -356,12 +362,11 @@ describe('DynamicEdgeLabel', () => {
 		const exitEditMode = vi.fn();
 
 		// editingCableId defaults to the label's own edge, so it is in edit mode.
-		renderLabel({ ...baseProps }, { exitEditMode });
+		const { container } = renderLabel({ ...baseProps }, { exitEditMode });
 
-		await user.pointer({
-			keys: '[MouseRight]',
-			target: screen.getByRole('button', { name: /tooltip_open_cable_details/ })
-		});
+		const foreignObject = container.querySelector('foreignObject') as SVGForeignObjectElement;
+		await fireEvent.contextMenu(foreignObject);
+
 		await vi.waitFor(() => expect(screen.getByText('action_stop_editing_cable')).toBeVisible());
 		await user.click(screen.getByText('action_stop_editing_cable'));
 
