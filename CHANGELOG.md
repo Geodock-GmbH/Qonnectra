@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.8.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.7.0...v1.8.0) (2026-09-02)
+
+
+### Features
+
+* Export feature endpoint ([#89](https://github.com/Geodock-GmbH/Qonnectra/issues/89)) ([65865cf](https://github.com/Geodock-GmbH/Qonnectra/commit/65865cf14ee79046c9ad23627659e53bd68ffa41))
+* Openapi-Schema and any type clean up ([#85](https://github.com/Geodock-GmbH/Qonnectra/issues/85)) ([bfd6144](https://github.com/Geodock-GmbH/Qonnectra/commit/bfd6144b7f7622c4907b6ee1d4ad9101b461a846))
+
+
+### Bug Fixes
+
+* Added nokey to the vertex circle for svelte flow ([b48782b](https://github.com/Geodock-GmbH/Qonnectra/commit/b48782bb7b9b8792b07da1a2777d701cc39c5cb2))
+* make label reset and vertex delete reliable ([#87](https://github.com/Geodock-GmbH/Qonnectra/issues/87)) ([98e4cbe](https://github.com/Geodock-GmbH/Qonnectra/commit/98e4cbebb65f804a9bd872a19b32239e0758f84e))
+
+
+### Refactoring
+
+* Refactor network-schema route to remote functions ([#88](https://github.com/Geodock-GmbH/Qonnectra/issues/88)) ([ef8777e](https://github.com/Geodock-GmbH/Qonnectra/commit/ef8777eb98775f81c41b7101f7b8bd9fb270f17a))
+
 ## [1.7.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.6.0...v1.7.0) (2026-08-28)
 
 
