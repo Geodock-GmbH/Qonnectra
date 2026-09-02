@@ -155,6 +155,25 @@ describe('CableDiagramEdge vertex handling', () => {
 		expect(saveSpy).toHaveBeenCalledWith('cab-1', []);
 	});
 
+	test('should mark the vertex handle with the nokey class so SvelteFlow does not swallow its mousedown', () => {
+		// Regression guard for the Shift-select capture bug: in edit mode the canvas
+		// is selectable, so holding Shift arms SvelteFlow's box-selection, whose Pane
+		// `onpointerdowncapture` preventDefaults the vertex pointerdown and thereby
+		// suppresses the compat `mousedown` that drives delete/drag. The `nokey`
+		// class opts the vertex out of that capture. This seam cannot reproduce the
+		// browser-level suppression (jsdom has no pointer→mouse compat, no Pane), so
+		// the class itself is the load-bearing fact we lock down here.
+		const schemaState = seededState([{ x: 100, y: 100 }]);
+
+		const { container } = render(CableDiagramEdgeFixture, {
+			edgeProps: buildProps([{ x: 100, y: 100 }]),
+			schemaState
+		});
+
+		const vertex = container.querySelector('circle.nopan')!;
+		expect(vertex.classList.contains('nokey')).toBe(true);
+	});
+
 	test('should persist the dragged waypoints on mouseup, not the pre-drag path from props', async () => {
 		const schemaState = seededState([{ x: 100, y: 100 }]);
 		const saveSpy = vi.spyOn(schemaState, 'saveCablePath').mockResolvedValue();

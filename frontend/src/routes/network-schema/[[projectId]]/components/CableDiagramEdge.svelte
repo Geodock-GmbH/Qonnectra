@@ -334,8 +334,17 @@
 		{@const isDeleteMode = schemaState.shiftPressed && isHovered}
 		{@const fillColor = isDeleteMode ? 'var(--color-error-500)' : strokeColor}
 		{@const cursorStyle = schemaState.shiftPressed ? 'cursor: crosshair;' : 'cursor: move;'}
+		<!--
+			`nokey`: with the canvas unlocked in edit mode, `elementsSelectable` is
+			true, so holding Shift arms SvelteFlow's box-selection. Its Pane
+			`onpointerdowncapture` then calls `preventDefault()` on the vertex
+			pointerdown, which suppresses the compat `mousedown` — so
+			`handleVertexMouseDown` (Shift = delete, plain = drag) would never run.
+			`nokey` opts the vertex out of that capture, letting its own mousedown
+			fire. `nopan` only suppresses panning, not this selection capture.
+		-->
 		<circle
-			class="nopan"
+			class="nopan nokey"
 			cx={vertex.x}
 			cy={vertex.y}
 			r="6"
