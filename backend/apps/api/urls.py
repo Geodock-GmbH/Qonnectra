@@ -47,6 +47,7 @@ from .views import (
     ContainerViewSet,
     ContentTypeViewSet,
     DashboardStatisticsView,
+    ExportFeaturesView,
     FaultSimulationView,
     FeatureFilesViewSet,
     FiberSpliceViewSet,
@@ -352,6 +353,11 @@ urlpatterns = [
         "spatial/intersects/",
         SpatialIntersectView.as_view(),
         name="spatial-intersects",
+    ),
+    path(
+        "export/features/",
+        ExportFeaturesView.as_view(),
+        name="export-features",
     ),
     path(
         "canvas-coordinates/",

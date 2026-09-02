@@ -4593,6 +4593,60 @@ def _merge_trench_geoms(trench_connections):
     return {"type": "MultiLineString", "coordinates": coordinates}
 
 
+def _cable_trench_connections(cable):
+    """Collect the distinct trench connections reachable from a cable.
+
+    Walks the ``cable → microduct → conduit → trench`` connection chain and
+    de-duplicates trenches by uuid so a trench shared by several microducts is
+    counted once.
+
+    Args:
+        cable: A :model:`api.Cable` instance.
+
+    Returns:
+        list: Distinct :model:`api.TrenchConduitConnection` objects, each with
+            ``uuid_trench`` available.
+    """
+    seen_trench_uuids = set()
+    unique_connections = []
+    for mdc in cable.microductcableconnection_set.all():
+        conduit = mdc.uuid_microduct.uuid_conduit
+        for tcc in conduit.trenchconduitconnection_set.all():
+            if tcc.uuid_trench.uuid not in seen_trench_uuids:
+                seen_trench_uuids.add(tcc.uuid_trench.uuid)
+                unique_connections.append(tcc)
+    return unique_connections
+
+
+def conduit_trench_geometry(conduit):
+    """Return the merged trench geometry for a conduit as GeoJSON.
+
+    Args:
+        conduit: A :model:`api.Conduit` instance.
+
+    Returns:
+        dict | None: GeoJSON MultiLineString, or ``None`` if the conduit is not
+            connected to any trench with geometry.
+    """
+    return _merge_trench_geoms(conduit.trenchconduitconnection_set.all())
+
+
+def cable_trench_geometry(cable):
+    """Return the merged trench geometry for a cable as GeoJSON.
+
+    Geometry is assembled from the distinct trenches reachable through the
+    cable's ``microduct → conduit → trench`` connection chain.
+
+    Args:
+        cable: A :model:`api.Cable` instance.
+
+    Returns:
+        dict | None: GeoJSON MultiLineString, or ``None`` if no connected
+            trench carries geometry.
+    """
+    return _merge_trench_geoms(_cable_trench_connections(cable))
+
+
 def _fk_str(obj, attr):
     """Return ``str(getattr(obj, attr))`` or ``None`` if the FK is unset."""
     val = getattr(obj, attr, None)
@@ -4686,14 +4740,7 @@ def _cable_feature(obj):
     conduit_names = sorted(
         {conn.uuid_microduct.uuid_conduit.name for conn in cable_connections}
     )
-
-    seen_trench_uuids = set()
-    unique_connections = []
-    for mdc in cable_connections:
-        for tcc in mdc.uuid_microduct.uuid_conduit.trenchconduitconnection_set.all():
-            if tcc.uuid_trench.uuid not in seen_trench_uuids:
-                seen_trench_uuids.add(tcc.uuid_trench.uuid)
-                unique_connections.append(tcc)
+    unique_connections = _cable_trench_connections(obj)
 
     props = {
         "uuid": str(obj.uuid),
@@ -5704,6 +5751,112 @@ def spatial_intersect(
     for name in layer_names:
         model = SPATIAL_INTERSECT_LAYERS[name]
         queryset = model.objects.filter(geom__intersects=geometry)
+        if project_id is not None:
+            queryset = queryset.filter(project_id=project_id)
+        if excluded_ids:
+            queryset = queryset.exclude(project_id__in=excluded_ids)
+        results[name] = queryset
+
+    return results
+
+
+EXPORT_FEATURES_LAYERS = {
+    "cable": Cable,
+    "conduit": Conduit,
+    "node": Node,
+    "area": Area,
+}
+
+
+def _resolve_export_layers(requested):
+    """Resolve requested layer names against the export registry.
+
+    Args:
+        requested: List of layer names, or a falsy value to select all layers.
+
+    Returns:
+        list[str]: Ordered, de-duplicated valid layer names.
+
+    Raises:
+        SpatialIntersectError: If ``requested`` is not a list, or names an
+            unknown layer.
+    """
+    if not requested:
+        return list(EXPORT_FEATURES_LAYERS.keys())
+
+    if not isinstance(requested, list):
+        raise SpatialIntersectError(_("'layers' must be a list of layer names."))
+
+    unknown = [name for name in requested if name not in EXPORT_FEATURES_LAYERS]
+    if unknown:
+        raise SpatialIntersectError(
+            _("Unknown layer(s): %(names)s. Valid layers: %(valid)s.")
+            % {
+                "names": ", ".join(str(name) for name in unknown),
+                "valid": ", ".join(EXPORT_FEATURES_LAYERS.keys()),
+            }
+        )
+
+    seen = set()
+    resolved = []
+    for name in requested:
+        if name not in seen:
+            seen.add(name)
+            resolved.append(name)
+    return resolved
+
+
+def export_features(layers=None, project_id=None, exclude_project_ids=None):
+    """Return exportable feature querysets per requested layer.
+
+    Read-only counterpart to :func:`spatial_intersect` with no geometry input:
+    it lists every feature of each requested layer, optionally scoped by
+    project. The relation-derived ``cable`` and ``conduit`` layers are included
+    here (they are absent from :data:`SPATIAL_INTERSECT_LAYERS`); their geometry
+    is assembled downstream from connected trenches.
+
+    Args:
+        layers: Optional list of layer names (subset of
+            :data:`EXPORT_FEATURES_LAYERS`). When falsy, all layers are used.
+        project_id: Optional project id; when given, results are limited to
+            features belonging to that project.
+        exclude_project_ids: Optional iterable of project ids to exclude;
+            features belonging to any of these projects are dropped. Combines
+            with ``project_id`` (which is applied first).
+
+    Returns:
+        dict: Mapping of layer name to its matching queryset, e.g.
+            ``{"node": <QuerySet>, "area": <QuerySet>}``.
+
+    Raises:
+        SpatialIntersectError: If the layer or project selection is invalid.
+    """
+    layer_names = _resolve_export_layers(layers)
+
+    if project_id is not None:
+        try:
+            project_id = int(project_id)
+        except (TypeError, ValueError):
+            raise SpatialIntersectError(_("'project' must be an integer id."))
+
+    excluded_ids = parse_project_id_list(exclude_project_ids)
+
+    # Prefetch the connection chains that the cable/conduit feature builders
+    # walk, so a full export does not fan out into a query per feature.
+    prefetches = {
+        "conduit": ["trenchconduitconnection_set__uuid_trench"],
+        "cable": [
+            "microductcableconnection_set__uuid_microduct__uuid_conduit"
+            "__trenchconduitconnection_set__uuid_trench"
+        ],
+    }
+
+    results = {}
+    for name in layer_names:
+        model = EXPORT_FEATURES_LAYERS[name]
+        queryset = model.objects.all()
+        if name in prefetches:
+            queryset = queryset.prefetch_related(*prefetches[name])
         if project_id is not None:
             queryset = queryset.filter(project_id=project_id)
         if excluded_ids:
