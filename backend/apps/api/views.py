@@ -186,7 +186,10 @@ from .services import (
     GEOPACKAGE_LAYER_CONFIG,
     SpatialIntersectError,
     auto_link_cable_micropipes,
+    cable_trench_geometry,
     calculate_valuation,
+    conduit_trench_geometry,
+    export_features,
     generate_conduit_import_template,
     generate_geopackage_schema,
     generate_node_structure_excel,
@@ -3556,6 +3559,161 @@ class SpatialIntersectView(APIView):
                 queryset, many=True, context={"request": request}
             )
             feature_collection = serializer.data
+            layers[name] = feature_collection
+            count = len(feature_collection.get("features", []))
+            counts[name] = count
+            total += count
+
+        return Response(
+            {
+                "srid": int(settings.DEFAULT_SRID),
+                "layers": layers,
+                "counts": counts,
+                "total": total,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class ExportFeaturesView(APIView):
+    """Return GeoJSON features per layer for read-only export.
+
+    Read-only GET counterpart to :class:`SpatialIntersectView` with no geometry
+    filter: it lists every feature of each requested layer as a GeoJSON
+    ``FeatureCollection``, optionally scoped by project. Exportable layers are
+    ``cable``, ``conduit``, ``node`` and ``area``.
+
+    FK fields are serialized as nested full objects (e.g. ``owner`` →
+    ``AttributesCompanySerializer``, ``node_type`` →
+    ``{id, node_type, dimension, group, company}``), giving consumers both the
+    id for deterministic mapping and the human-readable label/contact columns.
+
+    ``cable`` and ``conduit`` carry no geometry of their own; their geometry is
+    merged from the connected trenches via ``_merge_trench_geoms`` — the one
+    capability the CRUD endpoints lack.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    _serializers = {
+        "node": NodeSerializer,
+        "area": AreaSerializer,
+    }
+
+    # Relation-derived layers: (properties serializer, geometry resolver). Their
+    # geometry is merged from connected trenches rather than a ``geom`` column.
+    _merged_layers = {
+        "conduit": (ConduitSerializer, conduit_trench_geometry),
+        "cable": (CableSerializer, cable_trench_geometry),
+    }
+
+    def _merged_geometry_collection(self, name, queryset, request):
+        """Build a FeatureCollection for a relation-derived (cable/conduit) layer.
+
+        Properties come from the CRUD serializer (nested FK objects); geometry
+        is merged from the object's connected trenches.
+        """
+        serializer_class, geometry_of = self._merged_layers[name]
+        features = [
+            {
+                "type": "Feature",
+                "id": str(obj.uuid),
+                "geometry": geometry_of(obj),
+                "properties": serializer_class(obj, context={"request": request}).data,
+            }
+            for obj in queryset
+        ]
+        return {"type": "FeatureCollection", "features": features}
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "layers",
+                OpenApiTypes.STR,
+                description="Comma-separated layer names (cable, conduit, node, "
+                "area). Defaults to all layers.",
+                required=False,
+            ),
+            OpenApiParameter(
+                "project",
+                OpenApiTypes.INT,
+                description="Scope results to a single project id.",
+                required=False,
+            ),
+            OpenApiParameter(
+                "exclude_projects",
+                OpenApiTypes.STR,
+                description="Comma-separated project ids to drop.",
+                required=False,
+            ),
+        ],
+        responses={
+            200: inline_serializer(
+                name="ExportFeaturesResult",
+                fields={
+                    "srid": serializers.IntegerField(),
+                    "layers": serializers.DictField(
+                        help_text="Per-layer GeoJSON FeatureCollection."
+                    ),
+                    "counts": serializers.DictField(child=serializers.IntegerField()),
+                    "total": serializers.IntegerField(),
+                },
+            ),
+            400: OpenApiResponse(
+                inline_serializer(
+                    name="ExportFeaturesError",
+                    fields={"error": serializers.CharField()},
+                ),
+                description="Invalid layer or project request.",
+            ),
+        },
+    )
+    def get(self, request, format=None):
+        """List features per requested layer as GeoJSON FeatureCollections.
+
+        URL: /api/v1/export/features/
+        Query params:
+            layers: "cable,conduit,node,area" (optional; defaults to all),
+            project: int (optional; scopes results to one project),
+            exclude_projects: "3,7" (optional; drops these projects).
+
+        Returns:
+            Response: {
+                "srid": int,
+                "layers": {<layer>: FeatureCollection, ...},
+                "counts": {<layer>: int, ...},
+                "total": int
+            }
+        """
+        layers_param = request.query_params.get("layers")
+        requested_layers = (
+            [name.strip() for name in layers_param.split(",") if name.strip()]
+            if layers_param
+            else None
+        )
+
+        try:
+            querysets = export_features(
+                layers=requested_layers,
+                project_id=request.query_params.get("project"),
+                exclude_project_ids=request.query_params.get("exclude_projects"),
+            )
+        except SpatialIntersectError as exc:
+            return Response({"error": exc.message}, status=exc.status_code)
+
+        layers = {}
+        counts = {}
+        total = 0
+        for name, queryset in querysets.items():
+            if name in self._serializers:
+                serializer = self._serializers[name](
+                    queryset, many=True, context={"request": request}
+                )
+                feature_collection = serializer.data
+            else:
+                feature_collection = self._merged_geometry_collection(
+                    name, queryset, request
+                )
             layers[name] = feature_collection
             count = len(feature_collection.get("features", []))
             counts[name] = count

@@ -3361,6 +3361,61 @@ paths:
               schema:
                 $ref: '#/components/schemas/DashboardStatisticsError'
           description: Missing required ``project`` parameter.
+  /api/v1/export/features/:
+    get:
+      operationId: export_features_retrieve
+      description: |-
+        List features per requested layer as GeoJSON FeatureCollections.
+
+        URL: /api/v1/export/features/
+        Query params:
+            layers: "cable,conduit,node,area" (optional; defaults to all),
+            project: int (optional; scopes results to one project),
+            exclude_projects: "3,7" (optional; drops these projects).
+
+        Returns:
+            Response: {
+                "srid": int,
+                "layers": {<layer>: FeatureCollection, ...},
+                "counts": {<layer>: int, ...},
+                "total": int
+            }
+      parameters:
+      - in: query
+        name: exclude_projects
+        schema:
+          type: string
+        description: Comma-separated project ids to drop.
+      - in: query
+        name: layers
+        schema:
+          type: string
+        description: Comma-separated layer names (cable, conduit, node, area). Defaults
+          to all layers.
+      - in: query
+        name: project
+        schema:
+          type: integer
+        description: Scope results to a single project id.
+      tags:
+      - export
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportFeaturesResult'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportFeaturesError'
+          description: Invalid layer or project request.
   /api/v1/fault-simulation/:
     post:
       operationId: fault_simulation_create
@@ -11016,6 +11071,33 @@ components:
           type: string
       required:
       - error
+    ExportFeaturesError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+      - error
+    ExportFeaturesResult:
+      type: object
+      properties:
+        srid:
+          type: integer
+        layers:
+          type: object
+          additionalProperties: {}
+          description: Per-layer GeoJSON FeatureCollection.
+        counts:
+          type: object
+          additionalProperties:
+            type: integer
+        total:
+          type: integer
+      required:
+      - counts
+      - layers
+      - srid
+      - total
     FaultSimulationRequest:
       type: object
       properties:
@@ -15018,11 +15100,13 @@ components:
         the frontend; only its container type is validated here.
       properties:
         settings:
-          description: Opaque frontend settings snapshot (localStorage key/value map).
+          title: Einstellungen
+          description: Undurchsichtiger Snapshot der Frontend-Einstellungen (localStorage-Schlüssel-/Wert-Zuordnung).
         updated_at:
           type: string
           format: date-time
           readOnly: true
+          title: Aktualisiert am
       required:
       - updated_at
     ValuationCategory:

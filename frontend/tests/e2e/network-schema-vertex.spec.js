@@ -70,7 +70,7 @@ async function seedEditableVertex(page) {
 			pt.y > pr.top + pad &&
 			pt.y < pr.bottom - pad;
 
-		/** @param {Element} el @param {{clientX:number,clientY:number,altKey?:boolean,shiftKey?:boolean}} o */
+		/** @param {Element} el @param {string} type @param {{clientX:number,clientY:number,altKey?:boolean,shiftKey?:boolean}} o */
 		const fire = (el, type, o) =>
 			el.dispatchEvent(
 				new MouseEvent(type, { bubbles: true, cancelable: true, button: 0, view: window, ...o })
@@ -115,7 +115,11 @@ async function seedEditableVertex(page) {
 			const edgeId = editingEdgeId();
 			if (!edgeId) continue;
 
-			const edge = () => document.querySelector(`.svelte-flow__edge[data-id="${edgeId}"]`);
+			const edge = () => {
+				const el = document.querySelector(`.svelte-flow__edge[data-id="${edgeId}"]`);
+				if (!el) throw new Error(`edge ${edgeId} vanished`);
+				return el;
+			};
 			const gEl = () => edge().querySelector('g[role="button"]');
 			const circles = () => edge().querySelectorAll('circle.nopan').length;
 
@@ -125,6 +129,7 @@ async function seedEditableVertex(page) {
 			let guard = 0;
 			while (circles() > 0 && guard++ < 10) {
 				const c = edge().querySelector('circle.nopan');
+				if (!c) break;
 				const r = c.getBoundingClientRect();
 				fire(c, 'mousedown', {
 					clientX: r.left + r.width / 2,
@@ -140,12 +145,15 @@ async function seedEditableVertex(page) {
 			for (let t = 0.05; t <= 0.95; t += 0.02) {
 				const pt = pathPoint(edge(), t);
 				if (!pt || !inViewport(pt, 15)) continue;
-				fire(gEl(), 'click', { clientX: pt.x, clientY: pt.y });
+				const g = gEl();
+				if (!g) continue;
+				fire(g, 'click', { clientX: pt.x, clientY: pt.y });
 				if (!(await waitFor(() => circles() === 1, 600))) {
 					await waitFor(() => circles() === 0, 300);
 					continue;
 				}
 				const c = edge().querySelector('circle.nopan');
+				if (!c) continue;
 				const r = c.getBoundingClientRect();
 				const x = Math.round(r.left + r.width / 2);
 				const y = Math.round(r.top + r.height / 2);

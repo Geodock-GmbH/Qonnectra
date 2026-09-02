@@ -1958,6 +1958,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/export/features/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description List features per requested layer as GeoJSON FeatureCollections.
+         *
+         *     URL: /api/v1/export/features/
+         *     Query params:
+         *         layers: "cable,conduit,node,area" (optional; defaults to all),
+         *         project: int (optional; scopes results to one project),
+         *         exclude_projects: "3,7" (optional; drops these projects).
+         *
+         *     Returns:
+         *         Response: {
+         *             "srid": int,
+         *             "layers": {<layer>: FeatureCollection, ...},
+         *             "counts": {<layer>: int, ...},
+         *             "total": int
+         *         }
+         */
+        get: operations["export_features_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/fault-simulation/": {
         parameters: {
             query?: never;
@@ -5727,6 +5760,20 @@ export interface components {
         DashboardStatisticsError: {
             error: string;
         };
+        ExportFeaturesError: {
+            error: string;
+        };
+        ExportFeaturesResult: {
+            srid: number;
+            /** @description Per-layer GeoJSON FeatureCollection. */
+            layers: {
+                [key: string]: unknown;
+            };
+            counts: {
+                [key: string]: number;
+            };
+            total: number;
+        };
         FaultSimulationRequest: {
             /** @description Damage point as [x, y]. */
             point: number[];
@@ -8119,9 +8166,15 @@ export interface components {
          *     the frontend; only its container type is validated here.
          */
         UserSettings: {
-            /** @description Opaque frontend settings snapshot (localStorage key/value map). */
+            /**
+             * Einstellungen
+             * @description Undurchsichtiger Snapshot der Frontend-Einstellungen (localStorage-Schlüssel-/Wert-Zuordnung).
+             */
             settings?: unknown;
-            /** Format: date-time */
+            /**
+             * Aktualisiert am
+             * Format: date-time
+             */
             readonly updated_at: string;
         };
         ValuationCategory: {
@@ -11137,6 +11190,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DashboardStatisticsError"];
+                };
+            };
+        };
+    };
+    export_features_retrieve: {
+        parameters: {
+            query?: {
+                /** @description Comma-separated project ids to drop. */
+                exclude_projects?: string;
+                /** @description Comma-separated layer names (cable, conduit, node, area). Defaults to all layers. */
+                layers?: string;
+                /** @description Scope results to a single project id. */
+                project?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExportFeaturesResult"];
+                };
+            };
+            /** @description Invalid layer or project request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExportFeaturesError"];
                 };
             };
         };
