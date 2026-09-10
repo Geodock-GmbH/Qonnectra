@@ -1,3 +1,7 @@
+# Production stack. Resource limits and worker counts are sized for the
+# minimum supported host: 8 CPU cores / 16 GB RAM. Scale up on larger hosts
+# via docker-compose.override.yml (see docker-compose.override.yml.template).
+
 services:
   db:
     build:
@@ -25,23 +29,28 @@ services:
       start_period: 60s
     networks:
       - qonnectra_network
-    shm_size: 256m
+    shm_size: 1g
     deploy:
       resources:
         limits:
-          memory: 2G
+          memory: 6G
         reservations:
-          memory: 512M
+          memory: 2G
     command: >
       postgres
-      -c shared_buffers=256MB
-      -c effective_cache_size=1GB
-      -c maintenance_work_mem=64MB
+      -c shared_buffers=1536MB
+      -c effective_cache_size=4GB
+      -c maintenance_work_mem=512MB
+      -c work_mem=32MB
       -c checkpoint_completion_target=0.9
-      -c wal_buffers=16MB
-      -c default_statistics_target=100
+      -c wal_buffers=32MB
+      -c default_statistics_target=200
       -c random_page_cost=1.1
       -c effective_io_concurrency=200
+      -c max_worker_processes=8
+      -c max_parallel_workers=4
+      -c max_parallel_workers_per_gather=2
+      -c max_parallel_maintenance_workers=2
     logging:
       driver: "json-file"
       options:
@@ -62,7 +71,7 @@ services:
             python manage.py migrate &&
             python manage.py shell -c \"from django.contrib.auth import get_user_model; import os; User = get_user_model(); username = os.environ.get('DJANGO_SUPERUSER_USERNAME'); User.objects.filter(username=username).exists() or User.objects.create_superuser(username, os.environ.get('DJANGO_SUPERUSER_EMAIL'), os.environ.get('DJANGO_SUPERUSER_PASSWORD'))\" &&
             python manage.py load_initial_data &&
-            gunicorn --bind 0.0.0.0:8000 --workers 4 --timeout 60 core.wsgi:application"
+            gunicorn --bind 0.0.0.0:8000 --workers 6 --timeout 60 core.wsgi:application"
     expose:
       - "8000"
     volumes:
@@ -99,9 +108,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 2G
         reservations:
-          memory: 512M
+          memory: 1G
     logging:
       driver: "json-file"
       options:
@@ -127,7 +136,7 @@ services:
         sleep 2 &&
         grep -q 'client_max_body_size' /etc/nginx/nginx.conf || sed -i '/http {/a \    client_max_body_size 500M;' /etc/nginx/nginx.conf &&
         nginx &&
-        spawn-fcgi -n -u www-data -g www-data -d /var/lib/qgis -P /run/qgis.pid -p 9993 -- /usr/lib/cgi-bin/qgis_mapserv.fcgi &&
+        spawn-fcgi -F 3 -u www-data -g www-data -d /var/lib/qgis -P /run/qgis.pid -p 9993 -- /usr/lib/cgi-bin/qgis_mapserv.fcgi &&
         tail -f /dev/null
     expose:
       - "80"
@@ -138,8 +147,6 @@ services:
     environment:
       - QGIS_SERVER_LOG_LEVEL=1
       - QGIS_SERVER_LOG_STDERR=1
-      - QGIS_FCGI_MIN_PROCESSES=2
-      - QGIS_FCGI_MAX_PROCESSES=8
       - PGSERVICEFILE=/etc/postgresql-common/pg_service.conf
       - QGIS_PG_SERVICE_NAME=${QGIS_PG_SERVICE_NAME:-qonnectra}
       - DB_NAME=${DB_NAME}
@@ -160,9 +167,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 3G
         reservations:
-          memory: 512M
+          memory: 1G
     logging:
       driver: "json-file"
       options:
@@ -204,9 +211,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 1536M
         reservations:
-          memory: 256M
+          memory: 512M
     logging:
       driver: "json-file"
       options:
@@ -311,7 +318,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: 256M
         reservations:
           memory: 64M
 
@@ -336,9 +343,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 1G
         reservations:
-          memory: 256M
+          memory: 512M
     logging:
       driver: "json-file"
       options:

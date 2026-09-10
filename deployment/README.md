@@ -10,11 +10,11 @@ This guide covers deployment scenarios for qonnectra: local development with man
 
 ## Docker Compose Files
 
-| File | Purpose |
-|------|---------|
-| `docker-compose.yml` | Production deployment (default) |
-| `docker-compose.dev.yml` | Development with Caddy local HTTPS |
-| `docker-compose.override.yml.template` | Template for local customizations |
+| File                                   | Purpose                            |
+| -------------------------------------- | ---------------------------------- |
+| `docker-compose.yml`                   | Production deployment (default)    |
+| `docker-compose.dev.yml`               | Development with Caddy local HTTPS |
+| `docker-compose.override.yml.template` | Template for local customizations  |
 
 **Note:** Copy `docker-compose.override.yml.template` to `docker-compose.override.yml` for local customizations. The override file is gitignored.
 
@@ -172,7 +172,7 @@ This setup uses Docker Compose for all services with Caddy providing local HTTPS
 
 - Docker Engine 20.10+
 - Docker Compose 2.0+
-- Minimum 4GB RAM available (8GB recommended)
+- Minimum 8 CPU cores and 16GB RAM (the compose file is tuned for this baseline)
 - Ports 80, 443 available
 
 ### Setup Steps
@@ -221,6 +221,7 @@ docker compose -f docker-compose.dev.yml up -d --build
 On first run, Caddy will attempt to install its CA certificate. You may be prompted for your password to trust the certificate. After that, all `*.localhost` domains will work with valid HTTPS.
 
 If Caddy fails to install the certificate automatically, run:
+
 ```bash
 docker compose -f docker-compose.dev.yml exec caddy caddy trust
 ```
@@ -228,6 +229,7 @@ docker compose -f docker-compose.dev.yml exec caddy caddy trust
 #### 2.3 Local Customizations (Optional)
 
 For local customizations that shouldn't be committed:
+
 ```bash
 cp docker-compose.override.yml.template docker-compose.override.yml
 # Edit docker-compose.override.yml as needed
@@ -253,7 +255,7 @@ Full production stack with Caddy reverse proxy, HTTPS, and all services containe
 
 - Docker Engine 20.10+
 - Docker Compose 2.0+
-- VPS with minimum 4 CPU cores and 8GB RAM
+- Server with minimum 8 CPU cores and 16GB RAM (the compose file is tuned for this baseline)
 - Ports 80, 443 available
 - Domain names configured (or use localhost with certificates)
 
@@ -330,11 +332,13 @@ docker compose up -d --build
 #### 3.4 Verify Services
 
 Check service status:
+
 ```bash
 docker-compose ps
 ```
 
 View logs:
+
 ```bash
 docker-compose logs [service_name]
 ```
@@ -427,7 +431,7 @@ docker-compose logs [service_name]
 
 - **Port**: 8000 (internal, proxied via nginx)
 - **Function**: Dedicated Django instance for WMS/MVT tile caching
-- **Memory**: 1GB limit, 256MB reserved
+- **Memory**: 1.5GB limit, 512MB reserved
 - **Features**:
   - Separate Gunicorn worker pool for tile requests
   - Isolates tile rendering load from main API
@@ -458,6 +462,7 @@ docker-compose logs [service_name]
 [Planetiler](https://github.com/onthegomap/planetiler) is a fast tool for generating vector tiles from OpenStreetMap data. You need to generate mbtiles before starting the TileServer.
 
 **Prerequisites:**
+
 - Java 21 or later (`java --version`)
 - 8GB+ RAM recommended
 - Disk space: ~2x the size of your OSM data file
@@ -491,12 +496,12 @@ java -Xmx8g -jar planetiler.jar --osm-path=germany-latest.osm.pbf --output=tiles
 
 **Memory Recommendations:**
 
-| Region | RAM | Approximate Output Size |
-|--------|-----|------------------------|
-| City (e.g., Berlin) | 2-4GB | 100-500MB |
-| State/Province | 4-8GB | 500MB-2GB |
-| Country (e.g., Germany) | 8-16GB | 2-5GB |
-| Continent | 32GB+ | 20GB+ |
+| Region                  | RAM    | Approximate Output Size |
+| ----------------------- | ------ | ----------------------- |
+| City (e.g., Berlin)     | 2-4GB  | 100-500MB               |
+| State/Province          | 4-8GB  | 500MB-2GB               |
+| Country (e.g., Germany) | 8-16GB | 2-5GB                   |
+| Continent               | 32GB+  | 20GB+                   |
 
 **Updating config.json:**
 
@@ -546,19 +551,21 @@ After generating your mbtiles, update `tiles/config.json` to reference your file
 
 #### Resource Limits (Production)
 
-| Service | Memory Limit | Memory Reservation |
-|---------|--------------|-------------------|
-| Database (PostgreSQL) | 2GB | 512MB |
-| Backend (Django API) | 1GB | 512MB |
-| Backend WMS | 1GB | 256MB |
-| QGIS Server | 1GB | 512MB |
-| Frontend (SvelteKit) | 512MB | 256MB |
-| TileServer-GL | 512MB | 256MB |
-| Caddy | 256MB | 128MB |
-| PG Error Parser | 256MB | 128MB |
-| Nginx | 128MB | 64MB |
-| WireGuard | 128MB | 64MB |
-| **Total** | **~6.8GB** | **~2.7GB** |
+The production compose file is sized for the minimum supported host of 8 CPU cores and 16GB RAM.
+
+| Service               | Memory Limit | Memory Reservation | Concurrency                                 |
+| --------------------- | ------------ | ------------------ | ------------------------------------------- |
+| Database (PostgreSQL) | 6GB          | 2GB                | shared_buffers 1.5GB, 4 parallel workers    |
+| Backend (Django API)  | 2GB          | 1GB                | 6 gunicorn workers                          |
+| Backend WMS           | 1.5GB        | 512MB              | 4 gunicorn workers                          |
+| QGIS Server           | 3GB          | 1GB                | 3 FCGI render processes (`spawn-fcgi -F 3`) |
+| TileServer-GL         | 1GB          | 512MB              |                                             |
+| Frontend (SvelteKit)  | 512MB        | 256MB              |                                             |
+| Caddy                 | 256MB        | 128MB              |                                             |
+| PG Error Parser       | 256MB        | 128MB              |                                             |
+| Nginx                 | 256MB        | 64MB               |                                             |
+| WireGuard             | 128MB        | 64MB               |                                             |
+| **Total**             | **~14.9GB**  | **~5.7GB**         |                                             |
 
 ---
 
@@ -566,36 +573,36 @@ After generating your mbtiles, update `tiles/config.json` to reference your file
 
 ### Backend Variables (`deployment/.env`)
 
-| Variable | Required | Description | Example |
-|---------|----------|-------------|---------|
-| `DJANGO_SECRET_KEY` | Yes | Django secret key | `django-insecure-...` |
-| `DB_NAME` | Yes | PostgreSQL database name | `qonnectra` |
-| `DB_USER` | Yes | PostgreSQL username | `qonnectra_user` |
-| `DB_PASSWORD` | Yes | PostgreSQL password | `secure-password` |
-| `DB_HOST` | Yes | Database host | `localhost` or `db` |
-| `DB_PORT` | Yes | Database port | `5432` |
-| `QGIS_DB_USER` | No | QGIS database user (limited permissions) | `qgis_user` |
-| `QGIS_DB_PASSWORD` | No | QGIS database password | `qgis-password` |
-| `DJANGO_SUPERUSER_USERNAME` | Yes | Admin username | `admin` |
-| `DJANGO_SUPERUSER_EMAIL` | Yes | Admin email | `admin@example.com` |
-| `DJANGO_SUPERUSER_PASSWORD` | Yes | Admin password | `admin-password` |
-| `DEBUG` | No | Django debug mode | `True` / `False` |
-| `DEFAULT_SRID` | No | Default coordinate system | `25832` |
-| `CORS_ALLOWED_ORIGINS` | No | CORS allowed origins | `http://localhost:5173` |
-| `USE_COOKIE_DOMAIN_MIDDLEWARE` | No | Enable cookie domain middleware | `False` |
-| `COOKIE_DOMAIN` | No | Cookie domain | `.localhost` |
-| `FIELD_ENCRYPTION_KEY` | No | Encryption key for sensitive fields (e.g. WMS passwords) | `base64-encoded-key` |
-| `QGIS_PG_SERVICE_NAME` | No | PostgreSQL service name for QGIS Server | `qonnectra` |
+| Variable                       | Required | Description                                              | Example                 |
+| ------------------------------ | -------- | -------------------------------------------------------- | ----------------------- |
+| `DJANGO_SECRET_KEY`            | Yes      | Django secret key                                        | `django-insecure-...`   |
+| `DB_NAME`                      | Yes      | PostgreSQL database name                                 | `qonnectra`             |
+| `DB_USER`                      | Yes      | PostgreSQL username                                      | `qonnectra_user`        |
+| `DB_PASSWORD`                  | Yes      | PostgreSQL password                                      | `secure-password`       |
+| `DB_HOST`                      | Yes      | Database host                                            | `localhost` or `db`     |
+| `DB_PORT`                      | Yes      | Database port                                            | `5432`                  |
+| `QGIS_DB_USER`                 | No       | QGIS database user (limited permissions)                 | `qgis_user`             |
+| `QGIS_DB_PASSWORD`             | No       | QGIS database password                                   | `qgis-password`         |
+| `DJANGO_SUPERUSER_USERNAME`    | Yes      | Admin username                                           | `admin`                 |
+| `DJANGO_SUPERUSER_EMAIL`       | Yes      | Admin email                                              | `admin@example.com`     |
+| `DJANGO_SUPERUSER_PASSWORD`    | Yes      | Admin password                                           | `admin-password`        |
+| `DEBUG`                        | No       | Django debug mode                                        | `True` / `False`        |
+| `DEFAULT_SRID`                 | No       | Default coordinate system                                | `25832`                 |
+| `CORS_ALLOWED_ORIGINS`         | No       | CORS allowed origins                                     | `http://localhost:5173` |
+| `USE_COOKIE_DOMAIN_MIDDLEWARE` | No       | Enable cookie domain middleware                          | `False`                 |
+| `COOKIE_DOMAIN`                | No       | Cookie domain                                            | `.localhost`            |
+| `FIELD_ENCRYPTION_KEY`         | No       | Encryption key for sensitive fields (e.g. WMS passwords) | `base64-encoded-key`    |
+| `QGIS_PG_SERVICE_NAME`         | No       | PostgreSQL service name for QGIS Server                  | `qonnectra`             |
 
 ### Frontend Variables (`frontend/.env`)
 
-| Variable | Required | Description | Example |
-|---------|----------|-------------|---------|
-| `API_URL` | Yes | Backend API URL (server-side) | `http://localhost:8000/api/v1/` |
-| `PUBLIC_API_URL` | Yes | Backend API URL (client-side) | `http://localhost:8000/api/v1/` |
-| `PUBLIC_TILE_SERVER_URL` | No | Vector tile server URL (omit for OSM fallback) | `http://localhost:8090` |
-| `PUBLIC_DOCUMENTATION_URL` | No | URL to user documentation/manual | `https://qonnectra.de/manual/` |
-| `ORIGIN` | No | Frontend origin for CORS | `http://localhost:5173` |
+| Variable                   | Required | Description                                    | Example                         |
+| -------------------------- | -------- | ---------------------------------------------- | ------------------------------- |
+| `API_URL`                  | Yes      | Backend API URL (server-side)                  | `http://localhost:8000/api/v1/` |
+| `PUBLIC_API_URL`           | Yes      | Backend API URL (client-side)                  | `http://localhost:8000/api/v1/` |
+| `PUBLIC_TILE_SERVER_URL`   | No       | Vector tile server URL (omit for OSM fallback) | `http://localhost:8090`         |
+| `PUBLIC_DOCUMENTATION_URL` | No       | URL to user documentation/manual               | `https://qonnectra.de/manual/`  |
+| `ORIGIN`                   | No       | Frontend origin for CORS                       | `http://localhost:5173`         |
 
 **Note:** In SvelteKit, private environment variables (server-side only) are accessed via `$env/static/private`, and public variables (client-side accessible) must be prefixed with `PUBLIC_` and accessed via `$env/static/public`.
 
@@ -665,6 +672,7 @@ sudo nano /etc/environment
 ```
 
 Add these lines:
+
 ```
 DOCKER_BUILDKIT=1
 COMPOSE_DOCKER_CLI_BUILD=1
@@ -673,6 +681,7 @@ COMPOSE_DOCKER_CLI_BUILD=1
 Save and reboot (or log out and back in).
 
 **Why?** BuildKit enables:
+
 - Persistent npm/pip caches between builds
 - Parallel layer building
 - Better build output
@@ -770,7 +779,7 @@ Persistent data is stored in Docker volumes:
 2. **Resource Limits**: Configure appropriate CPU/memory limits (already configured in compose file)
 3. **Backup Strategy**: Regular database backups using `docker-compose exec db pg_dump`
 4. **Monitoring**: Set up logging and monitoring solutions (e.g., Prometheus, Grafana)
-5. **Security**: 
+5. **Security**:
    - Use strong passwords and secrets
    - Enable HTTPS (automatic with Caddy)
    - Restrict database access (not exposed externally)

@@ -39,12 +39,29 @@ services:
   #     - ../frontend:/app
   #     - /app/node_modules
 
-  # Example: Add resource limits
-  # backend:
+  # Example: Scale up on a larger host. The base compose file is sized for
+  # 8 CPU / 16 GB. `command:` is replaced as a whole, so repeat the full
+  # command and change only the worker count. For qgis-server, copy the
+  # command from docker-compose.yml and change `spawn-fcgi -F 3` to the
+  # number of render processes you want (each is a full QGIS process).
+  # backend-wms:
+  #   command: gunicorn --bind 0.0.0.0:8000 --workers 8 --timeout 60 core.wsgi:application
   #   deploy:
   #     resources:
   #       limits:
-  #         memory: 1G
+  #         memory: 4G
+  # db:
+  #   shm_size: 4g
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 32G
+  #   command: >
+  #     postgres
+  #     -c shared_buffers=8GB
+  #     -c effective_cache_size=24GB
+  #     -c work_mem=128MB
+  #     -c max_parallel_workers=8
 
   # Example: Change restart policy
   # backend:

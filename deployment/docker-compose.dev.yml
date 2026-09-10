@@ -114,7 +114,7 @@ services:
         sleep 2 &&
         grep -q 'client_max_body_size' /etc/nginx/nginx.conf || sed -i '/http {/a \    client_max_body_size 500M;' /etc/nginx/nginx.conf &&
         nginx &&
-        spawn-fcgi -n -u www-data -g www-data -d /var/lib/qgis -P /run/qgis.pid -p 9993 -- /usr/lib/cgi-bin/qgis_mapserv.fcgi &&
+        spawn-fcgi -F 2 -u www-data -g www-data -d /var/lib/qgis -P /run/qgis.pid -p 9993 -- /usr/lib/cgi-bin/qgis_mapserv.fcgi &&
         tail -f /dev/null
       "
     expose:
@@ -126,8 +126,6 @@ services:
     environment:
       - QGIS_SERVER_LOG_LEVEL=2
       - QGIS_SERVER_LOG_STDERR=1
-      - QGIS_FCGI_MIN_PROCESSES=1
-      - QGIS_FCGI_MAX_PROCESSES=4
       - PGSERVICEFILE=/etc/postgresql-common/pg_service.conf
       - QGIS_PG_SERVICE_NAME=${QGIS_PG_SERVICE_NAME:-qonnectra}
       - DB_NAME=${DB_NAME}
