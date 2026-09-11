@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.8.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.7.0...v1.8.0) (2026-09-11)
+
+
+### Features
+
+* Export feature endpoint ([#89](https://github.com/Geodock-GmbH/Qonnectra/issues/89)) ([65865cf](https://github.com/Geodock-GmbH/Qonnectra/commit/65865cf14ee79046c9ad23627659e53bd68ffa41))
+* Filter feature-files by project and feature_type ([cafebd5](https://github.com/Geodock-GmbH/Qonnectra/commit/cafebd59a4863693bb923a34f715bad8940f3363))
+* Openapi-Schema and any type clean up ([#85](https://github.com/Geodock-GmbH/Qonnectra/issues/85)) ([bfd6144](https://github.com/Geodock-GmbH/Qonnectra/commit/bfd6144b7f7622c4907b6ee1d4ad9101b461a846))
+
+
+### Bug Fixes
+
+* Added nokey to the vertex circle for svelte flow ([b48782b](https://github.com/Geodock-GmbH/Qonnectra/commit/b48782bb7b9b8792b07da1a2777d701cc39c5cb2))
+* make label reset and vertex delete reliable ([#87](https://github.com/Geodock-GmbH/Qonnectra/issues/87)) ([98e4cbe](https://github.com/Geodock-GmbH/Qonnectra/commit/98e4cbebb65f804a9bd872a19b32239e0758f84e))
+
+
+### Refactoring
+
+* Added an object in filter and wrong uuids in feature files are now returning an empty list instead of an 500 error ([e5d2e81](https://github.com/Geodock-GmbH/Qonnectra/commit/e5d2e81e9c249d9207f378f64e148ec2da286fc4))
+* Refactor network-schema route to remote functions ([#88](https://github.com/Geodock-GmbH/Qonnectra/issues/88)) ([ef8777e](https://github.com/Geodock-GmbH/Qonnectra/commit/ef8777eb98775f81c41b7101f7b8bd9fb270f17a))
+
+
+### Miscellaneous
+
+* Changed docker configs for better min req server hardware ([9bf751d](https://github.com/Geodock-GmbH/Qonnectra/commit/9bf751dd72ec99e261598164916b84152097e1c7))
+* Regenerate api.d.ts ([aa28575](https://github.com/Geodock-GmbH/Qonnectra/commit/aa2857516278cc5d2d0fe1f27fc255bedcc4bcc0))
+* Regenerate OpenAPI schema for feature-files project/feature_type filters ([11969c5](https://github.com/Geodock-GmbH/Qonnectra/commit/11969c50a95d1ee41780cb26a74684db20eed046))
+
 ## [1.7.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.6.0...v1.7.0) (2026-08-28)
 
 
