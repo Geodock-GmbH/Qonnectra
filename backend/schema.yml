@@ -3462,12 +3462,32 @@ paths:
   /api/v1/feature-files/:
     get:
       operationId: feature_files_list
-      description: |-
-        CRUD operations for :model:`api.FeatureFiles`.
-
-        Provide authenticated file downloads using Nginx X-Accel-Redirect for
-        secure and efficient file serving.
+      description: List feature files, optionally filtered by feature uuid(s).
       parameters:
+      - in: query
+        name: feature_type
+        schema:
+          type: string
+          enum:
+          - address
+          - area
+          - cable
+          - conduit
+          - node
+          - residentialunit
+          - trench
+        description: Restrict to one feature-file model name
+      - in: query
+        name: object_id
+        schema:
+          type: string
+          format: uuid
+        description: Single feature uuid
+      - in: query
+        name: object_id__in
+        schema:
+          type: string
+        description: Comma-separated feature uuids
       - name: page
         required: false
         in: query
@@ -3480,6 +3500,11 @@ paths:
         description: Number of results to return per page.
         schema:
           type: integer
+      - in: query
+        name: project
+        schema:
+          type: integer
+        description: Restrict to files whose derived project matches this id
       tags:
       - feature-files
       security:
@@ -11117,7 +11142,13 @@ components:
       - project_id
     FeatureFiles:
       type: object
-      description: Serialize :model:`api.FeatureFiles` with Nextcloud storage metadata.
+      description: |-
+        Serialize :model:`api.FeatureFiles` with Nextcloud storage metadata.
+
+        ``feature_type`` exposes the linked feature's model name and ``project`` its
+        derived project id (see
+        :data:`~apps.api.services.FEATURE_FILE_PROJECT_PATHS` for the per-model
+        derivation path), both read-only.
       properties:
         uuid:
           type: string
@@ -11130,6 +11161,15 @@ components:
         content_type:
           type: integer
           title: Feature-Typ
+        feature_type:
+          type: string
+          readOnly: true
+          title: Feature-Typ
+        project:
+          type: integer
+          nullable: true
+          readOnly: true
+          title: Projekt
         file_path:
           type: string
           format: uri
@@ -11154,10 +11194,12 @@ components:
       required:
       - content_type
       - created_at
+      - feature_type
       - file_name
       - file_path
       - file_type
       - object_id
+      - project
       - uuid
     Fiber:
       type: object
@@ -13107,7 +13149,13 @@ components:
           readOnly: true
     PatchedFeatureFiles:
       type: object
-      description: Serialize :model:`api.FeatureFiles` with Nextcloud storage metadata.
+      description: |-
+        Serialize :model:`api.FeatureFiles` with Nextcloud storage metadata.
+
+        ``feature_type`` exposes the linked feature's model name and ``project`` its
+        derived project id (see
+        :data:`~apps.api.services.FEATURE_FILE_PROJECT_PATHS` for the per-model
+        derivation path), both read-only.
       properties:
         uuid:
           type: string
@@ -13120,6 +13168,15 @@ components:
         content_type:
           type: integer
           title: Feature-Typ
+        feature_type:
+          type: string
+          readOnly: true
+          title: Feature-Typ
+        project:
+          type: integer
+          nullable: true
+          readOnly: true
+          title: Projekt
         file_path:
           type: string
           format: uri
