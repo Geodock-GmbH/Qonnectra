@@ -717,23 +717,18 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
     )
 
     def get_queryset(self):  # type: ignore[override]
-        """
-        Filter files by object_id / object_id__in / feature_type / project.
+        """Filter files by object_id, object_id__in, feature_type and project.
 
-        ``object_id`` / ``object_id__in`` restrict to specific feature uuids,
-        preventing files from leaking between features; malformed uuids are
-        dropped so an invalid value yields an empty result set instead of a 500.
+        The four filters AND together. Malformed uuids, an unknown
+        ``feature_type`` and a non-numeric ``project`` are rejected — the uuid
+        filters by yielding an empty set, the latter two with a 400 — so a bad
+        value never leaks files or 500s. A file whose feature row has been
+        deleted drops out of ``project`` results because its uuid no longer
+        appears in the derivation subquery (see
+        :data:`~apps.api.services.FEATURE_FILE_PROJECT_PATHS`).
 
-        ``feature_type=<model>`` restricts to one of the seven feature-file
-        model names; ``project=<id>`` restricts to files whose derived project
-        matches (see :data:`~apps.api.services.FEATURE_FILE_PROJECT_PATHS`).
-        Files whose feature row has been deleted fall out of project-filtered
-        results because their uuid no longer appears in the derivation subquery.
-        Unknown ``feature_type`` or non-numeric ``project`` raise a 400 rather
-        than returning misleading results. All filters AND together.
-
-        ``select_related`` / ``prefetch_related`` keep the serializer's
-        ``feature_type`` and ``project`` fields from issuing a query per row.
+        Returns:
+            QuerySet[FeatureFiles]: The filtered files, ordered by file path.
         """
         queryset = (
             FeatureFiles.objects.all()
@@ -787,11 +782,11 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
                 content_type = ContentType.objects.get_for_model(
                     FEATURE_FILE_PROJECT_PATHS[model_name][0]
                 )
-                project_filter |= Q(
-                    content_type=content_type, object_id__in=object_ids
-                )
+                project_filter |= Q(content_type=content_type, object_id__in=object_ids)
 
-            queryset = queryset.filter(project_filter) if project_filter else queryset.none()
+            queryset = (
+                queryset.filter(project_filter) if project_filter else queryset.none()
+            )
 
         return queryset
 

@@ -5620,12 +5620,9 @@ FEATURE_FILE_PROJECT_PATHS = {
 def feature_file_object_ids_for_project(project_id, model_names):
     """Map feature-file model names to the feature uuids belonging to a project.
 
-    For each requested model name, the value is a ``values_list("uuid",
-    flat=True)`` queryset of the uuids whose derived project matches
-    ``project_id`` (see :data:`FEATURE_FILE_PROJECT_PATHS` for how each model
-    reaches its project). These querysets are meant to be used as subqueries in
-    ``object_id__in`` filters on :model:`api.FeatureFiles`.
-
+    Each value is a ``values_list("uuid", flat=True)`` queryset intended as a
+    subquery in an ``object_id__in`` filter on :model:`api.FeatureFiles` (see
+    :data:`FEATURE_FILE_PROJECT_PATHS` for how each model reaches its project).
     Unknown model names are dropped rather than raising, mirroring the tolerance
     of :func:`parse_project_id_list`, so a malformed ``model_names`` never
     crashes the caller.
