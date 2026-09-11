@@ -209,6 +209,31 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
+def _uuid_tokens(raw):
+    """Parse a comma-separated string into a list of valid UUIDs.
+
+    Blank tokens are skipped and malformed tokens are dropped, mirroring the
+    tolerance of :func:`apps.api.services.parse_project_id_list`, so a bad
+    filter value never crashes the endpoint.
+
+    Args:
+        raw: Raw comma-separated value from ``request.query_params``.
+
+    Returns:
+        list[uuid.UUID]: Valid UUIDs, or ``[]`` when nothing valid was supplied.
+    """
+    tokens = []
+    for token in (raw or "").split(","):
+        token = token.strip()
+        if not token:
+            continue
+        try:
+            tokens.append(uuid.UUID(token))
+        except ValueError:
+            continue
+    return tokens
+
+
 class AttributesCableTypeViewSet(viewsets.ReadOnlyModelViewSet):
     """Read-only ViewSet for :model:`api.AttributesCableType`."""
 
@@ -690,18 +715,43 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):  # type: ignore[override]
         """
-        Filter files by object_id query parameter.
+        Filter files by object_id / object_id__in query parameters.
 
-        This ensures that files are only returned for the specific feature
+        This ensures that files are only returned for the specific feature(s)
         being viewed, preventing files from leaking between different features.
+        Malformed uuids are dropped rather than raising, so an invalid filter
+        value yields an empty result set instead of a 500.
         """
         queryset = FeatureFiles.objects.all().order_by("file_path")
+        params = self.request.query_params
 
-        object_id = self.request.query_params.get("object_id")
-        if object_id:
-            queryset = queryset.filter(object_id=object_id)
+        if params.get("object_id"):
+            ids = _uuid_tokens(params["object_id"])
+            queryset = queryset.filter(object_id__in=ids) if ids else queryset.none()
+
+        if params.get("object_id__in"):
+            ids = _uuid_tokens(params["object_id__in"])
+            queryset = queryset.filter(object_id__in=ids) if ids else queryset.none()
 
         return queryset
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "object_id",
+                OpenApiTypes.UUID,
+                description="Single feature uuid",
+            ),
+            OpenApiParameter(
+                "object_id__in",
+                OpenApiTypes.STR,
+                description="Comma-separated feature uuids",
+            ),
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        """List feature files, optionally filtered by feature uuid(s)."""
+        return super().list(request, *args, **kwargs)
 
     @action(detail=True, methods=["get"], url_path="download")
     def download(self, request, pk=None):
@@ -1271,7 +1321,9 @@ class AppLoginView(APIView):
                 },
             ),
             400: OpenApiResponse(description="Missing username or password."),
-            401: OpenApiResponse(description="Invalid credentials or inactive account."),
+            401: OpenApiResponse(
+                description="Invalid credentials or inactive account."
+            ),
         },
     )
     def post(self, request):
@@ -1379,7 +1431,10 @@ class OlTrenchTileViewSet(APIView):
     @extend_schema(
         parameters=[
             OpenApiParameter(
-                "project", int, OpenApiParameter.QUERY, required=False,
+                "project",
+                int,
+                OpenApiParameter.QUERY,
+                required=False,
                 description="Project id to scope the tile features.",
             ),
         ],
@@ -2295,7 +2350,10 @@ class OlAddressTileViewSet(APIView):
     @extend_schema(
         parameters=[
             OpenApiParameter(
-                "project", int, OpenApiParameter.QUERY, required=False,
+                "project",
+                int,
+                OpenApiParameter.QUERY,
+                required=False,
                 description="Project id to scope the tile features.",
             ),
         ],
@@ -2991,11 +3049,17 @@ class NodeCanvasCoordinatesView(APIView):
     @extend_schema(
         parameters=[
             OpenApiParameter(
-                "project_id", int, OpenApiParameter.QUERY, required=False,
+                "project_id",
+                int,
+                OpenApiParameter.QUERY,
+                required=False,
                 description="Filter node stats by project.",
             ),
             OpenApiParameter(
-                "flag_id", int, OpenApiParameter.QUERY, required=False,
+                "flag_id",
+                int,
+                OpenApiParameter.QUERY,
+                required=False,
                 description="Filter node stats by flag.",
             ),
         ],
@@ -3308,7 +3372,10 @@ class OlNodeTileViewSet(APIView):
     @extend_schema(
         parameters=[
             OpenApiParameter(
-                "project", int, OpenApiParameter.QUERY, required=False,
+                "project",
+                int,
+                OpenApiParameter.QUERY,
+                required=False,
                 description="Project id to scope the tile features.",
             ),
         ],
@@ -3737,7 +3804,10 @@ class ConduitImportTemplateView(APIView):
 
     @extend_schema(
         responses={
-            (200, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"): OpenApiResponse(
+            (
+                200,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ): OpenApiResponse(
                 OpenApiTypes.BINARY, description="Excel conduit-import template."
             ),
         },
@@ -3759,7 +3829,9 @@ class ConduitImportView(APIView):
     @extend_schema(
         request=inline_serializer(
             name="ConduitImportRequest",
-            fields={"file": serializers.FileField(help_text="An .xlsx file (max 10 MB).")},
+            fields={
+                "file": serializers.FileField(help_text="An .xlsx file (max 10 MB).")
+            },
         ),
         responses={
             201: inline_serializer(
@@ -3821,7 +3893,10 @@ class NodeStructureExportView(APIView):
 
     @extend_schema(
         responses={
-            (200, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"): OpenApiResponse(
+            (
+                200,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ): OpenApiResponse(
                 OpenApiTypes.BINARY, description="Excel export of the node's structure."
             ),
             404: OpenApiResponse(description="Node not found."),
@@ -3854,7 +3929,10 @@ class GeoPackageSchemaView(APIView):
     @extend_schema(
         parameters=[
             OpenApiParameter(
-                "layers", str, OpenApiParameter.QUERY, required=False,
+                "layers",
+                str,
+                OpenApiParameter.QUERY,
+                required=False,
                 description="Comma-separated layer names to include (default: all).",
             ),
         ],
@@ -5018,7 +5096,10 @@ class OlAreaTileViewSet(APIView):
     @extend_schema(
         parameters=[
             OpenApiParameter(
-                "project", int, OpenApiParameter.QUERY, required=False,
+                "project",
+                int,
+                OpenApiParameter.QUERY,
+                required=False,
                 description="Project id to scope the tile features.",
             ),
         ],
@@ -8543,36 +8624,60 @@ class FiberTraceView(APIView):
     @extend_schema(
         parameters=[
             OpenApiParameter(
-                "fiber_id", str, OpenApiParameter.QUERY, required=False,
+                "fiber_id",
+                str,
+                OpenApiParameter.QUERY,
+                required=False,
                 description="Trace a single fiber (mutually exclusive with the other *_id params).",
             ),
             OpenApiParameter(
-                "cable_id", str, OpenApiParameter.QUERY, required=False,
+                "cable_id",
+                str,
+                OpenApiParameter.QUERY,
+                required=False,
                 description="Trace all fibers of a cable.",
             ),
             OpenApiParameter(
-                "node_id", str, OpenApiParameter.QUERY, required=False,
+                "node_id",
+                str,
+                OpenApiParameter.QUERY,
+                required=False,
                 description="Trace all fibers passing through a node.",
             ),
             OpenApiParameter(
-                "address_id", str, OpenApiParameter.QUERY, required=False,
+                "address_id",
+                str,
+                OpenApiParameter.QUERY,
+                required=False,
                 description="Trace fibers via an address's linked nodes/RUs.",
             ),
             OpenApiParameter(
-                "residential_unit_id", str, OpenApiParameter.QUERY, required=False,
+                "residential_unit_id",
+                str,
+                OpenApiParameter.QUERY,
+                required=False,
                 description="Trace fibers connected to a residential unit.",
             ),
             OpenApiParameter(
-                "include_geometry", bool, OpenApiParameter.QUERY, required=False,
+                "include_geometry",
+                bool,
+                OpenApiParameter.QUERY,
+                required=False,
                 description="Include trench geometry (default false).",
             ),
             OpenApiParameter(
-                "geometry_mode", str, OpenApiParameter.QUERY, required=False,
+                "geometry_mode",
+                str,
+                OpenApiParameter.QUERY,
+                required=False,
                 enum=["segments", "merged", "routed"],
                 description="Geometry representation (default 'segments').",
             ),
             OpenApiParameter(
-                "orient_geometry", bool, OpenApiParameter.QUERY, required=False,
+                "orient_geometry",
+                bool,
+                OpenApiParameter.QUERY,
+                required=False,
                 description="Orient lines from cable start to end.",
             ),
         ],
@@ -8771,24 +8876,39 @@ class SignalAnalysisView(APIView):
     @extend_schema(
         parameters=[
             OpenApiParameter(
-                "fiber_id", str, OpenApiParameter.QUERY, required=True,
+                "fiber_id",
+                str,
+                OpenApiParameter.QUERY,
+                required=True,
                 description="UUID of the fiber to analyze.",
             ),
             OpenApiParameter(
-                "signal_source_node_id", str, OpenApiParameter.QUERY, required=False,
+                "signal_source_node_id",
+                str,
+                OpenApiParameter.QUERY,
+                required=False,
                 description="Node where the signal originates (default: root cable start).",
             ),
             OpenApiParameter(
-                "include_geometry", bool, OpenApiParameter.QUERY, required=False,
+                "include_geometry",
+                bool,
+                OpenApiParameter.QUERY,
+                required=False,
                 description="Include trench geometry (default false).",
             ),
             OpenApiParameter(
-                "geometry_mode", str, OpenApiParameter.QUERY, required=False,
+                "geometry_mode",
+                str,
+                OpenApiParameter.QUERY,
+                required=False,
                 enum=["segments", "merged", "routed"],
                 description="Geometry representation (default 'segments').",
             ),
             OpenApiParameter(
-                "orient_geometry", bool, OpenApiParameter.QUERY, required=False,
+                "orient_geometry",
+                bool,
+                OpenApiParameter.QUERY,
+                required=False,
                 description="Orient lines from cable start to end.",
             ),
         ],
@@ -8797,7 +8917,9 @@ class SignalAnalysisView(APIView):
                 OpenApiTypes.OBJECT,
                 description="Signal-flow analysis with lit/dark portions and breaks.",
             ),
-            400: OpenApiResponse(description="Missing/invalid fiber_id or bad parameter."),
+            400: OpenApiResponse(
+                description="Missing/invalid fiber_id or bad parameter."
+            ),
         },
     )
     def get(self, request):

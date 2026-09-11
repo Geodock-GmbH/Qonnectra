@@ -16,7 +16,11 @@ from apps.api.models import (
     StoragePreferences,
     Trench,
 )
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APIClient
 
 from .factories import (
     AddressFactory,
@@ -30,6 +34,8 @@ from .factories import (
     ProjectFactory,
     TrenchFactory,
 )
+
+User = get_user_model()
 
 
 @pytest.mark.django_db
@@ -498,3 +504,117 @@ class TestFeatureFilesHelperMethods:
 
         file_type = FeatureFiles.get_file_type(feature_file)
         assert file_type is None
+
+
+@pytest.mark.django_db
+class TestFeatureFilesListFiltering:
+    """Tests for FeatureFilesViewSet.get_queryset object_id filtering."""
+
+    @pytest.fixture
+    def authenticated_client(self):
+        """API client authenticated as a superuser (bypasses RoleBasedPermission)."""
+        user = User.objects.create_superuser(
+            username="feature_files_admin",
+            email="feature_files_admin@example.com",
+            password="testpass123",
+        )
+        client = APIClient()
+        client.force_authenticate(user=user)
+        return client
+
+    @pytest.fixture
+    def url(self):
+        return reverse("v1:feature-files-list")
+
+    def _create_file(self, feature, file_name):
+        """Create a FeatureFiles row for a feature without a real upload."""
+        content_type = ContentType.objects.get_for_model(feature.__class__)
+        return FeatureFiles.objects.create(
+            content_type=content_type,
+            object_id=feature.uuid,
+            file_path=f"{file_name}.pdf",
+            file_name=file_name,
+            file_type="pdf",
+        )
+
+    def test_object_id_in_returns_only_listed_features(
+        self, authenticated_client, url
+    ):
+        """object_id__in with two uuids returns exactly those features' files."""
+        trench_a = TrenchFactory(id_trench="TR-A")
+        trench_b = TrenchFactory(id_trench="TR-B")
+        trench_c = TrenchFactory(id_trench="TR-C")
+
+        file_a = self._create_file(trench_a, "file_a")
+        file_b = self._create_file(trench_b, "file_b")
+        self._create_file(trench_c, "file_c")
+
+        response = authenticated_client.get(
+            url, {"object_id__in": f"{trench_a.uuid},{trench_b.uuid}"}
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        returned = {row["uuid"] for row in response.data["results"]}
+        assert returned == {str(file_a.uuid), str(file_b.uuid)}
+
+    def test_object_id_in_ignores_malformed_token(
+        self, authenticated_client, url
+    ):
+        """object_id__in mixing a valid and a malformed token returns valid files, 200."""
+        trench = TrenchFactory(id_trench="TR-VALID")
+        file_valid = self._create_file(trench, "valid_file")
+
+        response = authenticated_client.get(
+            url, {"object_id__in": f"{trench.uuid},not-a-uuid"}
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        returned = {row["uuid"] for row in response.data["results"]}
+        assert returned == {str(file_valid.uuid)}
+
+    def test_object_id_malformed_returns_empty_not_500(
+        self, authenticated_client, url
+    ):
+        """object_id=not-a-uuid returns 200 with an empty results list (regression)."""
+        trench = TrenchFactory(id_trench="TR-REG")
+        self._create_file(trench, "some_file")
+
+        response = authenticated_client.get(url, {"object_id": "not-a-uuid"})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["results"] == []
+
+    def test_both_params_intersect(self, authenticated_client, url):
+        """object_id and object_id__in supplied together narrow to their intersection."""
+        trench_a = TrenchFactory(id_trench="TR-INT-A")
+        trench_b = TrenchFactory(id_trench="TR-INT-B")
+
+        file_a = self._create_file(trench_a, "int_file_a")
+        self._create_file(trench_b, "int_file_b")
+
+        response = authenticated_client.get(
+            url,
+            {
+                "object_id": str(trench_a.uuid),
+                "object_id__in": f"{trench_a.uuid},{trench_b.uuid}",
+            },
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        returned = {row["uuid"] for row in response.data["results"]}
+        assert returned == {str(file_a.uuid)}
+
+    def test_pagination_still_applies(self, authenticated_client, url):
+        """page_size=2 over three files yields a non-null next link."""
+        trench = TrenchFactory(id_trench="TR-PAGE")
+        self._create_file(trench, "file_1")
+        self._create_file(trench, "file_2")
+        self._create_file(trench, "file_3")
+
+        response = authenticated_client.get(
+            url, {"object_id": str(trench.uuid), "page_size": 2}
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data["results"]) == 2
+        assert response.data["next"] is not None
