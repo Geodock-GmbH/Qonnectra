@@ -26,12 +26,15 @@ from .factories import (
     AddressFactory,
     AreaFactory,
     AreaTypeFactory,
+    CableFactory,
     CableTypeFactory,
+    ConduitFactory,
     ConduitTypeFactory,
     FlagFactory,
     NodeFactory,
     NodeTypeFactory,
     ProjectFactory,
+    ResidentialUnitFactory,
     TrenchFactory,
 )
 
@@ -618,3 +621,197 @@ class TestFeatureFilesListFiltering:
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data["results"]) == 2
         assert response.data["next"] is not None
+
+
+@pytest.mark.django_db
+class TestFeatureFilesProjectFiltering:
+    """Tests for project / feature_type filtering and the derived serializer fields."""
+
+    @pytest.fixture
+    def authenticated_client(self):
+        """API client authenticated as a superuser (bypasses RoleBasedPermission)."""
+        user = User.objects.create_superuser(
+            username="feature_files_project_admin",
+            email="feature_files_project_admin@example.com",
+            password="testpass123",
+        )
+        client = APIClient()
+        client.force_authenticate(user=user)
+        return client
+
+    @pytest.fixture
+    def url(self):
+        return reverse("v1:feature-files-list")
+
+    def _create_file(self, feature, file_name):
+        """Create a FeatureFiles row for a feature without a real upload."""
+        content_type = ContentType.objects.get_for_model(feature.__class__)
+        return FeatureFiles.objects.create(
+            content_type=content_type,
+            object_id=feature.uuid,
+            file_path=f"{file_name}.pdf",
+            file_name=file_name,
+            file_type="pdf",
+        )
+
+    @pytest.fixture
+    def project_features(self):
+        """Build one file per feature type for a target project plus a decoy project.
+
+        Node/residential unit derive their project through an address; cable
+        through its start node's address. Those relation projects are set to the
+        target project even though the node's/cable's own ``project`` FK points
+        elsewhere, to prove the derivation follows the address chain.
+        """
+        project = ProjectFactory()
+        other = ProjectFactory()
+
+        address = AddressFactory(project=project)
+        node = NodeFactory(project=other, uuid_address=address)
+        residential_unit = ResidentialUnitFactory(uuid_address=address)
+        cable = CableFactory(project=other, uuid_node_start=node)
+
+        files = {
+            "trench": self._create_file(TrenchFactory(project=project), "trench_p"),
+            "conduit": self._create_file(ConduitFactory(project=project), "conduit_p"),
+            "address": self._create_file(address, "address_p"),
+            "area": self._create_file(AreaFactory(project=project), "area_p"),
+            "node": self._create_file(node, "node_p"),
+            "residentialunit": self._create_file(residential_unit, "ru_p"),
+            "cable": self._create_file(cable, "cable_p"),
+        }
+
+        # Decoy file belonging to the other project; must never appear.
+        decoy = self._create_file(TrenchFactory(project=other), "trench_other")
+
+        return {
+            "project": project,
+            "other": other,
+            "address": address,
+            "node": node,
+            "cable": cable,
+            "files": files,
+            "decoy": decoy,
+        }
+
+    def test_project_returns_all_types_for_project_only(
+        self, authenticated_client, url, project_features
+    ):
+        """?project=<p> returns every feature type belonging to p and nothing else."""
+        project = project_features["project"]
+
+        response = authenticated_client.get(url, {"project": project.id})
+
+        assert response.status_code == status.HTTP_200_OK
+        returned = {row["uuid"] for row in response.data["results"]}
+        expected = {str(f.uuid) for f in project_features["files"].values()}
+        assert returned == expected
+        assert str(project_features["decoy"].uuid) not in returned
+
+    def test_project_and_feature_type_narrows(
+        self, authenticated_client, url, project_features
+    ):
+        """?project=<p>&feature_type=node narrows to the single node file."""
+        project = project_features["project"]
+
+        response = authenticated_client.get(
+            url, {"project": project.id, "feature_type": "node"}
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        returned = {row["uuid"] for row in response.data["results"]}
+        assert returned == {str(project_features["files"]["node"].uuid)}
+
+    def test_unknown_feature_type_returns_400(self, authenticated_client, url):
+        """feature_type=bogus is a 400 that names the valid types."""
+        response = authenticated_client.get(url, {"feature_type": "bogus"})
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        message = str(response.data)
+        for valid in ("trench", "conduit", "cable", "node", "address", "area"):
+            assert valid in message
+        assert "residentialunit" in message
+
+    def test_non_numeric_project_returns_400(self, authenticated_client, url):
+        """?project=abc is a 400, not a 500."""
+        response = authenticated_client.get(url, {"project": "abc"})
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_node_resolves_project_through_address(
+        self, authenticated_client, url, project_features
+    ):
+        """The node file's project is the address's project, not the node's own FK."""
+        project = project_features["project"]
+
+        response = authenticated_client.get(url, {"feature_type": "node"})
+
+        assert response.status_code == status.HTTP_200_OK
+        rows = response.data["results"]
+        assert len(rows) == 1
+        assert rows[0]["project"] == project.id
+        assert rows[0]["feature_type"] == "node"
+
+    def test_cable_resolves_project_through_node_address_chain(
+        self, authenticated_client, url, project_features
+    ):
+        """The cable file's project is derived via start node -> address."""
+        project = project_features["project"]
+
+        response = authenticated_client.get(url, {"feature_type": "cable"})
+
+        assert response.status_code == status.HTTP_200_OK
+        rows = response.data["results"]
+        assert len(rows) == 1
+        assert rows[0]["project"] == project.id
+        assert rows[0]["feature_type"] == "cable"
+
+    def test_every_row_carries_project_and_feature_type(
+        self, authenticated_client, url, project_features
+    ):
+        """Unfiltered list responses carry project and feature_type on every row."""
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        rows = response.data["results"]
+        assert rows
+        for row in rows:
+            assert "project" in row
+            assert "feature_type" in row
+
+    def test_object_id_in_response_carries_derived_fields(
+        self, authenticated_client, url, project_features
+    ):
+        """object_id__in responses still expose project and feature_type."""
+        trench_file = project_features["files"]["trench"]
+
+        response = authenticated_client.get(
+            url, {"object_id__in": str(trench_file.object_id)}
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        rows = response.data["results"]
+        assert len(rows) == 1
+        assert rows[0]["feature_type"] == "trench"
+        assert rows[0]["project"] == project_features["project"].id
+
+    def test_deleted_feature_absent_from_project_filter_but_present_unfiltered(
+        self, authenticated_client, url, project_features
+    ):
+        """A file whose feature row is deleted drops out of ?project= yet lists unfiltered."""
+        project = project_features["project"]
+        trench_file = project_features["files"]["trench"]
+
+        # Delete the underlying trench; the FeatureFiles row remains (no cascade
+        # across the generic FK) but its uuid no longer appears in the subquery.
+        Trench.objects.filter(uuid=trench_file.object_id).delete()
+
+        filtered = authenticated_client.get(url, {"project": project.id})
+        assert filtered.status_code == status.HTTP_200_OK
+        filtered_uuids = {row["uuid"] for row in filtered.data["results"]}
+        assert str(trench_file.uuid) not in filtered_uuids
+
+        unfiltered = authenticated_client.get(url)
+        assert unfiltered.status_code == status.HTTP_200_OK
+        unfiltered_uuids = {row["uuid"] for row in unfiltered.data["results"]}
+        assert str(trench_file.uuid) in unfiltered_uuids

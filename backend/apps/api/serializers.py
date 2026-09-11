@@ -442,12 +442,20 @@ class TrenchSerializer(GeoFeatureModelSerializer):
 
 
 class FeatureFilesSerializer(serializers.ModelSerializer):
-    """Serialize :model:`api.FeatureFiles` with Nextcloud storage metadata."""
+    """Serialize :model:`api.FeatureFiles` with Nextcloud storage metadata.
+
+    ``feature_type`` exposes the linked feature's model name and ``project`` its
+    derived project id (see
+    :data:`~apps.api.services.FEATURE_FILE_PROJECT_PATHS` for the per-model
+    derivation path), both read-only.
+    """
 
     uuid = serializers.UUIDField(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
     file_name = serializers.CharField(read_only=True)
     file_type = serializers.CharField(read_only=True)
+    feature_type = serializers.CharField(source="content_type.model", read_only=True)
+    project = serializers.SerializerMethodField()
 
     class Meta:
         model = FeatureFiles
@@ -455,6 +463,8 @@ class FeatureFilesSerializer(serializers.ModelSerializer):
             "uuid",
             "object_id",
             "content_type",
+            "feature_type",
+            "project",
             "file_path",
             "file_name",
             "file_type",
@@ -462,11 +472,34 @@ class FeatureFilesSerializer(serializers.ModelSerializer):
             "created_at",
         ]
 
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_project(self, obj):
+        """Resolve the linked feature's project id via the derivation registry.
+
+        Delegates the path-walking to
+        :func:`~apps.api.services.resolve_feature_project_id` so the derivation
+        rules live in one place alongside the queryset filter.
+
+        Args:
+            obj: The :model:`api.FeatureFiles` instance being serialized.
+
+        Returns:
+            int | None: The derived project id, or ``None`` when it cannot be
+                resolved.
+        """
+        # Imported here rather than at module top to avoid a services <-> models
+        # <-> serializers import cycle at startup.
+        from .services import resolve_feature_project_id
+
+        return resolve_feature_project_id(obj.feature, obj.content_type.model)
+
     def get_fields(self):
         """Dynamically translate field labels."""
         fields = super().get_fields()
 
         fields["content_type"].label = _("Feature Type")
+        fields["feature_type"].label = _("Feature Type")
+        fields["project"].label = _("Project")
         fields["object_id"].label = _("Feature ID")
         fields["file_path"].label = _("File Path")
         fields["file_name"].label = _("File Name")

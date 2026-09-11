@@ -49,6 +49,7 @@ from .models import (
     PipelineInquiryArea,
     PipelineRecord,
     Projects,
+    ResidentialUnit,
     StoragePreferences,
     Trench,
     TrenchConduitConnection,
@@ -5597,6 +5598,98 @@ SPATIAL_INTERSECT_LAYERS = {
     "node": Node,
     "area": Area,
 }
+
+
+# Maps each feature-file model name (the lowercase ContentType.model of the
+# seven models :model:`api.FeatureFiles` can attach to) to the model class and
+# the ORM lookup path from that model to a project id. Trench, conduit, address
+# and area own a ``project`` FK directly; node and residential unit derive it
+# through their address; a cable derives it through its start node's address
+# (a cable always connects two nodes).
+FEATURE_FILE_PROJECT_PATHS = {
+    "trench": (Trench, "project_id"),
+    "conduit": (Conduit, "project_id"),
+    "address": (Address, "project_id"),
+    "area": (Area, "project_id"),
+    "node": (Node, "uuid_address__project_id"),
+    "residentialunit": (ResidentialUnit, "uuid_address__project_id"),
+    "cable": (Cable, "uuid_node_start__uuid_address__project_id"),
+}
+
+
+def feature_file_object_ids_for_project(project_id, model_names):
+    """Map feature-file model names to the feature uuids belonging to a project.
+
+    For each requested model name, the value is a ``values_list("uuid",
+    flat=True)`` queryset of the uuids whose derived project matches
+    ``project_id`` (see :data:`FEATURE_FILE_PROJECT_PATHS` for how each model
+    reaches its project). These querysets are meant to be used as subqueries in
+    ``object_id__in`` filters on :model:`api.FeatureFiles`.
+
+    Unknown model names are dropped rather than raising, mirroring the tolerance
+    of :func:`parse_project_id_list`, so a malformed ``model_names`` never
+    crashes the caller.
+
+    Args:
+        project_id: The project id to filter on. Coerced to ``int``; a
+            non-numeric value yields an empty mapping.
+        model_names: Iterable of feature-file model names. Falsy selects all
+            models in :data:`FEATURE_FILE_PROJECT_PATHS`.
+
+    Returns:
+        dict[str, QuerySet]: Model name -> uuid ``values_list`` queryset, only
+            for names present in :data:`FEATURE_FILE_PROJECT_PATHS`.
+    """
+    try:
+        project_id = int(project_id)
+    except (TypeError, ValueError):
+        return {}
+
+    if not model_names:
+        names = list(FEATURE_FILE_PROJECT_PATHS.keys())
+    else:
+        names = [name for name in model_names if name in FEATURE_FILE_PROJECT_PATHS]
+
+    result = {}
+    for name in names:
+        model, path = FEATURE_FILE_PROJECT_PATHS[name]
+        result[name] = model.objects.filter(**{path: project_id}).values_list(
+            "uuid", flat=True
+        )
+    return result
+
+
+def resolve_feature_project_id(feature, model_name):
+    """Resolve a feature instance's project id by walking its derivation path.
+
+    Follows the ORM path for ``model_name`` (see
+    :data:`FEATURE_FILE_PROJECT_PATHS`) across the in-memory ``feature``,
+    hopping attributes rather than querying by id, so the result matches the
+    project the ``object_id__in`` subquery of
+    :func:`feature_file_object_ids_for_project` would select.
+
+    Args:
+        feature: The related feature instance, or ``None``.
+        model_name: The feature's lowercase model name.
+
+    Returns:
+        int | None: The derived project id, or ``None`` when ``feature`` is
+            missing, ``model_name`` is not a feature-file model, or any hop
+            along the path is absent.
+    """
+    if feature is None:
+        return None
+
+    entry = FEATURE_FILE_PROJECT_PATHS.get(model_name)
+    if entry is None:
+        return None
+
+    current = feature
+    for attr in entry[1].split("__"):
+        current = getattr(current, attr, None)
+        if current is None:
+            return None
+    return current
 
 
 def _parse_intersect_geometry(geom_input, srid=None):

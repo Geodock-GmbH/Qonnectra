@@ -30,6 +30,7 @@ from django.db.models.functions import TruncMonth
 from django.http import FileResponse, HttpResponse, StreamingHttpResponse
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
+from django.utils.translation import gettext_lazy as _
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiParameter,
@@ -183,6 +184,7 @@ from .serializers import (
     WMSSourceSerializer,
 )
 from .services import (
+    FEATURE_FILE_PROJECT_PATHS,
     GEOPACKAGE_LAYER_CONFIG,
     SpatialIntersectError,
     auto_link_cable_micropipes,
@@ -190,6 +192,7 @@ from .services import (
     calculate_valuation,
     conduit_trench_geometry,
     export_features,
+    feature_file_object_ids_for_project,
     generate_conduit_import_template,
     generate_geopackage_schema,
     generate_node_structure_excel,
@@ -715,14 +718,29 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):  # type: ignore[override]
         """
-        Filter files by object_id / object_id__in query parameters.
+        Filter files by object_id / object_id__in / feature_type / project.
 
-        This ensures that files are only returned for the specific feature(s)
-        being viewed, preventing files from leaking between different features.
-        Malformed uuids are dropped rather than raising, so an invalid filter
-        value yields an empty result set instead of a 500.
+        ``object_id`` / ``object_id__in`` restrict to specific feature uuids,
+        preventing files from leaking between features; malformed uuids are
+        dropped so an invalid value yields an empty result set instead of a 500.
+
+        ``feature_type=<model>`` restricts to one of the seven feature-file
+        model names; ``project=<id>`` restricts to files whose derived project
+        matches (see :data:`~apps.api.services.FEATURE_FILE_PROJECT_PATHS`).
+        Files whose feature row has been deleted fall out of project-filtered
+        results because their uuid no longer appears in the derivation subquery.
+        Unknown ``feature_type`` or non-numeric ``project`` raise a 400 rather
+        than returning misleading results. All filters AND together.
+
+        ``select_related`` / ``prefetch_related`` keep the serializer's
+        ``feature_type`` and ``project`` fields from issuing a query per row.
         """
-        queryset = FeatureFiles.objects.all().order_by("file_path")
+        queryset = (
+            FeatureFiles.objects.all()
+            .select_related("content_type")
+            .prefetch_related("feature")
+            .order_by("file_path")
+        )
         params = self.request.query_params
 
         if params.get("object_id"):
@@ -732,6 +750,48 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
         if params.get("object_id__in"):
             ids = _uuid_tokens(params["object_id__in"])
             queryset = queryset.filter(object_id__in=ids) if ids else queryset.none()
+
+        feature_type = params.get("feature_type")
+        if feature_type:
+            if feature_type not in FEATURE_FILE_PROJECT_PATHS:
+                raise serializers.ValidationError(
+                    {
+                        "feature_type": _(
+                            "Unknown feature type '%(name)s'. Valid types: %(valid)s."
+                        )
+                        % {
+                            "name": feature_type,
+                            "valid": ", ".join(FEATURE_FILE_PROJECT_PATHS.keys()),
+                        }
+                    }
+                )
+            queryset = queryset.filter(
+                content_type__app_label="api", content_type__model=feature_type
+            )
+
+        if params.get("project"):
+            try:
+                project_id = int(params["project"])
+            except (TypeError, ValueError):
+                raise serializers.ValidationError(
+                    {"project": _("'project' must be an integer id.")}
+                )
+
+            model_names = [feature_type] if feature_type else None
+            object_ids_by_model = feature_file_object_ids_for_project(
+                project_id, model_names
+            )
+
+            project_filter = Q()
+            for model_name, object_ids in object_ids_by_model.items():
+                content_type = ContentType.objects.get_for_model(
+                    FEATURE_FILE_PROJECT_PATHS[model_name][0]
+                )
+                project_filter |= Q(
+                    content_type=content_type, object_id__in=object_ids
+                )
+
+            queryset = queryset.filter(project_filter) if project_filter else queryset.none()
 
         return queryset
 
@@ -746,6 +806,17 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
                 "object_id__in",
                 OpenApiTypes.STR,
                 description="Comma-separated feature uuids",
+            ),
+            OpenApiParameter(
+                "project",
+                OpenApiTypes.INT,
+                description="Restrict to files whose derived project matches this id",
+            ),
+            OpenApiParameter(
+                "feature_type",
+                OpenApiTypes.STR,
+                enum=list(FEATURE_FILE_PROJECT_PATHS.keys()),
+                description="Restrict to one feature-file model name",
             ),
         ]
     )
