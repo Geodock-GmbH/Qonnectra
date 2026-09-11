@@ -5602,18 +5602,17 @@ SPATIAL_INTERSECT_LAYERS = {
 
 # Maps each feature-file model name (the lowercase ContentType.model of the
 # seven models :model:`api.FeatureFiles` can attach to) to the model class and
-# the ORM lookup path from that model to a project id. Trench, conduit, address
-# and area own a ``project`` FK directly; node and residential unit derive it
-# through their address; a cable derives it through its start node's address
-# (a cable always connects two nodes).
+# the ORM lookup path from that model to a project id. Trench, conduit, cable,
+# node, address and area own a required ``project`` FK directly; only a
+# residential unit derives it through its address.
 FEATURE_FILE_PROJECT_PATHS = {
     "trench": (Trench, "project_id"),
     "conduit": (Conduit, "project_id"),
     "address": (Address, "project_id"),
     "area": (Area, "project_id"),
-    "node": (Node, "uuid_address__project_id"),
+    "node": (Node, "project_id"),
     "residentialunit": (ResidentialUnit, "uuid_address__project_id"),
-    "cable": (Cable, "uuid_node_start__uuid_address__project_id"),
+    "cable": (Cable, "project_id"),
 }
 
 

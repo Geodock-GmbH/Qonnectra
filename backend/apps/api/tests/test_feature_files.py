@@ -658,18 +658,19 @@ class TestFeatureFilesProjectFiltering:
     def project_features(self):
         """Build one file per feature type for a target project plus a decoy project.
 
-        Node/residential unit derive their project through an address; cable
-        through its start node's address. Those relation projects are set to the
-        target project even though the node's/cable's own ``project`` FK points
-        elsewhere, to prove the derivation follows the address chain.
+        Node and cable own a required ``project`` FK; only a residential unit
+        derives its project through its address. The node is attached to an
+        address of the decoy project to prove the derivation uses the node's
+        own FK and ignores the address chain (same for the cable via its node).
         """
         project = ProjectFactory()
         other = ProjectFactory()
 
         address = AddressFactory(project=project)
-        node = NodeFactory(project=other, uuid_address=address)
+        decoy_address = AddressFactory(project=other)
+        node = NodeFactory(project=project, uuid_address=decoy_address)
         residential_unit = ResidentialUnitFactory(uuid_address=address)
-        cable = CableFactory(project=other, uuid_node_start=node)
+        cable = CableFactory(project=project, uuid_node_start=node)
 
         files = {
             "trench": self._create_file(TrenchFactory(project=project), "trench_p"),
@@ -738,10 +739,10 @@ class TestFeatureFilesProjectFiltering:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_node_resolves_project_through_address(
+    def test_node_uses_own_project_not_address(
         self, authenticated_client, url, project_features
     ):
-        """The node file's project is the address's project, not the node's own FK."""
+        """The node file's project is the node's own FK, not its address's project."""
         project = project_features["project"]
 
         response = authenticated_client.get(url, {"feature_type": "node"})
@@ -752,10 +753,10 @@ class TestFeatureFilesProjectFiltering:
         assert rows[0]["project"] == project.id
         assert rows[0]["feature_type"] == "node"
 
-    def test_cable_resolves_project_through_node_address_chain(
+    def test_cable_uses_own_project_not_node_address(
         self, authenticated_client, url, project_features
     ):
-        """The cable file's project is derived via start node -> address."""
+        """The cable file's project is the cable's own FK, not its node's address."""
         project = project_features["project"]
 
         response = authenticated_client.get(url, {"feature_type": "cable"})

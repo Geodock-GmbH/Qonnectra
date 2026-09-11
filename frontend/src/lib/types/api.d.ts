@@ -2025,12 +2025,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * @description CRUD operations for :model:`api.FeatureFiles`.
-         *
-         *     Provide authenticated file downloads using Nginx X-Accel-Redirect for
-         *     secure and efficient file serving.
-         */
+        /** @description List feature files, optionally filtered by feature uuid(s). */
         get: operations["feature_files_list"];
         put?: never;
         /**
@@ -5780,7 +5775,14 @@ export interface components {
             /** @description Project UUID. */
             project_id: string;
         };
-        /** @description Serialize :model:`api.FeatureFiles` with Nextcloud storage metadata. */
+        /**
+         * @description Serialize :model:`api.FeatureFiles` with Nextcloud storage metadata.
+         *
+         *     ``feature_type`` exposes the linked feature's model name and ``project`` its
+         *     derived project id (see
+         *     :data:`~apps.api.services.FEATURE_FILE_PROJECT_PATHS` for the per-model
+         *     derivation path), both read-only.
+         */
         FeatureFiles: {
             /** Format: uuid */
             readonly uuid: string;
@@ -5791,6 +5793,10 @@ export interface components {
             object_id: string;
             /** Feature-Typ */
             content_type: number;
+            /** Feature-Typ */
+            readonly feature_type: string;
+            /** Projekt */
+            readonly project: number | null;
             /**
              * Dateipfad
              * Format: uri
@@ -6953,7 +6959,14 @@ export interface components {
             readonly is_staff?: boolean;
             readonly is_superuser?: boolean;
         };
-        /** @description Serialize :model:`api.FeatureFiles` with Nextcloud storage metadata. */
+        /**
+         * @description Serialize :model:`api.FeatureFiles` with Nextcloud storage metadata.
+         *
+         *     ``feature_type`` exposes the linked feature's model name and ``project`` its
+         *     derived project id (see
+         *     :data:`~apps.api.services.FEATURE_FILE_PROJECT_PATHS` for the per-model
+         *     derivation path), both read-only.
+         */
         PatchedFeatureFiles: {
             /** Format: uuid */
             readonly uuid?: string;
@@ -6964,6 +6977,10 @@ export interface components {
             object_id?: string;
             /** Feature-Typ */
             content_type?: number;
+            /** Feature-Typ */
+            readonly feature_type?: string;
+            /** Projekt */
+            readonly project?: number | null;
             /**
              * Dateipfad
              * Format: uri
@@ -11274,10 +11291,18 @@ export interface operations {
     feature_files_list: {
         parameters: {
             query?: {
+                /** @description Restrict to one feature-file model name */
+                feature_type?: "address" | "area" | "cable" | "conduit" | "node" | "residentialunit" | "trench";
+                /** @description Single feature uuid */
+                object_id?: string;
+                /** @description Comma-separated feature uuids */
+                object_id__in?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
                 /** @description Number of results to return per page. */
                 page_size?: number;
+                /** @description Restrict to files whose derived project matches this id */
+                project?: number;
             };
             header?: never;
             path?: never;
