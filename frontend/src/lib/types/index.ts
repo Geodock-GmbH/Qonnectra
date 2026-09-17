@@ -24,6 +24,7 @@ export type Container = Schemas['Container'];
 export type ContainerType = Schemas['ContainerType'];
 export type Fiber = Schemas['Fiber'];
 export type FiberSplice = Schemas['FiberSplice'];
+export type LogEntry = Schemas['LogEntry'];
 export type Microduct = Schemas['Microduct'];
 export type Node = Schemas['Node'];
 export type ResidentialUnit = Schemas['ResidentialUnit'];

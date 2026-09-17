@@ -311,13 +311,13 @@ describe('handleAuth', () => {
 		expect(result).toBe('resolved:/login');
 	});
 
-	test('allows unauthenticated access to internal /api/ routes', async () => {
-		const { event } = makeEvent({ pathname: '/api/logs', cookies: {} });
+	test('allows unauthenticated access to remote function endpoints', async () => {
+		const { event } = makeEvent({ pathname: '/_app/remote/abc123/login', cookies: {} });
 		vi.mocked(event.fetch).mockResolvedValueOnce(statusResponse(401) as unknown as Response);
 
 		const result = await handleAuth({ event, resolve });
 
-		expect(result).toBe('resolved:/api/logs');
+		expect(result).toBe('resolved:/_app/remote/abc123/login');
 	});
 
 	test('redirects to /map when permissions deny the requested route', async () => {

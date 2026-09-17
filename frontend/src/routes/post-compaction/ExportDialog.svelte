@@ -20,6 +20,7 @@
 	import { actionData } from '$lib/utils/forms';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { captureMapCanvases, getVisibleWMSAttributions } from '$lib/utils/mapCapture';
+	import { getAddressFiberConnections } from '$lib/remote/address/addresses.remote';
 
 	/**
 	 * The address payload for the export dialog. Fields are optional (the parent
@@ -70,11 +71,9 @@
 	 * Fetches all fiber connections for all residential units of this address.
 	 */
 	async function fetchAllFiberConnections(): Promise<Record<string, FiberConnection[]>> {
+		if (!address?.uuid) return {};
 		try {
-			const response = await fetch(`/api/address/${address?.uuid}/fiber-connections`);
-			if (response.ok) {
-				return await response.json();
-			}
+			return await getAddressFiberConnections(address.uuid);
 		} catch (error) {
 			console.error('Error fetching fiber connections:', error);
 			void logToBackendClient({

@@ -10,6 +10,7 @@
 	import { userStore } from '$lib/stores/auth';
 	import { globalMapView, selectedProject } from '$lib/stores/store';
 	import { tooltip } from '$lib/utils/tooltip';
+	import { logout } from '$lib/remote/auth/logout.remote';
 
 	import LightSwitch from './LightSwitch.svelte';
 	import LocaleSwitcher from './LocaleSwitcher.svelte';
@@ -128,7 +129,7 @@
 
 					<!-- Login/Logout -->
 					{#if $userStore.isAuthenticated}
-						<form method="POST" action="/logout">
+						<form {...logout}>
 							<button
 								type="submit"
 								class="btn-icon hover:preset-tonal"

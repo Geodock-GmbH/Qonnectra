@@ -1,29 +1,31 @@
 <script lang="ts">
-	import type { ActionData } from './$types';
-	import { enhance } from '$app/forms';
 	import { IconEye, IconEyeOff, IconLock, IconUser } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import AppIcon from '$lib/components/AppIcon.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { login } from '$lib/remote/auth/login.remote';
 
-	let username = $state('');
-	let password = $state('');
 	let showPassword = $state(false);
-	let isSubmitting = $state(false);
 
-	let redirectTo = '/dashboard';
+	const redirectTo = '/dashboard';
+	const submitting = $derived(login.pending > 0);
 
-	let { form }: { form: ActionData } = $props();
+	function notifyLoginError() {
+		globalToaster.create({
+			title: m.title_login_error(),
+			description: m.message_login_error(),
+			type: 'error'
+		});
+	}
 
-	$effect(() => {
-		if (form?.error) {
-			globalToaster.create({
-				title: m.title_login_error(),
-				description: m.message_login_error(),
-				type: 'error'
-			});
+	// Rejected credentials resolve `submit()` to false; backend outages reject it.
+	const loginForm = login.enhance(async (form) => {
+		try {
+			if (!(await form.submit())) notifyLoginError();
+		} catch {
+			notifyLoginError();
 		}
 	});
 </script>
@@ -119,19 +121,8 @@
 				<p class="text-surface-900-100">{m.login_welcome?.() ?? 'Welcome back'}</p>
 			</div>
 
-			<form
-				method="POST"
-				action="?/login"
-				class="flex flex-col gap-6"
-				use:enhance={() => {
-					isSubmitting = true;
-					return async ({ update }) => {
-						await update();
-						isSubmitting = false;
-					};
-				}}
-			>
-				<input type="hidden" name="redirectTo" value={redirectTo} />
+			<form {...loginForm} class="flex flex-col gap-6">
+				<input {...login.fields.redirectTo.as('hidden', redirectTo)} />
 
 				<div class="flex flex-col gap-2">
 					<label for="username" class="text-sm font-medium text-surface-900-100">
@@ -140,12 +131,10 @@
 					<div class="relative flex items-center">
 						<IconUser size={20} class="pointer-events-none absolute left-4 z-10 text-surface-400" />
 						<input
-							type="text"
+							{...login.fields.username.as('text')}
 							id="username"
-							name="username"
 							class="input pl-12"
 							required
-							bind:value={username}
 							autocomplete="username"
 							placeholder={m.auth_username_placeholder?.() ?? ''}
 						/>
@@ -158,13 +147,13 @@
 					</label>
 					<div class="relative flex items-center">
 						<IconLock size={20} class="pointer-events-none absolute left-4 z-10 text-surface-400" />
+						<!-- `type` after the spread keeps one input across the show/hide toggle. -->
 						<input
+							{...login.fields._password.as('password')}
 							type={showPassword ? 'text' : 'password'}
 							id="password"
-							name="password"
 							class="input pl-12 pr-12"
 							required
-							bind:value={password}
 							autocomplete="current-password"
 							placeholder="••••••••"
 						/>
@@ -183,12 +172,16 @@
 					</div>
 				</div>
 
+				{#each login.fields.allIssues() ?? [] as issue (issue.message)}
+					<p class="text-sm text-error-500" role="alert">{issue.message}</p>
+				{/each}
+
 				<button
 					type="submit"
 					class="btn preset-filled-primary-500 mt-2 w-full gap-2"
-					disabled={isSubmitting}
+					disabled={submitting}
 				>
-					{#if isSubmitting}
+					{#if submitting}
 						<span class="spinner"></span>
 					{/if}
 					<span>{m.auth_login()}</span>
