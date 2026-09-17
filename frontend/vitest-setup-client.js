@@ -127,6 +127,35 @@ vi.mock('$lib/remote/network-schema/containers.remote', () => ({
 	exportNodeExcel: vi.fn().mockResolvedValue({ fileData: '', fileName: 'x.xlsx' })
 }));
 
+vi.mock('$lib/remote/address/addresses.remote', () => ({
+	getAddressList: vi.fn().mockResolvedValue({
+		addresses: [],
+		pagination: { page: 1, pageSize: 50, totalCount: 0, totalPages: 0 }
+	}),
+	getAddress: vi.fn().mockResolvedValue({}),
+	getAddressLinks: vi.fn().mockResolvedValue({ nodes: [], microducts: [] }),
+	getLinkedTrenches: vi.fn().mockResolvedValue([]),
+	getAddressFiberConnections: vi.fn().mockResolvedValue({}),
+	updateAddress: vi.fn().mockResolvedValue({}),
+	regenerateAddressId: vi.fn().mockResolvedValue({}),
+	deleteAddress: vi.fn().mockResolvedValue(undefined)
+}));
+vi.mock('$lib/remote/address/attribute-options.remote', () => ({
+	getStatusDevelopmentOptions: vi.fn().mockResolvedValue([]),
+	getFlagOptions: vi.fn().mockResolvedValue([]),
+	getResidentialUnitTypeOptions: vi.fn().mockResolvedValue([]),
+	getResidentialUnitStatusOptions: vi.fn().mockResolvedValue([])
+}));
+vi.mock('$lib/remote/address/residential-units.remote', () => ({
+	getResidentialUnits: vi.fn().mockResolvedValue([]),
+	getResidentialUnit: vi.fn().mockResolvedValue({}),
+	getUnitFiberConnections: vi.fn().mockResolvedValue([]),
+	createResidentialUnit: vi.fn().mockResolvedValue({}),
+	updateResidentialUnit: vi.fn().mockResolvedValue({}),
+	deleteResidentialUnit: vi.fn().mockResolvedValue(undefined),
+	regenerateResidentialUnitId: vi.fn().mockResolvedValue({})
+}));
+
 // jsdom does not provide ResizeObserver (required by @zag-js/tabs / Skeleton Tabs)
 global.ResizeObserver = class ResizeObserver {
 	constructor() {}

@@ -131,6 +131,7 @@
 			}
 		}
 	],
+	"common_retry": "Erneut versuchen",
 	"common_save": "Speichern",
 	"common_search": "Suchen",
 	"common_searching": "Suche...",

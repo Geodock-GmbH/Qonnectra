@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { AddressListRow } from '$lib/remote/address/address-data';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
@@ -13,38 +14,38 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	/** A formatted address list row, accessed by dynamic column key. */
-	type AddressRow = Record<string, unknown>;
-
 	let {
 		addresses,
 		pagination
 	}: {
-		addresses: AddressRow[];
+		addresses: AddressListRow[];
 		pagination: { totalCount: number; pageSize: number; page: number };
 	} = $props();
 
-	const columnConfig = [
-		{ key: 'id_address', label: m.form_id_address(), sortable: true, filterable: true },
-		{ key: 'street', label: m.form_street(), sortable: true, filterable: true },
-		{ key: 'housenumber', label: m.form_housenumber(), sortable: true, filterable: true },
-		{
-			key: 'house_number_suffix',
-			label: m.form_house_number_suffix(),
-			sortable: true,
-			filterable: true
-		},
-		{ key: 'zip_code', label: m.form_zip_code(), sortable: true, filterable: true },
-		{ key: 'city', label: m.form_city(), sortable: true, filterable: true },
-		{ key: 'district', label: m.form_district(), sortable: true, filterable: true },
-		{
-			key: 'status_development',
-			label: m.form_status_development(),
-			sortable: true,
-			filterable: true
-		},
-		{ key: 'flag', label: m.form_flag(), sortable: true, filterable: true }
-	];
+	type ColumnKey = keyof AddressListRow;
+
+	const columnConfig: { key: ColumnKey; label: string; sortable: boolean; filterable: boolean }[] =
+		[
+			{ key: 'id_address', label: m.form_id_address(), sortable: true, filterable: true },
+			{ key: 'street', label: m.form_street(), sortable: true, filterable: true },
+			{ key: 'housenumber', label: m.form_housenumber(), sortable: true, filterable: true },
+			{
+				key: 'house_number_suffix',
+				label: m.form_house_number_suffix(),
+				sortable: true,
+				filterable: true
+			},
+			{ key: 'zip_code', label: m.form_zip_code(), sortable: true, filterable: true },
+			{ key: 'city', label: m.form_city(), sortable: true, filterable: true },
+			{ key: 'district', label: m.form_district(), sortable: true, filterable: true },
+			{
+				key: 'status_development',
+				label: m.form_status_development(),
+				sortable: true,
+				filterable: true
+			},
+			{ key: 'flag', label: m.form_flag(), sortable: true, filterable: true }
+		];
 
 	let sortColumn = $state<string | null>(null);
 	let sortDirection = $state('asc');
@@ -69,7 +70,7 @@
 	 * Cycles sort state for a column: asc → desc → unsorted.
 	 * @param columnKey - The column key to sort by.
 	 */
-	function toggleSort(columnKey: string) {
+	function toggleSort(columnKey: ColumnKey) {
 		if (sortColumn === columnKey) {
 			if (sortDirection === 'asc') {
 				sortDirection = 'desc';
@@ -88,7 +89,7 @@
 	 * @param columnKey - The column key to filter.
 	 * @param value - The filter value.
 	 */
-	function updateFilter(columnKey: string, value: string) {
+	function updateFilter(columnKey: ColumnKey, value: string) {
 		filters[columnKey] = value;
 	}
 
@@ -117,9 +118,9 @@
 		const activeFilters = Object.entries(filters).filter(([, value]) => value.trim());
 		if (activeFilters.length === 0) return addresses;
 
-		return addresses.filter((address: AddressRow) => {
+		return addresses.filter((address) => {
 			return activeFilters.every(([key, filterValue]) => {
-				const cellValue = String(address[key] || '');
+				const cellValue = String(address[key as ColumnKey] || '');
 				const columnFuse = new Fuse([{ value: cellValue }], {
 					keys: ['value'],
 					threshold: 0.3
@@ -131,7 +132,7 @@
 
 	const sortedAddresses = $derived.by(() => {
 		if (!sortColumn) return filteredAddresses;
-		const col = sortColumn;
+		const col = sortColumn as ColumnKey;
 
 		return [...filteredAddresses].sort((a, b) => {
 			let aVal: string | number = '';
@@ -170,7 +171,7 @@
 	 * Navigates to the detail page for the clicked address.
 	 * @param address - The address row object.
 	 */
-	function handleRowClick(address: AddressRow) {
+	function handleRowClick(address: AddressListRow) {
 		const projectId = page.params.projectId;
 		goto(`/address/${projectId}/${address.value}`);
 	}

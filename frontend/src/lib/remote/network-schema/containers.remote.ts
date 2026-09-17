@@ -3,7 +3,7 @@ import { command, query } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';
 
-import { djangoHeaders } from './remote-auth';
+import { djangoHeaders } from '$lib/remote/shared/remote-auth';
 
 const CreateContainerSchema = v.object({
 	nodeUuid: v.pipe(v.string(), v.nonEmpty()),

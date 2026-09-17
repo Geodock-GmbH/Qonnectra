@@ -3,8 +3,9 @@ import { command } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';
 
+import { djangoHeaders } from '$lib/remote/shared/remote-auth';
+
 import { withCableLock } from './cable-lock';
-import { djangoHeaders } from './remote-auth';
 
 const UpsertLabelSchema = v.object({
 	cableId: v.pipe(v.string(), v.nonEmpty()),

@@ -1,7 +1,4 @@
 <script lang="ts">
-	import type { ComboboxItem } from '$lib/types/attributeCardTypes';
-	import { deserialize } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
 	import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
 	import { IconPlus } from '@tabler/icons-svelte';
 
@@ -9,17 +6,25 @@
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { actionData } from '$lib/utils/forms';
+	import {
+		getResidentialUnitStatusOptions,
+		getResidentialUnitTypeOptions
+	} from '$lib/remote/address/attribute-options.remote';
+	import { createResidentialUnit } from '$lib/remote/address/residential-units.remote';
+	import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
 
 	let {
-		residentialUnitTypes = [],
-		residentialUnitStatuses = [],
+		addressUuid,
 		openModal = $bindable(false)
 	}: {
-		residentialUnitTypes?: ComboboxItem[];
-		residentialUnitStatuses?: ComboboxItem[];
+		addressUuid: string;
 		openModal?: boolean;
 	} = $props();
+
+	const [residentialUnitTypes, residentialUnitStatuses] = await Promise.all([
+		getResidentialUnitTypeOptions(),
+		getResidentialUnitStatusOptions()
+	]);
 
 	let formIdResidentialUnit = $state('');
 	let formFloor = $state('');
@@ -47,46 +52,34 @@
 	}
 
 	/**
-	 * Submits the createResidentialUnit action and invalidates page data on success.
+	 * Creates the unit; the command refreshes the address's unit list, so on
+	 * success the dialog just closes.
 	 * @param event
 	 */
 	async function handleSubmit(event: SubmitEvent) {
 		event.preventDefault();
 
-		const formData = new FormData();
-		if (formIdResidentialUnit) formData.append('id_residential_unit', formIdResidentialUnit);
-		if (formFloor) formData.append('floor', formFloor);
-		if (formSide) formData.append('side', formSide);
-		if (formBuildingSection) formData.append('building_section', formBuildingSection);
-		if (formExternalId1) formData.append('external_id_1', formExternalId1);
-		if (formExternalId2) formData.append('external_id_2', formExternalId2);
-		if (formTypeId) formData.append('residential_unit_type_id', formTypeId);
-		if (formStatusId) formData.append('status_id', formStatusId);
-
 		try {
-			const response = await fetch('?/createResidentialUnit', {
-				method: 'POST',
-				body: formData
+			await createResidentialUnit({
+				addressUuid,
+				id_residential_unit: formIdResidentialUnit || undefined,
+				floor: formFloor === '' ? undefined : Number(formFloor),
+				side: formSide || undefined,
+				building_section: formBuildingSection || undefined,
+				external_id_1: formExternalId1 || undefined,
+				external_id_2: formExternalId2 || undefined,
+				residential_unit_type_id: Number(formTypeId) || undefined,
+				status_id: Number(formStatusId) || undefined
 			});
-			const result = deserialize(await response.text());
-
-			if (result.type === 'success') {
-				globalToaster.success({
-					title: m.title_success(),
-					description: m.message_success_creating_residential_unit()
-				});
-				invalidateAll();
-			} else {
-				globalToaster.error({
-					title: m.common_error(),
-					description:
-						(actionData(result)?.message as string) || m.message_error_creating_residential_unit()
-				});
-			}
+			globalToaster.success({
+				title: m.title_success(),
+				description: m.message_success_creating_residential_unit()
+			});
+			handleClose();
 		} catch (error) {
 			globalToaster.error({
 				title: m.common_error(),
-				description: m.message_error_creating_residential_unit()
+				description: remoteErrorMessage(error) ?? m.message_error_creating_residential_unit()
 			});
 		}
 	}

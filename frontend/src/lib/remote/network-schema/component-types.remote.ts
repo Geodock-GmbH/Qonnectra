@@ -2,7 +2,7 @@ import type { ComponentType } from '$lib/classes/DragDropManager.svelte';
 import { query } from '$app/server';
 import { API_URL } from '$env/static/private';
 
-import { djangoHeaders } from './remote-auth';
+import { djangoHeaders } from '$lib/remote/shared/remote-auth';
 
 /**
  * Fetch the available component types for the drag-and-drop sidebar.
