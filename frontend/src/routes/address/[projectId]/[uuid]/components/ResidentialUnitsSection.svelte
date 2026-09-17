@@ -1,7 +1,6 @@
 <script lang="ts">
-	import type { ComboboxItem } from '$lib/types/attributeCardTypes';
-	import { deserialize } from '$app/forms';
-	import { goto, invalidateAll } from '$app/navigation';
+	import type { ResidentialUnit } from '$lib/types';
+	import { goto } from '$app/navigation';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
 	import {
 		IconArrowLeft,
@@ -16,36 +15,19 @@
 
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { actionData } from '$lib/utils/forms';
 	import { tooltip } from '$lib/utils/tooltip';
+	import {
+		deleteResidentialUnit,
+		getResidentialUnits
+	} from '$lib/remote/address/residential-units.remote';
+	import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
 
 	import ResidentialUnitModal from './ResidentialUnitModal.svelte';
 
-	/**
-	 * The residential-unit display row this table renders. Kept loose (the page
-	 * feeds a PDF-oriented shape); only the display fields are read here.
-	 */
-	interface UnitRow {
-		uuid?: string;
-		id_residential_unit?: string | null;
-		residential_unit_type?: { residential_unit_type: string } | null;
-		status?: { status: string } | null;
-		[key: string]: unknown;
-	}
+	let { addressUuid, projectId }: { addressUuid: string; projectId: string } = $props();
 
-	let {
-		residentialUnits = [],
-		residentialUnitTypes = [],
-		residentialUnitStatuses = [],
-		projectId = '',
-		addressUuid = ''
-	}: {
-		residentialUnits?: UnitRow[];
-		residentialUnitTypes?: ComboboxItem[];
-		residentialUnitStatuses?: ComboboxItem[];
-		projectId?: string;
-		addressUuid?: string;
-	} = $props();
+	// Server truth: the create/delete commands refresh this query in-flight.
+	const residentialUnits = $derived(await getResidentialUnits(addressUuid));
 
 	let deletingUnitUuid = $state<string | null>(null);
 	let deleteMessageBox = $state<ReturnType<typeof MessageBox> | null>(null);
@@ -117,14 +99,13 @@
 	 * @param key - The column key.
 	 * @returns The display value.
 	 */
-	function getCellValue(unit: UnitRow, key: string): unknown {
+	function getCellValue(unit: ResidentialUnit, key: string): unknown {
 		if (key === 'residential_unit_type')
 			return unit.residential_unit_type?.residential_unit_type ?? null;
 		if (key === 'status') return unit.status?.status ?? null;
-		return unit[key] ?? null;
+		return unit[key as keyof ResidentialUnit] ?? null;
 	}
 
-	// Filter → Sort → Paginate
 	const filteredUnits = $derived.by(() => {
 		return residentialUnits.filter((unit) => {
 			return Object.entries(filters).every(([key, filterValue]) => {
@@ -174,38 +155,21 @@
 	}
 
 	/**
-	 * Submits the deleteResidentialUnit action and invalidates page data on success.
+	 * Deletes the unit awaiting confirmation; the command refreshes the list.
 	 */
 	async function handleDelete() {
 		if (!deletingUnitUuid) return;
 
-		const formData = new FormData();
-		formData.append('unit_uuid', deletingUnitUuid);
-
 		try {
-			const response = await fetch('?/deleteResidentialUnit', {
-				method: 'POST',
-				body: formData
+			await deleteResidentialUnit({ unitUuid: deletingUnitUuid, addressUuid });
+			globalToaster.success({
+				title: m.title_success(),
+				description: m.message_success_deleting_residential_unit()
 			});
-			const result = deserialize(await response.text());
-
-			if (result.type === 'success') {
-				globalToaster.success({
-					title: m.title_success(),
-					description: m.message_success_deleting_residential_unit()
-				});
-				invalidateAll();
-			} else {
-				globalToaster.error({
-					title: m.common_error(),
-					description:
-						(actionData(result)?.message as string) || m.message_error_deleting_residential_unit()
-				});
-			}
 		} catch (error) {
 			globalToaster.error({
 				title: m.common_error(),
-				description: m.message_error_deleting_residential_unit()
+				description: remoteErrorMessage(error) ?? m.message_error_deleting_residential_unit()
 			});
 		} finally {
 			deletingUnitUuid = null;
@@ -227,7 +191,7 @@
 						: `${sortedUnits.length} / ${residentialUnits.length}`}
 				</span>
 			{/if}
-			<ResidentialUnitModal {residentialUnitTypes} {residentialUnitStatuses} bind:openModal />
+			<ResidentialUnitModal {addressUuid} bind:openModal />
 		</div>
 	</div>
 

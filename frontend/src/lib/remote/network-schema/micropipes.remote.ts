@@ -4,8 +4,9 @@ import { command, query } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';
 
+import { djangoHeaders } from '$lib/remote/shared/remote-auth';
+
 import { transformMicropipeConnections } from './micropipe-connections';
-import { djangoHeaders } from './remote-auth';
 
 const AutoLinkSchema = v.object({
 	cableId: v.pipe(v.string(), v.nonEmpty()),

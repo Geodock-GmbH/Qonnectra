@@ -1,41 +1,28 @@
 <script lang="ts">
-	import type { PageData } from './$types';
-	import { setContext } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { navigating, page } from '$app/stores';
+	import { page } from '$app/state';
 
 	import { m } from '$lib/paraglide/messages';
 
+	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import SearchInput from '$lib/components/SearchInput.svelte';
+	import { getAddressList } from '$lib/remote/address/addresses.remote';
 
-	import AddressTable from './AddressTable.svelte';
+	import AddressTable from './components/AddressTable.svelte';
 
-	let { data }: { data: PageData } = $props();
+	const projectId = $derived(page.params.projectId ?? '');
+	const searchTerm = $derived(page.url.searchParams.get('search') ?? '');
+	const currentPage = $derived(Number(page.url.searchParams.get('page')) || 1);
+	const pageSize = $derived(Number(page.url.searchParams.get('page_size')) || 50);
 
-	const searchTerm = $derived(data.searchTerm || '');
-	let searchInput = $state('');
-
-	$effect(() => {
-		searchInput = searchTerm;
-	});
-
-	const addresses = $derived(data.addresses);
-	const pagination = $derived(data.pagination);
-
-	setContext('attributeOptions', {
-		get statusDevelopments() {
-			return data.statusDevelopments;
-		},
-		get flags() {
-			return data.flags;
-		}
-	});
+	// Follows the URL (back/forward, reload) but stays editable until submitted.
+	let searchInput = $derived(searchTerm);
 
 	/**
 	 * Navigates to page 1 with the current search input as a query parameter.
 	 */
 	function performSearch() {
-		const url = new URL($page.url);
+		const url = new URL(page.url);
 		if (searchInput !== '') {
 			url.searchParams.set('search', searchInput);
 		} else {
@@ -49,6 +36,23 @@
 <svelte:head>
 	<title>{m.nav_address()}</title>
 </svelte:head>
+
+{#snippet tableSkeleton()}
+	<div class="table-wrap overflow-x-auto" role="status">
+		<table class="table table-card caption-bottom w-full overflow-scroll">
+			<thead>
+				<tr>
+					{#each { length: 8 } as _, i (i)}
+						<td>
+							<div class="h-4 bg-surface-500 rounded animate-pulse w-3/4"></div>
+						</td>
+					{/each}
+				</tr>
+			</thead>
+		</table>
+		<span class="sr-only">{m.common_loading()}</span>
+	</div>
+{/snippet}
 
 <div class="relative flex gap-4 h-full overflow-hidden">
 	<div
@@ -65,23 +69,22 @@
 		</div>
 
 		<div class="flex-1 min-h-0">
-			{#if $navigating}
-				<div class="table-wrap overflow-x-auto">
-					<table class="table table-card caption-bottom w-full overflow-scroll">
-						<thead>
-							<tr>
-								{#each { length: 8 } as _, i (i)}
-									<td>
-										<div class="h-4 bg-surface-500 rounded animate-pulse w-3/4"></div>
-									</td>
-								{/each}
-							</tr>
-						</thead>
-					</table>
+			<QueryBoundary pending={tableSkeleton}>
+				{@const list = await getAddressList({
+					projectId,
+					search: searchTerm,
+					page: currentPage,
+					pageSize
+				})}
+				<div
+					class={[
+						'h-full transition-opacity',
+						$effect.pending() > 0 && 'opacity-60 pointer-events-none'
+					]}
+				>
+					<AddressTable addresses={list.addresses} pagination={list.pagination} />
 				</div>
-			{:else}
-				<AddressTable {addresses} {pagination} />
-			{/if}
+			</QueryBoundary>
 		</div>
 	</div>
 </div>

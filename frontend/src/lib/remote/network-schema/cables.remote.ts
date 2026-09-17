@@ -3,8 +3,9 @@ import { command, query } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';
 
+import { djangoHeaders } from '$lib/remote/shared/remote-auth';
+
 import { fetchCableSplices } from './cable-splices';
-import { djangoHeaders } from './remote-auth';
 
 const CreateCableSchema = v.object({
 	uuid: v.optional(v.string()),

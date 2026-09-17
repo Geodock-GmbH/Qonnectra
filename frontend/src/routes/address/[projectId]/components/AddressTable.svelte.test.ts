@@ -1,3 +1,4 @@
+import type { AddressListRow } from '$lib/remote/address/address-data';
 import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -24,7 +25,7 @@ vi.mock('$lib/paraglide/messages', () => ({
 	)
 }));
 
-function makeAddress(overrides: Record<string, unknown> = {}) {
+function makeAddress(overrides: Partial<AddressListRow> = {}): AddressListRow {
 	return {
 		value: 'uuid-1',
 		id_address: 'A-100',
@@ -42,7 +43,7 @@ function makeAddress(overrides: Record<string, unknown> = {}) {
 
 const defaultPagination = { page: 1, pageSize: 50, totalCount: 2, totalPages: 1 };
 
-function renderTable(addresses: Record<string, unknown>[], pagination = defaultPagination) {
+function renderTable(addresses: AddressListRow[], pagination = defaultPagination) {
 	return render(AddressTable, { addresses, pagination });
 }
 

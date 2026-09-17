@@ -131,6 +131,7 @@
 			}
 		}
 	],
+	"common_retry": "Retry",
 	"common_save": "Save",
 	"common_search": "Search",
 	"common_searching": "Searching...",
