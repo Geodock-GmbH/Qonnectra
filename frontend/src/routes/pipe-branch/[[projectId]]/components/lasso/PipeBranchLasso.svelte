@@ -165,7 +165,6 @@
 		const zoomFactor = e.deltaY > 0 ? 0.95 : 1.05;
 		const newZoom = Math.max(store.minZoom, Math.min(store.maxZoom, zoom * zoomFactor));
 
-		// Get mouse position relative to the canvas
 		const rect = (e.currentTarget as HTMLCanvasElement).getBoundingClientRect();
 		const mouseX = e.clientX - rect.left;
 		const mouseY = e.clientY - rect.top;
