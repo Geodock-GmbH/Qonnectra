@@ -17,6 +17,7 @@ const UpdateStatusSchema = v.object({
 /**
  * Fetch every microduct of a conduit.
  * @param conduitUuid - Conduit UUID.
+ * @returns The conduit's microducts.
  * @throws When the backend request fails.
  */
 export const getMicroducts = query(UuidSchema, async (conduitUuid): Promise<Microduct[]> => {
@@ -31,6 +32,7 @@ export const getMicroducts = query(UuidSchema, async (conduitUuid): Promise<Micr
 
 /**
  * Microduct status options for the status combobox.
+ * @returns The selectable microduct statuses.
  * @throws When the backend request fails.
  */
 export const getMicroductStatusOptions = query(async (): Promise<MicroductStatusOption[]> => {
@@ -62,7 +64,8 @@ export const updateMicroductStatus = command(
 		});
 		if (!response.ok) await failFromResponse(response, 'Failed to update microduct status');
 
-		void getMicroducts(conduitUuid).refresh();
-		return (await response.json()) as Microduct;
+		const updated = (await response.json()) as Microduct;
+		await getMicroducts(conduitUuid).refresh();
+		return updated;
 	}
 );

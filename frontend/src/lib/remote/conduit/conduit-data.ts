@@ -87,7 +87,8 @@ const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.s
 /**
  * Maps one lightweight list serializer item to a table row, defaulting
  * missing text fields to empty strings.
- * @param item - A result of `conduit/all/`.
+ * @param item - A result row of `conduit/all/`.
+ * @returns The flattened table row.
  */
 export function mapConduitListRow(item: Record<string, unknown>): ConduitListRow {
 	const text = (key: string) => (typeof item[key] === 'string' ? (item[key] as string) : '');
@@ -109,6 +110,7 @@ export function mapConduitListRow(item: Record<string, unknown>): ConduitListRow
 /**
  * Maps the paginated `conduit/all/` payload to rows plus pagination.
  * @param payload - The backend page envelope.
+ * @returns The table rows and pagination metadata.
  */
 export function mapConduitListPage(payload: Record<string, unknown>): ConduitListPage {
 	const results = Array.isArray(payload.results)
@@ -130,6 +132,7 @@ export function mapConduitListPage(payload: Record<string, unknown>): ConduitLis
  * sent so the backend applies its own defaults.
  * @param projectId - Project the conduit belongs to (omitted when empty).
  * @param fields - The form values.
+ * @returns The POST body for `conduit/`.
  */
 export function buildConduitCreateBody(
 	projectId: number | undefined,
@@ -148,6 +151,7 @@ export function buildConduitCreateBody(
  * sent so clearing the textarea clears the field; unset references are
  * left untouched.
  * @param fields - The form values.
+ * @returns The PATCH body for `conduit/<uuid>/`.
  */
 export function buildConduitPatch(fields: ConduitFields): Record<string, unknown> {
 	const body: Record<string, unknown> = {};
@@ -161,6 +165,7 @@ export function buildConduitPatch(fields: ConduitFields): Record<string, unknown
 /**
  * Picks the set foreign-key ids out of the form values.
  * @param fields - The form values.
+ * @returns The non-empty `*_id` fields, keyed by field name.
  */
 function referenceIds(fields: ConduitFields): Record<string, number> {
 	const ids: Record<string, number> = {};
@@ -185,6 +190,7 @@ function referenceIds(fields: ConduitFields): Record<string, number> {
  * caller can show a specific message.
  * @param status - HTTP status of the response.
  * @param errorData - Parsed JSON error body.
+ * @returns `true` when the rejection is a duplicate-name clash.
  */
 export function isDuplicateConduitError(status: number, errorData: unknown): boolean {
 	if (status !== 400 || !errorData || typeof errorData !== 'object') return false;
@@ -215,6 +221,7 @@ export function importFileIssue(file: File): string | null {
  * Builds one message from a failed import response: row errors first, then
  * warnings, falling back to the backend's summary.
  * @param result - Parsed JSON body of the failed `import/conduit/` response.
+ * @returns A newline-joined, user-facing error message.
  */
 export function importErrorMessage(result: unknown): string {
 	const data = (result && typeof result === 'object' ? result : {}) as Record<string, unknown>;
@@ -229,6 +236,7 @@ export function importErrorMessage(result: unknown): string {
 /**
  * Maps a successful `import/conduit/` response to the client-facing result.
  * @param result - Parsed JSON body.
+ * @returns The created count, summary message and warnings.
  */
 export function mapImportResult(result: Record<string, unknown>): ConduitImportResult {
 	return {

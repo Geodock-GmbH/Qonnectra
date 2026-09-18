@@ -19,6 +19,7 @@ export interface ConduitFormDefaults {
 
 /**
  * A fresh, empty set of form values.
+ * @returns Empty defaults with blank strings and empty selection arrays.
  */
 export function emptyConduitFormDefaults(): ConduitFormDefaults {
 	return {
@@ -39,6 +40,7 @@ export function emptyConduitFormDefaults(): ConduitFormDefaults {
  * Reads the remembered form values from localStorage, falling back to empty
  * values when nothing is stored, storage is unavailable or the entry is
  * malformed.
+ * @returns The remembered form values, or empty defaults.
  */
 export function loadConduitFormDefaults(): ConduitFormDefaults {
 	const defaults = emptyConduitFormDefaults();

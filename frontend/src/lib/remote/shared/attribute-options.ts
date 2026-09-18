@@ -7,6 +7,7 @@ import { failFromResponse } from './backend-error';
  * Maps a backend attribute list to combobox options.
  * @param items - Attribute rows with an `id`.
  * @param labelKey - The row field holding the display label.
+ * @returns The combobox options.
  */
 export function toOptions(items: Record<string, unknown>[], labelKey: string): ComboboxItem[] {
 	return items.map((item) => ({
@@ -20,6 +21,7 @@ export function toOptions(items: Record<string, unknown>[], labelKey: string): C
  * @param path - Backend path relative to `API_URL`.
  * @param labelKey - Row field holding the label.
  * @param headers - Django auth headers.
+ * @returns The fetched list mapped to combobox options.
  * @throws When the backend request fails.
  */
 export async function fetchOptions(

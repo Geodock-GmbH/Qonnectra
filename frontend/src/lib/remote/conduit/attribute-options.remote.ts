@@ -5,6 +5,7 @@ import { djangoHeaders } from '$lib/remote/shared/remote-auth';
 
 /**
  * Conduit type options for the conduit forms.
+ * @returns The conduit type combobox options.
  * @throws When the backend request fails.
  */
 export const getConduitTypeOptions = query(async () =>
@@ -13,6 +14,7 @@ export const getConduitTypeOptions = query(async () =>
 
 /**
  * Construction status options for the conduit forms.
+ * @returns The status combobox options.
  * @throws When the backend request fails.
  */
 export const getStatusOptions = query(async () =>
@@ -21,6 +23,7 @@ export const getStatusOptions = query(async () =>
 
 /**
  * Network level options for the conduit forms.
+ * @returns The network level combobox options.
  * @throws When the backend request fails.
  */
 export const getNetworkLevelOptions = query(async () =>
@@ -29,6 +32,7 @@ export const getNetworkLevelOptions = query(async () =>
 
 /**
  * Company options, used for owner, constructor and manufacturer.
+ * @returns The company combobox options.
  * @throws When the backend request fails.
  */
 export const getCompanyOptions = query(async () =>
@@ -37,6 +41,7 @@ export const getCompanyOptions = query(async () =>
 
 /**
  * Flag options for the conduit forms.
+ * @returns The flag combobox options.
  * @throws When the backend request fails.
  */
 export const getFlagOptions = query(async () => fetchOptions('flags/', 'flag', djangoHeaders()));

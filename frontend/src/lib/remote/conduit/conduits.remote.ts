@@ -87,6 +87,7 @@ export const getConduitList = query(
 /**
  * Fetch a single conduit with its expanded references.
  * @param uuid - Conduit UUID.
+ * @returns The conduit with its expanded foreign-key references.
  * @throws When the backend request fails.
  */
 export const getConduit = query(UuidSchema, async (uuid): Promise<ConduitRecord> => {
@@ -156,6 +157,7 @@ export const updateConduit = command(
 /**
  * Delete a conduit and refresh the requested list instances.
  * @param uuid - Conduit UUID.
+ * @returns Nothing; resolves once the delete and list refresh complete.
  * @throws When the backend rejects the delete.
  */
 export const deleteConduit = command(UuidSchema, async (uuid) => {
