@@ -1,39 +1,21 @@
 <script lang="ts">
-	import type { DashboardData } from './dashboardUtils';
-	import { navigating } from '$app/stores';
+	import { page } from '$app/state';
 
 	import { m } from '$lib/paraglide/messages';
 
-	import AddressStatistics from '$lib/components/AddressStatistics.svelte';
-	import AreaStatistics from '$lib/components/AreaStatistics.svelte';
-	import ConduitStatistics from '$lib/components/ConduitStatistics.svelte';
-	import NodeStatistics from '$lib/components/NodeStatistics.svelte';
+	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
-	import TrenchStatistics from '$lib/components/TrenchStatistics.svelte';
 
-	import DashboardCard from './DashboardCard.svelte';
-	import WarrantyExpirationCard from './WarrantyExpirationCard.svelte';
+	import AddressStatistics from './components/AddressStatistics.svelte';
+	import AreaStatistics from './components/AreaStatistics.svelte';
+	import ConduitStatistics from './components/ConduitStatistics.svelte';
+	import FlagFilter from './components/FlagFilter.svelte';
+	import NodeStatistics from './components/NodeStatistics.svelte';
+	import OverviewTab from './components/OverviewTab.svelte';
+	import TrenchStatistics from './components/TrenchStatistics.svelte';
 
-	let { data }: { data: DashboardData } = $props();
-
-	const totalNodes = $derived(
-		data.nodesByType?.reduce((sum: number, item: { count: number }) => sum + item.count, 0) || 0
-	);
-
-	const totalConduitLength = $derived(
-		(data.conduitLengthByType?.reduce(
-			(sum: number, item: { total: number }) => sum + (item.total || 0),
-			0
-		) || 0) / 1000
-	);
-
-	function getMaxValue(
-		items: Array<{ gesamt_länge?: number; total?: number; count?: number }>,
-		key: 'gesamt_länge' | 'total' | 'count'
-	) {
-		if (!items?.length) return 1;
-		return Math.max(...items.map((item) => Number(item[key]) || 0)) || 1;
-	}
+	const projectId = $derived(page.params.projectId ?? '');
+	const flagId = $derived(page.params.flagId ?? '');
 
 	let activeTab = $state('stats');
 
@@ -51,301 +33,39 @@
 	<title>{m.nav_dashboard()}</title>
 </svelte:head>
 
-<Tabs tabs={tabItems} bind:value={activeTab} orientation="horizontal">
-	{#if activeTab === 'stats'}
-		<div class="space-y-6 max-w-6xl mx-auto">
-			<!-- Breakdown Cards -->
-			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-				<DashboardCard title={m.form_trench_statistics()}>
-					<div class="flex items-baseline gap-2 mb-4">
-						{#if $navigating}
-							<div class="h-7 bg-surface-500 rounded animate-pulse w-20"></div>
-						{:else}
-							<span class="text-2xl font-bold text-surface-900-100">
-								{(data.totalLength / 1000).toLocaleString('de-DE', {
-									minimumFractionDigits: 2,
-									maximumFractionDigits: 2
-								})}
-							</span>
-							<span class="text-sm text-surface-600-300">km {m.form_total_length()}</span>
-						{/if}
-					</div>
-					<div class="space-y-2 overflow-auto max-h-100 pr-2">
-						{#if $navigating}
-							{#each Array(3) as _, i (i)}
-								<div class="h-10 bg-surface-500 rounded animate-pulse"></div>
-							{/each}
-						{:else}
-							{@const max = getMaxValue(data.lengthByTypes, 'gesamt_länge')}
-							{#each data.lengthByTypes as item (`${item.bauweise}-${item.oberfläche}`)}
-								{@const pct = ((item.gesamt_länge || 0) / max) * 100}
-								<div class="relative rounded-lg overflow-hidden">
-									<div
-										class="absolute inset-y-0 left-0 bg-primary-500/20"
-										style="width: {pct}%"
-									></div>
-									<div class="relative flex justify-between items-center p-3">
-										<div>
-											<div class="font-medium text-surface-900-100 text-sm">
-												{item.bauweise}
-											</div>
-											<div class="text-xs text-surface-600-300">
-												{item.oberfläche}
-											</div>
-										</div>
-										<div class="font-semibold text-surface-900-100 tabular-nums">
-											{(item.gesamt_länge / 1000).toLocaleString('de-DE', {
-												minimumFractionDigits: 2,
-												maximumFractionDigits: 2
-											})} km
-										</div>
-									</div>
-								</div>
-							{/each}
-						{/if}
-					</div>
-				</DashboardCard>
-
-				<DashboardCard title={m.form_node_statistics()}>
-					<div class="flex items-baseline gap-2 mb-4">
-						{#if $navigating}
-							<div class="h-7 bg-surface-500 rounded animate-pulse w-16"></div>
-						{:else}
-							<span class="text-2xl font-bold text-surface-900-100">
-								{totalNodes}x
-							</span>
-							<span class="text-sm text-surface-600-300">{m.form_total_nodes()}</span>
-						{/if}
-					</div>
-					<div class="space-y-2 overflow-auto max-h-100 pr-2">
-						{#if $navigating}
-							{#each Array(3) as _, i (i)}
-								<div class="h-10 bg-surface-500 rounded animate-pulse"></div>
-							{/each}
-						{:else}
-							{@const max = getMaxValue(data.nodesByType, 'count')}
-							{#each data.nodesByType as item (item.node_type)}
-								{@const pct = ((item.count || 0) / max) * 100}
-								<div class="relative rounded-lg overflow-hidden">
-									<div
-										class="absolute inset-y-0 left-0 bg-primary-500/20"
-										style="width: {pct}%"
-									></div>
-									<div class="relative flex justify-between items-center p-3">
-										<div class="font-medium text-surface-900-100 text-sm">
-											{item.node_type}
-										</div>
-										<div class="font-semibold text-surface-900-100 tabular-nums">
-											{item.count}x
-										</div>
-									</div>
-								</div>
-							{/each}
-						{/if}
-					</div>
-				</DashboardCard>
-
-				<DashboardCard title={m.form_conduit_statistics()}>
-					<div class="flex items-baseline gap-2 mb-4">
-						{#if $navigating}
-							<div class="h-7 bg-surface-500 rounded animate-pulse w-20"></div>
-						{:else}
-							<span class="text-2xl font-bold text-surface-900-100">
-								{totalConduitLength.toLocaleString('de-DE', {
-									minimumFractionDigits: 2,
-									maximumFractionDigits: 2
-								})}
-							</span>
-							<span class="text-sm text-surface-600-300">km {m.form_total_conduit_length()}</span>
-						{/if}
-					</div>
-					<div class="space-y-2 overflow-auto max-h-100 pr-2">
-						{#if $navigating}
-							{#each Array(3) as _, i (i)}
-								<div class="h-10 bg-surface-500 rounded animate-pulse"></div>
-							{/each}
-						{:else}
-							{@const max = getMaxValue(data.conduitLengthByType, 'total')}
-							{#each data.conduitLengthByType as item (item.type_name)}
-								{@const pct = ((item.total || 0) / max) * 100}
-								<div class="relative rounded-lg overflow-hidden">
-									<div
-										class="absolute inset-y-0 left-0 bg-primary-500/20"
-										style="width: {pct}%"
-									></div>
-									<div class="relative flex justify-between items-center p-3">
-										<div class="font-medium text-surface-900-100 text-sm">
-											{item.type_name}
-										</div>
-										<div class="font-semibold text-surface-900-100 tabular-nums">
-											{((item.total || 0) / 1000).toLocaleString('de-DE', {
-												minimumFractionDigits: 2,
-												maximumFractionDigits: 2
-											})} km
-										</div>
-									</div>
-								</div>
-							{/each}
-						{/if}
-					</div>
-				</DashboardCard>
-
-				<DashboardCard title={m.form_address_statistics()}>
-					<div class="flex items-baseline gap-4 mb-4">
-						{#if $navigating}
-							<div class="h-7 bg-surface-500 rounded animate-pulse w-16"></div>
-						{:else}
-							<div>
-								<span class="text-2xl font-bold text-surface-900-100"
-									>{data.totalAddresses || 0}x</span
-								>
-								<span class="text-sm text-surface-600-300">{m.form_total_addresses()}</span>
-							</div>
-							<div>
-								<span class="text-2xl font-bold text-surface-900-100">{data.totalUnits || 0}x</span>
-								<span class="text-sm text-surface-600-300">{m.form_total_units()}</span>
-							</div>
-						{/if}
-					</div>
-					<div class="space-y-2 overflow-auto max-h-100 pr-2">
-						{#if $navigating}
-							{#each Array(3) as _, i (i)}
-								<div class="h-10 bg-surface-500 rounded animate-pulse"></div>
-							{/each}
-						{:else}
-							{@const max = getMaxValue(data.addressesByCity, 'count')}
-							{#each data.addressesByCity as item (item.city)}
-								{@const pct = ((item.count || 0) / max) * 100}
-								<div class="relative rounded-lg overflow-hidden">
-									<div
-										class="absolute inset-y-0 left-0 bg-primary-500/20"
-										style="width: {pct}%"
-									></div>
-									<div class="relative flex justify-between items-center p-3">
-										<div class="font-medium text-surface-900-100 text-sm">
-											{item.city || m.common_unknown()}
-										</div>
-										<div class="font-semibold text-surface-900-100 tabular-nums">
-											{item.count}x
-										</div>
-									</div>
-								</div>
-							{/each}
-						{/if}
-					</div>
-				</DashboardCard>
-
-				<DashboardCard title={m.form_area_statistics()}>
-					<div class="flex items-baseline gap-4 mb-4">
-						{#if $navigating}
-							<div class="h-7 bg-surface-500 rounded animate-pulse w-16"></div>
-						{:else}
-							<div>
-								<span class="text-2xl font-bold text-surface-900-100">{data.areaCount || 0}x</span>
-								<span class="text-sm text-surface-600-300">{m.form_area_total_count()}</span>
-							</div>
-							<div>
-								<span class="text-2xl font-bold text-surface-900-100">
-									{(data.totalCoverageKm2 || 0).toLocaleString('de-DE', {
-										minimumFractionDigits: 2,
-										maximumFractionDigits: 2
-									})}
-								</span>
-								<span class="text-sm text-surface-600-300">km²</span>
-							</div>
-						{/if}
-					</div>
-					<div class="space-y-2 overflow-auto max-h-100 pr-2">
-						{#if $navigating}
-							{#each Array(3) as _, i (i)}
-								<div class="h-10 bg-surface-500 rounded animate-pulse"></div>
-							{/each}
-						{:else}
-							{@const max = getMaxValue(data.areasByType, 'count')}
-							{#each data.areasByType as item (item.type_name)}
-								{@const pct = ((item.count || 0) / max) * 100}
-								<div class="relative rounded-lg overflow-hidden">
-									<div
-										class="absolute inset-y-0 left-0 bg-primary-500/20"
-										style="width: {pct}%"
-									></div>
-									<div class="relative flex justify-between items-center p-3">
-										<div class="font-medium text-surface-900-100 text-sm">
-											{item.type_name || m.common_unknown()}
-										</div>
-										<div class="font-semibold text-surface-900-100 tabular-nums">
-											{item.count}x
-										</div>
-									</div>
-								</div>
-							{/each}
-						{/if}
-					</div>
-				</DashboardCard>
-
-				<WarrantyExpirationCard warranties={data.expiringWarranties} />
+{#snippet cardsSkeleton()}
+	<div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6" role="status">
+		{#each { length: 6 }, i (i)}
+			<div class="card border border-surface-200-800 p-4 space-y-2 animate-pulse">
+				<div class="h-7 w-24 rounded bg-surface-500"></div>
+				{#each { length: 3 }, row (row)}
+					<div class="h-10 rounded bg-surface-500"></div>
+				{/each}
 			</div>
+		{/each}
+		<span class="sr-only">{m.common_loading()}</span>
+	</div>
+{/snippet}
+
+<Tabs tabs={tabItems} bind:value={activeTab} orientation="horizontal">
+	<div class="max-w-6xl mx-auto mb-4 flex justify-end">
+		<FlagFilter {projectId} {flagId} />
+	</div>
+	<QueryBoundary pending={cardsSkeleton}>
+		<div class={['transition-opacity', $effect.pending() > 0 && 'opacity-60']}>
+			{#if activeTab === 'stats'}
+				<OverviewTab {projectId} {flagId} />
+			{:else if activeTab === 'trench'}
+				<TrenchStatistics {projectId} {flagId} />
+			{:else if activeTab === 'conduit'}
+				<ConduitStatistics {projectId} {flagId} />
+			{:else if activeTab === 'node'}
+				<NodeStatistics {projectId} {flagId} />
+			{:else if activeTab === 'address'}
+				<AddressStatistics {projectId} {flagId} />
+			{:else if activeTab === 'area'}
+				<AreaStatistics {projectId} {flagId} />
+			{/if}
 		</div>
-	{/if}
-	{#if activeTab === 'trench'}
-		<TrenchStatistics
-			lengthByTypes={data.lengthByTypes}
-			avgHouseConnectionLength={data.avgHouseConnectionLength}
-			lengthWithFunding={data.lengthWithFunding}
-			lengthWithInternalExecution={data.lengthWithInternalExecution}
-			lengthByStatus={data.lengthByStatus}
-			lengthByNetworkLevel={data.lengthByNetworkLevel}
-			longestRoutes={data.longestRoutes}
-		/>
-	{/if}
-	{#if activeTab === 'conduit'}
-		<ConduitStatistics
-			lengthByType={data.conduitLengthByType}
-			lengthByStatusType={data.conduitLengthByStatusType}
-			lengthByNetworkLevel={data.conduitLengthByNetworkLevel}
-			avgLengthByType={data.conduitAvgLengthByType}
-			countByStatus={data.conduitCountByStatus}
-			lengthByOwner={data.conduitLengthByOwner}
-			lengthByManufacturer={data.conduitLengthByManufacturer}
-			conduitsByMonth={data.conduitsByMonth}
-			longestConduits={data.longestConduits}
-		/>
-	{/if}
-	{#if activeTab === 'node'}
-		<NodeStatistics
-			nodesByCity={data.nodesByCity}
-			nodesByStatus={data.nodesByStatus}
-			nodesByNetworkLevel={data.nodesByNetworkLevel}
-			nodesByType={data.nodesByType}
-			nodesByOwner={data.nodesByOwner}
-			newestNodes={data.newestNodes}
-		/>
-	{/if}
-	{#if activeTab === 'address'}
-		<AddressStatistics
-			addressesByCity={data.addressesByCity}
-			addressesByStatus={data.addressesByStatus}
-			unitsByCity={data.unitsByCity}
-			unitsByType={data.unitsByType}
-		/>
-	{/if}
-	{#if activeTab === 'area'}
-		<AreaStatistics
-			areaCount={data.areaCount}
-			totalCoverageKm2={data.totalCoverageKm2}
-			areasByType={data.areasByType}
-			totalAddresses={data.areaTotalAddresses}
-			addressesInAreas={data.addressesInAreas}
-			totalNodes={data.totalNodes}
-			nodesInAreas={data.nodesInAreas}
-			totalResidentialUnits={data.totalResidentialUnits}
-			residentialUnitsInAreas={data.residentialUnitsInAreas}
-			addressesPerArea={data.addressesPerArea}
-			addressesByAreaType={data.addressesByAreaType}
-			nodesPerArea={data.nodesPerArea}
-			nodesByAreaType={data.nodesByAreaType}
-			trenchLengthPerArea={data.trenchLengthPerArea}
-			residentialByAreaType={data.residentialByAreaType}
-		/>
-	{/if}
+	</QueryBoundary>
 </Tabs>

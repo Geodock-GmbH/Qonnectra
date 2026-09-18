@@ -172,6 +172,7 @@
 	"form_addresses": "Addresses",
 	"form_addresses_by_city": "Addresses by City",
 	"form_addresses_by_status": "Addresses by Development Status",
+	"form_all_flags": "All flags",
 	"form_area": "Area",
 	"form_area_address_coverage": "Address Coverage",
 	"form_area_addresses_by_type": "Addresses by Area Type",

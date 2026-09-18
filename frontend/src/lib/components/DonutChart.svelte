@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { ArcElement, Chart, DoughnutController, Legend, Tooltip } from 'chart.js';
 
 	import { m } from '$lib/paraglide/messages';
+
+	import { readChartTheme } from '$lib/utils/chartTheme';
 
 	Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
 
@@ -18,73 +19,29 @@
 
 	let { data = [], title = '' }: Props = $props();
 
-	let canvas = $state<HTMLCanvasElement | undefined>();
-	let chart: Chart | null = null;
-	let themeMode = $state('');
+	const isEmpty = $derived(data.length === 0 || data.every((item) => !item.value));
 
-	const colors = [
-		'#0ea5e9', // sky-500
-		'#10b981', // emerald-500
-		'#f59e0b', // amber-500
-		'#ec4899', // pink-500
-		'#8b5cf6', // violet-500
-		'#14b8a6', // teal-500
-		'#f97316', // orange-500
-		'#6366f1', // indigo-500
-		'#84cc16', // lime-500
-		'#ef4444' // red-500
-	];
-
-	onMount(() => {
-		const observer = new MutationObserver(() => {
-			themeMode = document.documentElement.getAttribute('data-mode') || '';
-		});
-
-		observer.observe(document.documentElement, {
-			attributes: true,
-			attributeFilter: ['data-mode']
-		});
-
-		themeMode = document.documentElement.getAttribute('data-mode') || '';
-
-		return () => {
-			observer.disconnect();
-			if (chart) {
-				chart.destroy();
-			}
-		};
-	});
-
-	$effect(() => {
-		if (!canvas || !data || data.length === 0 || data.every((item) => !item.value)) return;
-
-		themeMode;
-
-		if (chart) {
-			chart.destroy();
-		}
-
+	/**
+	 * Draws the donut chart onto the canvas. Re-runs when the data or the
+	 * theme change; the returned cleanup destroys the previous instance.
+	 */
+	function donutChart(canvas: HTMLCanvasElement) {
 		const ctx = canvas.getContext('2d');
-		if (!ctx) return;
+		const host = canvas.parentElement;
+		if (!ctx || !host) return;
 
-		const parentEl = canvas.parentElement;
-		if (!parentEl) return;
+		const theme = readChartTheme(host);
 
-		const tempElText = document.createElement('div');
-		tempElText.style.color = 'var(--preset-filled-surface-900-100)';
-		parentEl.appendChild(tempElText);
-		const labelColor = getComputedStyle(tempElText).color || '#6b7280';
-		parentEl.removeChild(tempElText);
-
-		chart = new Chart(ctx, {
+		const chart = new Chart(ctx, {
 			type: 'doughnut',
 			data: {
 				labels: data.map((item) => item.label),
 				datasets: [
 					{
 						data: data.map((item) => item.value),
-						backgroundColor: colors.slice(0, data.length),
-						borderWidth: 0
+						backgroundColor: theme.shades(data.length),
+						borderColor: theme.segmentBorder,
+						borderWidth: 2
 					}
 				]
 			},
@@ -97,7 +54,7 @@
 					legend: {
 						position: 'right',
 						labels: {
-							color: labelColor,
+							color: theme.text,
 							padding: 12,
 							usePointStyle: true,
 							font: {
@@ -107,11 +64,8 @@
 					},
 					tooltip: {
 						callbacks: {
-							label: function (context) {
-								const total = context.dataset.data.reduce(
-									(sum: number, val: number) => sum + val,
-									0
-								);
+							label: (context) => {
+								const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
 								const percentage = ((context.parsed / total) * 100).toFixed(1);
 								return `${context.label}: ${context.parsed.toLocaleString('de-DE')}x (${percentage}%)`;
 							}
@@ -120,7 +74,9 @@
 				}
 			}
 		});
-	});
+
+		return () => chart.destroy();
+	}
 </script>
 
 <div class="card border border-surface-200-800 overflow-hidden">
@@ -133,12 +89,12 @@
 
 	<div class="p-4">
 		<div class="relative" style="height: 300px;">
-			{#if !data || data.length === 0 || data.every((item) => !item.value)}
+			{#if isEmpty}
 				<div class="flex items-center justify-center h-full text-surface-500">
 					{m.form_no_data_available()}
 				</div>
 			{:else}
-				<canvas bind:this={canvas}></canvas>
+				<canvas {@attach donutChart}></canvas>
 			{/if}
 		</div>
 	</div>

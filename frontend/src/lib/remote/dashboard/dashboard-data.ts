@@ -1,4 +1,5 @@
-interface LengthByType {
+/** Trench length for one construction type / surface combination. */
+interface TrenchLengthByType {
 	bauweise: string;
 	oberfläche: string;
 	gesamt_länge: number;
@@ -13,53 +14,53 @@ export interface Warranty {
 	days_until_expiry: number;
 }
 
-interface NodeByType {
+/** A node as listed in the newest-nodes statistic. */
+interface RecentNode {
+	name?: string;
+	node_type?: string | null;
+}
+
+interface NodeTypeCount {
 	node_type: string;
 	count: number;
 }
 
-interface ProjectItem {
-	project: string;
-	description: string;
-	active: boolean;
-}
-
 interface CityCount {
-	city: string;
+	city: string | null;
 	count: number;
 }
 
 interface StatusCount {
-	status: string;
+	status: string | null;
 	count: number;
 }
 
 interface TypeCount {
-	type: string;
+	type: string | null;
 	count: number;
 }
 
-interface LevelCount {
-	network_level: string;
+interface NetworkLevelCount {
+	network_level: string | null;
 	count: number;
 }
 
-interface LevelLength {
-	network_level: string;
+interface NetworkLevelLength {
+	network_level: string | null;
 	total: number;
 }
 
 interface OwnerCount {
-	owner: string;
+	owner: string | null;
 	count: number;
 }
 
-interface StatusLength {
+interface TrenchStatusLength {
 	status_name: string | null;
 	gesamt_länge: number;
 }
 
-interface PhaseLength {
+interface TrenchNetworkLevelLength {
 	network_level: string | null;
 	gesamt_länge: number;
 }
@@ -71,87 +72,135 @@ interface LongestRoute {
 	surface_name: string | null;
 }
 
-interface ConduitLengthByType {
-	type_name: string;
+interface ConduitTypeLength {
+	type_name: string | null;
 	total: number;
 }
 
-interface AreaByType {
-	type_name: string;
+interface ConduitStatusTypeLength {
+	status_name: string | null;
+	type_name: string | null;
+	total: number;
+}
+
+interface ConduitTypeAvgLength {
+	type_name: string | null;
+	avg_length: number;
+}
+
+interface ConduitStatusCount {
+	status_name: string | null;
+	count: number;
+}
+
+interface ConduitOwnerLength {
+	owner_name: string | null;
+	total: number;
+}
+
+interface ConduitManufacturerLength {
+	manufacturer_name: string | null;
+	total: number;
+}
+
+interface MonthCount {
+	month: string | null;
+	count: number;
+}
+
+interface LongestConduit {
+	name: string;
+	type_name: string | null;
+	total_length: number;
+}
+
+interface AreaTypeSummary {
+	type_name: string | null;
 	count: number;
 	total_area_km2?: number;
 }
 
+/** A per-area count (addresses or nodes inside one area). */
+interface AreaCount {
+	name: string | null;
+	count: number;
+}
+
+interface AreaTrenchLength {
+	name: string | null;
+	length_m: number;
+}
+
+/** Flat dashboard statistics as rendered by the dashboard tabs. */
 export interface DashboardData {
 	totalLength: number;
 	count: number;
-	lengthByTypes: LengthByType[];
+	lengthByTypes: TrenchLengthByType[];
 	avgHouseConnectionLength: number;
 	lengthWithFunding: number;
 	lengthWithInternalExecution: number;
-	lengthByStatus: StatusLength[];
-	lengthByNetworkLevel: PhaseLength[];
+	lengthByStatus: TrenchStatusLength[];
+	lengthByNetworkLevel: TrenchNetworkLevelLength[];
 	longestRoutes: LongestRoute[];
 	expiringWarranties: Warranty[];
 	nodesByCity: CityCount[];
 	nodesByStatus: StatusCount[];
-	nodesByNetworkLevel: LevelCount[];
-	nodesByType: NodeByType[];
+	nodesByNetworkLevel: NetworkLevelCount[];
+	nodesByType: NodeTypeCount[];
 	nodesByOwner: OwnerCount[];
-	newestNodes: Array<{ name?: string; node_type?: string }>;
-	projects: ProjectItem[];
+	newestNodes: RecentNode[];
 	addressesByCity: CityCount[];
 	addressesByStatus: StatusCount[];
 	unitsByCity: CityCount[];
 	unitsByType: TypeCount[];
 	totalAddresses: number;
 	totalUnits: number;
-	conduitLengthByType: ConduitLengthByType[];
-	conduitLengthByStatusType: unknown[];
-	conduitLengthByNetworkLevel: LevelLength[];
-	conduitAvgLengthByType: unknown[];
-	conduitCountByStatus: unknown[];
-	conduitLengthByOwner: unknown[];
-	conduitLengthByManufacturer: unknown[];
-	conduitsByMonth: unknown[];
-	longestConduits: unknown[];
+	conduitLengthByType: ConduitTypeLength[];
+	conduitLengthByStatusType: ConduitStatusTypeLength[];
+	conduitLengthByNetworkLevel: NetworkLevelLength[];
+	conduitAvgLengthByType: ConduitTypeAvgLength[];
+	conduitCountByStatus: ConduitStatusCount[];
+	conduitLengthByOwner: ConduitOwnerLength[];
+	conduitLengthByManufacturer: ConduitManufacturerLength[];
+	conduitsByMonth: MonthCount[];
+	longestConduits: LongestConduit[];
 	areaCount: number;
 	totalCoverageKm2: number;
-	areasByType: AreaByType[];
-	areaTotalAddresses?: number;
+	areasByType: AreaTypeSummary[];
+	areaTotalAddresses: number;
 	addressesInAreas: number;
-	totalNodes?: number;
+	totalNodes: number;
 	nodesInAreas: number;
-	totalResidentialUnits?: number;
+	totalResidentialUnits: number;
 	residentialUnitsInAreas: number;
-	addressesPerArea: unknown[];
-	addressesByAreaType: unknown[];
-	nodesPerArea: unknown[];
-	nodesByAreaType: unknown[];
-	trenchLengthPerArea: unknown[];
-	residentialByAreaType: unknown[];
+	addressesPerArea: AreaCount[];
+	addressesByAreaType: TypeCount[];
+	nodesPerArea: AreaCount[];
+	nodesByAreaType: TypeCount[];
+	trenchLengthPerArea: AreaTrenchLength[];
+	residentialByAreaType: TypeCount[];
 }
 
 interface TrenchStats {
 	total_length: number;
 	count: number;
-	length_by_types: Array<{ bauweise: string; oberfläche: string; gesamt_länge: number }>;
+	length_by_types: TrenchLengthByType[];
 	average_house_connection_length?: number;
 	length_with_funding?: number;
 	length_with_internal_execution?: number;
-	length_by_status?: StatusLength[];
-	length_by_phase?: PhaseLength[];
+	length_by_status?: TrenchStatusLength[];
+	length_by_phase?: TrenchNetworkLevelLength[];
 	longest_routes?: LongestRoute[];
 }
 
 interface NodeStats {
-	count_by_type: Array<{ node_type: string; count: number }>;
-	expiring_warranties?: unknown[];
+	count_by_type: NodeTypeCount[];
+	expiring_warranties?: Warranty[];
 	count_by_city?: CityCount[];
 	count_by_status?: StatusCount[];
-	count_by_network_level?: LevelCount[];
+	count_by_network_level?: NetworkLevelCount[];
 	count_by_owner?: OwnerCount[];
-	newest_nodes?: Array<{ name?: string; node_type?: string }>;
+	newest_nodes?: RecentNode[];
 }
 
 interface AddressStats {
@@ -164,36 +213,37 @@ interface AddressStats {
 }
 
 interface ConduitStats {
-	length_by_type?: ConduitLengthByType[];
-	length_by_status_type?: unknown[];
-	length_by_network_level?: LevelLength[];
-	avg_length_by_type?: unknown[];
-	count_by_status?: unknown[];
-	length_by_owner?: unknown[];
-	length_by_manufacturer?: unknown[];
-	conduits_by_month?: unknown[];
-	longest_conduits?: unknown[];
+	length_by_type?: ConduitTypeLength[];
+	length_by_status_type?: ConduitStatusTypeLength[];
+	length_by_network_level?: NetworkLevelLength[];
+	avg_length_by_type?: ConduitTypeAvgLength[];
+	count_by_status?: ConduitStatusCount[];
+	length_by_owner?: ConduitOwnerLength[];
+	length_by_manufacturer?: ConduitManufacturerLength[];
+	conduits_by_month?: MonthCount[];
+	longest_conduits?: LongestConduit[];
 }
 
 interface AreaStats {
 	area_count?: number;
 	total_coverage_km2?: number;
-	areas_by_type?: AreaByType[];
+	areas_by_type?: AreaTypeSummary[];
 	total_addresses?: number;
 	addresses_in_areas?: number;
 	total_nodes?: number;
 	nodes_in_areas?: number;
 	total_residential_units?: number;
 	residential_units_in_areas?: number;
-	addresses_per_area?: unknown[];
-	addresses_by_area_type?: unknown[];
-	nodes_per_area?: unknown[];
-	nodes_by_area_type?: unknown[];
-	trench_length_per_area?: unknown[];
-	residential_by_area_type?: unknown[];
+	addresses_per_area?: AreaCount[];
+	addresses_by_area_type?: TypeCount[];
+	nodes_per_area?: AreaCount[];
+	nodes_by_area_type?: TypeCount[];
+	trench_length_per_area?: AreaTrenchLength[];
+	residential_by_area_type?: TypeCount[];
 }
 
-interface StatsData {
+/** Raw body of the backend `dashboard/statistics/` endpoint. */
+export interface DashboardStatisticsResponse {
 	trench: TrenchStats;
 	node: NodeStats;
 	address?: AddressStats;
@@ -201,15 +251,9 @@ interface StatsData {
 	area?: AreaStats;
 }
 
-interface RawProject {
-	project: string;
-	description: string;
-	active: boolean;
-}
-
 /**
  * Returns the default empty dashboard data shape.
- * Used as fallback when no project is selected or API calls fail.
+ * Used when no project is selected.
  */
 export function getDefaultDashboardData(): DashboardData {
 	return {
@@ -229,7 +273,6 @@ export function getDefaultDashboardData(): DashboardData {
 		nodesByType: [],
 		nodesByOwner: [],
 		newestNodes: [],
-		projects: [],
 		addressesByCity: [],
 		addressesByStatus: [],
 		unitsByCity: [],
@@ -248,8 +291,11 @@ export function getDefaultDashboardData(): DashboardData {
 		areaCount: 0,
 		totalCoverageKm2: 0,
 		areasByType: [],
+		areaTotalAddresses: 0,
 		addressesInAreas: 0,
+		totalNodes: 0,
 		nodesInAreas: 0,
+		totalResidentialUnits: 0,
 		residentialUnitsInAreas: 0,
 		addressesPerArea: [],
 		addressesByAreaType: [],
@@ -261,12 +307,11 @@ export function getDefaultDashboardData(): DashboardData {
 }
 
 /**
- * Maps raw API statistics and projects data to the dashboard view shape.
+ * Maps the raw statistics response to the dashboard view shape.
+ * @param statsData - Body of the backend `dashboard/statistics/` endpoint.
+ * @returns Flat, fully defaulted dashboard data.
  */
-export function mapStatsToDashboardData(
-	statsData: StatsData,
-	projectsData: RawProject[]
-): DashboardData {
+export function mapStatsToDashboardData(statsData: DashboardStatisticsResponse): DashboardData {
 	const { trench, node, address, conduit, area } = statsData;
 
 	return {
@@ -281,18 +326,13 @@ export function mapStatsToDashboardData(
 			node_type: item.node_type,
 			count: item.count
 		})),
-		projects: projectsData.map((item) => ({
-			project: item.project,
-			description: item.description,
-			active: item.active
-		})),
 		avgHouseConnectionLength: trench.average_house_connection_length || 0,
 		lengthWithFunding: trench.length_with_funding || 0,
 		lengthWithInternalExecution: trench.length_with_internal_execution || 0,
 		lengthByStatus: trench.length_by_status || [],
 		lengthByNetworkLevel: trench.length_by_phase || [],
 		longestRoutes: trench.longest_routes || [],
-		expiringWarranties: (node.expiring_warranties as Warranty[]) || [],
+		expiringWarranties: node.expiring_warranties || [],
 		nodesByCity: node.count_by_city || [],
 		nodesByStatus: node.count_by_status || [],
 		nodesByNetworkLevel: node.count_by_network_level || [],
