@@ -353,7 +353,7 @@ def generate_conduit_import_template():
         HttpResponse: Excel file download response with headers, one example
             row, a hidden lookup sheet, and per-column dropdowns.
     """
-    max_rows = 1000  # rows the dropdowns are applied to on the data sheet
+    dropdown_row_span = 1000
 
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
@@ -396,7 +396,7 @@ def generate_conduit_import_template():
     for col, value in enumerate(example_row, start=1):
         worksheet.cell(row=2, column=col, value=value)
 
-    _add_conduit_template_dropdowns(workbook, worksheet, max_rows)
+    _add_conduit_template_dropdowns(workbook, worksheet, dropdown_row_span)
 
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -410,7 +410,7 @@ def generate_conduit_import_template():
     return response
 
 
-def _add_conduit_template_dropdowns(workbook, worksheet, max_rows):
+def _add_conduit_template_dropdowns(workbook, worksheet, dropdown_row_span):
     """Attach live attribute dropdowns to the conduit import template.
 
     Write each attribute table's current values into a hidden ``Lookups``
@@ -422,7 +422,8 @@ def _add_conduit_template_dropdowns(workbook, worksheet, max_rows):
             sheet is added to it.
         worksheet (openpyxl.worksheet.worksheet.Worksheet): The data sheet
             the dropdowns are applied to.
-        max_rows (int): Number of data rows (from row 2) each dropdown spans.
+        dropdown_row_span (int): Number of data rows (from row 2) each
+            dropdown spans.
     """
 
     def allowed_values(model, field):
@@ -447,8 +448,7 @@ def _add_conduit_template_dropdowns(workbook, worksheet, max_rows):
 
     companies = allowed_values(AttributesCompany, "company")
 
-    # (data-sheet column index, header label, allowed values). Owner,
-    # Constructor and Manufacturer all share the company list.
+    # Owner, Constructor and Manufacturer all resolve against the company list.
     dropdown_specs = [
         (2, str(_("Type")), allowed_values(AttributesConduitType, "conduit_type")),
         (4, str(_("Status")), allowed_values(AttributesStatus, "status")),
@@ -490,7 +490,9 @@ def _add_conduit_template_dropdowns(workbook, worksheet, max_rows):
         validation.promptTitle = header
 
         data_column_letter = get_column_letter(data_col)
-        validation.add(f"{data_column_letter}2:{data_column_letter}{max_rows + 1}")
+        validation.add(
+            f"{data_column_letter}2:{data_column_letter}{dropdown_row_span + 1}"
+        )
         worksheet.add_data_validation(validation)
 
 
