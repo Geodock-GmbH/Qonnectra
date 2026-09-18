@@ -89,7 +89,7 @@ describe('ConduitImportControls', () => {
 			expect.objectContaining({ description: 'Row 2 skipped' })
 		);
 		expect(globalToaster.success).toHaveBeenCalledWith(
-			expect.objectContaining({ description: 'Import successful' })
+			expect.objectContaining({ description: 'message_import_conduits_success_description:5' })
 		);
 		expect(globalToaster.error).not.toHaveBeenCalled();
 	});

@@ -37,9 +37,9 @@
 			}
 			globalToaster.success({
 				title: m.title_import_conduits_success(),
-				description:
-					result?.message ||
-					m.message_import_conduits_success_description({ count: result?.createdCount ?? 0 })
+				description: m.message_import_conduits_success_description({
+					count: result?.createdCount ?? 0
+				})
 			});
 		} catch (err) {
 			globalToaster.error({

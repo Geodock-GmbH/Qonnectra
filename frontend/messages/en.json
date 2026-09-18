@@ -552,7 +552,7 @@
 	"message_fibers_connected_to_merged": "Connected {count} fibers to merged ports",
 	"message_file_rejected_description": "The file could not be imported. Please try again.",
 	"message_has_connections": "Has connections",
-	"message_import_conduits_success_description": "Please refresh the page to see the conduits.",
+	"message_import_conduits_success_description": "Successfully imported {count} conduits.",
 	"message_importing_conduits_description": "Importing conduits...",
 	"message_info_node_has_no_address_assigned": "This node has no address assigned.",
 	"message_inquiry_draw_hint": "Draw polygons on the map to select areas for the inquiry.",

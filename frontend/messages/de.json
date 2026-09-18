@@ -552,7 +552,7 @@
 	"message_fibers_connected_to_merged": "{count} Fasern mit zusammengeführten Ports verbunden",
 	"message_file_rejected_description": "Die Datei konnte nicht importiert werden. Bitte versuche es erneut.",
 	"message_has_connections": "Hat Verbindungen",
-	"message_import_conduits_success_description": "Bitte die Seite neu laden, um die Rohre anzuzeigen.",
+	"message_import_conduits_success_description": "{count} Rohre erfolgreich importiert.",
 	"message_importing_conduits_description": "Rohre werden importiert...",
 	"message_info_node_has_no_address_assigned": "Diesem Netzknoten wurde noch keine Adresse zugeordnet.",
 	"message_inquiry_draw_hint": "Zeichne Polygone auf der Karte, um Bereiche für die Auskunft auszuwählen.",
