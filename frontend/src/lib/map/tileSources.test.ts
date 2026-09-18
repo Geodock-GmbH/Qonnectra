@@ -2,6 +2,8 @@ import type { FeatureLike } from 'ol/Feature';
 import type Projection from 'ol/proj/Projection';
 import type VectorTile from 'ol/VectorTile';
 import { invalidateAll } from '$app/navigation';
+import { get as getProjection } from 'ol/proj.js';
+import TileState from 'ol/TileState.js';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { tileLoadingManager } from './tileLoadingManager';
@@ -131,13 +133,13 @@ describe('tile load function', () => {
 		expect(tile.setLoader).not.toHaveBeenCalled();
 	});
 
-	test('should mark the tile as empty while loading is paused', () => {
+	test('should fail the tile without fetching while loading is paused', () => {
 		vi.mocked(tileLoadingManager.isLoadingPaused).mockReturnValue(true);
 		const tile = makeTileStub();
 
 		loadTile(createTrenchTileSource('7', undefined), tile, 'http://mock-api.test/tile.mvt');
 
-		expect(tile.setState).toHaveBeenCalledWith(4);
+		expect(tile.setState).toHaveBeenCalledWith(TileState.ERROR);
 		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
@@ -205,7 +207,7 @@ describe('tile load function', () => {
 		errorSpy.mockRestore();
 	});
 
-	test('should mark the tile as empty when the request is aborted', async () => {
+	test('should fail the tile silently when the request is aborted', async () => {
 		const abortError = new Error('aborted');
 		abortError.name = 'AbortError';
 		fetchMock.mockRejectedValue(abortError);
@@ -214,7 +216,59 @@ describe('tile load function', () => {
 
 		loadTile(createTrenchTileSource('7', onError), tile, 'http://mock-api.test/tile.mvt');
 
-		await vi.waitFor(() => expect(tile.setState).toHaveBeenCalledWith(4));
+		await vi.waitFor(() => expect(tile.setState).toHaveBeenCalledWith(TileState.ERROR));
 		expect(onError).not.toHaveBeenCalled();
+	});
+
+	test('should fail the tile silently when the worker parse is cancelled', async () => {
+		fetchMock.mockResolvedValue({
+			ok: true,
+			status: 200,
+			arrayBuffer: () => Promise.resolve(new ArrayBuffer(8))
+		});
+		vi.mocked(getWorkerPool).mockReturnValue({
+			workers: [{}],
+			parse: vi.fn(() => Promise.resolve({ success: false, error: 'Cancelled' }))
+		} as unknown as ReturnType<typeof getWorkerPool>);
+		const onError = vi.fn();
+		const tile = makeTileStub();
+
+		loadTile(createTrenchTileSource('7', onError), tile, 'http://mock-api.test/tile.mvt');
+
+		await vi.waitFor(() => expect(tile.setState).toHaveBeenCalledWith(TileState.ERROR));
+		expect(tile.setFeatures).not.toHaveBeenCalled();
+		expect(onError).not.toHaveBeenCalled();
+	});
+});
+
+describe('tile queue accounting', () => {
+	/**
+	 * The map's tile queue holds the render tile, which only finishes once all of
+	 * its source tiles are LOADED or ERROR. A cancelled source tile that ends up in
+	 * any other state keeps its queue slot forever, and 16 of those stall the map.
+	 */
+	function loadRenderTile() {
+		const source = createTrenchTileSource('7', undefined);
+		const renderTile = source.getTile(14, 8600, 5300, 1, getProjection('EPSG:3857')!);
+		renderTile.load();
+		return renderTile;
+	}
+
+	test('should finish the render tile when its request is aborted', async () => {
+		const abortError = new Error('aborted');
+		abortError.name = 'AbortError';
+		fetchMock.mockRejectedValue(abortError);
+
+		const renderTile = loadRenderTile();
+
+		await vi.waitFor(() => expect(renderTile.getState()).not.toBe(TileState.LOADING));
+	});
+
+	test('should finish the render tile while loading is paused', () => {
+		vi.mocked(tileLoadingManager.isLoadingPaused).mockReturnValue(true);
+
+		const renderTile = loadRenderTile();
+
+		expect(renderTile.getState()).not.toBe(TileState.LOADING);
 	});
 });

@@ -98,4 +98,18 @@ describe('ProjectCombobox', () => {
 
 		expect(get(selectedProject)).toBe('8');
 	});
+
+	test('should keep a newly selected project while the URL still names the previous one', async () => {
+		pageStore.set({ params: { projectId: '7' }, url: new URL('http://localhost/map/7') });
+		render(ProjectCombobox, { projects });
+		await Promise.resolve();
+		const seen: string[] = [];
+		const unsubscribe = selectedProject.subscribe((project) => seen.push(project));
+
+		selectedProject.set('8');
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		unsubscribe();
+
+		expect(seen).toEqual(['7', '8']);
+	});
 });

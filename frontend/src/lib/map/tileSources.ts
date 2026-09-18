@@ -7,6 +7,7 @@ import { invalidateAll } from '$app/navigation';
 import { PUBLIC_API_URL } from '$env/static/public';
 import MVT from 'ol/format/MVT.js';
 import VectorTileSource from 'ol/source/VectorTile.js';
+import TileState from 'ol/TileState.js';
 
 import { reconstructFeatures } from './featureReconstructor';
 import { tileLoadingManager } from './tileLoadingManager';
@@ -25,6 +26,12 @@ function generateRequestId(): string {
 
 /**
  * Creates a tile load function with AbortController support and worker-based parsing.
+ *
+ * A tile that was started but is not going to get features (paused, aborted,
+ * cancelled) must end in ERROR, never EMPTY: the vector tile source only counts a
+ * source tile as finished on LOADED or ERROR. Any other state leaves its render
+ * tile LOADING, which holds a slot in the map's tile queue forever, and once all
+ * 16 slots are taken the map stops loading tiles for every source.
  */
 function createTileLoadFunction(
 	layerType: string,
@@ -33,18 +40,18 @@ function createTileLoadFunction(
 	return (baseTile, url) => {
 		const tile = baseTile as VectorTile<FeatureLike>;
 		if (!url) {
-			tile.setState(4);
+			tile.setState(TileState.EMPTY);
 			return;
 		}
 
 		if (tileLoadingManager.isLoadingPaused()) {
-			tile.setState(4);
+			tile.setState(TileState.ERROR);
 			return;
 		}
 
 		tile.setLoader((extent: Extent, resolution: number, projection: Projection) => {
 			if (tileLoadingManager.isLoadingPaused()) {
-				tile.setState(4);
+				tile.setState(TileState.ERROR);
 				return;
 			}
 
@@ -85,7 +92,9 @@ function createTileLoadFunction(
 						if (result.success && result.features) {
 							const features = reconstructFeatures(result.features);
 							tile.setFeatures(features);
-						} else if (result.error !== 'Cancelled') {
+						} else if (result.error === 'Cancelled') {
+							tile.setState(TileState.ERROR);
+						} else {
 							fallbackParse(tile, data, extent, projection);
 						}
 					} else {
@@ -94,11 +103,11 @@ function createTileLoadFunction(
 				})
 				.catch((error: Error) => {
 					if (error.name === 'AbortError') {
-						tile.setState(4);
+						tile.setState(TileState.ERROR);
 						return;
 					}
 					console.error(`Error loading ${layerType} vector tile:`, error);
-					tile.setState(3);
+					tile.setState(TileState.ERROR);
 					if (onError) {
 						onError(
 							`Error loading ${layerType} tile`,
@@ -132,6 +141,10 @@ function fallbackParse(
 
 /**
  * Creates a vector tile source for trench features.
+ * @param selectedProject - Project id whose tiles to request; ignored in global view.
+ * @param onError - Callback invoked with a title and message when a tile fails to load, or undefined.
+ * @param isGlobalView - When true, requests project-agnostic tiles across all projects.
+ * @returns A configured vector tile source for trench features.
  */
 export function createTrenchTileSource(
 	selectedProject: string,
@@ -159,6 +172,10 @@ export function createTrenchTileSource(
 
 /**
  * Creates a vector tile source for address features.
+ * @param selectedProject - Project id whose tiles to request; ignored in global view.
+ * @param onError - Callback invoked with a title and message when a tile fails to load, or undefined.
+ * @param isGlobalView - When true, requests project-agnostic tiles across all projects.
+ * @returns A configured vector tile source for address features.
  */
 export function createAddressTileSource(
 	selectedProject: string,
@@ -186,6 +203,10 @@ export function createAddressTileSource(
 
 /**
  * Creates a vector tile source for node features.
+ * @param selectedProject - Project id whose tiles to request; ignored in global view.
+ * @param onError - Callback invoked with a title and message when a tile fails to load, or undefined.
+ * @param isGlobalView - When true, requests project-agnostic tiles across all projects.
+ * @returns A configured vector tile source for node features.
  */
 export function createNodeTileSource(
 	selectedProject: string,
@@ -213,6 +234,10 @@ export function createNodeTileSource(
 
 /**
  * Creates a vector tile source for area (polygon) features.
+ * @param selectedProject - Project id whose tiles to request; ignored in global view.
+ * @param onError - Callback invoked with a title and message when a tile fails to load, or undefined.
+ * @param isGlobalView - When true, requests project-agnostic tiles across all projects.
+ * @returns A configured vector tile source for area features.
  */
 export function createAreaTileSource(
 	selectedProject: string,

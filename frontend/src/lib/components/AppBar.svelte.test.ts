@@ -3,7 +3,6 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { updateUserStore } from '$lib/stores/auth';
 import { globalMapView, selectedProject } from '$lib/stores/store';
 
 import AppBar from './AppBar.svelte';
@@ -57,11 +56,13 @@ vi.mock('$lib/paraglide/runtime', () => ({
 const data = {
 	projects: [{ label: 'Ausbau Nord', value: '7' }],
 	projectsError: null,
-	appVersion: '1.2.3'
+	appVersion: '1.2.3',
+	user: { isAuthenticated: false }
 };
 
+const authenticatedData = { ...data, user: { isAuthenticated: true, username: 'malte' } };
+
 beforeEach(() => {
-	updateUserStore(null);
 	globalMapView.set(false);
 	selectedProject.set('7');
 	appState.page.url = new URL('http://localhost/dashboard');
@@ -78,9 +79,7 @@ describe('AppBar', () => {
 	});
 
 	test('should show logout and the project combobox when authenticated', () => {
-		updateUserStore({ isAuthenticated: true, username: 'malte' });
-
-		render(AppBar, { data });
+		render(AppBar, { data: authenticatedData });
 
 		expect(screen.getByRole('button', { name: 'tooltip_logout' })).toBeInTheDocument();
 		expect(screen.getByPlaceholderText('form_project')).toBeInTheDocument();
@@ -97,24 +96,22 @@ describe('AppBar', () => {
 	});
 
 	test('should only show the global view toggle on map routes', () => {
-		updateUserStore({ isAuthenticated: true });
 		appState.page.url = new URL('http://localhost/dashboard');
-		const { unmount } = render(AppBar, { data });
+		const { unmount } = render(AppBar, { data: authenticatedData });
 		expect(
 			screen.queryByRole('button', { name: 'tooltip_view_all_projects' })
 		).not.toBeInTheDocument();
 		unmount();
 
 		appState.page.url = new URL('http://localhost/map/7');
-		render(AppBar, { data });
+		render(AppBar, { data: authenticatedData });
 		expect(screen.getByRole('button', { name: 'tooltip_view_all_projects' })).toBeInTheDocument();
 	});
 
 	test('should toggle global map view and restore the cookie project when leaving', async () => {
 		const user = userEvent.setup();
-		updateUserStore({ isAuthenticated: true });
 		appState.page.url = new URL('http://localhost/map/7');
-		render(AppBar, { data });
+		render(AppBar, { data: authenticatedData });
 
 		await user.click(screen.getByRole('button', { name: 'tooltip_view_all_projects' }));
 		expect(get(globalMapView)).toBe(true);

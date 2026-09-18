@@ -48,6 +48,62 @@ test.describe('Map page', () => {
 		expect(new URL(request.url()).searchParams.get('payload')).toBeTruthy();
 	});
 
+	test('shows the global view toggle after a hard page load', async ({ page }) => {
+		// beforeEach reached the map through page.goto, i.e. a server-rendered load.
+		await expect(
+			page.getByRole('button', { name: /alle projekte anzeigen|view all projects/i })
+		).toBeVisible({ timeout: 15000 });
+	});
+
+	test('switching the project loads the new project and switching back reloads the first', async ({
+		page
+	}) => {
+		await expect(page.locator('.ol-viewport').first()).toBeVisible({ timeout: 15000 });
+
+		const input = page.locator('[data-scope="combobox"][data-part="input"]').first();
+		const trigger = page.locator('[data-scope="combobox"][data-part="trigger"]').first();
+		const options = page.locator('[data-scope="combobox"][data-part="item"]:visible');
+		const projectIdInUrl = () => new URL(page.url()).pathname.split('/')[2];
+
+		const firstProjectLabel = (await input.inputValue()).trim();
+		const firstProjectOption = new RegExp(
+			`^\\s*${firstProjectLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`
+		);
+		const firstProjectId = projectIdInUrl();
+
+		await trigger.click();
+		const otherProject = options.filter({ hasNotText: firstProjectOption }).first();
+		test.skip((await otherProject.count()) === 0, 'Needs at least two active projects');
+
+		/** @type {string[]} */
+		const tileRequests = [];
+		page.on('request', (req) => {
+			if (req.url().includes('.mvt')) tileRequests.push(req.url());
+		});
+		/** @param {string} projectId */
+		const tilesFor = (projectId) =>
+			tileRequests.filter((url) => new URL(url).searchParams.get('project') === projectId);
+
+		await otherProject.click();
+		await page.waitForURL((url) => url.pathname.split('/')[2] !== firstProjectId);
+		const secondProjectId = projectIdInUrl();
+
+		await expect
+			.poll(() => tilesFor(secondProjectId).length, { timeout: 15000 })
+			.toBeGreaterThan(0);
+		// The map must switch once; bouncing back to the old project mid-switch is
+		// what used to abort in-flight tiles and stall the map's tile queue.
+		expect(tilesFor(firstProjectId)).toHaveLength(0);
+
+		tileRequests.length = 0;
+		await trigger.click();
+		await options.filter({ hasText: firstProjectOption }).first().click();
+		await page.waitForURL((url) => url.pathname.split('/')[2] === firstProjectId);
+
+		await expect.poll(() => tilesFor(firstProjectId).length, { timeout: 15000 }).toBeGreaterThan(0);
+		expect(tilesFor(secondProjectId)).toHaveLength(0);
+	});
+
 	test('shows the map hint prompting the user to click a layer', async ({ page }) => {
 		// The hint is visible while the info drawer is closed (initial state).
 		await expect(page.getByText(/click a layer|klicken sie auf einen layer/i).first()).toBeVisible({

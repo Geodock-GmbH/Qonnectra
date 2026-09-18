@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { get } from 'svelte/store';
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -64,10 +65,15 @@
 		}
 	});
 
+	/**
+	 * Adopts the project named in the URL. Only a URL change may trigger this: the
+	 * store is read untracked, otherwise picking a project would revert it to the
+	 * previous URL's project until the navigation finishes.
+	 */
 	$effect(() => {
 		const urlProjectId = $page.params.projectId;
-		if (browser && urlProjectId && urlProjectId !== $selectedProject) {
-			$selectedProject = urlProjectId;
+		if (browser && urlProjectId && urlProjectId !== get(selectedProject)) {
+			selectedProject.set(urlProjectId);
 		}
 	});
 

@@ -7,7 +7,6 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { userStore } from '$lib/stores/auth';
 	import { globalMapView, selectedProject } from '$lib/stores/store';
 	import { tooltip } from '$lib/utils/tooltip';
 	import { logout } from '$lib/remote/auth/logout.remote';
@@ -35,6 +34,13 @@
 		}
 	}
 
+	/**
+	 * Read from the layout data instead of `userStore`: the store is only filled by
+	 * an effect after hydration, so gating on it renders the signed-in toolbar late
+	 * and in a separate batch, where `isMapRoute` could stick to a stale `false`.
+	 */
+	let isAuthenticated = $derived(data.user?.isAuthenticated ?? false);
+
 	let isMapRoute = $derived(['/map', '/valuation'].some((p) => page.url.pathname.startsWith(p)));
 </script>
 
@@ -44,7 +50,7 @@
 			class="grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[auto_1fr_auto] gap-2 sm:gap-4 px-2 sm:px-4"
 		>
 			<AppBar.Lead class="min-w-0 flex items-center gap-2">
-				{#if $userStore.isAuthenticated}
+				{#if isAuthenticated}
 					<div class="flex-1 min-w-0">
 						<ProjectCombobox projects={data.projects} projectsError={data.projectsError} />
 					</div>
@@ -128,7 +134,7 @@
 					<span class="border-r h-6 sm:h-8 border-surface-200-800"></span>
 
 					<!-- Login/Logout -->
-					{#if $userStore.isAuthenticated}
+					{#if isAuthenticated}
 						<form {...logout}>
 							<button
 								type="submit"
