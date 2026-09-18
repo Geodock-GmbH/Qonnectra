@@ -1,183 +1,46 @@
 <script lang="ts">
-	import type { PageData } from './$types';
-	import type { ActionResult } from '@sveltejs/kit';
-	import type { RawConduit } from '$lib/classes/ConduitState.svelte';
-	import { setContext } from 'svelte';
-	import { enhance } from '$app/forms';
-	import { goto, invalidate } from '$app/navigation';
-	import { navigating, page } from '$app/stores';
-	import { FileUpload } from '@skeletonlabs/skeleton-svelte';
-	import { IconDownload, IconLoader2, IconUpload } from '@tabler/icons-svelte';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { ConduitState } from '$lib/classes/ConduitState.svelte';
 	import Drawer from '$lib/components/Drawer.svelte';
+	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import SearchInput from '$lib/components/SearchInput.svelte';
 	import { selectedProject } from '$lib/stores/store';
-	import { globalToaster } from '$lib/stores/toaster';
-	import { actionData } from '$lib/utils/forms';
+	import { EMPTY_PAGINATION } from '$lib/remote/conduit/conduit-data';
+	import { getConduitList } from '$lib/remote/conduit/conduits.remote';
 
-	import PipeModal from './PipeModal.svelte';
-	import PipeTable from './PipeTable.svelte';
+	import ConduitImportControls from './components/ConduitImportControls.svelte';
+	import PipeModal from './components/PipeModal.svelte';
+	import PipeTable from './components/PipeTable.svelte';
 
-	let { data }: { data: PageData } = $props();
-	let searchInput = $state('');
+	const projectId = $derived(page.params.projectId ?? '');
+	const searchTerm = $derived(page.url.searchParams.get('search') ?? '');
+	const currentPage = $derived(Number(page.url.searchParams.get('page')) || 1);
+	const pageSize = $derived(Number(page.url.searchParams.get('page_size')) || 50);
+
+	// Follows the URL (back/forward, reload) but stays editable until submitted.
+	let searchInput = $derived(searchTerm);
 	let openPipeModal = $state(false);
-	let isUploading = $state(false);
-	let uploadFormRef = $state<HTMLFormElement | null>(null);
 
-	// Initialize state manager (pipes are synced from data in $effect below)
-	const conduitState = new ConduitState({ pipes: [] });
-
-	const searchTerm = $derived(data.searchTerm || '');
-	const pagination = $derived(data.pagination);
-
-	$effect(() => {
-		searchInput = searchTerm;
-	});
-
-	$effect(() => {
-		conduitState.setConduits(data.pipes);
-	});
-
-	// Set context for attribute options and conduit state (must be synchronous during initialization)
-	setContext('attributeOptions', {
-		get conduitTypes() {
-			return data.conduitTypes;
-		},
-		get statuses() {
-			return data.statuses;
-		},
-		get networkLevels() {
-			return data.networkLevels;
-		},
-		get companies() {
-			return data.companies;
-		},
-		get flags() {
-			return data.flags;
-		}
-	});
-	setContext('conduitState', conduitState);
-
+	/**
+	 * Navigates to page 1 with the current search input as a query parameter.
+	 */
 	function performSearch() {
-		const url = new URL($page.url);
+		const url = new URL(page.url);
 		if (searchInput !== '') {
 			url.searchParams.set('search', searchInput);
 		} else {
 			url.searchParams.delete('search');
 		}
 		url.searchParams.set('page', '1');
-		goto(url, { keepFocus: true, noScroll: true, replaceState: true });
-	}
-
-	// Handler for conduit update from drawer
-	function handleConduitUpdate(updatedConduit: RawConduit) {
-		conduitState.updateConduit(updatedConduit);
-	}
-
-	// Handler for conduit delete from drawer
-	function handleConduitDelete(conduitId: string) {
-		conduitState.deleteConduit(conduitId);
-	}
-
-	// Handler for new conduit from modal
-	function handleConduitCreate(newConduit: RawConduit | null) {
-		if (newConduit) {
-			conduitState.addConduit(newConduit);
-		}
-	}
-
-	/**
-	 * Handle file selection - auto-submit the form when a file is selected
-	 */
-	function handleFileSelect(files: File[]) {
-		if (files.length > 0 && uploadFormRef) {
-			uploadFormRef.requestSubmit();
-		}
-	}
-
-	/**
-	 * Enhance callback for upload form - handles success/failure responses
-	 */
-	function handleUploadSubmit() {
-		return async ({ result }: { result: ActionResult }) => {
-			isUploading = false;
-
-			const uploadData = actionData(result) as
-				| {
-						uploadSuccess?: boolean;
-						warnings?: string[];
-						message?: string;
-						createdCount?: number;
-				  }
-				| undefined;
-
-			if (result.type === 'success' && uploadData?.uploadSuccess) {
-				// Show warnings if present
-				if (uploadData.warnings && uploadData.warnings.length > 0) {
-					globalToaster.warning({
-						title: m.common_warning(),
-						description: uploadData.warnings.join('\n')
-					});
-				}
-
-				globalToaster.success({
-					title: m.title_import_conduits_success(),
-					description:
-						uploadData.message ||
-						m.message_import_conduits_success_description({ count: uploadData.createdCount || 0 })
-				});
-
-				// Refresh data without full page reload
-				await invalidate('app:conduits');
-			} else if (result.type === 'failure') {
-				const data = result.data as
-					| { errors?: string[]; message?: string; warnings?: string[] }
-					| undefined;
-				let errorMessage: string = m.message_please_try_again();
-
-				if (data?.errors && data.errors.length > 0) {
-					errorMessage = data.errors.join('\n');
-				} else if (data?.message) {
-					errorMessage = data.message;
-				}
-
-				// Show warnings if present
-				if (data?.warnings && data.warnings.length > 0) {
-					globalToaster.warning({
-						title: m.common_warning(),
-						description: data.warnings.join('\n')
-					});
-				}
-
-				globalToaster.error({
-					title: m.title_import_conduits_error(),
-					description: errorMessage
-				});
-			} else if (result.type === 'error') {
-				globalToaster.error({
-					title: m.title_import_conduits_error(),
-					description: m.message_please_try_again()
-				});
-			}
-		};
-	}
-
-	async function downloadTemplate() {
-		const response = await fetch('/conduit/download');
-		const blob = await response.blob();
-		const url = window.URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = 'conduit_import_template.xlsx';
-		a.click();
-		window.URL.revokeObjectURL(url);
-
-		globalToaster.success({
-			title: m.title_success(),
-			description: m.message_success_downloading_template()
+		const query = url.searchParams.toString();
+		goto(resolve(projectId ? `/conduit/${projectId}?${query}` : `/conduit?${query}`), {
+			keepFocus: true,
+			noScroll: true,
+			replaceState: true
 		});
 	}
 </script>
@@ -185,6 +48,29 @@
 <svelte:head>
 	<title>{m.nav_conduit_management()}</title>
 </svelte:head>
+
+{#snippet tableSkeleton()}
+	<div class="table-wrap overflow-x-auto" role="status">
+		<table class="table table-card caption-bottom w-full overflow-scroll">
+			<thead>
+				<tr>
+					{#each { length: 10 }, i (i)}
+						<td>
+							<div class="h-4 bg-surface-500 rounded animate-pulse w-3/4"></div>
+						</td>
+					{/each}
+				</tr>
+			</thead>
+		</table>
+		<span class="sr-only">{m.common_loading()}</span>
+	</div>
+{/snippet}
+
+{#snippet addButtonSkeleton()}
+	<div class="placeholder animate-pulse h-10 w-32 rounded" role="status">
+		<span class="sr-only">{m.common_loading()}</span>
+	</div>
+{/snippet}
 
 <div class="relative flex gap-4 h-full overflow-hidden" data-testid="conduit-page">
 	<div
@@ -195,79 +81,38 @@
 				<nav
 					class="btn-group md:preset-outlined-surface-200-800 flex-col justify-between items-start md:flex-row md:items-center md:justify-start md:gap-2"
 				>
-					<PipeModal
-						projectId={$selectedProject}
-						bind:openPipeModal
-						onPipeCreate={handleConduitCreate}
-					/>
+					<QueryBoundary pending={addButtonSkeleton}>
+						<PipeModal projectId={$selectedProject} bind:openPipeModal />
+					</QueryBoundary>
 					<SearchInput bind:value={searchInput} onSearch={performSearch} />
 				</nav>
 			</div>
 
 			<div class="hidden md:flex justify-end">
-				<nav class="btn-group preset-outlined-surface-200-800 flex-col p-2 md:flex-row">
-					<form
-						method="POST"
-						action="?/uploadConduits"
-						enctype="multipart/form-data"
-						bind:this={uploadFormRef}
-						use:enhance={() => {
-							isUploading = true;
-							return handleUploadSubmit();
-						}}
-					>
-						<FileUpload
-							accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-							maxFiles={1}
-							name="file"
-							disabled={isUploading}
-							onFileChange={(details) => {
-								if (details.acceptedFiles.length > 0) {
-									handleFileSelect(details.acceptedFiles);
-								}
-							}}
-						>
-							<FileUpload.Trigger class="btn preset-filled-primary-500" disabled={isUploading}>
-								{#if isUploading}
-									<IconLoader2 class="size-4 animate-spin" />
-								{:else}
-									<IconUpload class="size-4" />
-								{/if}
-								<span>{isUploading ? m.common_loading() : m.action_import_conduit_xlsx()}</span>
-							</FileUpload.Trigger>
-							<FileUpload.HiddenInput />
-						</FileUpload>
-					</form>
-					<button onclick={downloadTemplate} class="btn preset-filled-primary-500">
-						<IconDownload class="size-4" />
-						<span>{m.form_template()}</span>
-					</button>
-				</nav>
+				<ConduitImportControls />
 			</div>
 		</div>
 
 		<div class="flex-1 min-h-0">
-			{#if $navigating}
-				<div class="table-wrap overflow-x-auto">
-					<table class="table table-card caption-bottom w-full overflow-scroll">
-						<thead>
-							<tr>
-								{#each { length: 10 } as _}
-									<td>
-										<div class="h-4 bg-surface-500 rounded animate-pulse w-3/4"></div>
-									</td>
-								{/each}
-							</tr>
-						</thead>
-					</table>
-				</div>
+			{#if projectId}
+				<QueryBoundary pending={tableSkeleton}>
+					{@const list = await getConduitList({
+						projectId,
+						search: searchTerm,
+						page: currentPage,
+						pageSize
+					})}
+					<div
+						class={[
+							'h-full transition-opacity',
+							$effect.pending() > 0 && 'opacity-60 pointer-events-none'
+						]}
+					>
+						<PipeTable pipes={list.conduits} pagination={list.pagination} />
+					</div>
+				</QueryBoundary>
 			{:else}
-				<PipeTable
-					pipes={conduitState.conduits}
-					{pagination}
-					onConduitUpdate={handleConduitUpdate}
-					onConduitDelete={handleConduitDelete}
-				/>
+				<PipeTable pipes={[]} pagination={EMPTY_PAGINATION} />
 			{/if}
 		</div>
 	</div>

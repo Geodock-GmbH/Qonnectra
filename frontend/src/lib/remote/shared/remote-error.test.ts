@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { describe, expect, test } from 'vitest';
 
-import { remoteErrorMessage } from './remote-error';
+import { remoteErrorMessage, remoteErrorStatus } from './remote-error';
 
 describe('remoteErrorMessage', () => {
 	test('should read the body message of a Kit HttpError', () => {
@@ -22,5 +22,22 @@ describe('remoteErrorMessage', () => {
 		expect(remoteErrorMessage('nope')).toBeNull();
 		expect(remoteErrorMessage(undefined)).toBeNull();
 		expect(remoteErrorMessage(new Error(''))).toBeNull();
+	});
+});
+
+describe('remoteErrorStatus', () => {
+	test('should return the status of a Kit HttpError', () => {
+		let thrown: unknown;
+		try {
+			error(409, 'duplicate');
+		} catch (e) {
+			thrown = e;
+		}
+		expect(remoteErrorStatus(thrown)).toBe(409);
+	});
+
+	test('should return null for other errors', () => {
+		expect(remoteErrorStatus(new Error('x'))).toBeNull();
+		expect(remoteErrorStatus('x')).toBeNull();
 	});
 });

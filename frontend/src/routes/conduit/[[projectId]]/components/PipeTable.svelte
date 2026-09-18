@@ -1,7 +1,8 @@
 <script lang="ts">
-	import type { FormattedConduit, RawConduit } from '$lib/classes/ConduitState.svelte';
-	import { deserialize } from '$app/forms';
+	import type { ConduitListRow } from '$lib/remote/conduit/conduit-data';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
 	import {
 		IconArrowLeft,
@@ -14,29 +15,26 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { drawerStore } from '$lib/stores/drawer';
-	import { globalToaster } from '$lib/stores/toaster';
-	import { actionData } from '$lib/utils/forms';
-	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
-	import ConduitDrawerTabs from './ConduitDrawerTabs.svelte';
-
-	/** A conduit list row, accessed by dynamic column key. */
-	type PipeRow = FormattedConduit;
+	import ConduitDrawerTabs from './drawer/ConduitDrawerTabs.svelte';
 
 	let {
 		pipes,
-		pagination,
-		onConduitUpdate = () => {},
-		onConduitDelete = () => {}
+		pagination
 	}: {
-		pipes: PipeRow[];
+		pipes: ConduitListRow[];
 		pagination: { totalCount: number; pageSize: number; page: number };
-		onConduitUpdate?: (conduit: RawConduit) => void;
-		onConduitDelete?: (conduitId: string) => void;
 	} = $props();
 
-	// Column configuration with sortable/filterable flags
-	const columnConfig = [
+	type ColumnKey = keyof ConduitListRow;
+
+	const columnConfig: {
+		key: ColumnKey;
+		label: string;
+		sortable: boolean;
+		filterable: boolean;
+		sortType?: 'date';
+	}[] = [
 		{ key: 'name', label: m.common_name(), sortable: true, filterable: true },
 		{ key: 'conduit_type', label: m.form_conduit_type(), sortable: true, filterable: true },
 		{ key: 'outer_conduit', label: m.form_outer_conduit(), sortable: true, filterable: true },
@@ -49,11 +47,9 @@
 		{ key: 'flag', label: m.form_flag(), sortable: true, filterable: true }
 	];
 
-	// Sort state
-	let sortColumn = $state<string | null>(null);
+	let sortColumn = $state<ColumnKey | null>(null);
 	let sortDirection = $state('asc');
 
-	// Filter state - object with column keys
 	let filters = $state<Record<string, string>>({
 		name: '',
 		conduit_type: '',
@@ -67,10 +63,13 @@
 		flag: ''
 	});
 
-	// Mobile global filter
 	let mobileSearchTerm = $state('');
 
-	function toggleSort(columnKey: string) {
+	/**
+	 * Cycles sort state for a column: asc → desc → unsorted.
+	 * @param columnKey - The column key to sort by.
+	 */
+	function toggleSort(columnKey: ColumnKey) {
 		if (sortColumn === columnKey) {
 			if (sortDirection === 'asc') {
 				sortDirection = 'desc';
@@ -84,29 +83,32 @@
 		}
 	}
 
-	function updateFilter(columnKey: string, value: string) {
+	/**
+	 * Updates the filter value for a specific column.
+	 * @param columnKey - The column key to filter.
+	 * @param value - The filter value.
+	 */
+	function updateFilter(columnKey: ColumnKey, value: string) {
 		filters[columnKey] = value;
 	}
 
+	/**
+	 * Navigates to a specific page by updating the URL search params.
+	 * @param newPage - The page number to navigate to.
+	 */
 	function goToPage(newPage: number) {
 		const url = new URL(window.location.href);
 		url.searchParams.set('page', String(newPage));
-		goto(url.pathname + url.search);
+		const projectId = page.params.projectId;
+		const query = url.searchParams.toString();
+		goto(resolve(projectId ? `/conduit/${projectId}?${query}` : `/conduit?${query}`));
 	}
 
-	function changePageSize(newSize: number) {
-		const url = new URL(window.location.href);
-		url.searchParams.set('page_size', String(newSize));
-		url.searchParams.set('page', '1');
-		goto(url.pathname + url.search);
-	}
-
-	// Apply filters to pipes
 	const filteredPipes = $derived.by(() => {
-		return pipes.filter((pipe: PipeRow) => {
+		return pipes.filter((pipe) => {
 			return Object.entries(filters).every(([key, filterValue]) => {
 				if (!filterValue) return true;
-				const cellValue = String(pipe[key] || '').toLowerCase();
+				const cellValue = String(pipe[key as ColumnKey] || '').toLowerCase();
 				return cellValue.includes(filterValue.toLowerCase());
 			});
 		});
@@ -115,14 +117,14 @@
 	const sortedPipes = $derived.by(() => {
 		if (!sortColumn) return filteredPipes;
 
-		const currentSortColumn = sortColumn;
-		const column = columnConfig.find((c) => c.key === currentSortColumn);
+		const col = sortColumn;
+		const column = columnConfig.find((c) => c.key === col);
 
 		return [...filteredPipes].sort((a, b) => {
 			let aVal: string | number = '';
 			let bVal: string | number = '';
-			const aRaw = a[currentSortColumn];
-			const bRaw = b[currentSortColumn];
+			const aRaw = a[col];
+			const bRaw = b[col];
 
 			if (column?.sortType === 'date') {
 				aVal = aRaw ? new Date(String(aRaw)).getTime() : 0;
@@ -142,7 +144,7 @@
 		if (!mobileSearchTerm) return sortedPipes;
 
 		const term = mobileSearchTerm.toLowerCase();
-		return sortedPipes.filter((pipe: PipeRow) => {
+		return sortedPipes.filter((pipe) => {
 			return Object.values(pipe).some((value) =>
 				String(value || '')
 					.toLowerCase()
@@ -151,72 +153,26 @@
 		});
 	});
 
-	async function handleRowClick(pipe: PipeRow) {
-		// Fetch full conduit details via server action
-		const formData = new FormData();
-		formData.append('uuid', String(pipe.value ?? ''));
-
-		try {
-			const response = await fetch('?/getConduit', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				globalToaster.error({
-					title: m.common_error(),
-					description: m.message_error_fetching_conduit()
-				});
-				return;
-			}
-
-			const conduitData = actionData(result)?.conduit as RawConduit | undefined;
-
-			// Open drawer with conduit details
-			drawerStore.open({
-				title: conduitData?.name || m.common_conduit_details(),
-				component: ConduitDrawerTabs,
-				props: {
-					...conduitData,
-					onConduitUpdate: (updatedConduit: RawConduit) => {
-						onConduitUpdate(updatedConduit);
-						drawerStore.setTitle(updatedConduit.name ?? '');
-					},
-					onConduitDelete: (conduitId: string) => {
-						onConduitDelete(conduitId);
-					}
-				}
-			});
-		} catch (error) {
-			console.error('Error fetching conduit:', error);
-			void logToBackendClient({
-				level: 'ERROR',
-				message: 'Error fetching conduit',
-				extraData: {
-					from: 'PipeTable.handleRowClick',
-					error: error instanceof Error ? error.message : String(error),
-					stack: error instanceof Error ? error.stack : undefined
-				}
-			});
-			globalToaster.error({
-				title: m.common_error(),
-				description: m.message_error_fetching_conduit()
-			});
-		}
+	/**
+	 * Opens the drawer for a conduit; the drawer's cards load the details.
+	 * @param pipe - The clicked row.
+	 */
+	function handleRowClick(pipe: ConduitListRow) {
+		drawerStore.open({
+			title: pipe.name || m.common_conduit_details(),
+			component: ConduitDrawerTabs,
+			props: { uuid: pipe.value }
+		});
 	}
 </script>
 
 <div class="flex flex-col h-full min-h-0" data-testid="conduit-table-container">
-	<!-- Scrollable content area -->
 	<div class="flex-1 min-h-0 overflow-y-auto">
-		<!-- Desktop Table View -->
+		<!-- Desktop table -->
 		<div class="hidden md:block" data-testid="conduit-desktop-view">
 			<div class="table-wrap overflow-x-auto">
 				<table class="table table-card caption-bottom w-full overflow-scroll">
 					<thead>
-						<!-- Header Row with Sort Indicators -->
 						<tr>
 							{#each columnConfig as column (column.key)}
 								<th
@@ -248,12 +204,13 @@
 							{/each}
 						</tr>
 
-						<!-- Filter Row -->
 						<tr class="bg-surface-50-900">
 							{#each columnConfig as column (column.key)}
 								<th class="p-1">
 									{#if column.filterable}
 										<input
+											id={`filter-${column.key}`}
+											name={`filter-${column.key}`}
 											type="text"
 											class="input text-sm py-1 px-2 w-full text-surface-contrast-100-900"
 											placeholder={m.common_search()}
@@ -285,11 +242,12 @@
 			</div>
 		</div>
 
-		<!-- Mobile Card View -->
+		<!-- Mobile cards -->
 		<div class="md:hidden" data-testid="conduit-mobile-view">
-			<!-- Mobile Filter Input -->
 			<div class="mb-3">
 				<input
+					id="mobile-search"
+					name="mobile-search"
 					type="text"
 					class="input w-full"
 					placeholder={m.common_search()}
@@ -311,7 +269,6 @@
 						tabindex="0"
 						data-testid="conduit-card"
 					>
-						<!-- Primary Info Row -->
 						<div class="flex items-center justify-between border-b border-surface-200-800 pb-2">
 							<div class="flex-1 min-w-0">
 								<h3 class="font-semibold text-lg truncate">{row.name}</h3>
@@ -319,7 +276,6 @@
 							</div>
 						</div>
 
-						<!-- Details Grid -->
 						<div class="grid grid-cols-2 gap-3 text-sm">
 							<div>
 								<span class="font-medium text-surface-600-400">{m.form_outer_conduit()}:</span>
@@ -364,7 +320,7 @@
 		</div>
 	</div>
 
-	<!-- Fixed pagination at bottom -->
+	<!-- Pagination -->
 	<div class="shrink-0 pt-4">
 		<div class="flex items-center justify-between gap-4">
 			<span class="text-sm text-surface-600-400" data-testid="pagination-count">

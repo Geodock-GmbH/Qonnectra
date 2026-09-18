@@ -1,27 +1,7 @@
-import type { ComboboxItem } from '$lib/types/attributeCardTypes';
 import { query } from '$app/server';
-import { API_URL } from '$env/static/private';
 
-import { failFromResponse } from '$lib/remote/shared/backend-error';
+import { fetchOptions } from '$lib/remote/shared/attribute-options';
 import { djangoHeaders } from '$lib/remote/shared/remote-auth';
-
-import { toOptions } from './address-data';
-
-/**
- * Fetch an attribute list and map it to combobox options.
- * @param path - Backend path relative to `API_URL`.
- * @param labelKey - Row field holding the label.
- * @param headers - Django auth headers.
- */
-async function fetchOptions(
-	path: string,
-	labelKey: string,
-	headers: Record<string, string>
-): Promise<ComboboxItem[]> {
-	const response = await fetch(`${API_URL}${path}`, { headers });
-	if (!response.ok) await failFromResponse(response, `Failed to fetch ${path}`);
-	return toOptions(await response.json(), labelKey);
-}
 
 /**
  * Development status options for the address classification form.

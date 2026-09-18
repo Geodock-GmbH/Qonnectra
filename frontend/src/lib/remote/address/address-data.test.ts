@@ -7,8 +7,7 @@ import {
 	mapAddressListRow,
 	mapLinkedMicroducts,
 	mapLinkedNodes,
-	normalizeAddress,
-	toOptions
+	normalizeAddress
 } from './address-data';
 
 describe('normalizeAddress', () => {
@@ -94,14 +93,6 @@ describe('mapAddressListRow / mapAddressListPage', () => {
 			addresses: [],
 			pagination: { page: 1, pageSize: 50, totalCount: 0, totalPages: 0 }
 		});
-	});
-});
-
-describe('toOptions', () => {
-	test('should map id/label pairs from the given key', () => {
-		expect(toOptions([{ id: 1, status: 'Planned' }], 'status')).toEqual([
-			{ value: 1, label: 'Planned' }
-		]);
 	});
 });
 

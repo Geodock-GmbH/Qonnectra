@@ -27,6 +27,14 @@ export function backendErrorMessage(errorData: unknown, fallback: string): strin
  */
 export async function failFromResponse(response: Response, fallback: string): Promise<never> {
 	const errorData = await response.json().catch(() => ({}));
-	const status = response.status >= 400 && response.status <= 599 ? response.status : 500;
-	error(status, backendErrorMessage(errorData, fallback));
+	error(errorStatus(response), backendErrorMessage(errorData, fallback));
+}
+
+/**
+ * Picks a status Kit's `error()` accepts for a failed backend response:
+ * the response's own 4xx/5xx status, otherwise 500.
+ * @param response - The failed backend response.
+ */
+export function errorStatus(response: Response): number {
+	return response.status >= 400 && response.status <= 599 ? response.status : 500;
 }
