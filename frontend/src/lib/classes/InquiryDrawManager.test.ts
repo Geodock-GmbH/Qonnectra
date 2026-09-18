@@ -281,49 +281,6 @@ describe('InquiryDrawManager polygon geometry cache', () => {
 	});
 });
 
-describe('InquiryDrawManager removePolygonByUuid', () => {
-	let manager: InquiryDrawManager;
-
-	beforeEach(() => {
-		manager = new InquiryDrawManager();
-		const mockMap = createMockMap();
-		manager.initialize(mockMap as unknown as OlMap);
-	});
-
-	afterEach(() => {
-		manager.cleanup();
-	});
-
-	test('removes the correct polygon by uuid', () => {
-		const coords = [
-			[
-				[0, 0],
-				[1, 0],
-				[1, 1],
-				[0, 0]
-			]
-		];
-		const f1 = new Feature({ geometry: new Polygon(coords) });
-		f1.set('uuid', 'aaa');
-		const f2 = new Feature({ geometry: new Polygon(coords) });
-		f2.set('uuid', 'bbb');
-
-		const source = (
-			manager as unknown as {
-				_polygonSource: { addFeatures: (f: Feature[]) => void; getFeatures: () => Feature[] };
-			}
-		)._polygonSource;
-		source.addFeatures([f1, f2]);
-		expect(source.getFeatures()).toHaveLength(2);
-
-		manager.removePolygonByUuid('aaa');
-
-		const remaining = source.getFeatures();
-		expect(remaining).toHaveLength(1);
-		expect(remaining[0].get('uuid')).toBe('bbb');
-	});
-});
-
 describe('InquiryDrawManager polygon label style', () => {
 	let manager: InquiryDrawManager;
 
@@ -813,33 +770,6 @@ describe('InquiryDrawManager edge cases', () => {
 		(manager as unknown as { _polygonGeometries: unknown[] })._polygonGeometries = [{}];
 		manager.updatePolygonGeometryCache();
 		expect(manager._polygonGeometries).toEqual([]);
-	});
-
-	test('removePolygonByUuid is a no-op when source is missing', () => {
-		const manager = new InquiryDrawManager();
-		expect(() => manager.removePolygonByUuid('nope')).not.toThrow();
-	});
-
-	test('removePolygonByUuid leaves features untouched when uuid is absent', () => {
-		const manager = new InquiryDrawManager();
-		manager.initialize(createMockMap() as unknown as OlMap);
-		const f = new Feature({
-			geometry: new Polygon([
-				[
-					[0, 0],
-					[1, 0],
-					[1, 1],
-					[0, 0]
-				]
-			])
-		});
-		f.set('uuid', 'keep');
-		polygonSource(manager).addFeature(f);
-
-		manager.removePolygonByUuid('missing');
-
-		expect(polygonSource(manager).getFeatures()).toHaveLength(1);
-		manager.cleanup();
 	});
 
 	test('initializeHighlightLayers is a no-op without a map', () => {

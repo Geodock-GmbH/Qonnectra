@@ -291,6 +291,27 @@ vi.mock('$lib/remote/fault-simulation/simulation.remote', () => ({
 		affected_addresses_details: []
 	})
 }));
+vi.mock('$lib/remote/pipeline-records/records.remote', () => ({
+	getPipelineRecordList: vi.fn().mockResolvedValue({
+		records: [],
+		pagination: { page: 1, pageSize: 50, totalCount: 0, totalPages: 0 }
+	}),
+	getPipelineRecord: vi.fn().mockResolvedValue({ uuid: '' }),
+	createPipelineRecord: vi.fn(() => commandStub({ uuid: '' })),
+	updatePipelineRecord: vi.fn(() => commandStub({ uuid: '' })),
+	deletePipelineRecord: vi.fn(() => commandStub(undefined))
+}));
+vi.mock('$lib/remote/pipeline-records/record-options.remote', () => ({
+	getTypeOfWorkOptions: vi.fn().mockResolvedValue([]),
+	getRequestReasonOptions: vi.fn().mockResolvedValue([])
+}));
+vi.mock('$lib/remote/pipeline-records/inquiry-areas.remote', () => ({
+	getInquiryAreas: vi.fn(() => queryStub([])),
+	createInquiryArea: vi.fn(() => commandStub(undefined)),
+	updateInquiryAreaGeometry: vi.fn(() => commandStub(undefined)),
+	renameInquiryArea: vi.fn(() => commandStub(undefined)),
+	deleteInquiryArea: vi.fn(() => commandStub(undefined))
+}));
 vi.mock('$lib/remote/address/residential-units.remote', () => ({
 	getResidentialUnits: vi.fn().mockResolvedValue([]),
 	getResidentialUnit: vi.fn().mockResolvedValue({}),
