@@ -59,14 +59,21 @@
 		useListCollection({
 			items: data,
 			itemToString: (item) => item?.label ?? '',
-			// Combobox values are string-based at the widget level; numeric item values
-			// are coerced to strings by the widget, so the cast is behavior-neutral.
-			itemToValue: (item) => (item?.value ?? '') as string,
+			// The widget compares values as strings, but callers pass numeric option
+			// values and string selections (e.g. `[String(id)]`). Stringify here so a
+			// numeric option matches its preselected string value instead of rendering
+			// an empty input.
+			itemToValue: (item) => String(item?.value ?? ''),
 			isItemDisabled: (item) => disabledValues.includes(item?.value)
 		})
 	);
 
 	let items = $derived(collection.items);
+
+	// The widget matches selections against string item values, so normalize the
+	// incoming value arrays (callers may pass numeric ids) before handing them over.
+	const stringValue = $derived(value?.map(String));
+	const stringDefaultValue = $derived(defaultValue.map(String));
 
 	const fuse = $derived(
 		new Fuse(data, {
@@ -136,8 +143,8 @@
 			{placeholder}
 			{required}
 			{collection}
-			defaultValue={defaultValue as string[]}
-			value={value as string[] | undefined}
+			defaultValue={stringDefaultValue}
+			value={stringValue}
 			{disabled}
 			onOpenChange={handleOpenChange}
 			onValueChange={handleValueChange}
