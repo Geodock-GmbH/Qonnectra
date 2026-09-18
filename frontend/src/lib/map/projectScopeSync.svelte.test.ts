@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalMapView, selectedProject } from '$lib/stores/store';
 
-import { syncProjectScope } from './projectScopeSync';
+import { syncProjectScope, syncSelectedProject } from './projectScopeSync';
 
 function createMapState(olMap: OlMap | null) {
 	return {
@@ -70,6 +70,37 @@ describe('syncProjectScope', () => {
 	test('should stop following the stores once stopped', () => {
 		const mapState = createMapState(readyMap);
 		syncProjectScope(mapState)();
+
+		selectedProject.set('project-2');
+
+		expect(mapState.reinitializeForProject).not.toHaveBeenCalled();
+	});
+});
+
+describe('syncSelectedProject', () => {
+	test('should rebuild the tile sources when another project is selected', () => {
+		const mapState = createMapState(readyMap);
+		const onProjectChange = vi.fn();
+		stop = syncSelectedProject(mapState, onProjectChange);
+
+		selectedProject.set('project-2');
+
+		expect(mapState.reinitializeForProject).toHaveBeenCalledExactlyOnceWith('project-2');
+		expect(onProjectChange).toHaveBeenCalledOnce();
+	});
+
+	test('should ignore the global view toggle', () => {
+		const mapState = createMapState(readyMap);
+		stop = syncSelectedProject(mapState);
+
+		globalMapView.set(true);
+
+		expect(mapState.reinitializeForGlobalView).not.toHaveBeenCalled();
+	});
+
+	test('should not touch a map that is not ready yet', () => {
+		const mapState = createMapState(null);
+		stop = syncSelectedProject(mapState);
 
 		selectedProject.set('project-2');
 

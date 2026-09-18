@@ -219,6 +219,10 @@ vi.mock('$lib/remote/conduit/microducts.remote', () => ({
 	getMicroductStatusOptions: vi.fn().mockResolvedValue([]),
 	updateMicroductStatus: vi.fn(() => commandStub({ uuid: '' }))
 }));
+vi.mock('$lib/remote/house-connections/node-assignment.remote', () => ({
+	assignNodeToMicroduct: vi.fn(() => commandStub({ uuid: '' })),
+	removeNodeFromMicroduct: vi.fn(() => commandStub({ uuid: '' }))
+}));
 vi.mock('$lib/remote/map/feature-search.remote', () => ({
 	searchFeatures: vi.fn().mockResolvedValue([]),
 	getFeatureDetails: vi.fn().mockResolvedValue({ id: '', properties: {} }),

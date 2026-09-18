@@ -1,10 +1,6 @@
 <script lang="ts">
-	import type { PageData } from './$types';
-	import type { SearchPanelRef } from '$lib/classes/MapInteractionManager.svelte';
-	import type OlMap from 'ol/Map';
-	import { onMount, untrack } from 'svelte';
+	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
-	import VectorTileLayer from 'ol/layer/VectorTile.js';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -12,55 +8,37 @@
 	import { MapPopupManager } from '$lib/classes/MapPopupManager.svelte.js';
 	import { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte.js';
 	import { MapState } from '$lib/classes/MapState.svelte';
-	import { NodeAssignmentManager } from '$lib/classes/NodeAssignmentManager.svelte';
 	import Drawer from '$lib/components/Drawer.svelte';
-	import Map from '$lib/components/Map.svelte';
-	import MapHint from '$lib/components/MapHint.svelte';
-	import { createLinkedTrenchStyle } from '$lib/map/styles';
+	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
+	import { selectedProject, trenchColorSelected } from '$lib/stores/store';
+	import { getFieldAliases } from '$lib/utils/fieldAliases';
+
+	import HouseConnectionDrawerTabs from './components/drawer/HouseConnectionDrawerTabs.svelte';
+	import HouseConnectionMap from './components/HouseConnectionMap.svelte';
+	import { NodeAssignmentManager } from './components/NodeAssignmentManager.svelte';
 	import {
-		addressStyle,
-		areaTypeStyles,
-		labelVisibilityConfig,
-		nodeTypeStyles,
-		selectedProject,
-		trenchColor,
-		trenchColorSelected,
-		trenchConstructionTypeStyles,
-		trenchStyleMode,
-		trenchSurfaceStyles
-	} from '$lib/stores/store';
+		setHouseConnectionInteraction,
+		setHouseConnectionMapManagers
+	} from './components/houseConnectionContext';
+	import { LinkedTrenchHighlights } from './components/linkedTrenchHighlights';
 
-	import HouseConnectionDrawerTabs from './HouseConnectionDrawerTabs.svelte';
+	const alias = getFieldAliases();
 
-	import 'ol/ol.css';
-
-	let { data }: { data: PageData } = $props();
-	let mapRef = $state<ReturnType<typeof Map> | null>(null);
-	let searchPanelRef = $state<SearchPanelRef | null>(null);
-
-	let linkedTrenchesLayer = $state<VectorTileLayer | undefined>();
-	let linkedTrenchUuids = $state<Set<string>>(new Set());
-	/** conduitId -> Set of trenchUuids */
-	let highlightsByConduit: Record<string, Set<string>> = {};
-
-	const mapState = new MapState($selectedProject, get(trenchColorSelected), {
+	const mapState = new MapState(get(selectedProject), get(trenchColorSelected), {
 		trench: true,
 		address: true,
 		node: true,
 		area: true
 	});
-
 	const selectionManager = new MapSelectionManager();
-	// svelte-ignore state_referenced_locally
-	const popupManager = new MapPopupManager(data.alias);
-	// svelte-ignore state_referenced_locally
+	const popupManager = new MapPopupManager(alias);
 	const interactionManager = new MapInteractionManager(
 		selectionManager,
 		popupManager,
 		drawerStore,
 		HouseConnectionDrawerTabs,
-		data.alias,
+		alias,
 		{
 			trench: true,
 			address: false,
@@ -68,197 +46,21 @@
 			area: false
 		}
 	);
+	const nodeAssignment = new NodeAssignmentManager(interactionManager);
+	const trenchHighlights = new LinkedTrenchHighlights();
 
-	const nodeAssignmentManager = new NodeAssignmentManager(interactionManager);
-
-	/**
-	 * Handle highlight changes from accordion
-	 * @param conduitId - UUID of the conduit
-	 * @param trenchUuids - Array of trench UUIDs
-	 * @param isOpen - Whether the accordion item was opened
-	 */
-	function handleHighlightChange(conduitId: string, trenchUuids: string[], isOpen: boolean) {
-		if (isOpen) {
-			highlightsByConduit[conduitId] = new Set(trenchUuids);
-		} else {
-			delete highlightsByConduit[conduitId];
-		}
-
-		const allTrenchUuids = new Set<string>();
-		for (const uuids of Object.values(highlightsByConduit)) {
-			for (const uuid of uuids) {
-				allTrenchUuids.add(uuid);
-			}
-		}
-		linkedTrenchUuids = allTrenchUuids;
-
-		if (linkedTrenchesLayer) {
-			linkedTrenchesLayer.changed();
-		}
-	}
-
-	/**
-	 * Clear all trench highlights (called when drawer closes or feature changes)
-	 */
-	function clearAllHighlights() {
-		highlightsByConduit = {};
-		linkedTrenchUuids = new Set();
-		if (linkedTrenchesLayer) {
-			linkedTrenchesLayer.changed();
-		}
-	}
-
-	interactionManager.setAdditionalDrawerProps({
-		nodeAssignmentManager,
-		onHighlightChange: handleHighlightChange
-	});
+	setHouseConnectionMapManagers({ mapState, selectionManager, popupManager, interactionManager });
+	setHouseConnectionInteraction({ nodeAssignment, trenchHighlights });
 
 	const layersInitialized = mapState.initializeLayers();
 
-	$effect(() => {
-		mapState.refreshTileSources();
-	});
-
-	$effect(() => {
-		const styles = $nodeTypeStyles;
-		if (Object.keys(styles).length > 0) {
-			mapState.updateNodeLayerStyle(styles);
-		}
-	});
-
-	$effect(() => {
-		const mode = $trenchStyleMode;
-		const surfaceStyles = $trenchSurfaceStyles;
-		const constructionTypeStyles = $trenchConstructionTypeStyles;
-		const color = $trenchColor;
-		mapState.updateTrenchLayerStyle(mode, surfaceStyles, constructionTypeStyles, color);
-	});
-
-	$effect(() => {
-		const color = $addressStyle.color;
-		const size = $addressStyle.size;
-		mapState.updateAddressLayerStyle(color, size);
-	});
-
-	$effect(() => {
-		const styles = $areaTypeStyles;
-		if (Object.keys(styles).length > 0) {
-			mapState.updateAreaLayerStyle(styles);
-		}
-	});
-
-	/**
-	 * Initializes map interactions, selection layers, and overlays when the OL map is ready.
-	 */
-	function handleMapReady({ map: olMapInstance }: { map: OlMap; usingFallbackOSM: boolean }) {
-		mapState.initializeSelectionLayers(olMapInstance, () => selectionManager.getSelectionStore());
-
-		const selectionLayers = mapState.getSelectionLayers();
-		selectionLayers.forEach((layer) => selectionManager.registerSelectionLayer(layer));
-
-		const linkedTrenchStyle = createLinkedTrenchStyle();
-		linkedTrenchesLayer = new VectorTileLayer({
-			renderMode: 'vector',
-			source: mapState.vectorTileLayer?.getSource() ?? undefined,
-			style: function (feature) {
-				const featureId = feature.getId();
-				if (featureId && linkedTrenchUuids.has(String(featureId))) {
-					return linkedTrenchStyle;
-				}
-				return undefined;
-			},
-			visible: true,
-			properties: {
-				isHighlightLayer: true
-			}
-		});
-		mapState.olMap?.addLayer(linkedTrenchesLayer);
-
-		popupManager.initialize(olMapInstance);
-
-		const layers = mapState.getLayerReferences();
-		interactionManager.initialize(olMapInstance, layers, searchPanelRef);
-	}
-
-	$effect(() => {
-		if (mapRef && mapRef.getSearchPanelRef) {
-			searchPanelRef = mapRef.getSearchPanelRef() as SearchPanelRef | null;
-			if (searchPanelRef) {
-				interactionManager.setSearchPanelRef(searchPanelRef);
-			}
-		}
-	});
-
-	$effect(() => {
-		const config = $labelVisibilityConfig;
-		const mode = $trenchStyleMode;
-		const surfaceStyles = $trenchSurfaceStyles;
-		const constructionTypeStyles = $trenchConstructionTypeStyles;
-		const color = $trenchColor;
-		const nodeStyles = $nodeTypeStyles;
-		const areaStyles = $areaTypeStyles;
-
-		if (config.trench !== undefined) {
-			mapState.updateLabelVisibility('trench', config.trench, {
-				mode,
-				surfaceStyles,
-				constructionTypeStyles,
-				color
-			});
-		}
-		if (config.conduit !== undefined) {
-			mapState.updateLabelVisibility('conduit', config.conduit, {
-				mode,
-				surfaceStyles,
-				constructionTypeStyles,
-				color
-			});
-		}
-		if (config.address !== undefined) {
-			mapState.updateLabelVisibility('address', config.address, {});
-		}
-		if (config.node !== undefined) {
-			mapState.updateLabelVisibility('node', config.node, { nodeTypeStyles: nodeStyles });
-		}
-		if (config.area !== undefined) {
-			mapState.updateLabelVisibility('area', config.area, { areaTypeStyles: areaStyles });
-		}
-	});
-
-	let previousFeatureId = $state<string | null>(null);
-	$effect(() => {
-		const currentFeatureId = ($drawerStore.props?.featureId as string | null) ?? null;
-		const isOpen = $drawerStore.open;
-
-		if (!isOpen || (currentFeatureId !== previousFeatureId && previousFeatureId !== null)) {
-			clearAllHighlights();
-		}
-
-		previousFeatureId = currentFeatureId;
-	});
-
-	$effect(() => {
-		const currentProject = $selectedProject;
-		untrack(() => {
-			if (mapState.olMap && currentProject !== mapState.selectedProject) {
-				mapState.reinitializeForProject(currentProject);
-				selectionManager.clearSelection();
-			}
-		});
-	});
-
 	onMount(() => {
 		return () => {
-			if (mapState.olMap && linkedTrenchesLayer) {
-				mapState.olMap.removeLayer(linkedTrenchesLayer);
-			}
-			linkedTrenchesLayer = undefined;
-
+			nodeAssignment.cleanup();
 			mapState.cleanup();
 			selectionManager.cleanup();
 			if (mapState.olMap) popupManager.cleanup(mapState.olMap);
 			interactionManager.cleanup();
-			nodeAssignmentManager.cleanup();
 		};
 	});
 </script>
@@ -267,33 +69,21 @@
 	<title>{m.nav_house_connections()}</title>
 </svelte:head>
 
+{#snippet mapSkeleton()}
+	<div
+		class="h-full w-full rounded-lg border-2 border-surface-200-800 placeholder animate-pulse"
+		role="status"
+	>
+		<span class="sr-only">{m.common_loading()}</span>
+	</div>
+{/snippet}
+
 <div class="relative flex gap-4 h-full overflow-hidden">
 	<div class="flex-1 h-full">
 		{#if layersInitialized}
-			<div class="map-wrapper border-2 rounded-lg border-surface-200-800 h-full w-full">
-				<Map
-					className="rounded-lg overflow-hidden"
-					showSearchPanel={true}
-					layers={mapState.getLayers()}
-					nodeTypes={data.nodeTypes ?? []}
-					surfaces={data.surfaces ?? []}
-					constructionTypes={data.constructionTypes ?? []}
-					areaTypes={data.areaTypes ?? []}
-					onready={handleMapReady}
-					searchPanelProps={{
-						trenchColorSelected: $trenchColorSelected,
-						alias: data.alias
-					}}
-					bind:this={mapRef}
-				/>
-				<div id="popup" class="ol-popup bg-primary-500 rounded-lg border-2 border-primary-600">
-					<!-- svelte-ignore a11y_invalid_attribute -->
-					<a href="#" id="popup-closer" class="ol-popup-closer" aria-label="Close popup"></a>
-					<div id="popup-content"></div>
-				</div>
-			</div>
-
-			<MapHint message={m.message_map_hint_reveal_drawer()} visible={$drawerStore.open == false} />
+			<QueryBoundary pending={mapSkeleton}>
+				<HouseConnectionMap {alias} />
+			</QueryBoundary>
 		{:else}
 			<div class="p-4 text-yellow-700 bg-yellow-100 border border-yellow-400 rounded">
 				<p>{m.message_error_could_not_load_map_tiles()}</p>
@@ -303,30 +93,3 @@
 
 	<Drawer />
 </div>
-
-<style>
-	.ol-popup {
-		position: absolute;
-		padding: 8px;
-		transform: translate(-50%, -100%);
-		pointer-events: auto;
-		min-width: 180px;
-		z-index: 10;
-	}
-	.ol-popup-closer {
-		position: absolute;
-		top: 4px;
-		right: 8px;
-		text-decoration: none;
-		font-weight: bold;
-		cursor: pointer;
-		color: #fff;
-	}
-
-	#popup-content {
-		padding: 5px;
-		color: #fff;
-		max-height: 200px;
-		overflow-y: auto;
-	}
-</style>

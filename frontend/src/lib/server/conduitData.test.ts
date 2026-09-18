@@ -1,7 +1,7 @@
 import type { Cookies } from '@sveltejs/kit';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { getMicroducts, getPipesInTrench, getTrenchesForConduit } from './conduitData';
+import { getPipesInTrench, getTrenchesForConduit } from './conduitData';
 
 vi.mock('$env/static/private', () => ({
 	API_URL: 'http://localhost:8000/'
@@ -53,34 +53,6 @@ describe('getPipesInTrench', () => {
 		const result = await getPipesInTrench(fetchMock, mockCookies, 'trench-1');
 
 		expect(result).toEqual({ status: 403, data: { error: 'Failed to get pipes in trench' } });
-	});
-});
-
-describe('getMicroducts', () => {
-	test('should fetch microducts for a conduit', async () => {
-		const fetchMock = okFetch({ microducts: [] });
-
-		const result = await getMicroducts(fetchMock, mockCookies, 'pipe-1');
-
-		expect(fetchMock).toHaveBeenCalledWith(
-			'http://localhost:8000/microduct/all/?uuid_conduit=pipe-1',
-			expect.objectContaining({ method: 'GET' })
-		);
-		expect(result).toEqual({ microducts: [] });
-	});
-
-	test('should fail without a pipe id', async () => {
-		const result = await getMicroducts(vi.fn(), mockCookies, '');
-
-		expect(result).toEqual({ status: 400, data: { error: 'Pipe ID is required' } });
-	});
-
-	test('should fail with 500 on network errors', async () => {
-		const fetchMock = vi.fn().mockRejectedValue(new Error('offline'));
-
-		const result = await getMicroducts(fetchMock, mockCookies, 'pipe-1');
-
-		expect(result).toEqual({ status: 500, data: { error: 'Internal server error' } });
 	});
 });
 

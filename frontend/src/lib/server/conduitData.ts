@@ -35,37 +35,6 @@ export async function getPipesInTrench(
 	}
 }
 
-/** Fetch all microducts in a conduit/pipe */
-export async function getMicroducts(
-	fetch: typeof globalThis.fetch,
-	cookies: Cookies,
-	pipeId: string
-): Promise<Record<string, unknown> | ActionFailure<{ error: string }>> {
-	if (!pipeId) {
-		return fail(400, { error: 'Pipe ID is required' });
-	}
-
-	try {
-		const headers = getAuthHeaders(cookies);
-		const backendUrl = `${API_URL}microduct/all/?uuid_conduit=${pipeId}`;
-
-		const response = await fetch(backendUrl, {
-			method: 'GET',
-			headers
-		});
-
-		if (!response.ok) {
-			return fail(response.status, { error: 'Failed to get microducts' });
-		}
-
-		const data = await response.json();
-		return data;
-	} catch (error) {
-		console.error('Error getting microducts:', error);
-		return fail(500, { error: 'Internal server error' });
-	}
-}
-
 /** Fetch all trench UUIDs that contain a specific conduit */
 export async function getTrenchesForConduit(
 	fetch: typeof globalThis.fetch,

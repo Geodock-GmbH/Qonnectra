@@ -1,22 +1,29 @@
-import type { Feature } from 'ol';
+import Feature from 'ol/Feature.js';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalToaster } from '$lib/stores/toaster';
+import { commandFailure, commandResult, httpError } from '$lib/test-utils/remote-stubs';
 
 import { NodeAssignmentManager } from './NodeAssignmentManager.svelte';
 
-vi.mock('$app/forms', () => ({
-	deserialize: vi.fn((text: string) => JSON.parse(text))
+const assignNodeToMicroduct = vi.fn();
+
+vi.mock('$lib/remote/house-connections/node-assignment.remote', () => ({
+	assignNodeToMicroduct: (...args: unknown[]) => assignNodeToMicroduct(...args)
+}));
+
+vi.mock('$lib/utils/logToBackendClient', () => ({
+	logToBackendClient: vi.fn().mockResolvedValue(undefined)
 }));
 
 vi.mock('$lib/paraglide/messages', () => ({
 	m: {
 		common_info: () => 'Info',
 		common_error: () => 'Fehler',
+		message_error_saving_data: () => 'Fehler beim Speichern',
 		title_success: () => 'Erfolg',
 		message_info_node_has_no_address_assigned: () => 'Knoten hat keine Adresse',
-		message_success_assigned_node: () => 'Knoten zugewiesen',
-		message_success_unassigned_node: () => 'Knoten entfernt'
+		message_success_assigned_node: () => 'Knoten zugewiesen'
 	}
 }));
 
@@ -27,8 +34,6 @@ vi.mock('$lib/stores/toaster', () => ({
 		info: vi.fn()
 	}
 }));
-
-const fetchMock = vi.fn();
 
 class FakeNodeLayer {}
 
@@ -43,27 +48,17 @@ class FakeInteractionManager {
 }
 
 function makeFeature(id: string | undefined, properties: Record<string, unknown>): Feature {
-	return {
-		getId: () => id,
-		getProperties: () => properties
-	} as unknown as Feature;
-}
-
-function mockActionResponse(payload: unknown) {
-	fetchMock.mockResolvedValue({
-		text: () => Promise.resolve(JSON.stringify(payload))
-	});
+	const feature = new Feature(properties);
+	if (id) feature.setId(id);
+	return feature;
 }
 
 beforeEach(() => {
-	vi.stubGlobal('fetch', fetchMock);
-	vi.spyOn(console, 'error').mockImplementation(() => {});
+	assignNodeToMicroduct.mockImplementation(() => commandResult({ uuid: 'micro-1' }));
 });
 
 afterEach(() => {
-	vi.unstubAllGlobals();
-	vi.restoreAllMocks();
-	fetchMock.mockReset();
+	assignNodeToMicroduct.mockReset();
 	vi.mocked(globalToaster.success).mockClear();
 	vi.mocked(globalToaster.error).mockClear();
 	vi.mocked(globalToaster.info).mockClear();
@@ -74,7 +69,7 @@ describe('activateAssignMode', () => {
 		const interactionManager = new FakeInteractionManager();
 		const manager = new NodeAssignmentManager(interactionManager as never);
 
-		manager.activateAssignMode('micro-1');
+		manager.activateAssignMode('micro-1', 'conduit-1');
 
 		expect(manager.isAssignMode).toBe(true);
 		expect(manager.activeMicroductUuid).toBe('micro-1');
@@ -92,7 +87,16 @@ describe('activateAssignMode', () => {
 		const interactionManager = new FakeInteractionManager();
 		const manager = new NodeAssignmentManager(interactionManager as never);
 
-		manager.activateAssignMode('');
+		manager.activateAssignMode('', 'conduit-1');
+
+		expect(manager.isAssignMode).toBe(false);
+	});
+
+	test('should do nothing without a conduit uuid', () => {
+		const interactionManager = new FakeInteractionManager();
+		const manager = new NodeAssignmentManager(interactionManager as never);
+
+		manager.activateAssignMode('micro-1', '');
 
 		expect(manager.isAssignMode).toBe(false);
 	});
@@ -100,7 +104,7 @@ describe('activateAssignMode', () => {
 	test('should deactivate on Escape', () => {
 		const interactionManager = new FakeInteractionManager();
 		const manager = new NodeAssignmentManager(interactionManager as never);
-		manager.activateAssignMode('micro-1');
+		manager.activateAssignMode('micro-1', 'conduit-1');
 
 		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
 
@@ -118,7 +122,7 @@ describe('assign mode click handler', () => {
 	test('should ignore clicks on non-node layers', async () => {
 		const interactionManager = new FakeInteractionManager();
 		const manager = new NodeAssignmentManager(interactionManager as never);
-		manager.activateAssignMode('micro-1');
+		manager.activateAssignMode('micro-1', 'conduit-1');
 
 		const handler = interactionManager.handleFeatureClick as unknown as (
 			feature: Feature,
@@ -127,14 +131,14 @@ describe('assign mode click handler', () => {
 		) => Promise<void>;
 		await handler(makeFeature('node-1', { address: 'a' }), [0, 0], {});
 
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(assignNodeToMicroduct).not.toHaveBeenCalled();
 		manager.cleanup();
 	});
 
 	test('should toast info for nodes without an address', async () => {
 		const interactionManager = new FakeInteractionManager();
 		const manager = new NodeAssignmentManager(interactionManager as never);
-		manager.activateAssignMode('micro-1');
+		manager.activateAssignMode('micro-1', 'conduit-1');
 
 		const handler = interactionManager.handleFeatureClick as unknown as (
 			feature: Feature,
@@ -144,16 +148,14 @@ describe('assign mode click handler', () => {
 		await handler(makeFeature('node-1', {}), [0, 0], interactionManager.layers.nodeLayer);
 
 		expect(globalToaster.info).toHaveBeenCalled();
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(assignNodeToMicroduct).not.toHaveBeenCalled();
 		manager.cleanup();
 	});
 
 	test('should assign the clicked node and finish assign mode', async () => {
-		mockActionResponse({ type: 'success', data: { assigned: true } });
 		const interactionManager = new FakeInteractionManager();
 		const manager = new NodeAssignmentManager(interactionManager as never);
-		const onComplete = vi.fn();
-		manager.activateAssignMode('micro-1', onComplete);
+		manager.activateAssignMode('micro-1', 'conduit-1');
 
 		const handler = interactionManager.handleFeatureClick as unknown as (
 			feature: Feature,
@@ -166,20 +168,21 @@ describe('assign mode click handler', () => {
 			interactionManager.layers.nodeLayer
 		);
 
-		const body = fetchMock.mock.calls[0][1].body as FormData;
-		expect(fetchMock.mock.calls[0][0]).toBe('?/assignNodeToMicroduct');
-		expect(body.get('microductUuid')).toBe('micro-1');
-		expect(body.get('nodeUuid')).toBe('node-uuid-1');
+		expect(assignNodeToMicroduct).toHaveBeenCalledExactlyOnceWith({
+			microductUuid: 'micro-1',
+			conduitUuid: 'conduit-1',
+			nodeUuid: 'node-uuid-1'
+		});
 		expect(globalToaster.success).toHaveBeenCalled();
-		expect(onComplete).toHaveBeenCalledWith({ assigned: true });
 		expect(manager.isAssignMode).toBe(false);
+		expect(manager.activeMicroductUuid).toBeNull();
 	});
 
 	test('should fall through to the original handler outside assign mode', async () => {
 		const interactionManager = new FakeInteractionManager();
 		const originalHandler = interactionManager.handleFeatureClick;
 		const manager = new NodeAssignmentManager(interactionManager as never);
-		manager.activateAssignMode('micro-1');
+		manager.activateAssignMode('micro-1', 'conduit-1');
 		const assignHandler = interactionManager.handleFeatureClick as unknown as (
 			feature: Feature,
 			coordinate: number[],
@@ -197,10 +200,10 @@ describe('assign mode click handler', () => {
 
 describe('assignNodeToMicroduct', () => {
 	test('should toast the backend error on failure', async () => {
-		mockActionResponse({ type: 'failure', data: { error: 'Belegt' } });
+		assignNodeToMicroduct.mockImplementation(() => commandFailure(httpError(400, 'Belegt')));
 		const interactionManager = new FakeInteractionManager();
 		const manager = new NodeAssignmentManager(interactionManager as never);
-		manager.activateAssignMode('micro-1');
+		manager.activateAssignMode('micro-1', 'conduit-1');
 
 		await manager.assignNodeToMicroduct('node-1');
 
@@ -216,42 +219,7 @@ describe('assignNodeToMicroduct', () => {
 
 		await manager.assignNodeToMicroduct('node-1');
 
-		expect(fetchMock).not.toHaveBeenCalled();
-	});
-});
-
-describe('removeNodeFromMicroduct', () => {
-	test('should unassign the node and invoke the callback', async () => {
-		mockActionResponse({ type: 'success', data: { removed: true } });
-		const manager = new NodeAssignmentManager(new FakeInteractionManager() as never);
-		const onComplete = vi.fn();
-
-		await manager.removeNodeFromMicroduct('micro-1', onComplete);
-
-		const body = fetchMock.mock.calls[0][1].body as FormData;
-		expect(fetchMock.mock.calls[0][0]).toBe('?/removeNodeFromMicroduct');
-		expect(body.get('microductUuid')).toBe('micro-1');
-		expect(globalToaster.success).toHaveBeenCalled();
-		expect(onComplete).toHaveBeenCalledWith({ removed: true });
-	});
-
-	test('should toast the backend error on failure', async () => {
-		mockActionResponse({ type: 'failure', data: { error: 'Nicht erlaubt' } });
-		const manager = new NodeAssignmentManager(new FakeInteractionManager() as never);
-
-		await manager.removeNodeFromMicroduct('micro-1');
-
-		expect(globalToaster.error).toHaveBeenCalledWith(
-			expect.objectContaining({ description: 'Nicht erlaubt' })
-		);
-	});
-
-	test('should do nothing without a microduct uuid', async () => {
-		const manager = new NodeAssignmentManager(new FakeInteractionManager() as never);
-
-		await manager.removeNodeFromMicroduct('');
-
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(assignNodeToMicroduct).not.toHaveBeenCalled();
 	});
 });
 
@@ -259,7 +227,7 @@ describe('cleanup', () => {
 	test('should leave assign mode when active', () => {
 		const interactionManager = new FakeInteractionManager();
 		const manager = new NodeAssignmentManager(interactionManager as never);
-		manager.activateAssignMode('micro-1');
+		manager.activateAssignMode('micro-1', 'conduit-1');
 
 		manager.cleanup();
 

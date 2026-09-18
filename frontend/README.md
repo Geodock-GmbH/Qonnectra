@@ -102,8 +102,7 @@ frontend/
 │   │   │   ├── FiberSpliceManager.svelte.js
 │   │   │   ├── CableFiberDataManager.svelte.js
 │   │   │   ├── CablePathManager.svelte.js
-│   │   │   ├── DragDropManager.svelte.js
-│   │   │   └── NodeAssignmentManager.svelte.js
+│   │   │   └── DragDropManager.svelte.js
 │   │   ├── components/       # Reusable Svelte components
 │   │   │   ├── AppBar.svelte
 │   │   │   ├── LayerVisibilityTree.svelte
@@ -354,11 +353,11 @@ These helpers abstract browser storage access and are safe on the server (they n
 Instead of deeply nested props, complex flows are modeled as classes and passed via Svelte’s context:
 
 - Map-related classes (`MapState`, `MapInteractionManager`, `MapSelectionManager`, `MapPopupManager`)
-- Conduit/pipe classes (`ConduitState`, `ConduitDataManager`)
+- Conduit/pipe classes (`ConduitState`)
 - Address management (`AddressState`)
 - Network schema and node structure (`NetworkSchemaState`, `NetworkSchemaSearchManager`, `NodeStructureManager`, `NodeStructureContext`)
 - Fiber and cable data (`FiberSpliceManager`, `CableFiberDataManager`, `CablePathManager`)
-- Utility managers (`DragDropManager`, `NodeAssignmentManager`)
+- Utility managers (`DragDropManager`)
 
 They are typically constructed in `+page.svelte` files and exposed via:
 
