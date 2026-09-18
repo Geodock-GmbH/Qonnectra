@@ -24,4 +24,5 @@
 	} = $props();
 </script>
 
-<div data-testid="map" class={className} {...props}></div>
+<!-- Reads the attribute lists like the real Map does, so a failed query surfaces. -->
+<div data-testid="map" data-node-type-count={nodeTypes?.length} class={className} {...props}></div>

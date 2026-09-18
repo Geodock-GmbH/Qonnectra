@@ -36,8 +36,8 @@ interface StatusOption {
 }
 
 /**
- * Manages conduit/pipe data fetching and state for trench features
- * Can be used in both Map drawer (display-only) and house-connections (with actions)
+ * Manages conduit/pipe data fetching and state for trench features in the
+ * house-connections drawer. Its form actions live on that route.
  */
 export class ConduitDataManager {
 	pipesInTrench: PipeEntry[] = $state([]);

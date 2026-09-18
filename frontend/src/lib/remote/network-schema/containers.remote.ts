@@ -1,4 +1,4 @@
-import type { Hierarchy } from '../../../routes/network-schema/[[projectId]]/components/containerItemTypes';
+import type { Hierarchy } from '$lib/components/node-structure/containerItemTypes';
 import { command, query } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';
