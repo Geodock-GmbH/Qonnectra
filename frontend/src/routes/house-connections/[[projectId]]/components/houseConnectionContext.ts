@@ -1,9 +1,9 @@
-import type { LinkedTrenchHighlights } from './linkedTrenchHighlights';
 import type { NodeAssignmentManager } from './NodeAssignmentManager.svelte';
 import type { MapInteractionManager } from '$lib/classes/MapInteractionManager.svelte';
 import type { MapPopupManager } from '$lib/classes/MapPopupManager.svelte';
 import type { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte';
 import type { MapState } from '$lib/classes/MapState.svelte';
+import type { LinkedTrenchHighlights } from '$lib/map/linkedTrenchHighlights';
 import { createContext } from 'svelte';
 
 /** The map plumbing the house-connections page hands to its map component. */

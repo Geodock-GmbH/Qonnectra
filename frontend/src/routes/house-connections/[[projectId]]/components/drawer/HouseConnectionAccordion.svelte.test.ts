@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { LinkedTrenchHighlights } from '$lib/map/linkedTrenchHighlights';
 import { globalToaster } from '$lib/stores/toaster';
 import { httpError } from '$lib/test-utils/remote-stubs';
 import { remoteQueryStub } from '$lib/test-utils/remoteQueryStub';
@@ -10,7 +11,6 @@ import { remoteQueryStub } from '$lib/test-utils/remoteQueryStub';
 import { NodeAssignmentManager } from '../NodeAssignmentManager.svelte';
 import HouseConnectionAccordion from './HouseConnectionAccordion.svelte';
 import HouseConnectionContextFixture from './HouseConnectionContext.fixture.svelte';
-import { LinkedTrenchHighlights } from '../linkedTrenchHighlights';
 
 const getConduitsInTrench = vi.fn();
 const getConduitTrenches = vi.fn();

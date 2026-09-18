@@ -252,6 +252,20 @@ vi.mock('$lib/remote/pipe-branch/connections.remote', () => ({
 	createConnections: vi.fn(() => commandStub({ created: 0, errors: [] })),
 	deleteConnection: vi.fn(() => commandStub(undefined))
 }));
+vi.mock('$lib/remote/trench/conduit-options.remote', () => ({
+	getConduitOptions: vi.fn().mockResolvedValue([])
+}));
+vi.mock('$lib/remote/trench/connections.remote', () => ({
+	getTrenchConnections: vi.fn(() => queryStub([])),
+	createTrenchConnections: vi.fn(() => commandStub({ created: 0 })),
+	deleteTrenchConnection: vi.fn(() => commandStub(undefined))
+}));
+vi.mock('$lib/remote/trench/routing.remote', () => ({
+	calculateRoute: vi.fn().mockResolvedValue({ pathWkt: '', trenches: [] }),
+	getTrenchGeometry: vi
+		.fn()
+		.mockResolvedValue({ type: 'Feature', geometry: { type: 'LineString', coordinates: [] } })
+}));
 vi.mock('$lib/remote/map/feature-search.remote', () => ({
 	searchFeatures: vi.fn().mockResolvedValue([]),
 	getFeatureDetails: vi.fn().mockResolvedValue({ id: '', properties: {} }),

@@ -10,6 +10,7 @@
 	import { MapState } from '$lib/classes/MapState.svelte';
 	import Drawer from '$lib/components/Drawer.svelte';
 	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
+	import { LinkedTrenchHighlights } from '$lib/map/linkedTrenchHighlights';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { selectedProject, trenchColorSelected } from '$lib/stores/store';
 	import { getFieldAliases } from '$lib/utils/fieldAliases';
@@ -21,7 +22,6 @@
 		setHouseConnectionInteraction,
 		setHouseConnectionMapManagers
 	} from './components/houseConnectionContext';
-	import { LinkedTrenchHighlights } from './components/linkedTrenchHighlights';
 
 	const alias = getFieldAliases();
 

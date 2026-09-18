@@ -1,458 +1,264 @@
-import { tick } from 'svelte';
-import { fireEvent, render, screen } from '@testing-library/svelte';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import '@testing-library/jest-dom/vitest';
+
+import { get } from 'svelte/store';
+import { goto } from '$app/navigation';
+import { render, screen } from '@testing-library/svelte';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
+import { selectedConduit, selectedFlag, selectedProject } from '$lib/stores/store';
 
 import Page from './+page.svelte';
 
-interface MockStore<T> {
-	subscribe: (callback: (value: T) => void) => () => void;
-	set: (newValue: T) => void;
-	update: (fn: (value: T) => T) => void;
-	getValue: () => T;
+const getConduitOptions = vi.fn();
+
+type ManagerSpies = Record<'cleanup', ReturnType<typeof vi.fn>>;
+
+const { pageState, mapStates, mapStateArgs, selectionManagers, layersInitialized } = vi.hoisted(
+	() => ({
+		pageState: {
+			params: {} as Record<string, string | undefined>,
+			url: new URL('http://localhost/trench'),
+			data: {
+				flags: [{ value: '2', label: 'Ausbau' }],
+				flagsError: null,
+				srid: 25832,
+				proj4Def: ''
+			}
+		},
+		mapStates: [] as ManagerSpies[],
+		mapStateArgs: [] as unknown[][],
+		selectionManagers: [] as ManagerSpies[],
+		layersInitialized: { value: true }
+	})
+);
+
+vi.mock('$lib/remote/trench/conduit-options.remote', () => ({
+	getConduitOptions: (...args: unknown[]) => getConduitOptions(...args)
+}));
+
+vi.mock('$app/state', () => ({ page: pageState }));
+
+vi.mock('$app/environment', () => ({ browser: true }));
+
+vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
+
+vi.mock('$app/paths', () => ({
+	resolve: (_route: string, params: { projectId: string; flagId: string }) =>
+		`/trench/${params.projectId}/${params.flagId}`
+}));
+
+vi.mock('ol/ol.css', () => ({}));
+
+vi.mock('$lib/paraglide/messages', () => ({
+	m: new Proxy({}, { get: (_target, prop: string) => () => `${prop}` })
+}));
+
+vi.mock('$lib/utils/fieldAliases', () => ({ getFieldAliases: () => ({}) }));
+
+vi.mock('$lib/stores/store', async () => {
+	const { writable } = await import('svelte/store');
+	return {
+		selectedProject: writable('1'),
+		selectedFlag: writable(['2']),
+		selectedConduit: writable(undefined),
+		routingMode: writable(false),
+		routingTolerance: writable([1]),
+		showLinkedTrenches: writable(false),
+		trenchColorSelected: writable('#ff0000'),
+		trenchColor: writable('#000000'),
+		trenchStyleMode: writable('default'),
+		trenchSurfaceStyles: writable({}),
+		trenchConstructionTypeStyles: writable({}),
+		nodeTypeStyles: writable({}),
+		areaTypeStyles: writable({}),
+		addressStyle: writable({ color: '#0000ff', size: 6 }),
+		labelVisibilityConfig: writable({})
+	};
+});
+
+vi.mock('$lib/components/Map.svelte', async () => {
+	const { default: MockMap } = await import('$lib/test-utils/mocks/MockMap.svelte');
+	return { default: MockMap };
+});
+
+vi.mock('$lib/components/GenericCombobox.svelte', async () => {
+	const { default: MockGenericCombobox } =
+		await import('$lib/test-utils/mocks/MockGenericCombobox.svelte');
+	return { default: MockGenericCombobox };
+});
+
+vi.mock('$lib/classes/MapState.svelte', () => ({
+	MapState: class MockMapState {
+		olMap = null;
+		selectedProject = '1';
+		vectorTileLayer = null;
+		initializeLayers = vi.fn(() => layersInitialized.value);
+		reinitializeForProject = vi.fn();
+		refreshTileSources = vi.fn();
+		updateNodeLayerStyle = vi.fn();
+		updateTrenchLayerStyle = vi.fn();
+		updateAddressLayerStyle = vi.fn();
+		updateAreaLayerStyle = vi.fn();
+		updateLabelVisibility = vi.fn();
+		getLayers = vi.fn().mockReturnValue([]);
+		cleanup = vi.fn();
+
+		constructor(...args: unknown[]) {
+			mapStateArgs.push(args);
+			mapStates.push(this);
+		}
+	}
+}));
+
+vi.mock('$lib/classes/MapSelectionManager.svelte.js', () => ({
+	MapSelectionManager: class MockMapSelectionManager {
+		clearSelection = vi.fn();
+		selectFeature = vi.fn();
+		selectMultipleFeatures = vi.fn();
+		cleanup = vi.fn();
+
+		constructor() {
+			selectionManagers.push(this);
+		}
+	}
+}));
+
+/**
+ * @param path - Pathname the page is opened under.
+ * @param params - Route params matched from that path.
+ */
+function openPage(path: string, params: Record<string, string | undefined> = {}) {
+	pageState.url = new URL(`http://localhost${path}`);
+	pageState.params = params;
+	return render(Page);
 }
 
-const createMockStore = <T>(initialValue: T | null = null): MockStore<T | null> => {
-	let value = initialValue;
-	const subscribers = new Set<(value: T | null) => void>();
-	return {
-		subscribe: (callback: (value: T | null) => void) => {
-			subscribers.add(callback);
-			callback(value);
-			return () => subscribers.delete(callback);
-		},
-		set: (newValue: T | null) => {
-			value = newValue;
-			subscribers.forEach((callback) => callback(value));
-		},
-		update: (fn: (value: T | null) => T | null) => {
-			value = fn(value);
-			subscribers.forEach((callback) => callback(value));
-		},
-		getValue: () => value
-	};
-};
-
-// Declare mock stores at module level but define them inside vi.mock
-let mockRoutingMode;
-let mockRoutingTolerance;
-let mockSelectedConduit;
-let mockSelectedFlag;
-let mockSelectedProject;
-let mockTrenchColor;
-let mockTrenchColorSelected;
-
-// Mock the stores module
-vi.mock('$lib/stores/store', () => {
-	const createStore = <T>(initialValue: T | null = null) => {
-		let value = initialValue;
-		const subscribers = new Set<(value: T | null) => void>();
-		return {
-			subscribe: (callback: (value: T | null) => void) => {
-				subscribers.add(callback);
-				callback(value);
-				return () => subscribers.delete(callback);
-			},
-			set: (newValue: T | null) => {
-				value = newValue;
-				subscribers.forEach((cb) => cb(value));
-			},
-			update: (fn: (value: T | null) => T | null) => {
-				value = fn(value);
-				subscribers.forEach((cb) => cb(value));
-			}
-		};
-	};
-
-	return {
-		routingMode: createStore(false),
-		routingTolerance: createStore(1),
-		selectedConduit: createStore(null),
-		selectedFlag: createStore(null),
-		selectedProject: createStore(null),
-		trenchColor: createStore('#000000'),
-		trenchColorSelected: createStore('#ff0000'),
-		nodeTypeStyles: createStore({}),
-		addressStyle: createStore({ color: '#000000', size: 8 }),
-		areaTypeStyles: createStore({}),
-		labelVisibilityConfig: createStore({}),
-		showLinkedTrenches: createStore(false),
-		trenchConstructionTypeStyles: createStore({}),
-		trenchStyleMode: createStore('default'),
-		trenchSurfaceStyles: createStore({})
-	};
+beforeEach(() => {
+	getConduitOptions.mockResolvedValue([{ value: 'conduit-1', label: 'Rohr 1 (7x10)' }]);
 });
 
-// Mock the environment variables
-vi.mock('$env/static/public', () => ({
-	PUBLIC_API_URL: 'http://mock-api.test/'
-}));
-
-// Mock browser environment
-vi.mock('$app/environment', () => ({
-	browser: true
-}));
-
-// Mock the navigation
-vi.mock('$app/navigation', () => ({
-	goto: vi.fn()
-}));
-
-// Mock the page store
-vi.mock('$app/stores', () => ({
-	page: {
-		subscribe: (callback: (value: Record<string, unknown>) => void) => {
-			callback({
-				url: { pathname: '/trench/1/1' },
-				params: { projectId: '1', flagId: '1' },
-				data: {
-					srid: 25832,
-					proj4Def:
-						'+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs'
-				}
-			});
-			return { unsubscribe: vi.fn() };
-		}
-	},
-	navigating: {
-		subscribe: (callback: (value: null) => void) => {
-			callback(null);
-			return { unsubscribe: vi.fn() };
-		}
-	}
-}));
-
-// Mock the paraglide messages - return a proxy that returns mock functions for any message key
-vi.mock('$lib/paraglide/messages', () => {
-	// Create a proxy that returns a mock function for any property access
-	const mockMessages = new Proxy(
-		{},
-		{
-			get: (_target: Record<string, unknown>, prop: string) => {
-				// Return a function that returns the property name as a string
-				return () => String(prop);
-			}
-		}
-	);
-	return { m: mockMessages };
+afterEach(() => {
+	vi.mocked(goto).mockClear();
+	getConduitOptions.mockReset();
+	selectedProject.set('1');
+	selectedFlag.set(['2']);
+	selectedConduit.set(undefined);
+	mapStates.length = 0;
+	mapStateArgs.length = 0;
+	selectionManagers.length = 0;
+	layersInitialized.value = true;
 });
 
-// Mock the OpenLayers components
-vi.mock('ol/Feature.js', () => ({
-	default: class Feature {
-		geometry: Record<string, unknown>;
-		id?: string;
-		constructor(geometry: Record<string, unknown>) {
-			this.geometry = geometry;
-		}
-		get(key: string) {
-			return (this as Record<string, unknown>)[key] || null;
-		}
-		getId() {
-			return this.id || 'mock-feature-id';
-		}
-	}
-}));
+describe('/trench/+page.svelte', () => {
+	test('should show the map and the assignment controls', async () => {
+		openPage('/trench/1/2', { projectId: '1', flagId: '2' });
 
-vi.mock('ol/format/MVT.js', () => ({
-	default: class MVT {
-		options: Record<string, unknown>;
-		constructor(options: Record<string, unknown>) {
-			this.options = options;
-		}
-		readFeatures() {
-			return [];
-		}
-	}
-}));
+		expect(await screen.findByTestId('map')).toBeInTheDocument();
+		expect(document.querySelector('input[name="routing-mode"]')).toBeInTheDocument();
+		expect(document.querySelector('input[name="show-linked-trenches"]')).toBeInTheDocument();
+		expect(screen.getByText('message_no_trenches')).toBeInTheDocument();
+	});
 
-vi.mock('ol/format/WKT.js', () => ({
-	default: class WKT {
-		readGeometry() {
-			return {
-				getExtent: () => [0, 0, 100, 100]
-			};
-		}
-		readFeature() {
-			return {
-				geometry: {
-					getExtent: () => [0, 0, 100, 100]
-				}
-			};
-		}
-	}
-}));
+	test('should build the map for the selected project with every feature layer', () => {
+		openPage('/trench/1/2', { projectId: '1', flagId: '2' });
 
-vi.mock('ol/layer/Vector.js', () => ({
-	default: class VectorLayer {
-		options: Record<string, unknown>;
-		source: unknown;
-		constructor(options: Record<string, unknown>) {
-			this.options = options;
-			this.source = options.source;
-		}
-		getSource() {
-			return {
-				addFeature: vi.fn(),
-				removeFeature: vi.fn(),
-				clear: vi.fn(),
-				dispose: vi.fn()
-			};
-		}
-		changed() {}
-	}
-}));
+		expect(mapStateArgs[0]).toEqual([
+			'1',
+			'#ff0000',
+			{ trench: true, address: true, node: true, area: true }
+		]);
+	});
 
-vi.mock('ol/layer/VectorTile.js', () => ({
-	default: class VectorTileLayer {
-		options: Record<string, unknown>;
-		source: unknown;
-		visible: boolean;
-		constructor(options?: Record<string, unknown>) {
-			this.options = options ?? {};
-			this.source = options?.source;
-			this.visible = (options?.visible as boolean) ?? true;
-		}
-		getSource() {
-			return {
-				refresh: vi.fn(),
-				dispose: vi.fn(),
-				getKey: vi.fn(() => 'mock-key')
-			};
-		}
-		changed() {}
-		setStyle() {}
-		setVisible(visible: boolean) {
-			this.visible = visible;
-		}
-		getVisible() {
-			return this.visible;
-		}
-	}
-}));
+	test('should say so when the map tiles cannot be set up', () => {
+		layersInitialized.value = false;
 
-vi.mock('ol/source/Vector.js', () => ({
-	default: class VectorSource {
-		constructor() {}
-		addFeature() {}
-		removeFeature() {}
-		clear() {}
-	}
-}));
+		openPage('/trench/1/2', { projectId: '1', flagId: '2' });
 
-vi.mock('ol/source/VectorTile.js', () => ({
-	default: class VectorTileSource {
-		options: Record<string, unknown>;
-		constructor(options: Record<string, unknown>) {
-			this.options = options;
-		}
-		refresh() {}
-		dispose() {}
-	}
-}));
+		expect(screen.getByText('message_error_could_not_load_map_tiles')).toBeInTheDocument();
+		expect(screen.queryByTestId('map')).not.toBeInTheDocument();
+	});
 
-vi.mock('ol/style', () => ({
-	Circle: class CircleStyle {
-		options: Record<string, unknown>;
-		constructor(options: Record<string, unknown>) {
-			this.options = options;
-		}
-	},
-	RegularShape: class RegularShape {
-		options: Record<string, unknown>;
-		constructor(options: Record<string, unknown>) {
-			this.options = options;
-		}
-	},
-	Style: class Style {
-		options: Record<string, unknown>;
-		constructor(options: Record<string, unknown>) {
-			this.options = options;
-		}
-	}
-}));
+	test('should load the conduits of the project and flag', async () => {
+		openPage('/trench/1/2', { projectId: '1', flagId: '2' });
 
-vi.mock('ol/style/Fill.js', () => ({
-	default: class Fill {
-		options: Record<string, unknown>;
-		constructor(options: Record<string, unknown>) {
-			this.options = options;
-		}
-	}
-}));
+		expect(await screen.findByPlaceholderText('placeholder_select_conduit')).toBeInTheDocument();
+		expect(getConduitOptions).toHaveBeenCalledWith({ projectId: '1', flagId: '2' });
+	});
 
-vi.mock('ol/style/Stroke.js', () => ({
-	default: class Stroke {
-		options: Record<string, unknown>;
-		constructor(options: Record<string, unknown>) {
-			this.options = options;
-		}
-	}
-}));
+	test('should complete a bare route with the stored project and flag', () => {
+		openPage('/trench');
 
-vi.mock('ol/style/Text.js', () => ({
-	default: class Text {
-		options: Record<string, unknown>;
-		constructor(options: Record<string, unknown>) {
-			this.options = options;
-		}
-	}
-}));
-
-// Mock the component dependencies
-vi.mock('$lib/components/Map.svelte', () => ({
-	default: vi.fn().mockImplementation(() => ({
-		$$: { render: () => '<div data-testid="mock-map"></div>' }
-	}))
-}));
-
-vi.mock('$lib/components/ConduitCombobox.svelte', () => ({
-	default: vi.fn().mockImplementation(() => ({
-		$$: { render: () => '<div data-testid="mock-conduit-combobox"></div>' }
-	}))
-}));
-
-vi.mock('$lib/components/GenericCombobox.svelte', () => ({
-	default: vi.fn().mockImplementation(() => ({
-		$$: { render: () => '<div data-testid="mock-generic-combobox"></div>' }
-	}))
-}));
-
-vi.mock('./TrenchTable.svelte', () => ({
-	default: vi.fn().mockImplementation(() => ({
-		$$: { render: () => '<div data-testid="mock-trench-table"></div>' },
-		addRoutedTrenches: vi.fn().mockResolvedValue(true)
-	}))
-}));
-
-vi.mock('@skeletonlabs/skeleton-svelte', () => ({
-	Switch: vi.fn().mockImplementation(() => ({
-		$$: { render: () => '<div data-testid="mock-switch"></div>' }
-	})),
-	Toaster: vi.fn().mockImplementation(() => ({
-		$$: { render: () => '<div data-testid="mock-toaster"></div>' }
-	})),
-	createToaster: () => ({
-		create: vi.fn()
-	})
-}));
-
-// Create a mock map instance
-const mockMapInstance = {
-	getView: () => ({
-		getProjection: () => 'EPSG:3857',
-		fit: vi.fn((extent: unknown, options?: { callback?: () => void }) => {
-			if (options && options.callback) {
-				options.callback();
-			}
-		})
-	}),
-	addLayer: vi.fn(),
-	removeLayer: vi.fn(),
-	on: vi.fn(),
-	un: vi.fn(),
-	getFeaturesAtPixel: vi.fn().mockReturnValue([])
-};
-
-// Mock fetch for API calls
-global.fetch = vi.fn() as unknown as typeof fetch;
-
-describe('Trench Page Component', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-
-		// Reset fetch mock
-		vi.mocked(fetch).mockReset();
-
-		// Mock successful fetch responses
-		vi.mocked(fetch).mockImplementation((url: string | URL | Request) => {
-			const urlStr = String(url);
-			if (urlStr.includes('trench/?id_trench=')) {
-				return Promise.resolve({
-					ok: true,
-					json: () =>
-						Promise.resolve({
-							results: {
-								features: [
-									{
-										geometry: {
-											type: 'LineString',
-											coordinates: [
-												[0, 0],
-												[1, 1]
-											]
-										}
-									}
-								]
-							}
-						})
-				}) as Promise<Response>;
-			}
-
-			if (urlStr === '/api/routing') {
-				return Promise.resolve({
-					ok: true,
-					json: () =>
-						Promise.resolve({
-							path_geometry_wkt: 'LINESTRING(0 0, 1 1, 2 2)',
-							traversed_trench_uuids: ['uuid1', 'uuid2', 'uuid3'],
-							traversed_trench_ids: ['101', '102', '103']
-						})
-				}) as Promise<Response>;
-			}
-
-			return Promise.resolve({
-				ok: false,
-				status: 404,
-				text: () => Promise.resolve('Not found')
-			}) as Promise<Response>;
+		expect(goto).toHaveBeenCalledWith('/trench/1/2', {
+			keepFocus: true,
+			noScroll: true,
+			replaceState: true
 		});
 	});
 
-	it('should render the trench page component', () => {
-		const { container } = render(Page, {
-			data: {
-				flags: [],
-				conduits: [],
-				conduitsError: null
-			} as unknown as import('./$types').PageData
-		});
+	test('should leave a URL alone that already names the project and flag', () => {
+		openPage('/trench/1/2', { projectId: '1', flagId: '2' });
 
-		expect(container).toBeTruthy();
+		expect(goto).not.toHaveBeenCalled();
 	});
 
-	it('should render with flags data', () => {
-		const { container } = render(Page, {
-			data: {
-				flags: [{ id: 1, flag: 'Test Flag' }],
-				conduits: [],
-				conduitsError: null
-			} as unknown as import('./$types').PageData
-		});
+	test('should follow a project or flag that changes later', () => {
+		openPage('/trench/1/2', { projectId: '1', flagId: '2' });
 
-		expect(container).toBeTruthy();
+		selectedFlag.set(['3']);
+		expect(goto).toHaveBeenLastCalledWith('/trench/1/3', expect.anything());
+
+		selectedProject.set('8');
+		expect(goto).toHaveBeenLastCalledWith('/trench/8/3', expect.anything());
 	});
 
-	it('should render with conduits data', () => {
-		const { container } = render(Page, {
-			data: {
-				flags: [],
-				conduits: [{ value: '1', label: 'Test Conduit' }],
-				conduitsError: null
-			} as unknown as import('./$types').PageData
-		});
+	test('should adopt the project and flag named in the URL', () => {
+		openPage('/trench/5/4', { projectId: '5', flagId: '4' });
 
-		expect(container).toBeTruthy();
+		expect(get(selectedProject)).toBe('5');
+		expect(get(selectedFlag)).toEqual(['4']);
+		expect(goto).not.toHaveBeenCalled();
 	});
 
-	it('should render with both flags and conduits', () => {
-		const { container } = render(Page, {
-			data: {
-				flags: [{ id: 1, flag: 'Test Flag' }],
-				conduits: [{ value: '1', label: 'Test Conduit' }],
-				conduitsError: null
-			} as unknown as import('./$types').PageData
-		});
+	test('should keep a remembered conduit when the URL matches its project and flag', () => {
+		selectedConduit.set('conduit-1');
 
-		expect(container).toBeTruthy();
+		openPage('/trench/1/2', { projectId: '1', flagId: '2' });
+
+		expect(get(selectedConduit)).toBe('conduit-1');
+	});
+
+	test('should forget a conduit remembered from another project', () => {
+		selectedConduit.set('conduit-1');
+
+		openPage('/trench/5/2', { projectId: '5', flagId: '2' });
+
+		expect(get(selectedConduit)).toBeUndefined();
+	});
+
+	test('should forget a conduit remembered from another flag', () => {
+		selectedConduit.set('conduit-1');
+
+		openPage('/trench/1/4', { projectId: '1', flagId: '4' });
+
+		expect(get(selectedConduit)).toBeUndefined();
+	});
+
+	test('should forget a remembered conduit the flag does not offer any more', async () => {
+		selectedConduit.set('conduit-gone');
+
+		openPage('/trench/1/2', { projectId: '1', flagId: '2' });
+
+		await vi.waitFor(() => expect(get(selectedConduit)).toBeUndefined());
+	});
+
+	test('should stop following the stores and release the map once it is left', () => {
+		const { unmount } = openPage('/trench/1/2', { projectId: '1', flagId: '2' });
+
+		unmount();
+		selectedFlag.set(['3']);
+
+		expect(goto).not.toHaveBeenCalled();
+		expect(mapStates[0].cleanup).toHaveBeenCalled();
+		expect(selectionManagers[0].cleanup).toHaveBeenCalled();
 	});
 });

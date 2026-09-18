@@ -16,6 +16,7 @@ export class LinkedTrenchHighlights {
 	#highlighted = new Set<string>();
 	#layer: VectorTileLayer | null = null;
 	#map: HighlightedMap | null = null;
+	#visible = true;
 
 	/**
 	 * Adds the highlight layer to the map, drawing from the trench tile source.
@@ -32,9 +33,28 @@ export class LinkedTrenchHighlights {
 				const featureId = feature.getId();
 				return featureId && this.#highlighted.has(String(featureId)) ? style : undefined;
 			},
+			visible: this.#visible,
 			properties: { isHighlightLayer: true }
 		});
 		map.addLayer(this.#layer);
+	}
+
+	/**
+	 * Shows or hides the overlay without forgetting what is highlighted.
+	 * @param visible - Whether the highlights are drawn.
+	 */
+	setVisible(visible: boolean): void {
+		this.#visible = visible;
+		this.#layer?.setVisible(visible);
+	}
+
+	/**
+	 * Points the overlay at another tile source. Switching the project
+	 * replaces the trench layer's source, which the overlay has to follow.
+	 * @param source - The trench layer's current tile source.
+	 */
+	setSource(source: VectorTileSource | null | undefined): void {
+		this.#layer?.setSource(source ?? null);
 	}
 
 	/**
