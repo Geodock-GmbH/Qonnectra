@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte';
 	import type { SearchFeaturePayload } from '$lib/map/searchUtils';
+	import type { SearchResult } from '$lib/remote/map/feature-search-data';
 	import type VectorLayer from 'ol/layer/Vector';
 	import type OlMap from 'ol/Map';
 	import type VectorSource from 'ol/source/Vector';
@@ -8,7 +9,6 @@
 	import { cubicOut } from 'svelte/easing';
 	import { fade, fly } from 'svelte/transition';
 	import { page } from '$app/stores';
-	import { parse } from 'devalue';
 	import Fuse from 'fuse.js';
 
 	import { m } from '$lib/paraglide/messages';
@@ -26,14 +26,13 @@
 	import { globalMapView, selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
+	import {
+		getConduitTrenches,
+		getFeatureDetails,
+		searchFeatures
+	} from '$lib/remote/map/feature-search.remote';
 
 	import SearchInput from './SearchInput.svelte';
-
-	interface SearchResult {
-		label: string;
-		type: string;
-		value: string;
-	}
 
 	interface Props {
 		olMapInstance?: OlMap | null;
@@ -55,7 +54,7 @@
 	const selectionManager = mapManagers?.selectionManager;
 
 	let searchQuery = $state('');
-	let searchResults = $state<SearchResult[] | null>([]);
+	let searchResults = $state<SearchResult[]>([]);
 	let filterQuery = $state('');
 	let isSearching = $state(false);
 	let showSearchResults = $state(false);
@@ -64,14 +63,13 @@
 	const FILTER_THRESHOLD = 10;
 
 	const fuse = $derived(
-		new Fuse(searchResults ?? [], {
+		new Fuse(searchResults, {
 			keys: ['label'],
 			threshold: 0.3
 		})
 	);
 
 	let filteredResults = $derived.by(() => {
-		if (!searchResults) return [];
 		if (!filterQuery.trim()) return searchResults;
 		const results = fuse.search(filterQuery);
 		return results.length > 0 ? results.map((r) => r.item) : searchResults;
@@ -136,28 +134,12 @@
 
 		isSearching = true;
 		try {
-			const formData = new FormData();
-			formData.append('searchQuery', query);
-			const projectId = $globalMapView ? '' : $selectedProject;
-			formData.append('projectId', projectId);
-
-			const response = await fetch('?/searchFeatures', {
-				method: 'POST',
-				body: formData
+			searchResults = await searchFeatures({
+				searchQuery: query,
+				projectId: $globalMapView ? '' : $selectedProject
 			});
-
-			if (response.ok) {
-				let rawResponse = await response.json();
-				let parsedData = parse(rawResponse.data);
-
-				searchResults = parsedData;
-				filterQuery = '';
-				showSearchResults = true;
-			} else {
-				console.error('Failed to fetch search results:', await response.text());
-				searchResults = null;
-				showSearchResults = false;
-			}
+			filterQuery = '';
+			showSearchResults = true;
 		} catch (error) {
 			console.error('Search error:', error);
 			void logToBackendClient({
@@ -187,7 +169,7 @@
 	 * Handle result item click
 	 * @param result - Selected result item
 	 */
-	async function handleResultClick(result: { type: string; value: string; label: string }) {
+	async function handleResultClick(result: SearchResult) {
 		if (!result || !olMapInstance) return;
 
 		const { type, value } = result;
@@ -199,73 +181,50 @@
 				return;
 			}
 
-			const formData = new FormData();
-			formData.append('featureType', type);
-			formData.append('featureUuid', value);
-			const projectId = $globalMapView ? '' : $selectedProject;
-			formData.append('projectId', projectId);
-
-			const response = await fetch('?/getFeatureDetails', {
-				method: 'POST',
-				body: formData
+			const feature = await getFeatureDetails({
+				featureType: type,
+				featureUuid: value,
+				projectId: $globalMapView ? '' : $selectedProject
 			});
 
-			const jsonResult = await response.json();
-			let parsedData = parse(jsonResult.data);
+			const geometry = await parseFeatureGeometry(
+				feature,
+				storageProjection($page.data.srid),
+				olMapInstance.getView().getProjection().getCode()
+			);
 
-			if (
-				jsonResult.type === 'success' &&
-				parsedData?.success &&
-				parsedData?.feature &&
-				parsedData.feature.length > 0
-			) {
-				const feature = parsedData.feature[0];
-
-				const geometry = await parseFeatureGeometry(
-					feature,
-					storageProjection($page.data.srid),
-					olMapInstance.getView().getProjection().getCode()
-				);
-
-				if (!geometry) {
-					console.error('Failed to parse feature geometry');
-					globalToaster.error({
-						title: m.title_feature_found(),
-						description: m.message_error_search_failed()
-					});
-					return;
-				}
-
-				if (!highlightLayer) {
-					const highlightStyle = createSearchHighlightStyle(trenchColorSelected);
-					highlightLayer = await createHighlightLayer(highlightStyle);
-					olMapInstance.addLayer(highlightLayer);
-				}
-
-				const [{ default: Feature }] = await Promise.all([import('ol/Feature')]);
-
-				const highlightFeature = new Feature(geometry);
-				highlightFeature.setId(feature.id);
-
-				highlightLayer.getSource()!.clear();
-				await zoomToFeature(olMapInstance, geometry, highlightLayer);
-
-				searchQuery = '';
-				searchResults = [];
-				showSearchResults = false;
-
-				globalToaster.success({
-					title: m.title_feature_found()
-				});
-
-				onFeatureSelect(feature);
-			} else {
-				console.error('Invalid response structure:', parsedData);
+			if (!geometry) {
+				console.error('Failed to parse feature geometry');
 				globalToaster.error({
 					title: m.title_feature_found(),
 					description: m.message_error_search_failed()
 				});
+				return;
 			}
+
+			if (!highlightLayer) {
+				const highlightStyle = createSearchHighlightStyle(trenchColorSelected);
+				highlightLayer = await createHighlightLayer(highlightStyle);
+				olMapInstance.addLayer(highlightLayer);
+			}
+
+			const [{ default: Feature }] = await Promise.all([import('ol/Feature')]);
+
+			const highlightFeature = new Feature(geometry);
+			highlightFeature.setId(feature.id);
+
+			highlightLayer.getSource()!.clear();
+			await zoomToFeature(olMapInstance, geometry, highlightLayer);
+
+			searchQuery = '';
+			searchResults = [];
+			showSearchResults = false;
+
+			globalToaster.success({
+				title: m.title_feature_found()
+			});
+
+			onFeatureSelect(feature);
 		} catch (error) {
 			console.error('Error fetching feature details:', error);
 			void logToBackendClient({
@@ -293,68 +252,51 @@
 		if (!olMapInstance) return;
 		registerStorageProjection($page.data.srid, $page.data.proj4Def);
 		try {
-			const formData = new FormData();
-			formData.append('conduitUuid', conduitUuid);
+			const { trenches, trenchUuids } = await getConduitTrenches(conduitUuid);
 
-			const response = await fetch('?/getConduitTrenches', {
-				method: 'POST',
-				body: formData
+			if (trenches.length === 0) {
+				globalToaster.warning({
+					title: m.form_conduit({ count: 1 }),
+					description: m.message_no_conduits_found()
+				});
+				return;
+			}
+
+			const rawGeometries = await parseMultipleFeatureGeometries(
+				trenches,
+				storageProjection($page.data.srid),
+				olMapInstance.getView().getProjection().getCode()
+			);
+			const geometries = rawGeometries.filter(
+				(g): g is import('ol/geom/Geometry').default => g !== undefined
+			);
+
+			if (!highlightLayer) {
+				const highlightStyle = createSearchHighlightStyle(trenchColorSelected);
+				highlightLayer = await createHighlightLayer(highlightStyle);
+				olMapInstance.addLayer(highlightLayer);
+			}
+
+			highlightLayer.getSource()!.clear();
+			await zoomToMultipleFeatures(olMapInstance, geometries, highlightLayer, {
+				maxZoom: 17
 			});
 
-			const result = await response.json();
-			let parsedData = parse(result.data);
+			searchQuery = '';
+			searchResults = [];
+			showSearchResults = false;
 
-			if (result.type === 'success' && parsedData?.success) {
-				if (!parsedData.trenches || parsedData.trenches.length === 0) {
-					globalToaster.warning({
-						title: m.form_conduit({ count: 1 }),
-						description: m.message_no_conduits_found()
-					});
-					return;
-				}
+			globalToaster.success({
+				title: m.title_feature_found(),
+				description: `${trenches.length} ${m.nav_trench()}`
+			});
 
-				const rawGeometries = await parseMultipleFeatureGeometries(
-					parsedData.trenches,
-					storageProjection($page.data.srid),
-					olMapInstance.getView().getProjection().getCode()
-				);
-				const geometries = rawGeometries.filter(
-					(g): g is import('ol/geom/Geometry').default => g !== undefined
-				);
-
-				if (!highlightLayer) {
-					const highlightStyle = createSearchHighlightStyle(trenchColorSelected);
-					highlightLayer = await createHighlightLayer(highlightStyle);
-					olMapInstance.addLayer(highlightLayer);
-				}
-
-				highlightLayer.getSource()!.clear();
-				await zoomToMultipleFeatures(olMapInstance, geometries, highlightLayer, {
-					maxZoom: 17
-				});
-
-				searchQuery = '';
-				searchResults = [];
-				showSearchResults = false;
-
-				globalToaster.success({
-					title: m.title_feature_found(),
-					description: `${parsedData.trenches.length} ${m.nav_trench()}`
-				});
-
-				onFeatureSelect({
-					type: 'conduit',
-					uuid: conduitUuid,
-					trenches: parsedData.trenches,
-					trenchUuids: parsedData.trenchUuids
-				});
-			} else {
-				console.error('Invalid response structure:', parsedData);
-				globalToaster.error({
-					title: m.common_error(),
-					description: m.message_error_search_failed()
-				});
-			}
+			onFeatureSelect({
+				type: 'conduit',
+				uuid: conduitUuid,
+				trenches,
+				trenchUuids
+			});
 		} catch (error) {
 			console.error('Error fetching conduit trenches:', error);
 			void logToBackendClient({
@@ -392,7 +334,7 @@
 	<SearchInput bind:value={searchQuery} onSearch={handleSearch} />
 
 	<!-- Search Results -->
-	{#if showSearchResults && searchResults && searchResults.length > 0 && !isSearching}
+	{#if showSearchResults && searchResults.length > 0 && !isSearching}
 		<div class="results-container" transition:fly={{ y: -8, duration: 200, easing: cubicOut }}>
 			<div class="results-header">
 				<span class="results-count">{filteredResults.length}</span>

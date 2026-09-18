@@ -1,14 +1,8 @@
-import type { Actions, PageServerLoad } from './$types';
-import { error, fail } from '@sveltejs/kit';
+import type { PageServerLoad } from './$types';
+import { error } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
-import {
-	getFeatureDetailsByType,
-	getLayerExtent,
-	getTrenchUuidsForConduit,
-	searchFeaturesInProject
-} from '$lib/server/featureSearch';
 import { mapNodesToOptions } from '$lib/server/nodeData';
 
 /**
@@ -338,50 +332,3 @@ export const load: PageServerLoad = async ({ fetch, cookies, url, params }) => {
 		};
 	}
 };
-
-/**
- * SvelteKit form actions for the network schema page.
- * Handles CRUD operations for cables, nodes, slot configurations, containers,
- * node structures, fiber splices, micropipe connections, and related entities.
- */
-export const actions = {
-	getLayerExtent: async ({ request, fetch, cookies }) => {
-		const formData = await request.formData();
-		const layerType = formData.get('layerType');
-		const projectId = formData.get('projectId');
-
-		return getLayerExtent(
-			fetch,
-			cookies,
-			String(layerType) as 'node' | 'trench' | 'address',
-			String(projectId)
-		);
-	},
-	searchFeatures: async ({ request, fetch, cookies }) => {
-		const data = await request.formData();
-		const searchQuery = data.get('searchQuery');
-		const projectId = data.get('projectId');
-
-		return searchFeaturesInProject(fetch, cookies, String(searchQuery), String(projectId));
-	},
-	getFeatureDetails: async ({ request, fetch, cookies }) => {
-		const data = await request.formData();
-		const featureType = data.get('featureType');
-		const featureUuid = data.get('featureUuid');
-		const projectId = data.get('projectId');
-
-		return getFeatureDetailsByType(
-			fetch,
-			cookies,
-			String(featureType) as 'node' | 'trench' | 'address' | 'area',
-			String(featureUuid),
-			String(projectId)
-		);
-	},
-	getConduitTrenches: async ({ request, fetch, cookies }) => {
-		const formData = await request.formData();
-		const conduitUuid = formData.get('conduitUuid');
-
-		return getTrenchUuidsForConduit(fetch, cookies, String(conduitUuid));
-	}
-} satisfies Actions;

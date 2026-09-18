@@ -1,10 +1,11 @@
+import type { SearchResult } from '$lib/remote/map/feature-search-data';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { stringify } from 'devalue';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalMapView, selectedProject } from '$lib/stores/store';
 import { globalToaster } from '$lib/stores/toaster';
+import { searchFeatures } from '$lib/remote/map/feature-search.remote';
 
 import SearchPanel from './SearchPanel.svelte';
 
@@ -35,6 +36,12 @@ vi.mock('$lib/paraglide/messages', () => ({
 	)
 }));
 
+vi.mock('$lib/remote/map/feature-search.remote', () => ({
+	searchFeatures: vi.fn(),
+	getFeatureDetails: vi.fn(),
+	getConduitTrenches: vi.fn()
+}));
+
 vi.mock('$lib/stores/toaster', () => ({
 	globalToaster: {
 		success: vi.fn(),
@@ -57,13 +64,12 @@ Element.prototype.animate = function () {
 	return animation as unknown as Animation;
 };
 
-const fetchMock = vi.fn();
+function searchResult(label: string, type: SearchResult['type'], value: string): SearchResult {
+	return { label, type, value, uuid: value };
+}
 
-function searchResponse(results: Array<{ label: string; type: string; value: string }>) {
-	return {
-		ok: true,
-		json: () => Promise.resolve({ type: 'success', data: stringify(results) })
-	};
+function mockSearchResults(results: SearchResult[]) {
+	vi.mocked(searchFeatures).mockResolvedValue(results as never);
 }
 
 async function performSearch(query: string) {
@@ -72,27 +78,23 @@ async function performSearch(query: string) {
 }
 
 beforeEach(() => {
-	vi.stubGlobal('fetch', fetchMock);
 	selectedProject.set('7');
 	globalMapView.set(false);
 	vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {
-	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
-	fetchMock.mockReset();
+	vi.mocked(searchFeatures).mockReset();
 	vi.mocked(globalToaster.error).mockClear();
 });
 
 describe('SearchPanel', () => {
 	test('should search features and render results with type badges', async () => {
-		fetchMock.mockResolvedValue(
-			searchResponse([
-				{ label: 'Hauptstraße 5 (Adresse)', type: 'address', value: 'addr-1' },
-				{ label: 'T-42 (Graben)', type: 'trench', value: 'trench-1' }
-			])
-		);
+		mockSearchResults([
+			searchResult('Hauptstraße 5 (Adresse)', 'address', 'addr-1'),
+			searchResult('T-42 (Graben)', 'trench', 'trench-1')
+		]);
 		render(SearchPanel);
 
 		await performSearch('haupt');
@@ -102,22 +104,19 @@ describe('SearchPanel', () => {
 		expect(screen.getByText('form_address')).toBeInTheDocument();
 		expect(screen.getByText('nav_trench')).toBeInTheDocument();
 
-		const body = fetchMock.mock.calls[0][1].body as FormData;
-		expect(fetchMock.mock.calls[0][0]).toBe('?/searchFeatures');
-		expect(body.get('searchQuery')).toBe('haupt');
-		expect(body.get('projectId')).toBe('7');
+		expect(searchFeatures).toHaveBeenCalledWith({ searchQuery: 'haupt', projectId: '7' });
 	});
 
 	test('should search without a project in global map view', async () => {
-		fetchMock.mockResolvedValue(searchResponse([]));
+		mockSearchResults([]);
 		globalMapView.set(true);
 		render(SearchPanel);
 
 		await performSearch('haupt');
 
-		await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled());
-		const body = fetchMock.mock.calls[0][1].body as FormData;
-		expect(body.get('projectId')).toBe('');
+		await vi.waitFor(() =>
+			expect(searchFeatures).toHaveBeenCalledWith({ searchQuery: 'haupt', projectId: '' })
+		);
 	});
 
 	test('should not search for an empty query', async () => {
@@ -127,11 +126,11 @@ describe('SearchPanel', () => {
 		await user.type(screen.getByTestId('search-input'), '{Enter}');
 		await new Promise((resolve) => setTimeout(resolve, 350));
 
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(searchFeatures).not.toHaveBeenCalled();
 	});
 
 	test('should toast an error and notify the parent when the search fails', async () => {
-		fetchMock.mockRejectedValue(new Error('offline'));
+		vi.mocked(searchFeatures).mockRejectedValue(new Error('offline') as never);
 		const onSearchError = vi.fn();
 		render(SearchPanel, { onSearchError });
 
@@ -142,15 +141,12 @@ describe('SearchPanel', () => {
 	});
 
 	test('should show a filter input for large result sets and filter with it', async () => {
-		const manyResults = [
-			{ label: 'Zebrastreifen (Knoten)', type: 'node', value: 'node-zebra' },
-			...Array.from({ length: 11 }, (_, index) => ({
-				label: `Knoten-${index} (Knoten)`,
-				type: 'node',
-				value: `node-${index}`
-			}))
-		];
-		fetchMock.mockResolvedValue(searchResponse(manyResults));
+		mockSearchResults([
+			searchResult('Zebrastreifen (Knoten)', 'node', 'node-zebra'),
+			...Array.from({ length: 11 }, (_, index) =>
+				searchResult(`Knoten-${index} (Knoten)`, 'node', `node-${index}`)
+			)
+		]);
 		const user = userEvent.setup();
 		render(SearchPanel);
 
@@ -165,9 +161,7 @@ describe('SearchPanel', () => {
 	});
 
 	test('should clear results via the exported clearSearch method', async () => {
-		fetchMock.mockResolvedValue(
-			searchResponse([{ label: 'PoP-1 (Knoten)', type: 'node', value: 'node-1' }])
-		);
+		mockSearchResults([searchResult('PoP-1 (Knoten)', 'node', 'node-1')]);
 		const { component } = render(SearchPanel);
 		await performSearch('pop');
 		await screen.findByText('PoP-1');

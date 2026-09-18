@@ -35,13 +35,6 @@ vi.mock('$lib/server/conduitData', () => ({
 	saveTrenchProfilePosition: vi.fn()
 }));
 
-vi.mock('$lib/server/featureSearch', () => ({
-	searchFeaturesInProject: vi.fn(),
-	getFeatureDetailsByType: vi.fn(),
-	getTrenchUuidsForConduit: vi.fn(),
-	getLayerExtent: vi.fn()
-}));
-
 vi.mock('$lib/server/nodeData', () => ({
 	getContainerHierarchy: vi.fn(),
 	getContainerTypes: vi.fn(),
@@ -119,50 +112,6 @@ describe('map +page.server.js', () => {
 		});
 	});
 
-	describe('searchFeatures', () => {
-		test('should call searchFeaturesInProject with correct params', async () => {
-			const { searchFeaturesInProject } = await import('$lib/server/featureSearch');
-			vi.mocked(searchFeaturesInProject).mockResolvedValueOnce([
-				{ value: 'uuid-1', label: 'Node 1' }
-			] as never);
-
-			const result = await actions.searchFeatures(
-				createEvent({ searchQuery: 'test', projectId: 'proj-1' })
-			);
-
-			expect(searchFeaturesInProject).toHaveBeenCalledWith(
-				mockFetch,
-				mockCookies,
-				'test',
-				'proj-1'
-			);
-			expect(result).toEqual([{ value: 'uuid-1', label: 'Node 1' }]);
-		});
-	});
-
-	describe('getFeatureDetails', () => {
-		test('should call getFeatureDetailsByType with correct params', async () => {
-			const { getFeatureDetailsByType } = await import('$lib/server/featureSearch');
-			vi.mocked(getFeatureDetailsByType).mockResolvedValueOnce({
-				success: true,
-				feature: { id: 'uuid-1' }
-			} as never);
-
-			const result = await actions.getFeatureDetails(
-				createEvent({ featureType: 'node', featureUuid: 'uuid-1', projectId: 'proj-1' })
-			);
-
-			expect(getFeatureDetailsByType).toHaveBeenCalledWith(
-				mockFetch,
-				mockCookies,
-				'node',
-				'uuid-1',
-				'proj-1'
-			);
-			expect(result).toEqual({ success: true, feature: { id: 'uuid-1' } });
-		});
-	});
-
 	describe('getPipesInTrench', () => {
 		test('should call getPipesInTrench with trench UUID', async () => {
 			const { getPipesInTrench } = await import('$lib/server/conduitData');
@@ -196,34 +145,6 @@ describe('map +page.server.js', () => {
 
 			expect(getTrenchesForConduit).toHaveBeenCalledWith(mockFetch, mockCookies, 'conduit-1');
 			expect(result).toEqual([{ uuid: 't-1' }]);
-		});
-	});
-
-	describe('getConduitTrenches', () => {
-		test('should call getTrenchUuidsForConduit with conduit UUID', async () => {
-			const { getTrenchUuidsForConduit } = await import('$lib/server/featureSearch');
-			vi.mocked(getTrenchUuidsForConduit).mockResolvedValueOnce({
-				trenchUuids: ['t-1', 't-2']
-			} as never);
-
-			const result = await actions.getConduitTrenches(createEvent({ conduitUuid: 'conduit-1' }));
-
-			expect(getTrenchUuidsForConduit).toHaveBeenCalledWith(mockFetch, mockCookies, 'conduit-1');
-			expect(result).toEqual({ trenchUuids: ['t-1', 't-2'] });
-		});
-	});
-
-	describe('getLayerExtent', () => {
-		test('should call getLayerExtent with layer type and project ID', async () => {
-			const { getLayerExtent } = await import('$lib/server/featureSearch');
-			vi.mocked(getLayerExtent).mockResolvedValueOnce({ extent: [1, 2, 3, 4] } as never);
-
-			const result = await actions.getLayerExtent(
-				createEvent({ layerType: 'trench', projectId: 'proj-1' })
-			);
-
-			expect(getLayerExtent).toHaveBeenCalledWith(mockFetch, mockCookies, 'trench', 'proj-1');
-			expect(result).toEqual({ extent: [1, 2, 3, 4] });
 		});
 	});
 

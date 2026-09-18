@@ -186,6 +186,3 @@ export const load: PageServerLoad = async ({ fetch, cookies, params }) => {
 		throw redirect(302, `/network-schema/${projectId}`);
 	}
 };
-
-// Re-export actions from parent for drawer functionality
-export { actions } from '../../+page.server.js';

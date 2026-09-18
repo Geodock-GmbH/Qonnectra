@@ -32,10 +32,10 @@ test.describe('Map page', () => {
 	test('submitting the search issues a feature-search request to the backend', async ({ page }) => {
 		const search = page.getByPlaceholder(/suchen|search/i).first();
 
-		// Pressing Enter must trigger the real ?/searchFeatures form action; if the
+		// Pressing Enter must call the real searchFeatures remote query; if the
 		// search wiring breaks, no request fires and this fails.
 		const requestPromise = page.waitForRequest(
-			(req) => req.url().includes('searchFeatures') && req.method() === 'POST',
+			(req) => req.url().includes('/_app/remote/') && req.url().includes('searchFeatures'),
 			{ timeout: 15000 }
 		);
 		await search.click();
@@ -43,9 +43,9 @@ test.describe('Map page', () => {
 		await search.press('Enter');
 
 		const request = await requestPromise;
-		// The active project scopes the query, and the typed term is sent as-is.
-		const body = request.postData() ?? '';
-		expect(body).toContain('searchQuery');
+		// Queries travel as GET requests carrying their argument in the payload.
+		expect(request.method()).toBe('GET');
+		expect(new URL(request.url()).searchParams.get('payload')).toBeTruthy();
 	});
 
 	test('shows the map hint prompting the user to click a layer', async ({ page }) => {

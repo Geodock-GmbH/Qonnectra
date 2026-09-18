@@ -671,6 +671,7 @@
 	"message_trenches_found": "{count} Trassen in der Nähe gefunden",
 	"message_valuation": "Wählen Sie aus der Sidebar ein Gebiet und klicken Sie Berechnen",
 	"message_warning_cable_type_incomplete_color_mappings": "Kabeltyp hat unvollständige Farbzuordnungen. Bündel- und Faseranzahl stimmen nicht überein. Fasern wurden nicht generiert. Bitte korrigieren Sie die Farbzuordnungen im Admin-Bereich.",
+	"message_zoom_to_extent_failed": "Zoomen auf die Ebene fehlgeschlagen.",
 	"nav_address": "Adressen",
 	"nav_area": "Gebiete",
 	"nav_category_cable": "Kabel",

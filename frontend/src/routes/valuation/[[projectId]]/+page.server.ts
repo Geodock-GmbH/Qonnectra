@@ -9,7 +9,6 @@ import {
 	getNodeTypes,
 	getSurfaces
 } from '$lib/server/attributes';
-import { getLayerExtent } from '$lib/server/featureSearch';
 
 /** Loads the selected project's areas, valuation cost rates, and node types. */
 export const load: PageServerLoad = async ({ fetch, cookies }) => {
@@ -122,22 +121,5 @@ export const actions = {
 			console.error('Error calculating valuation:', err);
 			return fail(500, { message: (err as Error).message || 'Failed to calculate valuation' });
 		}
-	},
-
-	/**
-	 * Returns the extent of a map layer so the layer tree can zoom to it.
-	 * Expects form data: layerType, projectId.
-	 */
-	getLayerExtent: async ({ request, fetch, cookies }) => {
-		const formData = await request.formData();
-		const layerType = formData.get('layerType');
-		const projectId = formData.get('projectId');
-
-		return getLayerExtent(
-			fetch,
-			cookies,
-			layerType as 'trench' | 'node' | 'address',
-			projectId as string
-		);
 	}
 } satisfies Actions;

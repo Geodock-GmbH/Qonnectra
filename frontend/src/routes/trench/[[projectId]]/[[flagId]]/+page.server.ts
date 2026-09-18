@@ -12,12 +12,6 @@ import {
 	getSurfaces
 } from '$lib/server/attributes';
 import { getPipesInTrench, getTrenchesForConduit } from '$lib/server/conduitData';
-import {
-	getFeatureDetailsByType,
-	getLayerExtent,
-	getTrenchUuidsForConduit,
-	searchFeaturesInProject
-} from '$lib/server/featureSearch';
 
 /** Loads conduit options and attribute types for the trench route. */
 export const load: PageServerLoad = async ({ fetch, params, depends, cookies }) => {
@@ -280,29 +274,8 @@ export const actions = {
 	},
 
 	/** Searches for features in a project by query. */
-	searchFeatures: async ({ request, fetch, cookies }) => {
-		const data = await request.formData();
-		const searchQuery = String(data.get('searchQuery'));
-		const projectId = String(data.get('projectId'));
-
-		return searchFeaturesInProject(fetch, cookies, searchQuery, projectId);
-	},
 
 	/** Gets feature details by type and UUID. */
-	getFeatureDetails: async ({ request, fetch, cookies }) => {
-		const data = await request.formData();
-		const featureType = String(data.get('featureType'));
-		const featureUuid = String(data.get('featureUuid'));
-		const projectId = String(data.get('projectId'));
-
-		return getFeatureDetailsByType(
-			fetch,
-			cookies,
-			featureType as 'trench' | 'node' | 'address' | 'area',
-			featureUuid,
-			projectId
-		);
-	},
 
 	/** Gets all pipes/conduits in a specific trench. */
 	getPipesInTrench: async ({ request, fetch, cookies }) => {
@@ -318,22 +291,9 @@ export const actions = {
 		const conduitId = String(formData.get('uuid'));
 
 		return getTrenchesForConduit(fetch, cookies, conduitId);
-	},
+	}
 
 	/** Gets trench geometries for a conduit (for map highlighting). */
-	getConduitTrenches: async ({ request, fetch, cookies }) => {
-		const formData = await request.formData();
-		const conduitUuid = String(formData.get('conduitUuid'));
-
-		return getTrenchUuidsForConduit(fetch, cookies, conduitUuid);
-	},
 
 	/** Gets the bounding box extent for a layer type within a project. */
-	getLayerExtent: async ({ request, fetch, cookies }) => {
-		const formData = await request.formData();
-		const layerType = String(formData.get('layerType'));
-		const projectId = String(formData.get('projectId'));
-
-		return getLayerExtent(fetch, cookies, layerType as 'trench' | 'address' | 'node', projectId);
-	}
 } satisfies Actions;

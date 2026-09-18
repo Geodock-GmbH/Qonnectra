@@ -1,8 +1,6 @@
 import type { Cookies } from '@sveltejs/kit';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { getLayerExtent } from '$lib/server/featureSearch';
-
 import { actions, load } from './+page.server';
 
 vi.mock('$env/static/private', () => ({
@@ -24,10 +22,6 @@ vi.mock('$lib/server/attributes', () => ({
 		Promise.resolve({ constructionTypes: [], constructionTypesError: null })
 	),
 	getAreaTypes: vi.fn(() => Promise.resolve({ areaTypes: [], areaTypesError: null }))
-}));
-
-vi.mock('$lib/server/featureSearch', () => ({
-	getLayerExtent: vi.fn(() => Promise.resolve({ extent: [1, 2, 3, 4], layer: 'trench' }))
 }));
 
 function makeCookies(values: Record<string, string> = {}): Cookies {
@@ -177,23 +171,5 @@ describe('calculate action', () => {
 		} as never);
 
 		expect(result).toEqual({ status: 422, data: { message: 'Keine Kostensätze gepflegt' } });
-	});
-});
-
-describe('getLayerExtent action', () => {
-	test('should delegate to the shared layer extent helper', async () => {
-		const result = await actions.getLayerExtent({
-			request: makeRequest({ layerType: 'trench', projectId: '7' }),
-			fetch: vi.fn(),
-			cookies: makeCookies()
-		} as never);
-
-		expect(getLayerExtent).toHaveBeenCalledWith(
-			expect.any(Function),
-			expect.anything(),
-			'trench',
-			'7'
-		);
-		expect(result).toEqual({ extent: [1, 2, 3, 4], layer: 'trench' });
 	});
 });

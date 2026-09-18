@@ -1,351 +1,45 @@
 <script lang="ts">
-	import type { PageData } from './$types';
-	import type { FaultSimulationResult } from './exportCsv';
-	import { browser, dev } from '$app/environment';
-	import { page } from '$app/state';
-	import Feature from 'ol/Feature.js';
-	import GeoJSON from 'ol/format/GeoJSON.js';
-	import LineString from 'ol/geom/LineString.js';
-	import Point from 'ol/geom/Point.js';
-	import VectorLayer from 'ol/layer/Vector.js';
-
-	import 'ol/ol.css';
-
-	import type { MapBrowserEvent } from 'ol';
-	import type { FeatureLike } from 'ol/Feature.js';
-	import type OlMap from 'ol/Map.js';
-	import type RenderFeature from 'ol/render/Feature.js';
-	import type Style from 'ol/style/Style.js';
+	import type { FaultSimulationResult } from '$lib/remote/fault-simulation/simulation-data';
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
-	import { transform } from 'ol/proj.js';
-	import VectorSource from 'ol/source/Vector.js';
+	import { browser, dev } from '$app/environment';
+	import { page } from '$app/state';
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { MapState } from '$lib/classes/MapState.svelte';
-	import Map from '$lib/components/Map.svelte';
-	import MapHint from '$lib/components/MapHint.svelte';
-	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
+	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
+	import { selectedProject } from '$lib/stores/store';
+
+	import DamageReport from './components/DamageReport.svelte';
+	import FaultSimulationMap from './components/FaultSimulationMap.svelte';
 	import {
-		createAffectedAddressStyle,
-		createAffectedNodeStyle,
-		createAffectedTrenchStyle,
-		createDamagePointStyle
-	} from '$lib/map/styles';
-	import {
-		addressStyle,
-		areaTypeStyles,
-		labelVisibilityConfig,
-		nodeTypeStyles,
-		selectedProject,
-		trenchColor,
-		trenchColorSelected,
-		trenchConstructionTypeStyles,
-		trenchStyleMode,
-		trenchSurfaceStyles
-	} from '$lib/stores/store';
-
-	import DamageReport from './DamageReport.svelte';
-	import FaultSimulationPopUp from './FaultSimulationPopUp.svelte';
-	import { createFaultSimulationContext } from './faultSimulationContext.svelte.js';
-
-	let { data }: { data: PageData } = $props();
-
-	const nodeTypes = $derived(data.nodeTypes ?? []);
-	const surfaces = $derived(data.surfaces ?? []);
-	const constructionTypes = $derived(data.constructionTypes ?? []);
-	const areaTypes = $derived(data.areaTypes ?? []);
-
-	const loadError = $derived(
-		data.nodeTypesError || data.surfacesError || data.constructionTypesError || data.areaTypesError
-	);
+		FaultSimulationState,
+		setFaultSimulationState
+	} from './components/FaultSimulationState.svelte';
 
 	if (browser && page.params.projectId && page.params.projectId !== get(selectedProject)) {
 		selectedProject.set(page.params.projectId);
 	}
 
-	const mapState = new MapState($selectedProject, get(trenchColorSelected), {
-		trench: true,
-		address: true,
-		node: true,
-		area: true
-	});
+	const simulation = setFaultSimulationState(new FaultSimulationState());
 
-	const layersInitialized = mapState.initializeLayers();
-
-	const ctx = createFaultSimulationContext();
-
-	let olMap = $state<OlMap | null>(null);
-	let damagePointLayer = $state<VectorLayer | null>(null);
-	let affectedTrenchLayer = $state<VectorLayer | null>(null);
-	let affectedNodeLayer = $state<VectorLayer | null>(null);
-	let affectedAddressLayer = $state<VectorLayer | null>(null);
-	let damageMapCoord = $state<[number, number] | null>(null);
-	let popupPixel = $state({ x: 0, y: 0 });
-	let mapMoveListener: (() => void) | null = null;
-
-	const damagePointStyle = createDamagePointStyle();
-	const affectedTrenchStyle = createAffectedTrenchStyle();
-	const affectedNodeDefaultStyle = createAffectedNodeStyle('default');
-	const affectedNodeAddressStyle = createAffectedNodeStyle('address');
-	const affectedAddressStyle = createAffectedAddressStyle();
-
-	function affectedNodeStyleFn(feature: FeatureLike): Style {
-		return feature.get('has_address') ? affectedNodeAddressStyle : affectedNodeDefaultStyle;
-	}
-
-	/**
-	 * Initializes overlay layers for damage point, affected trenches, nodes, and addresses.
-	 * @param event - Map ready event containing the OL map instance
-	 */
-	function handleMapReady({ map }: { map: OlMap }): void {
-		olMap = map;
-
-		damagePointLayer = new VectorLayer({
-			source: new VectorSource(),
-			style: damagePointStyle,
-			zIndex: 100
-		});
-
-		affectedTrenchLayer = new VectorLayer({
-			source: new VectorSource(),
-			style: affectedTrenchStyle,
-			zIndex: 50
-		});
-
-		affectedNodeLayer = new VectorLayer({
-			source: new VectorSource(),
-			style: affectedNodeStyleFn,
-			zIndex: 60
-		});
-
-		affectedAddressLayer = new VectorLayer({
-			source: new VectorSource(),
-			style: affectedAddressStyle,
-			zIndex: 55
-		});
-
-		olMap.addLayer(affectedTrenchLayer);
-		olMap.addLayer(affectedAddressLayer);
-		olMap.addLayer(affectedNodeLayer);
-		olMap.addLayer(damagePointLayer);
-
-		mapMoveListener = () => updatePopupPixel();
-		olMap.on('postrender', mapMoveListener);
-	}
-
-	function updatePopupPixel(): void {
-		if (!olMap || !damageMapCoord) return;
-		const pixel = olMap.getPixelFromCoordinate(damageMapCoord);
-		if (pixel) {
-			popupPixel = { x: Math.round(pixel[0]), y: Math.round(pixel[1]) };
-		}
-	}
-
-	/**
-	 * Handles map clicks to select a trench as the damage location for fault simulation.
-	 * @param evt - The map browser click event
-	 */
-	function handleMapClick(evt: MapBrowserEvent<PointerEvent>): void {
-		if (ctx.isSimulating || ctx.simulationResult) return;
-
-		const feature = olMap?.forEachFeatureAtPixel(evt.pixel, (f) => f, {
-			hitTolerance: 10,
-			layerFilter: (layer) => layer === mapState.vectorTileLayer
-		});
-
-		if (!feature) return;
-
-		const srid = page.data.srid;
-		const proj4Def = page.data.proj4Def;
-		if (srid && proj4Def) {
-			registerStorageProjection(srid, proj4Def);
-		}
-
-		const renderGeom = feature.getGeometry() as RenderFeature | undefined;
-		let snappedCoord = evt.coordinate;
-		if (renderGeom) {
-			const flatCoords = renderGeom.getFlatCoordinates();
-			const coords = [];
-			for (let i = 0; i < flatCoords.length; i += 2) {
-				coords.push([flatCoords[i], flatCoords[i + 1]]);
-			}
-			if (coords.length >= 2) {
-				const line = new LineString(coords);
-				snappedCoord = line.getClosestPoint(evt.coordinate) as [number, number];
-			}
-		}
-
-		const proj = storageProjection(srid);
-		let storageCoord = snappedCoord;
-		if (proj && olMap) {
-			storageCoord = transform(snappedCoord, olMap.getView().getProjection(), proj);
-		}
-
-		const trenchProps = feature.getProperties();
-		const trenchInfo = {
-			id_trench: trenchProps.id_trench ?? trenchProps.label ?? '—',
-			construction_type: trenchProps.construction_type ?? null,
-			uuid: trenchProps.uuid ?? trenchProps.id ?? null
-		};
-
-		ctx.setDamagePoint(
-			storageCoord as [number, number],
-			trenchInfo as unknown as import('./exportCsv').Trench
-		);
-		damageMapCoord = snappedCoord as [number, number];
-
-		const damageSource = damagePointLayer?.getSource();
-		if (damageSource) {
-			damageSource.clear();
-			damageSource.addFeature(new Feature({ geometry: new Point(snappedCoord) }));
-		}
-
-		updatePopupPixel();
-		clearResultLayers();
-	}
-
-	function clearResultLayers(): void {
-		affectedTrenchLayer?.getSource()?.clear();
-		affectedNodeLayer?.getSource()?.clear();
-		affectedAddressLayer?.getSource()?.clear();
-	}
-
-	function clearAllLayers(): void {
-		damagePointLayer?.getSource()?.clear();
-		clearResultLayers();
-	}
-
-	$effect(() => {
-		const result = ctx.simulationResult;
-		if (!result || !olMap) return;
-
-		clearResultLayers();
-
-		const srid = page.data.srid;
-		const proj4Def = page.data.proj4Def;
-		if (srid && proj4Def) {
-			registerStorageProjection(srid, proj4Def);
-		}
-
-		const format = new GeoJSON();
-		const proj = storageProjection(srid);
-		const readOptions = proj
-			? { dataProjection: proj, featureProjection: olMap.getView().getProjection() }
-			: {};
-
-		const trenchFeatures = result.geometry?.affected_trenches;
-		if (trenchFeatures && affectedTrenchLayer) {
-			const features = format.readFeatures(trenchFeatures, readOptions);
-			affectedTrenchLayer.getSource()?.addFeatures(features);
-		}
-
-		const nodeFeatures = result.geometry?.affected_nodes;
-		if (nodeFeatures && affectedNodeLayer) {
-			const features = format.readFeatures(nodeFeatures, readOptions);
-			affectedNodeLayer.getSource()?.addFeatures(features);
-		}
-
-		const addressFeatures = result.geometry?.affected_addresses;
-		if (addressFeatures && affectedAddressLayer) {
-			const features = format.readFeatures(addressFeatures, readOptions);
-			affectedAddressLayer.getSource()?.addFeatures(features);
-		}
-	});
-
-	$effect(() => {
-		if (!ctx.damagePoint && !ctx.simulationResult) {
-			clearAllLayers();
-			damageMapCoord = null;
-		}
-	});
-
-	$effect(() => {
-		const styles = $nodeTypeStyles;
-		if (Object.keys(styles).length > 0) {
-			mapState.updateNodeLayerStyle(styles);
-		}
-	});
-
-	$effect(() => {
-		const mode = $trenchStyleMode;
-		const surfaceStyles = $trenchSurfaceStyles;
-		const constructionTypeStyles = $trenchConstructionTypeStyles;
-		const color = $trenchColor;
-		mapState.updateTrenchLayerStyle(mode, surfaceStyles, constructionTypeStyles, color);
-	});
-
-	$effect(() => {
-		const color = $addressStyle.color;
-		const size = $addressStyle.size;
-		mapState.updateAddressLayerStyle(color, size);
-	});
-
-	$effect(() => {
-		const styles = $areaTypeStyles;
-		if (Object.keys(styles).length > 0) {
-			mapState.updateAreaLayerStyle(styles);
-		}
-	});
-
-	$effect(() => {
-		const config = $labelVisibilityConfig;
-		const mode = $trenchStyleMode;
-		const surfaceStyles = $trenchSurfaceStyles;
-		const constructionTypeStyles = $trenchConstructionTypeStyles;
-		const color = $trenchColor;
-		const nodeStyles = $nodeTypeStyles;
-		const areaStyles = $areaTypeStyles;
-
-		if (config.trench !== undefined) {
-			mapState.updateLabelVisibility('trench', config.trench, {
-				mode,
-				surfaceStyles,
-				constructionTypeStyles,
-				color
-			});
-		}
-		if (config.conduit !== undefined) {
-			mapState.updateLabelVisibility('conduit', config.conduit, {
-				mode,
-				surfaceStyles,
-				constructionTypeStyles,
-				color
-			});
-		}
-		if (config.address !== undefined) {
-			mapState.updateLabelVisibility('address', config.address, {});
-		}
-		if (config.node !== undefined) {
-			mapState.updateLabelVisibility('node', config.node, { nodeTypeStyles: nodeStyles });
-		}
-		if (config.area !== undefined) {
-			mapState.updateLabelVisibility('area', config.area, { areaTypeStyles: areaStyles });
-		}
-	});
+	const projectId = $derived(page.params.projectId ?? $selectedProject);
 
 	onMount(() => {
-		if (dev) {
-			window.__e2eFaultSim = {
-				injectResult(result: FaultSimulationResult) {
-					ctx.setDamagePoint([0, 0], result.trench ?? null);
-					ctx.setSimulationResult(result);
-				},
-				reset() {
-					ctx.reset();
-				}
-			};
-		}
+		if (!dev) return;
+
+		window.__e2eFaultSim = {
+			injectResult(result: FaultSimulationResult) {
+				simulation.selectDamagePoint([0, 0], [0, 0], result.trench ?? null);
+				simulation.showResult(result);
+			},
+			reset() {
+				simulation.reset();
+			}
+		};
 
 		return () => {
-			if (dev) {
-				delete window.__e2eFaultSim;
-			}
-			if (olMap && mapMoveListener) {
-				olMap.un('postrender', mapMoveListener);
-			}
-			mapState.cleanup();
+			delete window.__e2eFaultSim;
 		};
 	});
 </script>
@@ -354,75 +48,25 @@
 	<title>{m.nav_fault_simulation()}</title>
 </svelte:head>
 
+{#snippet mapSkeleton()}
+	<div
+		class="h-full w-full rounded-lg border-2 border-surface-200-800 placeholder animate-pulse"
+		role="status"
+	>
+		<span class="sr-only">{m.common_loading()}</span>
+	</div>
+{/snippet}
+
 <div class="flex flex-col h-full overflow-hidden">
-	<div class={ctx.simulationResult ? 'h-1/2 shrink-0' : 'flex-1'}>
-		{#if loadError && !layersInitialized}
-			<div class="p-4 text-red-700 bg-red-100 border border-red-400 rounded">
-				<p>Error loading initial map data: {loadError}</p>
-			</div>
-		{:else if layersInitialized}
-			<div class="map-wrapper border-2 rounded-lg border-surface-200-800 h-full w-full relative">
-				<Map
-					className="rounded-lg overflow-hidden"
-					layers={mapState.getLayers()}
-					showLayerVisibilityTree={true}
-					showSearchPanel={true}
-					onready={handleMapReady}
-					onclick={handleMapClick}
-					{nodeTypes}
-					{surfaces}
-					{constructionTypes}
-					{areaTypes}
-				/>
-
-				<MapHint
-					message={m.message_fault_select_trench()}
-					visible={!ctx.damagePoint && !ctx.simulationResult}
-				/>
-
-				{#if ctx.damagePoint && !ctx.simulationResult}
-					<div class="fault-popup" style="left: {popupPixel.x}px; top: {popupPixel.y}px;">
-						<FaultSimulationPopUp projectId={page.params.projectId ?? get(selectedProject)} />
-						<div class="fault-popup-arrow"></div>
-					</div>
-				{/if}
-			</div>
-		{:else}
-			<div class="p-4 text-yellow-700 bg-yellow-100 border border-yellow-400 rounded">
-				<p>{m.message_error_could_not_load_map_tiles()}</p>
-			</div>
-		{/if}
+	<div class={simulation.simulationResult ? 'h-1/2 shrink-0' : 'flex-1'}>
+		<QueryBoundary pending={mapSkeleton}>
+			<FaultSimulationMap {projectId} />
+		</QueryBoundary>
 	</div>
 
-	{#if ctx.simulationResult}
+	{#if simulation.simulationResult}
 		<div class="flex-1 min-h-0 border-t border-surface-200-800 mt-2">
-			<DamageReport
-				projectId={page.params.projectId ?? get(selectedProject)}
-				onreset={() => ctx.reset()}
-			/>
+			<DamageReport {projectId} />
 		</div>
 	{/if}
 </div>
-
-<style>
-	.fault-popup {
-		position: absolute;
-		z-index: 10;
-		pointer-events: auto;
-		transform: translate(-50%, calc(-100% - 16px));
-	}
-
-	.fault-popup-arrow {
-		position: absolute;
-		bottom: -8px;
-		left: 50%;
-		transform: translateX(-50%);
-		border-left: 8px solid transparent;
-		border-right: 8px solid transparent;
-		border-top: 8px solid rgb(var(--color-surface-200));
-	}
-
-	:global(.dark) .fault-popup-arrow {
-		border-top-color: rgb(var(--color-surface-800));
-	}
-</style>
