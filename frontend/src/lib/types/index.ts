@@ -36,6 +36,7 @@ export type Trench = Schemas['Trench'];
  * Nested "trenches near node" payload (trench → conduits → microducts), as used
  * by the pipe-branch view. Distinct from the flat {@link Trench} feature.
  */
+export type TrenchesNearNodeResult = Schemas['TrenchesNearNodeResult'];
 export type TrenchesNearNodeTrench = Schemas['TrenchesNearNodeTrench'];
 export type TrenchesNearNodeConduit = Schemas['TrenchesNearNodeConduit'];
 export type TrenchesNearNodeMicroduct = Schemas['TrenchesNearNodeMicroduct'];

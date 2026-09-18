@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { TrenchesNearNodeTrench } from '$lib/types';
 	import { Accordion } from '@skeletonlabs/skeleton-svelte';
 	import {
 		IconLock,
@@ -11,27 +12,17 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	interface SelectorConduit {
-		uuid: string;
-		name: string;
-		microducts: Array<unknown>;
-	}
-
-	interface SelectorTrench {
-		uuid: string;
-		id_trench: string;
-		conduits: SelectorConduit[];
-	}
+	import { conduitKey } from '../branchGraph';
 
 	/**
 	 * Selection key format: "trenchUuid:conduitUuid"
 	 * This allows the same conduit to be selected/deselected independently per trench
 	 */
 	interface Props {
-		trenches?: SelectorTrench[];
+		trenches?: TrenchesNearNodeTrench[];
 		selectedKeys?: string[];
 		lockedKeys?: string[];
-		onConfirm?: (selectedTrenches: Array<SelectorTrench>) => void;
+		onConfirm?: (selectedTrenches: TrenchesNearNodeTrench[]) => void;
 		onCancel?: () => void;
 	}
 
@@ -44,22 +35,12 @@
 	}: Props = $props();
 
 	/**
-	 * Create a composite key for the trench and conduit
-	 * @param trenchUuid - The UUID of the trench
-	 * @param conduitUuid - The UUID of the conduit
-	 * @returns The composite key
-	 */
-	function makeKey(trenchUuid: string, conduitUuid: string): string {
-		return `${trenchUuid}:${conduitUuid}`;
-	}
-
-	/**
 	 * Toggle the selection of a conduit
 	 * @param trenchUuid - The UUID of the trench
 	 * @param conduitUuid - The UUID of the conduit
 	 */
 	function toggleConduit(trenchUuid: string, conduitUuid: string) {
-		const key = makeKey(trenchUuid, conduitUuid);
+		const key = conduitKey(trenchUuid, conduitUuid);
 
 		if (lockedKeys.includes(key)) {
 			return;
@@ -76,7 +57,7 @@
 	 * Toggles selection of all conduits in a trench. Locked conduits remain selected.
 	 */
 	function toggleAllConduitsInTrench(trench: { uuid: string; conduits?: Array<{ uuid: string }> }) {
-		const trenchKeys = trench.conduits?.map((c) => makeKey(trench.uuid, c.uuid)) || [];
+		const trenchKeys = trench.conduits?.map((c) => conduitKey(trench.uuid, c.uuid)) || [];
 		const allSelected = trenchKeys.every((key) => selectedKeys.includes(key));
 
 		if (allSelected) {
@@ -93,7 +74,9 @@
 	 * Selects all conduits across all trenches.
 	 */
 	function selectAll() {
-		const allKeys = trenches.flatMap((t) => t.conduits?.map((c) => makeKey(t.uuid, c.uuid)) || []);
+		const allKeys = trenches.flatMap(
+			(t) => t.conduits?.map((c) => conduitKey(t.uuid, c.uuid)) || []
+		);
 		selectedKeys = [...new Set([...selectedKeys, ...allKeys])];
 	}
 
@@ -102,7 +85,7 @@
 	 */
 	function selectNone() {
 		selectedKeys = lockedKeys.filter((key) =>
-			trenches.some((t) => t.conduits?.some((c) => makeKey(t.uuid, c.uuid) === key))
+			trenches.some((t) => t.conduits?.some((c) => conduitKey(t.uuid, c.uuid) === key))
 		);
 	}
 
@@ -114,8 +97,8 @@
 		conduits?: Array<{ uuid: string }>;
 	}): number {
 		return (
-			trench.conduits?.filter((c) => selectedKeys.includes(makeKey(trench.uuid, c.uuid))).length ||
-			0
+			trench.conduits?.filter((c) => selectedKeys.includes(conduitKey(trench.uuid, c.uuid)))
+				.length || 0
 		);
 	}
 
@@ -137,11 +120,11 @@
 	 * @returns Whether the conduit has existing connections and cannot be deselected.
 	 */
 	function isConduitLocked(trenchUuid: string, conduitUuid: string): boolean {
-		return lockedKeys.includes(makeKey(trenchUuid, conduitUuid));
+		return lockedKeys.includes(conduitKey(trenchUuid, conduitUuid));
 	}
 
 	function isConduitSelected(trenchUuid: string, conduitUuid: string): boolean {
-		return selectedKeys.includes(makeKey(trenchUuid, conduitUuid));
+		return selectedKeys.includes(conduitKey(trenchUuid, conduitUuid));
 	}
 
 	function getMicroductCount(conduit: { microducts?: Array<unknown> }): number {
@@ -163,7 +146,8 @@
 			.map((trench) => ({
 				...trench,
 				conduits:
-					trench.conduits?.filter((c) => selectedKeys.includes(makeKey(trench.uuid, c.uuid))) || []
+					trench.conduits?.filter((c) => selectedKeys.includes(conduitKey(trench.uuid, c.uuid))) ||
+					[]
 			}))
 			.filter((trench) => trench.conduits.length > 0);
 

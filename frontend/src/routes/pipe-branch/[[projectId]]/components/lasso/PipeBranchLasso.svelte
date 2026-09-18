@@ -1,29 +1,23 @@
 <script lang="ts">
 	import { useNodes, useStore, useSvelteFlow } from '@xyflow/svelte';
 
+	import { getPipeBranchState } from '../PipeBranchState.svelte';
 	import { getSvgPathFromStroke } from './lassoUtils.js';
 
-	interface Props {
-		partial?: boolean;
-		onSelectionChange?: (selectedIds: string[]) => void;
-	}
-
-	let { partial = false, onSelectionChange }: Props = $props();
-
+	const branch = getPipeBranchState();
 	const nodes = useNodes();
 	const store = useStore();
-	const { flowToScreenPosition, getInternalNode, screenToFlowPosition, getViewport, setViewport } =
-		useSvelteFlow();
+	const { flowToScreenPosition, getInternalNode, getViewport, setViewport } = useSvelteFlow();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
-	let ctx = $state<CanvasRenderingContext2D | null>(null);
-	let nodePoints = $state<Record<string, { center: number[]; corners: number[][] }>>({});
-	let points = $state<number[][]>([]);
-	let selectedNodeIds = $state<Set<string>>(new Set());
+	let ctx: CanvasRenderingContext2D | null = null;
+	let nodePoints: Record<string, { center: number[]; corners: number[][] }> = {};
+	let points: number[][] = [];
+	let selectedNodeIds = new Set<string>();
 
-	let isPanning = $state(false);
-	let panStart = $state({ x: 0, y: 0 });
-	let viewportStart = $state({ x: 0, y: 0, zoom: 1 });
+	let isPanning = false;
+	let panStart = { x: 0, y: 0 };
+	let viewportStart = { x: 0, y: 0, zoom: 1 };
 
 	function handlePointerDown(e: PointerEvent) {
 		const target = e.target as HTMLCanvasElement;
@@ -109,7 +103,7 @@
 		const nodesToSelect = new Set<string>();
 
 		for (const [nodeId, nodeData] of Object.entries(nodePoints)) {
-			if (partial) {
+			if (branch.partialSelection) {
 				for (const point of nodeData.corners) {
 					const screenPos = flowToScreenPosition({ x: point[0], y: point[1] });
 					const canvasRect = target.getBoundingClientRect();
@@ -157,9 +151,7 @@
 			ctx.clearRect(0, 0, store.width, store.height);
 		}
 
-		if (onSelectionChange) {
-			onSelectionChange(Array.from(selectedNodeIds));
-		}
+		branch.lassoSelection = Array.from(selectedNodeIds);
 	}
 
 	/**
@@ -185,22 +177,6 @@
 		const newViewportY = mouseY - flowY * newZoom;
 
 		setViewport({ x: newViewportX, y: newViewportY, zoom: newZoom }, { duration: 0 });
-	}
-
-	/**
-	 * Deselects all nodes and notifies the parent via the onSelectionChange callback.
-	 */
-	export function clearSelection() {
-		selectedNodeIds = new Set<string>();
-		nodes.update((nodes) =>
-			nodes.map((node) => ({
-				...node,
-				selected: false
-			}))
-		);
-		if (onSelectionChange) {
-			onSelectionChange([]);
-		}
 	}
 </script>
 
