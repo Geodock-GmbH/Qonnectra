@@ -21,6 +21,7 @@ export interface PdfLocation {
  * the generator does not expect.
  * @param address - The address as returned by `getAddress`.
  * @param location - The formatted coordinates and their storage SRID.
+ * @returns The address in the PDF generator's shape.
  */
 export function toPdfAddress(address: AddressRecord, location: PdfLocation): AddressData {
 	return {
@@ -40,6 +41,7 @@ export function toPdfAddress(address: AddressRecord, location: PdfLocation): Add
  * its fiber connections and dropping nulls the generator does not expect.
  * @param unit - The unit as returned by the backend.
  * @param fiberConnections - Connections keyed by unit uuid.
+ * @returns The unit in the PDF generator's shape, with its fiber connections.
  */
 export function toPdfUnit(
 	unit: ResidentialUnit,
@@ -61,7 +63,10 @@ export function toPdfUnit(
 	};
 }
 
-/** The translated section and column titles of the address PDF. */
+/**
+ * Builds the translated section and column titles of the address PDF.
+ * @returns The labels in the active locale.
+ */
 export function addressPdfLabels(): PdfLabels {
 	return {
 		sectionAddressInformation: m.section_address_information(),

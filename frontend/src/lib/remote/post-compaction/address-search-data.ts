@@ -13,6 +13,7 @@ export interface AddressSearchResult {
  * Maps the `trace-search/?type=address` payload to search results, dropping
  * hits without a uuid since they cannot be selected.
  * @param payload - The raw response body.
+ * @returns The selectable address hits, or an empty array when none.
  */
 export function mapAddressSearchResults(payload: unknown): AddressSearchResult[] {
 	const results = (payload as { results?: unknown } | null)?.results;
@@ -35,6 +36,7 @@ export function mapAddressSearchResults(payload: unknown): AddressSearchResult[]
  * Formats a search result as `Street, 12a, 12345 City`, falling back to the
  * short uuid when the address carries no text at all.
  * @param result - The search result to label.
+ * @returns The human-readable label.
  */
 export function formatAddressSearchResult(result: AddressSearchResult): string {
 	const parts: string[] = [];
