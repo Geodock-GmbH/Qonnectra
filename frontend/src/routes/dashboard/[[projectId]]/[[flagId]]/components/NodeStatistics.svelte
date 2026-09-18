@@ -4,9 +4,9 @@
 	import Chart from '$lib/components/Chart.svelte';
 	import { getDashboardStatistics } from '$lib/remote/dashboard/statistics.remote';
 
-	let { projectId }: { projectId: string } = $props();
+	let { projectId, flagId }: { projectId: string; flagId: string } = $props();
 
-	const stats = $derived(await getDashboardStatistics({ projectId }));
+	const stats = $derived(await getDashboardStatistics({ projectId, flagId }));
 
 	/**
 	 * Transform city data for chart

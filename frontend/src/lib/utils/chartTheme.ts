@@ -2,7 +2,7 @@ import { createSubscriber } from 'svelte/reactivity';
 
 /** Canvas-safe colors a chart draws with, resolved from the active theme. */
 export interface ChartTheme {
-	/** The theme's primary color, used for single-series charts. */
+	/** The translucent primary fill of the overview bars, used for single-series charts. */
 	series: string;
 	/** Axis lines. */
 	axisBorder: string;
@@ -11,15 +11,18 @@ export interface ChartTheme {
 	/** Separator between neighbouring segments (the page background). */
 	segmentBorder: string;
 	/**
-	 * Shades of the primary color for multi-segment charts.
+	 * Tints of the primary color for multi-segment charts.
 	 * @param count - Number of segments to color.
-	 * @returns One color per segment; neighbours differ in lightness.
+	 * @returns One color per segment, the first matching `series`; neighbours differ in opacity.
 	 */
 	shades: (count: number) => string[];
 }
 
-/** Primary shades ordered so neighbouring segments contrast. */
-const SHADE_ORDER = [500, 800, 300, 950, 600, 200, 900, 400, 700, 100];
+/** Opacity of the overview bars (`bg-primary-500/20`). */
+const SERIES_ALPHA = 0.2;
+
+/** Primary opacities ordered so neighbouring segments contrast. */
+const SHADE_ALPHAS = [SERIES_ALPHA, 0.65, 0.35, 0.9, 0.5, 0.1, 0.75, 0.28, 1, 0.42];
 
 const FALLBACK_COLOR = '#6b7280';
 
@@ -37,10 +40,11 @@ const subscribeToThemeChange = createSubscriber((update) => {
  * to an `rgb()` string. Chart.js derives hover colors with a parser that only
  * understands legacy color syntax, so theme colors are rasterized first.
  * @param host - Element whose cascade the expression is resolved in.
- * @param cssColor - Any CSS color expression.
+ * @param cssColor - Any opaque CSS color expression.
+ * @param alpha - Opacity to apply to the resolved color.
  * @returns An `rgb()`/`rgba()` string, or a neutral gray when unresolvable.
  */
-function resolveColor(host: HTMLElement, cssColor: string): string {
+function resolveColor(host: HTMLElement, cssColor: string, alpha = 1): string {
 	const probe = document.createElement('span');
 	probe.style.color = cssColor;
 	host.appendChild(probe);
@@ -54,8 +58,8 @@ function resolveColor(host: HTMLElement, cssColor: string): string {
 
 	ctx.fillStyle = computed;
 	ctx.fillRect(0, 0, 1, 1);
-	const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
-	return a === 255 ? `rgb(${r}, ${g}, ${b})` : `rgba(${r}, ${g}, ${b}, ${(a / 255).toFixed(3)})`;
+	const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+	return alpha === 1 ? `rgb(${r}, ${g}, ${b})` : `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 /**
@@ -67,8 +71,10 @@ function resolveColor(host: HTMLElement, cssColor: string): string {
 export function readChartTheme(host: HTMLElement): ChartTheme {
 	subscribeToThemeChange();
 
+	const primary = 'var(--color-primary-500)';
+
 	return {
-		series: resolveColor(host, 'var(--color-primary-500)'),
+		series: resolveColor(host, primary, SERIES_ALPHA),
 		axisBorder: resolveColor(
 			host,
 			'light-dark(var(--color-surface-200), var(--color-surface-800))'
@@ -80,7 +86,7 @@ export function readChartTheme(host: HTMLElement): ChartTheme {
 		),
 		shades: (count) =>
 			Array.from({ length: count }, (_, i) =>
-				resolveColor(host, `var(--color-primary-${SHADE_ORDER[i % SHADE_ORDER.length]})`)
+				resolveColor(host, primary, SHADE_ALPHAS[i % SHADE_ALPHAS.length])
 			)
 	};
 }

@@ -26,7 +26,7 @@ vi.mock('$lib/paraglide/messages', () => ({
  */
 function renderTab() {
 	return render(BoundaryFixture, {
-		props: { component: TrenchStatistics, props: { projectId: '7' } }
+		props: { component: TrenchStatistics, props: { projectId: '7', flagId: '3' } }
 	});
 }
 
@@ -40,7 +40,7 @@ describe('TrenchStatistics', () => {
 		renderTab();
 
 		await screen.findByText('form_length_by_surface');
-		expect(getDashboardStatistics).toHaveBeenCalledWith({ projectId: '7' });
+		expect(getDashboardStatistics).toHaveBeenCalledWith({ projectId: '7', flagId: '3' });
 	});
 
 	test('should render the trench chart panels', async () => {

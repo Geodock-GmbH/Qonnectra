@@ -32,7 +32,7 @@ afterEach(() => {
 });
 
 describe('readChartTheme', () => {
-	test('should resolve the series color from the theme primary color', () => {
+	test('should give single-series charts the translucent primary fill of the overview bars', () => {
 		vi.spyOn(window, 'getComputedStyle').mockImplementation(
 			(el) => ({ color: (el as HTMLElement).style.color }) as CSSStyleDeclaration
 		);
@@ -41,29 +41,36 @@ describe('readChartTheme', () => {
 		const theme = readChartTheme(document.body);
 
 		expect(painted[0]).toBe('var(--color-primary-500)');
-		expect(theme.series).toBe('rgb(16, 185, 129)');
+		expect(theme.series).toBe('rgba(16, 185, 129, 0.2)');
 	});
 
-	test('should keep the alpha channel of translucent colors', () => {
-		stubCanvas([16, 185, 129, 51]);
+	test('should resolve axis and text colors as opaque rgb', () => {
+		stubCanvas([20, 30, 40, 255]);
 
-		expect(readChartTheme(document.body).series).toBe('rgba(16, 185, 129, 0.200)');
-	});
-
-	test('should give neighbouring segments different primary shades', () => {
-		vi.spyOn(window, 'getComputedStyle').mockImplementation(
-			(el) => ({ color: (el as HTMLElement).style.color }) as CSSStyleDeclaration
-		);
-		const painted = stubCanvas([0, 0, 0, 255]);
 		const theme = readChartTheme(document.body);
-		painted.length = 0;
 
-		expect(theme.shades(3)).toHaveLength(3);
-		expect(painted).toEqual([
-			'var(--color-primary-500)',
-			'var(--color-primary-800)',
-			'var(--color-primary-300)'
+		expect(theme.text).toBe('rgb(20, 30, 40)');
+		expect(theme.axisBorder).toBe('rgb(20, 30, 40)');
+	});
+
+	test('should tint segments in primary, starting at the series fill with contrasting neighbours', () => {
+		stubCanvas([16, 185, 129, 255]);
+
+		const shades = readChartTheme(document.body).shades(3);
+
+		expect(shades).toEqual([
+			'rgba(16, 185, 129, 0.2)',
+			'rgba(16, 185, 129, 0.65)',
+			'rgba(16, 185, 129, 0.35)'
 		]);
+	});
+
+	test('should give every segment of a ten-part chart its own tint', () => {
+		stubCanvas([16, 185, 129, 255]);
+
+		const shades = readChartTheme(document.body).shades(10);
+
+		expect(new Set(shades).size).toBe(10);
 	});
 
 	test('should fall back to a neutral gray when no canvas is available', () => {

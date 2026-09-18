@@ -26,7 +26,7 @@ vi.mock('$lib/paraglide/messages', () => ({
  */
 function renderTab() {
 	return render(BoundaryFixture, {
-		props: { component: OverviewTab, props: { projectId: '7' } }
+		props: { component: OverviewTab, props: { projectId: '7', flagId: '3' } }
 	});
 }
 
@@ -40,7 +40,7 @@ describe('OverviewTab', () => {
 		renderTab();
 
 		await screen.findByText('form_trench_statistics');
-		expect(getDashboardStatistics).toHaveBeenCalledWith({ projectId: '7' });
+		expect(getDashboardStatistics).toHaveBeenCalledWith({ projectId: '7', flagId: '3' });
 	});
 
 	test('should show the headline totals of every card', async () => {

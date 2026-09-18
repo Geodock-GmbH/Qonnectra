@@ -9,11 +9,13 @@
 	import AddressStatistics from './components/AddressStatistics.svelte';
 	import AreaStatistics from './components/AreaStatistics.svelte';
 	import ConduitStatistics from './components/ConduitStatistics.svelte';
+	import FlagFilter from './components/FlagFilter.svelte';
 	import NodeStatistics from './components/NodeStatistics.svelte';
 	import OverviewTab from './components/OverviewTab.svelte';
 	import TrenchStatistics from './components/TrenchStatistics.svelte';
 
 	const projectId = $derived(page.params.projectId ?? '');
+	const flagId = $derived(page.params.flagId ?? '');
 
 	let activeTab = $state('stats');
 
@@ -46,20 +48,23 @@
 {/snippet}
 
 <Tabs tabs={tabItems} bind:value={activeTab} orientation="horizontal">
+	<div class="max-w-6xl mx-auto mb-4 flex justify-end">
+		<FlagFilter {projectId} {flagId} />
+	</div>
 	<QueryBoundary pending={cardsSkeleton}>
 		<div class={['transition-opacity', $effect.pending() > 0 && 'opacity-60']}>
 			{#if activeTab === 'stats'}
-				<OverviewTab {projectId} />
+				<OverviewTab {projectId} {flagId} />
 			{:else if activeTab === 'trench'}
-				<TrenchStatistics {projectId} />
+				<TrenchStatistics {projectId} {flagId} />
 			{:else if activeTab === 'conduit'}
-				<ConduitStatistics {projectId} />
+				<ConduitStatistics {projectId} {flagId} />
 			{:else if activeTab === 'node'}
-				<NodeStatistics {projectId} />
+				<NodeStatistics {projectId} {flagId} />
 			{:else if activeTab === 'address'}
-				<AddressStatistics {projectId} />
+				<AddressStatistics {projectId} {flagId} />
 			{:else if activeTab === 'area'}
-				<AreaStatistics {projectId} />
+				<AreaStatistics {projectId} {flagId} />
 			{/if}
 		</div>
 	</QueryBoundary>

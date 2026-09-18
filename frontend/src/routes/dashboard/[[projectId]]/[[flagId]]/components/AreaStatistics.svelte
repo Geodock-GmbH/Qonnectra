@@ -7,9 +7,9 @@
 
 	import DashboardCard from './DashboardCard.svelte';
 
-	let { projectId }: { projectId: string } = $props();
+	let { projectId, flagId }: { projectId: string; flagId: string } = $props();
 
-	const stats = $derived(await getDashboardStatistics({ projectId }));
+	const stats = $derived(await getDashboardStatistics({ projectId, flagId }));
 
 	/**
 	 * Calculate coverage percentage

@@ -13,9 +13,15 @@ vi.mock('$lib/remote/dashboard/statistics.remote', () => ({
 	getDashboardStatistics: (...args: unknown[]) => getDashboardStatistics(...args)
 }));
 
+const params = vi.hoisted((): { projectId?: string; flagId?: string } => ({}));
+
 vi.mock('$app/state', () => ({
-	page: { params: { projectId: '7' } }
+	page: { params, data: { flags: [{ value: '3', label: 'Cluster Nord' }], flagsError: null } }
 }));
+
+vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
+
+vi.mock('$app/paths', () => ({ resolve: (path: string) => path }));
 
 vi.mock('$lib/paraglide/messages', () => ({
 	m: new Proxy(
@@ -27,6 +33,8 @@ vi.mock('$lib/paraglide/messages', () => ({
 }));
 
 beforeEach(() => {
+	params.projectId = '7';
+	delete params.flagId;
 	getDashboardStatistics.mockReset();
 	getDashboardStatistics.mockResolvedValue(getDefaultDashboardData());
 });
@@ -36,7 +44,34 @@ describe('dashboard +page.svelte', () => {
 		render(Page);
 
 		expect(await screen.findByText('form_trench_statistics')).toBeInTheDocument();
-		expect(getDashboardStatistics).toHaveBeenCalledWith({ projectId: '7' });
+		expect(getDashboardStatistics).toHaveBeenCalledWith({ projectId: '7', flagId: '' });
+	});
+
+	test('should scope the statistics to the flag from the URL', async () => {
+		params.flagId = '3';
+		render(Page);
+
+		await screen.findByText('form_trench_statistics');
+		expect(getDashboardStatistics).toHaveBeenCalledWith({ projectId: '7', flagId: '3' });
+	});
+
+	test('should show the flag from the URL in the flag picker', async () => {
+		params.flagId = '3';
+		render(Page);
+
+		expect(await screen.findByRole('combobox')).toHaveValue('Cluster Nord');
+	});
+
+	test('should keep the flag scope when switching tabs', async () => {
+		params.flagId = '3';
+		const user = userEvent.setup();
+		render(Page);
+		await screen.findByText('form_trench_statistics');
+
+		await user.click(screen.getByRole('tab', { name: 'nav_node' }));
+
+		await screen.findByText('form_nodes_by_city');
+		expect(getDashboardStatistics).toHaveBeenLastCalledWith({ projectId: '7', flagId: '3' });
 	});
 
 	test('should show a loading placeholder until the statistics arrive', async () => {

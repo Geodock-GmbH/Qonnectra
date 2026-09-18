@@ -44,7 +44,7 @@ export function chartJsMock(instances: ChartInstance[]) {
 
 /** Fixed theme colors standing in for the resolved Skeleton theme. */
 export const chartThemeStub = {
-	series: 'rgb(16, 185, 129)',
+	series: 'rgba(16, 185, 129, 0.2)',
 	axisBorder: 'rgb(200, 200, 200)',
 	text: 'rgb(20, 20, 20)',
 	segmentBorder: 'rgb(255, 255, 255)',

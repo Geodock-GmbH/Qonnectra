@@ -6,9 +6,9 @@
 	import StackedBarChart from '$lib/components/StackedBarChart.svelte';
 	import { getDashboardStatistics } from '$lib/remote/dashboard/statistics.remote';
 
-	let { projectId }: { projectId: string } = $props();
+	let { projectId, flagId }: { projectId: string; flagId: string } = $props();
 
-	const stats = $derived(await getDashboardStatistics({ projectId }));
+	const stats = $derived(await getDashboardStatistics({ projectId, flagId }));
 
 	/**
 	 * Length by conduit type for bar chart

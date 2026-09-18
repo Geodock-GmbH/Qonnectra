@@ -58,11 +58,11 @@ describe('Chart', () => {
 		expect(container.querySelector('canvas')).not.toBeNull();
 	});
 
-	test('should draw the bars in the theme primary color', () => {
+	test('should draw the bars in the translucent primary fill of the overview', () => {
 		render(Chart, { title: 'Mit Daten', data: [{ label: 'A', value: 12 }] });
 
 		expect(charts).toHaveLength(1);
-		expect(charts[0].config.data.datasets[0].backgroundColor).toBe('rgb(16, 185, 129)');
+		expect(charts[0].config.data.datasets[0].backgroundColor).toBe('rgba(16, 185, 129, 0.2)');
 		expect(charts[0].config.data.labels).toEqual(['A']);
 	});
 

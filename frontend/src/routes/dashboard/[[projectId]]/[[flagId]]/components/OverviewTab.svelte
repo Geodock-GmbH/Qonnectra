@@ -6,9 +6,9 @@
 	import BreakdownCard from './BreakdownCard.svelte';
 	import WarrantyExpirationCard from './WarrantyExpirationCard.svelte';
 
-	let { projectId }: { projectId: string } = $props();
+	let { projectId, flagId }: { projectId: string; flagId: string } = $props();
 
-	const stats = $derived(await getDashboardStatistics({ projectId }));
+	const stats = $derived(await getDashboardStatistics({ projectId, flagId }));
 
 	const totalNodes = $derived(stats.nodesByType.reduce((sum, item) => sum + item.count, 0));
 	const totalConduitLength = $derived(

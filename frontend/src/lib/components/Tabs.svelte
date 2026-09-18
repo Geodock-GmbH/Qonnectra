@@ -115,13 +115,13 @@
 		gap: 0;
 	}
 
-	.tabs-wrapper :global([data-part='list']) {
+	.tabs-wrapper :global([data-scope='tabs'][data-part='list']) {
 		align-self: start;
 		position: relative;
 		padding-right: 0.5rem;
 	}
 
-	.tabs-wrapper :global([data-part='list'])::after {
+	.tabs-wrapper :global([data-scope='tabs'][data-part='list'])::after {
 		content: '';
 		position: absolute;
 		top: 0;
@@ -132,14 +132,14 @@
 		background-color: var(--color-surface-200-800);
 	}
 
-	.tabs-wrapper:not(.tabs-horizontal) :global([data-part='indicator']) {
+	.tabs-wrapper:not(.tabs-horizontal) :global([data-scope='tabs'][data-part='indicator']) {
 		right: 0 !important;
 		left: auto !important;
 		width: 3px !important;
 	}
 
 	/* Horizontal mobile: scrollable tab list */
-	.tabs-wrapper.tabs-horizontal :global([data-part='list']) {
+	.tabs-wrapper.tabs-horizontal :global([data-scope='tabs'][data-part='list']) {
 		display: flex;
 		flex-direction: row;
 		flex-wrap: nowrap;
@@ -151,15 +151,15 @@
 		border-bottom: 1px solid var(--color-surface-200-800);
 	}
 
-	.tabs-wrapper.tabs-horizontal :global([data-part='list'])::-webkit-scrollbar {
+	.tabs-wrapper.tabs-horizontal :global([data-scope='tabs'][data-part='list'])::-webkit-scrollbar {
 		display: none;
 	}
 
-	.tabs-wrapper.tabs-horizontal :global([data-part='list'])::after {
+	.tabs-wrapper.tabs-horizontal :global([data-scope='tabs'][data-part='list'])::after {
 		display: none;
 	}
 
-	.tabs-wrapper.tabs-horizontal :global([data-part='trigger']) {
+	.tabs-wrapper.tabs-horizontal :global([data-scope='tabs'][data-part='trigger']) {
 		white-space: nowrap;
 		flex-shrink: 0;
 		font-size: 0.875rem;

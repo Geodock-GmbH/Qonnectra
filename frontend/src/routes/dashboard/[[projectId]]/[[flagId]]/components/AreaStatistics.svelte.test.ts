@@ -26,7 +26,7 @@ vi.mock('$lib/paraglide/messages', () => ({
  */
 function renderTab() {
 	return render(BoundaryFixture, {
-		props: { component: AreaStatistics, props: { projectId: '7' } }
+		props: { component: AreaStatistics, props: { projectId: '7', flagId: '3' } }
 	});
 }
 
@@ -60,7 +60,7 @@ describe('AreaStatistics', () => {
 		renderTab();
 
 		expect(await screen.findByText('form_area_total_count')).toBeInTheDocument();
-		expect(getDashboardStatistics).toHaveBeenCalledWith({ projectId: '7' });
+		expect(getDashboardStatistics).toHaveBeenCalledWith({ projectId: '7', flagId: '3' });
 		expect(screen.getByText('form_area_total_coverage')).toBeInTheDocument();
 		expect(screen.getByText('form_area_address_coverage')).toBeInTheDocument();
 		expect(screen.getByText('form_area_node_coverage')).toBeInTheDocument();
