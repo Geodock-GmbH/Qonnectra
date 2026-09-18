@@ -8,9 +8,6 @@
 
 	const stats = $derived(await getDashboardStatistics({ projectId, flagId }));
 
-	/**
-	 * Transform city data for chart
-	 */
 	const cityData = $derived.by(() => {
 		return stats.nodesByCity
 			.map((item) => ({
@@ -20,9 +17,6 @@
 			.sort((a, b) => b.value - a.value);
 	});
 
-	/**
-	 * Transform status data for chart
-	 */
 	const statusData = $derived.by(() => {
 		return stats.nodesByStatus
 			.map((item) => ({
@@ -32,9 +26,6 @@
 			.sort((a, b) => b.value - a.value);
 	});
 
-	/**
-	 * Transform network level data for chart
-	 */
 	const networkLevelData = $derived.by(() => {
 		return stats.nodesByNetworkLevel
 			.map((item) => ({
@@ -44,9 +35,6 @@
 			.sort((a, b) => b.value - a.value);
 	});
 
-	/**
-	 * Transform node type data for chart
-	 */
 	const typeData = $derived.by(() => {
 		return stats.nodesByType
 			.map((item) => ({
@@ -56,9 +44,6 @@
 			.sort((a, b) => b.value - a.value);
 	});
 
-	/**
-	 * Transform owner data for chart
-	 */
 	const ownerData = $derived.by(() => {
 		return stats.nodesByOwner
 			.map((item) => ({
@@ -68,9 +53,6 @@
 			.sort((a, b) => b.value - a.value);
 	});
 
-	/**
-	 * Transform newest nodes data for chart (by name and count as 1)
-	 */
 	const newestNodesData = $derived.by(() => {
 		return stats.newestNodes.map((item) => ({
 			label: `${item.name} (${item.node_type || m.common_unknown()})`,

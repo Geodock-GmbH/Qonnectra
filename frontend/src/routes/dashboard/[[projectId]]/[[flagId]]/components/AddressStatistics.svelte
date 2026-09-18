@@ -9,9 +9,6 @@
 
 	const stats = $derived(await getDashboardStatistics({ projectId, flagId }));
 
-	/**
-	 * Transform addresses by city data for chart
-	 */
 	const cityData = $derived.by(() => {
 		return stats.addressesByCity
 			.map((item) => ({
@@ -21,9 +18,6 @@
 			.sort((a, b) => b.value - a.value);
 	});
 
-	/**
-	 * Transform addresses by status data for chart
-	 */
 	const statusData = $derived.by(() => {
 		return stats.addressesByStatus
 			.map((item) => ({
@@ -33,9 +27,6 @@
 			.sort((a, b) => b.value - a.value);
 	});
 
-	/**
-	 * Transform units by city data for chart
-	 */
 	const unitsCityData = $derived.by(() => {
 		return stats.unitsByCity
 			.map((item) => ({
@@ -45,9 +36,6 @@
 			.sort((a, b) => b.value - a.value);
 	});
 
-	/**
-	 * Transform units by type data for donut chart
-	 */
 	const unitsTypeData = $derived.by(() => {
 		return stats.unitsByType
 			.map((item) => ({
@@ -59,7 +47,6 @@
 </script>
 
 <div class="space-y-6 max-w-6xl mx-auto">
-	<!-- Chart Grid -->
 	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 		<Chart
 			data={cityData}

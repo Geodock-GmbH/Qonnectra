@@ -22,9 +22,6 @@
 		return Math.round((inAreas / total) * 100);
 	}
 
-	/**
-	 * Transform areas by type for donut chart
-	 */
 	const areaTypeData = $derived.by(() => {
 		return stats.areasByType
 			.map((item) => ({
@@ -34,9 +31,6 @@
 			.sort((a, b) => b.value - a.value);
 	});
 
-	/**
-	 * Transform addresses per area for bar chart
-	 */
 	const addressesPerAreaData = $derived.by(() => {
 		return stats.addressesPerArea
 			.map((item) => ({
@@ -46,9 +40,6 @@
 			.sort((a, b) => b.value - a.value);
 	});
 
-	/**
-	 * Transform addresses by area type for bar chart
-	 */
 	const addressesByTypeData = $derived.by(() => {
 		return stats.addressesByAreaType
 			.map((item) => ({
@@ -58,9 +49,6 @@
 			.sort((a, b) => b.value - a.value);
 	});
 
-	/**
-	 * Transform nodes per area for bar chart
-	 */
 	const nodesPerAreaData = $derived.by(() => {
 		return stats.nodesPerArea
 			.map((item) => ({
@@ -70,9 +58,6 @@
 			.sort((a, b) => b.value - a.value);
 	});
 
-	/**
-	 * Transform nodes by area type for bar chart
-	 */
 	const nodesByTypeData = $derived.by(() => {
 		return stats.nodesByAreaType
 			.map((item) => ({
@@ -82,9 +67,6 @@
 			.sort((a, b) => b.value - a.value);
 	});
 
-	/**
-	 * Transform trench length per area for bar chart (convert to km)
-	 */
 	const trenchLengthData = $derived.by(() => {
 		return stats.trenchLengthPerArea
 			.map((item) => ({
@@ -94,9 +76,6 @@
 			.sort((a, b) => b.value - a.value);
 	});
 
-	/**
-	 * Transform residential by area type for bar chart
-	 */
 	const residentialByTypeData = $derived.by(() => {
 		return stats.residentialByAreaType
 			.map((item) => ({
@@ -108,7 +87,6 @@
 </script>
 
 <div class="space-y-6 max-w-6xl mx-auto">
-	<!-- Overview Cards -->
 	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 		<DashboardCard title={m.form_area_total_count()}>
 			<div class="text-center">
@@ -132,7 +110,6 @@
 		<DonutChart data={areaTypeData} title={m.form_area_by_type()} />
 	</div>
 
-	<!-- Coverage Gap Cards -->
 	<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 		<DashboardCard title={m.form_area_address_coverage()}>
 			<div class="text-center">
@@ -168,7 +145,6 @@
 		</DashboardCard>
 	</div>
 
-	<!-- Detailed Charts -->
 	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 		<Chart
 			data={addressesPerAreaData}

@@ -10,9 +10,6 @@
 
 	const stats = $derived(await getDashboardStatistics({ projectId, flagId }));
 
-	/**
-	 * Length by conduit type for bar chart
-	 */
 	const lengthByTypeData = $derived(
 		stats.conduitLengthByType.map((item) => ({
 			label: item.type_name || m.common_unknown(),
@@ -41,9 +38,6 @@
 		};
 	});
 
-	/**
-	 * Length by network level for donut chart
-	 */
 	const lengthByNetworkLevelData = $derived(
 		stats.conduitLengthByNetworkLevel
 			.filter((item) => item.network_level !== null)
@@ -53,9 +47,6 @@
 			}))
 	);
 
-	/**
-	 * Average length by type for bar chart
-	 */
 	const avgLengthByTypeData = $derived(
 		stats.conduitAvgLengthByType.map((item) => ({
 			label: item.type_name || m.common_unknown(),
@@ -63,9 +54,6 @@
 		}))
 	);
 
-	/**
-	 * Count by status for bar chart
-	 */
 	const countByStatusData = $derived(
 		stats.conduitCountByStatus.map((item) => ({
 			label: item.status_name || m.common_unknown(),
@@ -73,9 +61,6 @@
 		}))
 	);
 
-	/**
-	 * Length by owner for bar chart
-	 */
 	const lengthByOwnerData = $derived(
 		stats.conduitLengthByOwner.map((item) => ({
 			label: item.owner_name || m.common_unknown(),
@@ -83,9 +68,6 @@
 		}))
 	);
 
-	/**
-	 * Length by manufacturer for donut chart
-	 */
 	const lengthByManufacturerData = $derived(
 		stats.conduitLengthByManufacturer.map((item) => ({
 			label: item.manufacturer_name || m.common_unknown(),
@@ -93,9 +75,6 @@
 		}))
 	);
 
-	/**
-	 * Conduits over time for bar chart
-	 */
 	const conduitsByMonthData = $derived(
 		stats.conduitsByMonth.map((item) => ({
 			label: item.month || m.common_unknown(),
@@ -105,7 +84,6 @@
 </script>
 
 <div class="space-y-6 max-w-6xl mx-auto">
-	<!-- Top 5 Longest Conduits Tiles -->
 	{#if stats.longestConduits.length > 0}
 		<div class="card border border-surface-200-800 overflow-hidden">
 			<div class="border-b border-surface-200-800 px-4 py-3">
@@ -139,7 +117,6 @@
 	{/if}
 
 	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-		<!-- Length by Conduit Type -->
 		<Chart
 			data={lengthByTypeData}
 			title={m.form_length_by_conduit_type()}
@@ -147,13 +124,10 @@
 			axisLabel={`${m.common_length()} (km)`}
 		/>
 
-		<!-- Length by Status and Type (Stacked Bar) -->
 		<StackedBarChart data={lengthByStatusTypeData} title={m.form_length_by_status_and_type()} />
 
-		<!-- Length by Network Level (Donut) -->
 		<DonutChart data={lengthByNetworkLevelData} title={m.form_length_by_network_level()} />
 
-		<!-- Average Length by Type -->
 		<Chart
 			data={avgLengthByTypeData}
 			title={m.form_avg_length_by_type()}
@@ -161,7 +135,6 @@
 			axisLabel={`${m.common_length()} (m)`}
 		/>
 
-		<!-- Count by Status -->
 		<Chart
 			data={countByStatusData}
 			title={m.form_conduit_count_by_status()}
@@ -169,7 +142,6 @@
 			axisLabel={m.common_count()}
 		/>
 
-		<!-- Length by Owner -->
 		<Chart
 			data={lengthByOwnerData}
 			title={m.form_length_by_owner()}
@@ -177,10 +149,8 @@
 			axisLabel={`${m.common_length()} (km)`}
 		/>
 
-		<!-- Length by Manufacturer (Donut) -->
 		<DonutChart data={lengthByManufacturerData} title={m.form_length_by_manufacturer()} />
 
-		<!-- Conduits Over Time -->
 		<Chart
 			data={conduitsByMonthData}
 			title={m.form_conduits_over_time()}

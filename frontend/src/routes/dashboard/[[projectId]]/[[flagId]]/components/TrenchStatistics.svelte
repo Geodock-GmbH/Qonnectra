@@ -8,9 +8,6 @@
 
 	const stats = $derived(await getDashboardStatistics({ projectId, flagId }));
 
-	/**
-	 * Aggregate data by surface type
-	 */
 	const surfaceData = $derived.by(() => {
 		const aggregated: Record<string, number> = {};
 
@@ -29,9 +26,6 @@
 			.sort((a, b) => b.value - a.value);
 	});
 
-	/**
-	 * Aggregate data by construction type
-	 */
 	const constructionData = $derived.by(() => {
 		const aggregated: Record<string, number> = {};
 
@@ -50,9 +44,6 @@
 			.sort((a, b) => b.value - a.value);
 	});
 
-	/**
-	 * Aggregate data with average house connection length
-	 */
 	const avgHouseConnectionData = $derived.by(() => {
 		return [
 			{
@@ -62,9 +53,6 @@
 		];
 	});
 
-	/**
-	 * Aggregate data with funding
-	 */
 	const lengthWithFundingData = $derived.by(() => {
 		return [
 			{
@@ -74,9 +62,6 @@
 		];
 	});
 
-	/**
-	 * Aggregate data with internal execution
-	 */
 	const lengthWithInternalExecutionData = $derived.by(() => {
 		return [
 			{
@@ -86,9 +71,6 @@
 		];
 	});
 
-	/**
-	 * Aggregate data by status
-	 */
 	const statusData = $derived.by(() => {
 		return stats.lengthByStatus
 			.filter((item) => item.status_name !== null)
@@ -99,9 +81,6 @@
 			.sort((a, b) => b.value - a.value);
 	});
 
-	/**
-	 * Aggregate data by network level
-	 */
 	const networkLevelData = $derived.by(() => {
 		return stats.lengthByNetworkLevel
 			.filter((item) => item.network_level !== null)
@@ -112,9 +91,6 @@
 			.sort((a, b) => b.value - a.value);
 	});
 
-	/**
-	 * Aggregate data by longest routes
-	 */
 	const longestRoutesData = $derived.by(() => {
 		return stats.longestRoutes.map((item) => ({
 			label: `${item.construction_type_name || m.common_unknown()} - ${item.surface_name || m.common_unknown()}`,
@@ -125,7 +101,6 @@
 
 <div class="space-y-6 max-w-6xl mx-auto">
 	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-		<!-- Surface Type Chart -->
 		<Chart
 			data={surfaceData}
 			title={m.form_length_by_surface()}
@@ -133,7 +108,6 @@
 			axisLabel={`${m.common_length()} (km)`}
 		/>
 
-		<!-- Construction Type Chart -->
 		<Chart
 			data={constructionData}
 			title={m.form_length_by_construction_type()}
@@ -141,7 +115,6 @@
 			axisLabel={`${m.common_length()} (km)`}
 		/>
 
-		<!-- Average House Connection Length -->
 		<Chart
 			data={avgHouseConnectionData}
 			title={m.form_average_house_connection_length()}
@@ -149,7 +122,6 @@
 			axisLabel={`${m.common_length()} (m)`}
 		/>
 
-		<!-- Length with Funding -->
 		<Chart
 			data={lengthWithFundingData}
 			title={m.form_length_funded()}
@@ -157,7 +129,6 @@
 			axisLabel={`${m.common_length()} (km)`}
 		/>
 
-		<!-- Length with Internal Execution -->
 		<Chart
 			data={lengthWithInternalExecutionData}
 			title={m.form_length_internal_execution()}
@@ -165,7 +136,6 @@
 			axisLabel={`${m.common_length()} (km)`}
 		/>
 
-		<!-- Length by Status -->
 		<Chart
 			data={statusData}
 			title={m.form_length_by_status()}
@@ -173,7 +143,6 @@
 			axisLabel={`${m.common_length()} (km)`}
 		/>
 
-		<!-- Length by Network Level -->
 		<Chart
 			data={networkLevelData}
 			title={m.form_length_by_network_level()}
@@ -181,7 +150,6 @@
 			axisLabel={`${m.common_length()} (km)`}
 		/>
 
-		<!-- Longest 5 Routes -->
 		<Chart
 			data={longestRoutesData}
 			title={m.form_longest_5_routes()}
