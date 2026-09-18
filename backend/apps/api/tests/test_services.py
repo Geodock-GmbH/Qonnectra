@@ -448,6 +448,113 @@ class TestGenerateConduitImportTemplate:
         assert name_value == "RV1.1.1"
 
 
+@pytest.mark.django_db
+class TestConduitImportTemplateDropdowns:
+    """Tests for the dynamic attribute dropdowns in the conduit import template."""
+
+    def _load(self):
+        response = generate_conduit_import_template()
+        return openpyxl.load_workbook(io.BytesIO(response.content))
+
+    def test_lookup_sheet_holds_current_attribute_values(self):
+        """The hidden lookup sheet lists live values pulled from the DB tables."""
+        activate("en")
+        status = StatusFactory(status="im Bau")
+        level = NetworkLevelFactory(network_level="Ortsnetz-Ebene")
+        conduit_type = ConduitTypeFactory(conduit_type="24x10/6")
+        company = CompanyFactory(company="ACME GmbH")
+        project = ProjectFactory(project="Glasfaser Nord")
+        flag = FlagFactory(flag="Priorität A")
+
+        workbook = self._load()
+
+        assert "Lookups" in workbook.sheetnames
+        lookups = workbook["Lookups"]
+        column_values = {}
+        for column in lookups.iter_cols(values_only=True):
+            header = column[0]
+            column_values[header] = {v for v in column[1:] if v is not None}
+
+        assert status.status in column_values["Status"]
+        assert level.network_level in column_values["Network Level"]
+        assert conduit_type.conduit_type in column_values["Type"]
+        assert company.company in column_values["Owner"]
+        assert project.project in column_values["Project"]
+        assert flag.flag in column_values["Flag"]
+
+    def test_lookup_sheet_is_hidden(self):
+        """The lookup sheet is hidden so it does not distract the user."""
+        activate("en")
+        workbook = self._load()
+        assert workbook["Lookups"].sheet_state == "hidden"
+
+    def test_dropdown_columns_have_data_validations(self):
+        """Every attribute-backed column carries a list data validation."""
+        activate("en")
+        StatusFactory(status="geplant")
+        NetworkLevelFactory(network_level="Hausanschluss-Ebene")
+        ConduitTypeFactory(conduit_type="12x10/6")
+        CompanyFactory(company="Geodock")
+        ProjectFactory(project="Default")
+        FlagFactory(flag="Default")
+
+        workbook = self._load()
+        sheet = workbook["Conduit Import Template"]
+
+        validated_columns = set()
+        for dv in sheet.data_validations.dataValidation:
+            assert dv.type == "list"
+            # Range references (=Lookups!...) sidestep the 255-char inline limit.
+            assert str(dv.formula1).startswith("=Lookups!")
+            for cell_range in dv.sqref.ranges:
+                validated_columns.add(cell_range.min_col)
+
+        # Type(2), Status(4), Network Level(5), Owner(6), Constructor(7),
+        # Manufacturer(8), Project(10), Flag(11)
+        assert {2, 4, 5, 6, 7, 8, 10, 11} <= validated_columns
+
+    def test_dropdowns_survive_large_value_lists(self):
+        """Long value lists must not blow the 255-char inline validation limit."""
+        activate("en")
+        # A single inline list of these would exceed Excel's 255-char cap.
+        for i in range(60):
+            CompanyFactory(company=f"Company with a fairly long name number {i:03d}")
+
+        workbook = self._load()
+        sheet = workbook["Conduit Import Template"]
+
+        company_dvs = [
+            dv
+            for dv in sheet.data_validations.dataValidation
+            if any(r.min_col == 6 for r in dv.sqref.ranges)
+        ]
+        assert company_dvs, "Owner column should have a data validation"
+        for dv in company_dvs:
+            assert len(str(dv.formula1)) <= 255
+
+    def test_lookup_values_are_deduplicated(self):
+        """Non-unique attribute values appear only once in the dropdown.
+
+        The importer resolves companies with ``.get()``; a duplicated value
+        would raise ``MultipleObjectsReturned``, so offering it twice would
+        list a value the import cannot accept.
+        """
+        activate("en")
+        CompanyFactory(company="Doppelt GmbH")
+        CompanyFactory(company="Doppelt GmbH")
+
+        workbook = self._load()
+        lookups = workbook["Lookups"]
+
+        owner_column = next(
+            column
+            for column in lookups.iter_cols(values_only=True)
+            if column[0] == "Owner"
+        )
+        values = [v for v in owner_column[1:] if v is not None]
+        assert values.count("Doppelt GmbH") == 1
+
+
 class TestHandleQgisFile:
     """Tests for the handle_qgis_file service function."""
 
@@ -1306,9 +1413,7 @@ class TestBuildInquiryExportZip:
         pipeline_record = PipelineRecordFactory(project=project)
         inquiry_area = PipelineInquiryAreaFactory(
             pipeline_record=pipeline_record,
-            geom=Polygon(
-                ((0, 0), (200, 0), (200, 200), (0, 200), (0, 0)), srid=25832
-            ),
+            geom=Polygon(((0, 0), (200, 0), (200, 200), (0, 200), (0, 0)), srid=25832),
         )
 
         trench1 = TrenchFactory(
@@ -1532,7 +1637,9 @@ class TestBuildInquiryExportZip:
         zf = self._get_zip(export_data)
         geojson = self._get_layer(zf, "trenches")
         tr1 = next(
-            f for f in geojson["features"] if f["properties"]["id_trench"] == "TR-AAAAAAA"
+            f
+            for f in geojson["features"]
+            if f["properties"]["id_trench"] == "TR-AAAAAAA"
         )
         props = tr1["properties"]
 
@@ -1692,9 +1799,7 @@ class TestBuildInquiryExportZip:
         record = PipelineRecordFactory(project=project)
         PipelineInquiryAreaFactory(
             pipeline_record=record,
-            geom=Polygon(
-                ((0, 0), (200, 0), (200, 200), (0, 200), (0, 0)), srid=25832
-            ),
+            geom=Polygon(((0, 0), (200, 0), (200, 200), (0, 200), (0, 0)), srid=25832),
         )
         TrenchFactory(
             project=project,
@@ -1743,9 +1848,9 @@ class TestBuildInquiryExportZip:
             "areas",
             "microducts",
         ]:
-            assert any(
-                f"./layers/{layer}.geojson" in ds for ds in datasources
-            ), f"QLR missing datasource for {layer}"
+            assert any(f"./layers/{layer}.geojson" in ds for ds in datasources), (
+                f"QLR missing datasource for {layer}"
+            )
 
         srid = settings.DEFAULT_SRID
         expected_authid = f"EPSG:{srid}"

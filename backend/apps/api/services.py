@@ -20,6 +20,7 @@ from openpyxl import load_workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill
 from openpyxl.styles import Side as BorderSide
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.datavalidation import DataValidation
 from pathvalidate import sanitize_filename
 from shapely import is_valid, make_valid
 from shapely.geometry import LineString, MultiLineString, Point, Polygon, mapping, shape
@@ -339,10 +340,21 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
 def generate_conduit_import_template():
     """Generate an Excel template for conduit bulk import.
 
+    Attribute-backed columns (type, status, network level, companies,
+    project, flag) are filled from the live database tables and exposed as
+    Excel dropdowns so the user can only pick values the import accepts.
+
+    The allowed values are written to a hidden ``Lookups`` sheet and the
+    dropdowns reference those ranges. This avoids Excel's 255-character cap
+    on inline list validations, which long tables (companies, conduit
+    types) would otherwise exceed.
+
     Returns:
-        HttpResponse: Excel file download response with headers and one
-            example row pre-filled.
+        HttpResponse: Excel file download response with headers, one example
+            row, a hidden lookup sheet, and per-column dropdowns.
     """
+    max_rows = 1000  # rows the dropdowns are applied to on the data sheet
+
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
     assert worksheet is not None
@@ -384,6 +396,8 @@ def generate_conduit_import_template():
     for col, value in enumerate(example_row, start=1):
         worksheet.cell(row=2, column=col, value=value)
 
+    _add_conduit_template_dropdowns(workbook, worksheet, max_rows)
+
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
@@ -394,6 +408,90 @@ def generate_conduit_import_template():
     workbook.save(response)
 
     return response
+
+
+def _add_conduit_template_dropdowns(workbook, worksheet, max_rows):
+    """Attach live attribute dropdowns to the conduit import template.
+
+    Write each attribute table's current values into a hidden ``Lookups``
+    sheet (one column per attribute) and add a list :class:`DataValidation`
+    to every matching data column that references that lookup range.
+
+    Args:
+        workbook (openpyxl.Workbook): Target workbook; a hidden ``Lookups``
+            sheet is added to it.
+        worksheet (openpyxl.worksheet.worksheet.Worksheet): The data sheet
+            the dropdowns are applied to.
+        max_rows (int): Number of data rows (from row 2) each dropdown spans.
+    """
+
+    def allowed_values(model, field):
+        """Return the model's distinct field values, ordered and de-duplicated.
+
+        De-duplication matters: several of these attribute fields are not
+        ``unique=True``, and the importer resolves them with ``.get()``,
+        which raises ``MultipleObjectsReturned`` on duplicates. Offering a
+        value twice would let the user pick one the import cannot accept.
+
+        Args:
+            model (type[django.db.models.Model]): Attribute model to read.
+            field (str): Name of the text field holding the allowed value.
+
+        Returns:
+            list[str]: Ordered, duplicate-free field values.
+        """
+        seen = dict.fromkeys(
+            model.objects.order_by(field).values_list(field, flat=True)
+        )
+        return list(seen)
+
+    companies = allowed_values(AttributesCompany, "company")
+
+    # (data-sheet column index, header label, allowed values). Owner,
+    # Constructor and Manufacturer all share the company list.
+    dropdown_specs = [
+        (2, str(_("Type")), allowed_values(AttributesConduitType, "conduit_type")),
+        (4, str(_("Status")), allowed_values(AttributesStatus, "status")),
+        (
+            5,
+            str(_("Network Level")),
+            allowed_values(AttributesNetworkLevel, "network_level"),
+        ),
+        (6, str(_("Owner")), companies),
+        (7, str(_("Constructor")), companies),
+        (8, str(_("Manufacturer")), companies),
+        (10, str(_("Project")), allowed_values(Projects, "project")),
+        (11, str(_("Flag")), allowed_values(Flags, "flag")),
+    ]
+
+    lookups = workbook.create_sheet(title="Lookups")
+    lookups.sheet_state = "hidden"
+
+    for lookup_col, (data_col, header, values) in enumerate(dropdown_specs, start=1):
+        column_letter = get_column_letter(lookup_col)
+        lookups.cell(row=1, column=lookup_col, value=header)
+        for offset, value in enumerate(values, start=2):
+            lookups.cell(row=offset, column=lookup_col, value=value)
+
+        # Empty tables get no dropdown; an empty range reference is invalid.
+        if not values:
+            continue
+
+        last_row = len(values) + 1
+        formula = f"=Lookups!${column_letter}$2:${column_letter}${last_row}"
+        validation = DataValidation(
+            type="list", formula1=formula, allow_blank=True, showDropDown=False
+        )
+        validation.error = str(
+            _("Value must be one of the options listed in the dropdown.")
+        )
+        validation.errorTitle = str(_("Invalid value"))
+        validation.prompt = str(_("Pick a value from the dropdown."))
+        validation.promptTitle = header
+
+        data_column_letter = get_column_letter(data_col)
+        validation.add(f"{data_column_letter}2:{data_column_letter}{max_rows + 1}")
+        worksheet.add_data_validation(validation)
 
 
 def generate_node_structure_excel(node_uuid):
