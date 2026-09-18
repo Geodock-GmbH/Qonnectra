@@ -349,6 +349,10 @@ def generate_conduit_import_template():
     on inline list validations, which long tables (companies, conduit
     types) would otherwise exceed.
 
+    The example row keeps hardcoded values only for free-text columns; each
+    FK-backed cell is filled from a live lookup value so the example always
+    matches the current attribute tables.
+
     Returns:
         HttpResponse: Excel file download response with headers, one example
             row, a hidden lookup sheet, and per-column dropdowns.
@@ -379,24 +383,17 @@ def generate_conduit_import_template():
     for col, header in enumerate(headers, start=1):
         worksheet.cell(row=1, column=col, value=header)
 
-    example_row = [
-        "RV1.1.1",
-        "12x10/6",
-        "",
-        "geplant",
-        "Hausanschluss-Ebene",
-        "Geodock",
-        "Geodock",
-        "Geodock",
-        "2025-01-01",
-        "Default",
-        "Default",
-    ]
-
-    for col, value in enumerate(example_row, start=1):
+    # Only free-text columns carry a hardcoded example. FK-backed columns are
+    # filled from live lookup values below so the example can never go stale.
+    free_text_example = {1: "RV1.1.1", 9: "2025-01-01"}
+    for col, value in free_text_example.items():
         worksheet.cell(row=2, column=col, value=value)
 
-    _add_conduit_template_dropdowns(workbook, worksheet, dropdown_row_span)
+    example_values = _add_conduit_template_dropdowns(
+        workbook, worksheet, dropdown_row_span
+    )
+    for col, value in example_values.items():
+        worksheet.cell(row=2, column=col, value=value)
 
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -424,6 +421,11 @@ def _add_conduit_template_dropdowns(workbook, worksheet, dropdown_row_span):
             the dropdowns are applied to.
         dropdown_row_span (int): Number of data rows (from row 2) each
             dropdown spans.
+
+    Returns:
+        dict[int, str]: Data-sheet column index to the first live value for
+            that column, for use as a valid example. Columns whose table is
+            empty are omitted.
     """
 
     def allowed_values(model, field):
@@ -467,6 +469,7 @@ def _add_conduit_template_dropdowns(workbook, worksheet, dropdown_row_span):
     lookups = workbook.create_sheet(title="Lookups")
     lookups.sheet_state = "hidden"
 
+    example_values = {}
     for lookup_col, (data_col, header, values) in enumerate(dropdown_specs, start=1):
         column_letter = get_column_letter(lookup_col)
         lookups.cell(row=1, column=lookup_col, value=header)
@@ -476,6 +479,8 @@ def _add_conduit_template_dropdowns(workbook, worksheet, dropdown_row_span):
         # Empty tables get no dropdown; an empty range reference is invalid.
         if not values:
             continue
+
+        example_values[data_col] = values[0]
 
         last_row = len(values) + 1
         formula = f"=Lookups!${column_letter}$2:${column_letter}${last_row}"
@@ -494,6 +499,8 @@ def _add_conduit_template_dropdowns(workbook, worksheet, dropdown_row_span):
             f"{data_column_letter}2:{data_column_letter}{dropdown_row_span + 1}"
         )
         worksheet.add_data_validation(validation)
+
+    return example_values
 
 
 def generate_node_structure_excel(node_uuid):

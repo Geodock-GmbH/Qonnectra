@@ -554,8 +554,49 @@ class TestConduitImportTemplateDropdowns:
         values = [v for v in owner_column[1:] if v is not None]
         assert values.count("Doppelt GmbH") == 1
 
+    def test_example_row_uses_live_values_for_fk_columns(self):
+        """FK-backed example cells are filled from live lookup values."""
+        activate("en")
+        StatusFactory(status="im Bau")
+        NetworkLevelFactory(network_level="Netzebene 1")
+        ConduitTypeFactory(conduit_type="24x10/6")
+        CompanyFactory(company="ACME GmbH")
+        ProjectFactory(project="Glasfaser Nord")
+        FlagFactory(flag="Priorität A")
 
-class TestHandleQgisFile:
+        workbook = self._load()
+        sheet = workbook["Conduit Import Template"]
+
+        def example(col):
+            return sheet.cell(row=2, column=col).value
+
+        # Free-text columns keep their hardcoded example.
+        assert example(1) == "RV1.1.1"
+        assert example(9) == "2025-01-01"
+        # FK-backed columns mirror the live attribute values.
+        assert example(2) == "24x10/6"
+        assert example(4) == "im Bau"
+        assert example(5) == "Netzebene 1"
+        assert example(6) == "ACME GmbH"
+        assert example(7) == "ACME GmbH"
+        assert example(8) == "ACME GmbH"
+        assert example(10) == "Glasfaser Nord"
+        assert example(11) == "Priorität A"
+
+    def test_example_row_leaves_empty_fk_columns_blank(self):
+        """With no attribute rows, FK example cells stay blank, not stale.
+
+        The old template hardcoded strings like "Hausanschluss-Ebene" that no
+        longer exist in the tables, making the example row fail import.
+        """
+        activate("en")
+
+        workbook = self._load()
+        sheet = workbook["Conduit Import Template"]
+
+        for col in (2, 4, 5, 6, 7, 8, 10, 11):
+            assert sheet.cell(row=2, column=col).value is None
+
     """Tests for the handle_qgis_file service function."""
 
     def test_handle_qgs_file(self):
