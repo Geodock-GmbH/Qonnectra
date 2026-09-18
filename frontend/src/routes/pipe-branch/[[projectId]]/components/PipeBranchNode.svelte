@@ -1,25 +1,17 @@
 <script lang="ts">
-	import type { Node, NodeProps } from '@xyflow/svelte';
-	import type { TrenchesNearNodeConduit, TrenchesNearNodeTrench } from '$lib/types';
+	import type { BranchNode } from './branchGraph';
+	import type { NodeProps } from '@xyflow/svelte';
 	import { Handle, Position } from '@xyflow/svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
-	type PipeBranchNodeData = {
-		trench?: TrenchesNearNodeTrench;
-		conduit?: TrenchesNearNodeConduit;
-		totalMicroducts?: number;
-		nodeName?: string;
-	} & Record<string, unknown>;
+	import { handleId } from './branchGraph';
 
-	type PipeBranchNode = Node<PipeBranchNodeData, 'pipeBranch'>;
-
-	let { id, data, selected }: NodeProps<PipeBranchNode> = $props();
+	let { data, selected }: NodeProps<BranchNode> = $props();
 
 	const trench = $derived(data?.trench || null);
 	const conduit = $derived(data?.conduit || null);
 	const totalMicroducts = $derived(data?.totalMicroducts || 0);
-	const nodeName = $derived(data?.nodeName || '');
 	const handleCount = $derived(Math.max(1, totalMicroducts));
 	const radius = $derived(Math.max(120, 80 + handleCount * 10));
 	const diameter = $derived(radius * 2);
@@ -42,11 +34,12 @@
 		return luminance > 0.5 ? 'black' : 'white';
 	}
 
-	const handleData = $derived(() => {
+	const handleData = $derived.by(() => {
 		if (!conduit || !conduit.microducts) return [];
 
 		const handles: Array<{
-			id: string;
+			sourceId: string;
+			targetId: string;
 			microductUuid: string;
 			microductNumber: number;
 			conduitName: string;
@@ -58,13 +51,14 @@
 			isTwoLayer: boolean;
 			contrastColor: string;
 		}> = [];
-		conduit.microducts.forEach((microduct, micIndex: number) => {
+		conduit.microducts.forEach((microduct) => {
 			const hexCode = microduct.hex_code || '#64748b'; // Default gray
 			const hexCodeSecondary = microduct.hex_code_secondary;
 			const isTwoLayer = microduct.is_two_layer || false;
 
 			handles.push({
-				id: `conduit-${conduit.uuid}-microduct-${microduct.number}`,
+				sourceId: handleId(conduit.uuid, microduct.number, 'source'),
+				targetId: handleId(conduit.uuid, microduct.number, 'target'),
 				microductUuid: microduct.uuid,
 				microductNumber: microduct.number,
 				conduitName: conduit.name,
@@ -81,7 +75,7 @@
 	});
 
 	const handlePositions = $derived(
-		handleData().map((handle, i) => {
+		handleData.map((handle, i) => {
 			const x = radius; // Center horizontally
 			const spacing = handleCount > 1 ? (diameter - 60) / (handleCount - 1) : 0;
 			const y = 30 + i * spacing;
@@ -130,11 +124,11 @@
 	style="width: {diameter}px; height: {diameter}px;"
 	class:border-primary-500={selected}
 >
-	{#each handlePositions as position, i}
+	{#each handlePositions as position (position.handle.sourceId)}
 		<Handle
 			type="source"
 			position={Position.Right}
-			id="{position.handle.id}-source"
+			id={position.handle.sourceId}
 			style="left: {position.x - 12}px; top: {position.y -
 				12}px; position: absolute; transform: none; width: 24px; height: 24px; background: {position
 				.handle.isTwoLayer
@@ -150,7 +144,7 @@
 		<Handle
 			type="target"
 			position={Position.Left}
-			id="{position.handle.id}-target"
+			id={position.handle.targetId}
 			style="left: {position.x - 12}px; top: {position.y -
 				12}px; position: absolute; transform: none; width: 24px; height: 24px; background: {position
 				.handle.isTwoLayer

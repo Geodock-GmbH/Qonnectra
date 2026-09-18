@@ -156,6 +156,15 @@ function commandStub(value) {
 }
 
 /**
+ * Inert stand-in for a remote `query` instance: resolves to `value` and
+ * accepts `withOverride(...)` without applying it.
+ * @param {unknown} value
+ */
+function queryStub(value) {
+	return Object.assign(Promise.resolve(value), { withOverride: () => () => undefined });
+}
+
+/**
  * Inert stand-in for a remote `form`: spreadable onto `<form>`, with fields
  * whose `as()` yields plain input attributes.
  * @param {string} name
@@ -222,6 +231,26 @@ vi.mock('$lib/remote/conduit/microducts.remote', () => ({
 vi.mock('$lib/remote/house-connections/node-assignment.remote', () => ({
 	assignNodeToMicroduct: vi.fn(() => commandStub({ uuid: '' })),
 	removeNodeFromMicroduct: vi.fn(() => commandStub({ uuid: '' }))
+}));
+vi.mock('$lib/remote/pipe-branch/branches.remote', () => ({
+	getPipeBranches: vi.fn().mockResolvedValue({ branches: [], configured: false })
+}));
+vi.mock('$lib/remote/pipe-branch/trench-selections.remote', () => ({
+	getTrenchesNearNode: vi.fn().mockResolvedValue({
+		trenches: [],
+		count: 0,
+		node_uuid: '',
+		node_name: '',
+		distance: 0,
+		project_id: 0
+	}),
+	getTrenchSelections: vi.fn().mockResolvedValue([]),
+	saveTrenchSelections: vi.fn(() => commandStub(undefined))
+}));
+vi.mock('$lib/remote/pipe-branch/connections.remote', () => ({
+	getConnections: vi.fn(() => queryStub([])),
+	createConnections: vi.fn(() => commandStub({ created: 0, errors: [] })),
+	deleteConnection: vi.fn(() => commandStub(undefined))
 }));
 vi.mock('$lib/remote/map/feature-search.remote', () => ({
 	searchFeatures: vi.fn().mockResolvedValue([]),
