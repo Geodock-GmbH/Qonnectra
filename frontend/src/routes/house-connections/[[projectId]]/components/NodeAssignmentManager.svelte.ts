@@ -29,8 +29,10 @@ interface InteractionManagerRef {
 }
 
 /**
- * Manages node assignment mode for microducts
- * Coordinates with MapInteractionManager to enable node-only clicking
+ * Drives the "pick a node on the map to assign to this microduct" mode. While
+ * active it narrows the interaction manager to node-only clicking and swaps in
+ * a click handler that routes node clicks to the assignment command, restoring
+ * the previous selection config and handler when the mode ends.
  */
 export class NodeAssignmentManager {
 	isAssignMode: boolean = $state(false);
@@ -49,7 +51,8 @@ export class NodeAssignmentManager {
 	escapeKeyHandler: ((event: KeyboardEvent) => void) | null = null;
 
 	/**
-	 * @param interactionManager - MapInteractionManager instance
+	 * @param interactionManager - Map interaction manager whose selectable
+	 * layers and click handler this manager takes over while assigning.
 	 */
 	constructor(interactionManager: InteractionManagerRef) {
 		this.interactionManager = interactionManager;
@@ -59,9 +62,12 @@ export class NodeAssignmentManager {
 	}
 
 	/**
-	 * Activate node assignment mode
-	 * @param microductUuid - UUID of the microduct to assign a node to
-	 * @param conduitUuid - UUID of the conduit the microduct belongs to
+	 * Enters assign mode: restricts map clicks to nodes, sets a crosshair cursor,
+	 * binds Escape to cancel, and installs the assign-mode click handler. No-op
+	 * when either UUID is missing or the interaction manager is unavailable.
+	 * @param microductUuid - UUID of the microduct to assign a node to.
+	 * @param conduitUuid - UUID of the conduit the microduct belongs to.
+	 * @returns Nothing.
 	 */
 	activateAssignMode(microductUuid: string, conduitUuid: string): void {
 		if (!microductUuid || !conduitUuid || !this.interactionManager) return;
@@ -96,7 +102,9 @@ export class NodeAssignmentManager {
 	}
 
 	/**
-	 * Deactivate node assignment mode and restore original state
+	 * Leaves assign mode and restores the selectable-layers config, cursor,
+	 * Escape binding and click handler captured on activation.
+	 * @returns Nothing.
 	 */
 	deactivateAssignMode(): void {
 		if (this.originalSelectableConfig && this.interactionManager) {
@@ -123,7 +131,10 @@ export class NodeAssignmentManager {
 	}
 
 	/**
-	 * Create a custom click handler for assign mode
+	 * Builds the click handler used while assigning: node clicks drive the
+	 * assignment, and any click received after the mode was left falls through
+	 * to the manager's original handler.
+	 * @returns The assign-mode feature click handler.
 	 */
 	createAssignModeClickHandler(): FeatureClickHandler {
 		const manager = this.interactionManager as InteractionManagerRef;
@@ -138,8 +149,9 @@ export class NodeAssignmentManager {
 	/**
 	 * Assign the clicked node to the active microduct; clicks on anything but an
 	 * addressed node are ignored.
-	 * @param feature - The clicked feature
-	 * @param isNode - Whether the feature belongs to the node layer
+	 * @param feature - The clicked feature.
+	 * @param isNode - Whether the feature belongs to the node layer.
+	 * @returns Resolves once the assignment attempt (if any) has settled.
 	 */
 	async handleAssignModeClick(feature: Feature, isNode: boolean): Promise<void> {
 		const featureId = feature.getId();
@@ -158,7 +170,8 @@ export class NodeAssignmentManager {
 	}
 
 	/**
-	 * Restore the original click handler
+	 * Restores the interaction manager's click handler captured on construction.
+	 * @returns Nothing.
 	 */
 	restoreOriginalClickHandler(): void {
 		if (this.originalClickHandler && this.interactionManager) {
@@ -167,8 +180,11 @@ export class NodeAssignmentManager {
 	}
 
 	/**
-	 * Assign a node to the active microduct and leave assign mode on success.
-	 * @param nodeUuid - UUID of the node to assign
+	 * Assigns a node to the active microduct and leaves assign mode on success;
+	 * failures are reported and the mode stays active. No-op when no microduct is
+	 * active or `nodeUuid` is empty.
+	 * @param nodeUuid - UUID of the node to assign.
+	 * @returns Resolves once the assignment attempt has settled.
 	 */
 	async assignNodeToMicroduct(nodeUuid: string): Promise<void> {
 		if (!this.activeMicroductUuid || !this.activeConduitUuid || !nodeUuid) return;
@@ -191,8 +207,9 @@ export class NodeAssignmentManager {
 	}
 
 	/**
-	 * Log a failed assignment and tell the user why it failed.
-	 * @param err - The rejection value of the assign command
+	 * Logs a failed assignment to the backend and shows the user why it failed.
+	 * @param err - The rejection value of the assign command.
+	 * @returns Nothing.
 	 */
 	reportAssignmentFailure(err: unknown): void {
 		void logToBackendClient({
@@ -211,7 +228,9 @@ export class NodeAssignmentManager {
 	}
 
 	/**
-	 * Cleanup method to be called on destroy
+	 * Tears the manager down on component destroy, leaving assign mode if it is
+	 * still active so global listeners and cursor state are released.
+	 * @returns Nothing.
 	 */
 	cleanup(): void {
 		if (this.isAssignMode) {
