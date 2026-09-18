@@ -312,6 +312,9 @@ vi.mock('$lib/remote/pipeline-records/inquiry-areas.remote', () => ({
 	renameInquiryArea: vi.fn(() => commandStub(undefined)),
 	deleteInquiryArea: vi.fn(() => commandStub(undefined))
 }));
+vi.mock('$lib/remote/post-compaction/address-search.remote', () => ({
+	searchAddresses: vi.fn().mockResolvedValue([])
+}));
 vi.mock('$lib/remote/address/residential-units.remote', () => ({
 	getResidentialUnits: vi.fn().mockResolvedValue([]),
 	getResidentialUnit: vi.fn().mockResolvedValue({}),

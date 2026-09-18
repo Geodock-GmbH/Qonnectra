@@ -1,7 +1,12 @@
 import proj4 from 'proj4';
 import { describe, expect, test, vi } from 'vitest';
 
-import { registerStorageProjection, storageProjection } from './projectionUtils';
+import {
+	formatLatLon,
+	formatStorageCoordinates,
+	registerStorageProjection,
+	storageProjection
+} from './projectionUtils';
 
 const ETRS89_UTM32_DEF = '+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs';
 
@@ -26,5 +31,28 @@ describe('registerStorageProjection', () => {
 
 		expect(defsSpy).not.toHaveBeenCalledWith('EPSG:25832', expect.anything());
 		defsSpy.mockRestore();
+	});
+});
+
+describe('formatLatLon', () => {
+	test('should format an EPSG:3857 point as latitude, longitude', () => {
+		expect(formatLatLon([0, 0])).toBe('0.000000, 0.000000');
+		expect(formatLatLon([1001875.417139, 6800125.454397])).toBe('52.000000, 9.000000');
+	});
+});
+
+describe('formatStorageCoordinates', () => {
+	test('should format an EPSG:3857 point as x, y in the storage SRID', () => {
+		// 9°E is the central meridian of UTM zone 32, so the easting is the false easting.
+		const [x, y] = formatStorageCoordinates(
+			[1001875.417139, 6800125.454397],
+			25832,
+			ETRS89_UTM32_DEF
+		)
+			.split(', ')
+			.map(Number);
+
+		expect(x).toBeCloseTo(500000, 1);
+		expect(y).toBeCloseTo(5761038.2, 0);
 	});
 });
