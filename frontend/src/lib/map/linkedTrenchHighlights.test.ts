@@ -1,6 +1,7 @@
 import type BaseLayer from 'ol/layer/Base.js';
 import Feature from 'ol/Feature.js';
 import VectorTileLayer from 'ol/layer/VectorTile.js';
+import VectorTileSource from 'ol/source/VectorTile.js';
 import { describe, expect, test, vi } from 'vitest';
 
 import { LinkedTrenchHighlights } from './linkedTrenchHighlights';
@@ -94,6 +95,39 @@ describe('LinkedTrenchHighlights', () => {
 		highlights.attach(map, null);
 
 		expect(styleOf(layers[0], trench('trench-1'))).toBeDefined();
+	});
+
+	test('should hide and show its layer', () => {
+		const { map, layers } = createMap();
+		const highlights = new LinkedTrenchHighlights();
+		highlights.attach(map, null);
+
+		highlights.setVisible(false);
+		expect(layers[0].getVisible()).toBe(false);
+
+		highlights.setVisible(true);
+		expect(layers[0].getVisible()).toBe(true);
+	});
+
+	test('should apply a visibility chosen before the map is ready', () => {
+		const { map, layers } = createMap();
+		const highlights = new LinkedTrenchHighlights();
+
+		highlights.setVisible(false);
+		highlights.attach(map, null);
+
+		expect(layers[0].getVisible()).toBe(false);
+	});
+
+	test('should draw from a replaced tile source', () => {
+		const { map, layers } = createMap();
+		const highlights = new LinkedTrenchHighlights();
+		highlights.attach(map, null);
+		const source = new VectorTileSource({});
+
+		highlights.setSource(source);
+
+		expect(layers[0].getSource()).toBe(source);
 	});
 
 	test('should remove its layer and forget the highlights on detach', () => {

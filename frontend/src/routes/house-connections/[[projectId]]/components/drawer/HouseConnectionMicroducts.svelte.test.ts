@@ -3,13 +3,13 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { LinkedTrenchHighlights } from '$lib/map/linkedTrenchHighlights';
 import { globalToaster } from '$lib/stores/toaster';
 import { commandFailure, commandResult, httpError } from '$lib/test-utils/remote-stubs';
 
 import { NodeAssignmentManager } from '../NodeAssignmentManager.svelte';
 import HouseConnectionContextFixture from './HouseConnectionContext.fixture.svelte';
 import HouseConnectionMicroducts from './HouseConnectionMicroducts.svelte';
-import { LinkedTrenchHighlights } from '../linkedTrenchHighlights';
 
 const getMicroducts = vi.fn();
 const removeNodeFromMicroduct = vi.fn();
