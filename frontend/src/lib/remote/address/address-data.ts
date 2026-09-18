@@ -1,5 +1,4 @@
 import type { Address } from '$lib/types';
-import type { ComboboxItem } from '$lib/types/attributeCardTypes';
 
 /** An address flattened from its GeoJSON feature envelope. */
 export interface AddressRecord {
@@ -141,18 +140,6 @@ export function mapAddressListPage(payload: Record<string, unknown>): AddressLis
 			totalPages: (payload.total_pages as number) || EMPTY_PAGINATION.totalPages
 		}
 	};
-}
-
-/**
- * Maps a backend attribute list to combobox options.
- * @param items - Attribute rows with an `id`.
- * @param labelKey - The row field holding the display label.
- */
-export function toOptions(items: Record<string, unknown>[], labelKey: string): ComboboxItem[] {
-	return items.map((item) => ({
-		value: item.id as number,
-		label: String(item[labelKey] ?? '')
-	}));
 }
 
 /**

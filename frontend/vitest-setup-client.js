@@ -147,6 +147,16 @@ vi.mock('$lib/remote/address/attribute-options.remote', () => ({
 	getResidentialUnitStatusOptions: vi.fn().mockResolvedValue([])
 }));
 /**
+ * Inert stand-in for a remote `command` call: resolves to `value` both when
+ * awaited directly and through `.updates(...)`.
+ * @param {unknown} value
+ */
+function commandStub(value) {
+	const promise = Promise.resolve(value);
+	return Object.assign(promise, { updates: () => promise });
+}
+
+/**
  * Inert stand-in for a remote `form`: spreadable onto `<form>`, with fields
  * whose `as()` yields plain input attributes.
  * @param {string} name
@@ -170,7 +180,7 @@ function formStub(name, fieldNames) {
 		fields,
 		pending: 0,
 		result: undefined,
-		submit: vi.fn().mockResolvedValue(true),
+		submit: vi.fn(() => commandStub(true)),
 		enhance: vi.fn(() => attributes)
 	};
 }
@@ -183,6 +193,29 @@ vi.mock('$lib/remote/auth/logout.remote', () => ({
 }));
 vi.mock('$lib/remote/admin/logs.remote', () => ({
 	getLogs: vi.fn().mockResolvedValue({ count: 0, next: null, previous: null, results: [] })
+}));
+vi.mock('$lib/remote/conduit/conduits.remote', () => ({
+	getConduitList: vi.fn().mockResolvedValue({
+		conduits: [],
+		pagination: { page: 1, pageSize: 50, totalCount: 0, totalPages: 0 }
+	}),
+	getConduit: vi.fn().mockResolvedValue({ uuid: '', name: '' }),
+	createConduit: vi.fn(() => commandStub({ uuid: '', name: '' })),
+	updateConduit: vi.fn(() => commandStub({ uuid: '', name: '' })),
+	deleteConduit: vi.fn(() => commandStub(undefined)),
+	importConduits: formStub('importConduits', ['file'])
+}));
+vi.mock('$lib/remote/conduit/attribute-options.remote', () => ({
+	getConduitTypeOptions: vi.fn().mockResolvedValue([]),
+	getStatusOptions: vi.fn().mockResolvedValue([]),
+	getNetworkLevelOptions: vi.fn().mockResolvedValue([]),
+	getCompanyOptions: vi.fn().mockResolvedValue([]),
+	getFlagOptions: vi.fn().mockResolvedValue([])
+}));
+vi.mock('$lib/remote/conduit/microducts.remote', () => ({
+	getMicroducts: vi.fn().mockResolvedValue([]),
+	getMicroductStatusOptions: vi.fn().mockResolvedValue([]),
+	updateMicroductStatus: vi.fn(() => commandStub({ uuid: '' }))
 }));
 vi.mock('$lib/remote/address/residential-units.remote', () => ({
 	getResidentialUnits: vi.fn().mockResolvedValue([]),

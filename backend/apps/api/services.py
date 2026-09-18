@@ -20,6 +20,7 @@ from openpyxl import load_workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill
 from openpyxl.styles import Side as BorderSide
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.datavalidation import DataValidation
 from pathvalidate import sanitize_filename
 from shapely import is_valid, make_valid
 from shapely.geometry import LineString, MultiLineString, Point, Polygon, mapping, shape
@@ -339,10 +340,25 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
 def generate_conduit_import_template():
     """Generate an Excel template for conduit bulk import.
 
+    Attribute-backed columns (type, status, network level, companies,
+    project, flag) are filled from the live database tables and exposed as
+    Excel dropdowns so the user can only pick values the import accepts.
+
+    The allowed values are written to a hidden ``Lookups`` sheet and the
+    dropdowns reference those ranges. This avoids Excel's 255-character cap
+    on inline list validations, which long tables (companies, conduit
+    types) would otherwise exceed.
+
+    The example row keeps hardcoded values only for free-text columns; each
+    FK-backed cell is filled from a live lookup value so the example always
+    matches the current attribute tables.
+
     Returns:
-        HttpResponse: Excel file download response with headers and one
-            example row pre-filled.
+        HttpResponse: Excel file download response with headers, one example
+            row, a hidden lookup sheet, and per-column dropdowns.
     """
+    dropdown_row_span = 1000
+
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
     assert worksheet is not None
@@ -367,21 +383,16 @@ def generate_conduit_import_template():
     for col, header in enumerate(headers, start=1):
         worksheet.cell(row=1, column=col, value=header)
 
-    example_row = [
-        "RV1.1.1",
-        "12x10/6",
-        "",
-        "geplant",
-        "Hausanschluss-Ebene",
-        "Geodock",
-        "Geodock",
-        "Geodock",
-        "2025-01-01",
-        "Default",
-        "Default",
-    ]
+    # Only free-text columns carry a hardcoded example. FK-backed columns are
+    # filled from live lookup values below so the example can never go stale.
+    free_text_example = {1: "RV1.1.1", 9: "2025-01-01"}
+    for col, value in free_text_example.items():
+        worksheet.cell(row=2, column=col, value=value)
 
-    for col, value in enumerate(example_row, start=1):
+    example_values = _add_conduit_template_dropdowns(
+        workbook, worksheet, dropdown_row_span
+    )
+    for col, value in example_values.items():
         worksheet.cell(row=2, column=col, value=value)
 
     response = HttpResponse(
@@ -394,6 +405,102 @@ def generate_conduit_import_template():
     workbook.save(response)
 
     return response
+
+
+def _add_conduit_template_dropdowns(workbook, worksheet, dropdown_row_span):
+    """Attach live attribute dropdowns to the conduit import template.
+
+    Write each attribute table's current values into a hidden ``Lookups``
+    sheet (one column per attribute) and add a list :class:`DataValidation`
+    to every matching data column that references that lookup range.
+
+    Args:
+        workbook (openpyxl.Workbook): Target workbook; a hidden ``Lookups``
+            sheet is added to it.
+        worksheet (openpyxl.worksheet.worksheet.Worksheet): The data sheet
+            the dropdowns are applied to.
+        dropdown_row_span (int): Number of data rows (from row 2) each
+            dropdown spans.
+
+    Returns:
+        dict[int, str]: Data-sheet column index to the first live value for
+            that column, for use as a valid example. Columns whose table is
+            empty are omitted.
+    """
+
+    def allowed_values(model, field):
+        """Return the model's distinct field values, ordered and de-duplicated.
+
+        De-duplication matters: several of these attribute fields are not
+        ``unique=True``, and the importer resolves them with ``.get()``,
+        which raises ``MultipleObjectsReturned`` on duplicates. Offering a
+        value twice would let the user pick one the import cannot accept.
+
+        Args:
+            model (type[django.db.models.Model]): Attribute model to read.
+            field (str): Name of the text field holding the allowed value.
+
+        Returns:
+            list[str]: Ordered, duplicate-free field values.
+        """
+        seen = dict.fromkeys(
+            model.objects.order_by(field).values_list(field, flat=True)
+        )
+        return list(seen)
+
+    companies = allowed_values(AttributesCompany, "company")
+
+    # Owner, Constructor and Manufacturer all resolve against the company list.
+    dropdown_specs = [
+        (2, str(_("Type")), allowed_values(AttributesConduitType, "conduit_type")),
+        (4, str(_("Status")), allowed_values(AttributesStatus, "status")),
+        (
+            5,
+            str(_("Network Level")),
+            allowed_values(AttributesNetworkLevel, "network_level"),
+        ),
+        (6, str(_("Owner")), companies),
+        (7, str(_("Constructor")), companies),
+        (8, str(_("Manufacturer")), companies),
+        (10, str(_("Project")), allowed_values(Projects, "project")),
+        (11, str(_("Flag")), allowed_values(Flags, "flag")),
+    ]
+
+    lookups = workbook.create_sheet(title="Lookups")
+    lookups.sheet_state = "hidden"
+
+    example_values = {}
+    for lookup_col, (data_col, header, values) in enumerate(dropdown_specs, start=1):
+        column_letter = get_column_letter(lookup_col)
+        lookups.cell(row=1, column=lookup_col, value=header)
+        for offset, value in enumerate(values, start=2):
+            lookups.cell(row=offset, column=lookup_col, value=value)
+
+        # Empty tables get no dropdown; an empty range reference is invalid.
+        if not values:
+            continue
+
+        example_values[data_col] = values[0]
+
+        last_row = len(values) + 1
+        formula = f"=Lookups!${column_letter}$2:${column_letter}${last_row}"
+        validation = DataValidation(
+            type="list", formula1=formula, allow_blank=True, showDropDown=False
+        )
+        validation.error = str(
+            _("Value must be one of the options listed in the dropdown.")
+        )
+        validation.errorTitle = str(_("Invalid value"))
+        validation.prompt = str(_("Pick a value from the dropdown."))
+        validation.promptTitle = header
+
+        data_column_letter = get_column_letter(data_col)
+        validation.add(
+            f"{data_column_letter}2:{data_column_letter}{dropdown_row_span + 1}"
+        )
+        worksheet.add_data_validation(validation)
+
+    return example_values
 
 
 def generate_node_structure_excel(node_uuid):

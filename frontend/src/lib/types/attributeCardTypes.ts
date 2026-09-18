@@ -71,22 +71,6 @@ export interface CableDrawerProps {
 	[key: string]: unknown;
 }
 
-/** Drawer props for a conduit attribute card. */
-export interface ConduitDrawerProps {
-	uuid?: string;
-	name?: string;
-	outer_conduit?: string | null;
-	conduit_type?: FkRef | null;
-	status?: FkRef | null;
-	network_level?: FkRef | null;
-	owner?: FkRef | null;
-	constructor?: FkRef | null;
-	manufacturer?: FkRef | null;
-	flag?: FkRef | null;
-	date?: string | null;
-	[key: string]: unknown;
-}
-
 /** Drawer props for a network-schema node attribute card. */
 export interface NodeDrawerProps {
 	id?: string;

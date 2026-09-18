@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Microduct } from '$lib/classes/ConduitDataManager.svelte';
+	import type { Microduct } from '$lib/remote/conduit/microduct-data';
 	import type { Snippet } from 'svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -38,21 +38,21 @@
 
 	const HEALTHY_VALUE = 'healthy';
 
-	let statusValues = $state<Record<string, Array<string | number>>>({});
-
-	$effect(() => {
-		const newValues: Record<string, Array<string | number>> = {};
-		for (const md of microducts) {
-			newValues[md.uuid] =
-				md.microduct_status?.id != null ? [md.microduct_status.id] : [HEALTHY_VALUE];
-		}
-		statusValues = newValues;
-	});
-
 	const statusComboboxData = $derived([
 		{ value: HEALTHY_VALUE, label: m.label_healthy() },
 		...statusOptions.map((s) => ({ value: s.id, label: s.microduct_status }))
 	]);
+
+	/**
+	 * The combobox selection for a microduct: its status id, or the healthy
+	 * placeholder when it has none.
+	 * @param microduct
+	 */
+	function statusValue(microduct: Microduct): Array<string | number> {
+		return microduct.microduct_status?.id != null
+			? [microduct.microduct_status.id]
+			: [HEALTHY_VALUE];
+	}
 
 	/**
 	 * Handle combobox value change
@@ -137,7 +137,7 @@
 								{#if editableStatus && onStatusChange}
 									<GenericCombobox
 										data={statusComboboxData}
-										bind:value={statusValues[microduct.uuid]}
+										value={statusValue(microduct)}
 										onValueChange={(e: { value: Array<string | number> }) =>
 											handleComboboxChange(microduct, e)}
 										placeholder={m.form_status()}
