@@ -670,6 +670,7 @@
 	"message_trenches_found": "{count} trenches found nearby",
 	"message_valuation": "Select an area and click calculate from the Sidebar",
 	"message_warning_cable_type_incomplete_color_mappings": "Cable type has incomplete color mappings. Bundle and fiber counts do not match. Fibers were not generated. Please correct the color mappings in the Admin area.",
+	"message_zoom_to_extent_failed": "Could not zoom to the layer.",
 	"nav_address": "Addresses",
 	"nav_area": "Areas",
 	"nav_category_cable": "Cable",

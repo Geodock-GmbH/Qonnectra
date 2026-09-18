@@ -1,8 +1,12 @@
 import type OlMap from 'ol/Map';
 
+import { m } from '$lib/paraglide/messages';
+
 import { zoomToExtent } from '$lib/map/searchUtils';
+import { globalToaster } from '$lib/stores/toaster';
 import { isExtentLayerType } from '$lib/remote/map/layer-data';
 import { getLayerExtent } from '$lib/remote/map/layers.remote';
+import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
 
 /**
  * Creates a handler function that zooms the map to a layer's full extent.
@@ -21,8 +25,11 @@ export function createZoomToLayerExtentHandler(
 		try {
 			const { extent } = await getLayerExtent({ layerType, projectId });
 			if (extent) zoomToExtent(map, extent);
-		} catch (error) {
-			console.error('Error zooming to layer extent:', error);
+		} catch (err) {
+			globalToaster.error({
+				title: m.message_zoom_to_extent_failed(),
+				description: remoteErrorMessage(err) ?? m.message_zoom_to_extent_failed()
+			});
 		}
 	};
 }

@@ -2,9 +2,14 @@ import type OlMap from 'ol/Map';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { zoomToExtent } from '$lib/map/searchUtils';
+import { globalToaster } from '$lib/stores/toaster';
 import { getLayerExtent } from '$lib/remote/map/layers.remote';
 
 import { createZoomToLayerExtentHandler } from './zoomToLayerExtent';
+
+vi.mock('$lib/paraglide/messages', () => ({
+	m: new Proxy({}, { get: (_target, prop: string) => () => `${prop}` })
+}));
 
 vi.mock('$lib/map/searchUtils', () => ({
 	zoomToExtent: vi.fn()
@@ -14,11 +19,16 @@ vi.mock('$lib/remote/map/layers.remote', () => ({
 	getLayerExtent: vi.fn()
 }));
 
+vi.mock('$lib/stores/toaster', () => ({
+	globalToaster: { error: vi.fn(), success: vi.fn() }
+}));
+
 const mapStub = {} as OlMap;
 
 afterEach(() => {
 	vi.mocked(getLayerExtent).mockReset();
 	vi.mocked(zoomToExtent).mockClear();
+	vi.mocked(globalToaster.error).mockClear();
 });
 
 describe('createZoomToLayerExtentHandler', () => {
@@ -79,8 +89,7 @@ describe('createZoomToLayerExtentHandler', () => {
 		expect(zoomToExtent).not.toHaveBeenCalled();
 	});
 
-	test('should swallow request errors and not zoom', async () => {
-		const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+	test('should toast the failure and not zoom when the request fails', async () => {
 		vi.mocked(getLayerExtent).mockRejectedValue(new Error('offline') as never);
 
 		const handler = createZoomToLayerExtentHandler(
@@ -92,7 +101,6 @@ describe('createZoomToLayerExtentHandler', () => {
 		).resolves.toBeUndefined();
 
 		expect(zoomToExtent).not.toHaveBeenCalled();
-		expect(errorSpy).toHaveBeenCalled();
-		errorSpy.mockRestore();
+		expect(globalToaster.error).toHaveBeenCalledTimes(1);
 	});
 });
