@@ -87,8 +87,7 @@
 	 */
 	function handleComboboxChange(fiber: Fiber, e: { value: Array<string | number> }) {
 		const selectedValue = e.value[0];
-		const newValue: number | null =
-			selectedValue === HEALTHY_VALUE ? null : (selectedValue as number);
+		const newValue: number | null = selectedValue === HEALTHY_VALUE ? null : Number(selectedValue);
 		if (onStatusChange) {
 			onStatusChange(fiber, newValue);
 		}

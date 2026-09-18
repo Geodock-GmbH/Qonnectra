@@ -1,8 +1,10 @@
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, test, vi } from 'vitest';
 
 import FibersStatusTable from './FibersStatusTable.svelte';
+
+vi.mock('$lib/components/GenericCombobox.svelte', () => import('./GenericCombobox.fixture.svelte'));
 
 vi.mock('$lib/paraglide/messages', () => ({
 	m: new Proxy(
@@ -76,5 +78,43 @@ describe('FibersStatusTable', () => {
 
 		await user.click(toggles[0]);
 		expect(screen.getAllByText(/label_fiber_healthy/).length).toBeGreaterThanOrEqual(1);
+	});
+
+	test('should pass a numeric status id to onStatusChange, not the combobox string', async () => {
+		const user = userEvent.setup();
+		const onStatusChange = vi.fn();
+		render(FibersStatusTable, {
+			loading: false,
+			error: null,
+			fibers,
+			statusOptions: [{ id: 1, fiber_status: 'defekt' }],
+			onStatusChange,
+			getColorHex
+		});
+
+		await user.click(screen.getAllByRole('button')[0]);
+		await fireEvent.change(screen.getAllByTestId('combobox-stub')[0], { target: { value: '1' } });
+
+		expect(onStatusChange.mock.calls[0][1]).toBe(1);
+	});
+
+	test('should pass null to onStatusChange for the healthy option', async () => {
+		const user = userEvent.setup();
+		const onStatusChange = vi.fn();
+		render(FibersStatusTable, {
+			loading: false,
+			error: null,
+			fibers,
+			statusOptions: [{ id: 1, fiber_status: 'defekt' }],
+			onStatusChange,
+			getColorHex
+		});
+
+		await user.click(screen.getAllByRole('button')[0]);
+		await fireEvent.change(screen.getAllByTestId('combobox-stub')[0], {
+			target: { value: 'healthy' }
+		});
+
+		expect(onStatusChange.mock.calls[0][1]).toBeNull();
 	});
 });
