@@ -1,5 +1,8 @@
 <script lang="ts">
+	import type { PipelineRecordRow } from '$lib/remote/pipeline-records/record-data';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
 	import {
 		IconArrowLeft,
@@ -18,18 +21,26 @@
 		page: number;
 	}
 
-	/** A pipeline-record list row, accessed by dynamic column key. */
-	type RecordRow = Record<string, unknown>;
+	type ColumnKey = Exclude<keyof PipelineRecordRow, 'value'>;
+
+	interface Column {
+		key: ColumnKey;
+		label: string;
+		sortable: boolean;
+		filterable: boolean;
+		sortType?: 'date';
+		format?: (value: string) => string;
+	}
 
 	interface Props {
-		records: RecordRow[];
+		records: PipelineRecordRow[];
 		pagination: PaginationInfo;
 	}
 
 	/**
 	 * Formats an ISO date string into a localized short date+time.
 	 */
-	function formatDate(isoString: string | null | undefined): string {
+	function formatDate(isoString: string): string {
 		if (!isoString) return '';
 		const date = new Date(isoString);
 		return date.toLocaleString(getLocale(), {
@@ -43,7 +54,7 @@
 
 	let { records, pagination }: Props = $props();
 
-	const columnConfig = [
+	const columnConfig: Column[] = [
 		{ key: 'project_name', label: m.form_project({ count: 1 }), sortable: true, filterable: true },
 		{ key: 'type_of_work', label: m.form_type_of_work(), sortable: true, filterable: true },
 		{ key: 'request_reason', label: m.form_request_reason(), sortable: true, filterable: true },
@@ -67,10 +78,10 @@
 		}
 	];
 
-	let sortColumn = $state<string | null>(null);
-	let sortDirection = $state('asc');
+	let sortColumn = $state<ColumnKey | null>(null);
+	let sortDirection = $state<'asc' | 'desc'>('asc');
 
-	let filters = $state<Record<string, string>>({
+	let filters = $state<Partial<Record<ColumnKey, string>>>({
 		project_name: '',
 		type_of_work: '',
 		request_reason: '',
@@ -80,7 +91,7 @@
 
 	let mobileSearchTerm = $state('');
 
-	function toggleSort(columnKey: string) {
+	function toggleSort(columnKey: ColumnKey) {
 		if (sortColumn === columnKey) {
 			if (sortDirection === 'asc') {
 				sortDirection = 'desc';
@@ -94,30 +105,30 @@
 		}
 	}
 
-	function updateFilter(columnKey: string, value: string) {
+	function updateFilter(columnKey: ColumnKey, value: string) {
 		filters[columnKey] = value;
 	}
 
 	function goToPage(newPage: number) {
-		const url = new URL(window.location.href);
-		url.searchParams.set('page', String(newPage));
-		goto(`${url.pathname}${url.search}`);
+		const query = new URLSearchParams(page.url.searchParams);
+		query.set('page', String(newPage));
+		goto(resolve(`/pipeline-records?${query}`));
 	}
 
 	/**
 	 * Navigates to the edit page for the clicked pipeline record.
 	 * @param record - The pipeline record row object.
 	 */
-	function handleRowClick(record: RecordRow) {
-		goto(`/pipeline-records/${record.value}`);
+	function handleRowClick(record: PipelineRecordRow) {
+		goto(resolve('/pipeline-records/[uuid]', { uuid: record.value }));
 	}
 
 	const filteredRecords = $derived.by(() => {
-		return records.filter((record: RecordRow) => {
-			return Object.entries(filters).every(([key, filterValue]) => {
+		return records.filter((record) => {
+			return columnConfig.every(({ key }) => {
+				const filterValue = filters[key];
 				if (!filterValue) return true;
-				const cellValue = String(record[key] || '').toLowerCase();
-				return cellValue.includes(filterValue.toLowerCase());
+				return record[key].toLowerCase().includes(filterValue.toLowerCase());
 			});
 		});
 	});
@@ -135,11 +146,11 @@
 			const bRaw = b[currentSortColumn];
 
 			if (column?.sortType === 'date') {
-				aVal = aRaw ? new Date(String(aRaw)).getTime() : 0;
-				bVal = bRaw ? new Date(String(bRaw)).getTime() : 0;
+				aVal = aRaw ? new Date(aRaw).getTime() : 0;
+				bVal = bRaw ? new Date(bRaw).getTime() : 0;
 			} else {
-				aVal = String(aRaw ?? '').toLowerCase();
-				bVal = String(bRaw ?? '').toLowerCase();
+				aVal = aRaw.toLowerCase();
+				bVal = bRaw.toLowerCase();
 			}
 
 			if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
@@ -152,13 +163,9 @@
 		if (!mobileSearchTerm) return sortedRecords;
 
 		const term = mobileSearchTerm.toLowerCase();
-		return sortedRecords.filter((record: RecordRow) => {
-			return Object.values(record).some((value) =>
-				String(value || '')
-					.toLowerCase()
-					.includes(term)
-			);
-		});
+		return sortedRecords.filter((record) =>
+			Object.values(record).some((value) => value.toLowerCase().includes(term))
+		);
 	});
 </script>
 
@@ -223,9 +230,7 @@
 							<tr onclick={() => handleRowClick(row)}>
 								{#each columnConfig as column (column.key)}
 									<td data-label={column.label}
-										>{column.format
-											? column.format(row[column.key] as string | null | undefined)
-											: row[column.key]}</td
+										>{column.format ? column.format(row[column.key]) : row[column.key]}</td
 									>
 								{/each}
 							</tr>
@@ -282,7 +287,7 @@
 							</div>
 							<div>
 								<span class="font-medium text-surface-600-400">{m.common_created()}:</span>
-								<p class="truncate">{formatDate(row.created_at as string | null | undefined)}</p>
+								<p class="truncate">{formatDate(row.created_at)}</p>
 							</div>
 						</div>
 					</div>

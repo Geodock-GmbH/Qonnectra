@@ -1,40 +1,63 @@
 <script lang="ts">
-	import type { PageData } from './$types';
 	import { goto } from '$app/navigation';
-	import { navigating, page } from '$app/stores';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import { IconPlus } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
+	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import SearchInput from '$lib/components/SearchInput.svelte';
+	import { getPipelineRecordList } from '$lib/remote/pipeline-records/records.remote';
 
-	import PipelineRecordsTable from './PipelineRecordsTable.svelte';
+	import PipelineRecordsTable from './components/PipelineRecordsTable.svelte';
 
-	let { data }: { data: PageData } = $props();
-	let searchInput = $state('');
+	const searchTerm = $derived(page.url.searchParams.get('search') ?? '');
+	const currentPage = $derived(Number(page.url.searchParams.get('page')) || 1);
+	const pageSize = $derived(Number(page.url.searchParams.get('page_size')) || 50);
 
-	const searchTerm = $derived(data.searchTerm || '');
-	const pagination = $derived(data.pagination);
+	// Follows the URL (back/forward, reload) but stays editable until submitted.
+	let searchInput = $derived(searchTerm);
 
-	$effect(() => {
-		searchInput = searchTerm;
-	});
-
+	/**
+	 * Navigates to page 1 with the current search input as a query parameter.
+	 */
 	function performSearch() {
-		const url = new URL($page.url);
+		const query = new URLSearchParams(page.url.searchParams);
 		if (searchInput !== '') {
-			url.searchParams.set('search', searchInput);
+			query.set('search', searchInput);
 		} else {
-			url.searchParams.delete('search');
+			query.delete('search');
 		}
-		url.searchParams.set('page', '1');
-		goto(url.toString(), { keepFocus: true, noScroll: true, replaceState: true });
+		query.set('page', '1');
+		goto(resolve(`/pipeline-records?${query}`), {
+			keepFocus: true,
+			noScroll: true,
+			replaceState: true
+		});
 	}
 </script>
 
 <svelte:head>
 	<title>{m.nav_pipeline_records()}</title>
 </svelte:head>
+
+{#snippet tableSkeleton()}
+	<div class="table-wrap overflow-x-auto" role="status">
+		<table class="table table-card caption-bottom w-full overflow-scroll">
+			<thead>
+				<tr>
+					{#each { length: 5 } as _, i (i)}
+						<td>
+							<div class="h-4 bg-surface-500 rounded animate-pulse w-3/4"></div>
+						</td>
+					{/each}
+				</tr>
+			</thead>
+		</table>
+		<span class="sr-only">{m.common_loading()}</span>
+	</div>
+{/snippet}
 
 <div class="relative flex gap-4 h-full overflow-hidden" data-testid="pipeline-records-page">
 	<div
@@ -47,7 +70,7 @@
 				>
 					<button
 						class="btn preset-filled-primary-500"
-						onclick={() => goto('/pipeline-records/new')}
+						onclick={() => goto(resolve('/pipeline-records/new'))}
 					>
 						<IconPlus class="size-4" />
 						<span>{m.common_create()}</span>
@@ -58,23 +81,21 @@
 		</div>
 
 		<div class="flex-1 min-h-0">
-			{#if $navigating}
-				<div class="table-wrap overflow-x-auto">
-					<table class="table table-card caption-bottom w-full overflow-scroll">
-						<thead>
-							<tr>
-								{#each { length: 5 } as _, i (i)}
-									<td>
-										<div class="h-4 bg-surface-500 rounded animate-pulse w-3/4"></div>
-									</td>
-								{/each}
-							</tr>
-						</thead>
-					</table>
+			<QueryBoundary pending={tableSkeleton}>
+				{@const list = await getPipelineRecordList({
+					search: searchTerm,
+					page: currentPage,
+					pageSize
+				})}
+				<div
+					class={[
+						'h-full transition-opacity',
+						$effect.pending() > 0 && 'opacity-60 pointer-events-none'
+					]}
+				>
+					<PipelineRecordsTable records={list.records} pagination={list.pagination} />
 				</div>
-			{:else}
-				<PipelineRecordsTable records={data.records} {pagination} />
-			{/if}
+			</QueryBoundary>
 		</div>
 	</div>
 </div>

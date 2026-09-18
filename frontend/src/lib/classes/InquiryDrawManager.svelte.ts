@@ -278,22 +278,6 @@ export class InquiryDrawManager {
 		}
 	}
 
-	/**
-	 * Remove a polygon by its UUID from the polygon layer.
-	 * @param uuid - UUID of the polygon feature to remove.
-	 */
-	removePolygonByUuid(uuid: string): void {
-		if (!this._polygonSource) return;
-
-		const features = this._polygonSource.getFeatures();
-		for (const feature of features) {
-			if (feature.get('uuid') === uuid) {
-				this._polygonSource.removeFeature(feature);
-				break;
-			}
-		}
-	}
-
 	/** Remove all layers and interactions, reset internal state. */
 	cleanup(): void {
 		this.stopDrawing();

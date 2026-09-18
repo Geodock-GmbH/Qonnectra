@@ -1,3 +1,4 @@
+import type { PipelineRecordRow } from '$lib/remote/pipeline-records/record-data';
 import { goto } from '$app/navigation';
 import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
@@ -11,6 +12,10 @@ vi.mock('$app/environment', () => ({
 
 vi.mock('$app/navigation', () => ({
 	goto: vi.fn()
+}));
+
+vi.mock('$app/state', () => ({
+	page: { url: new URL('http://localhost/pipeline-records?search=acme&page=1') }
 }));
 
 vi.mock('$lib/paraglide/messages', () => ({
@@ -27,7 +32,7 @@ vi.mock('$lib/paraglide/runtime', () => ({
 	getLocale: () => 'de'
 }));
 
-function makeRecord(overrides: Record<string, unknown> = {}) {
+function makeRecord(overrides: Partial<PipelineRecordRow> = {}): PipelineRecordRow {
 	return {
 		value: 'rec-1',
 		project_name: 'Fiber North',
@@ -176,6 +181,17 @@ describe('PipelineRecordsTable', () => {
 		await user.click(desktopTable().getByText('Fiber North'));
 
 		expect(goto).toHaveBeenCalledWith('/pipeline-records/rec-42');
+	});
+
+	test('opens another page while keeping the active search', async () => {
+		const user = userEvent.setup();
+		render(PipelineRecordsTable, {
+			props: { records: [makeRecord()], pagination: { totalCount: 40, pageSize: 20, page: 1 } }
+		});
+
+		await user.click(screen.getByRole('button', { name: 'next page' }));
+
+		expect(goto).toHaveBeenCalledWith('/pipeline-records?search=acme&page=2');
 	});
 
 	test('renders the paginated total count', () => {

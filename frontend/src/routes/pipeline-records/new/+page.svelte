@@ -1,83 +1,51 @@
 <script lang="ts">
-	import type { PageData } from './$types';
-	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import { IconArrowLeft } from '@tabler/icons-svelte';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
+	import { IconArrowLeft, IconDeviceFloppy } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
+	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import { selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { actionData } from '$lib/utils/forms';
+	import { createPipelineRecord } from '$lib/remote/pipeline-records/records.remote';
+	import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
 
-	import PipelineRecordForm from '../PipelineRecordForm.svelte';
+	import { PipelineRecordDraft } from '../components/PipelineRecordDraft.svelte';
+	import PipelineRecordFields from '../components/PipelineRecordFields.svelte';
 
-	let { data }: { data: PageData } = $props();
+	const draft = new PipelineRecordDraft();
 
 	let isSaving = $state(false);
 
-	const projectOptions = $derived(data.projectOptions || []);
-	const typeOfWorkOptions = $derived(data.typeOfWorkOptions || []);
-	const requestReasonOptions = $derived(data.requestReasonOptions || []);
+	const projects: { label: string; value: string }[] = $derived(page.data.projects ?? []);
 
-	/**
-	 * Snapshots the active project id from initial page data.
-	 * @returns The active project id at mount time.
-	 */
-	function getInitialActiveProjectId(): string {
-		return String(data.activeProjectId ?? '');
-	}
+	// The record is created in the app's active project, falling back to the
+	// first one when the stored selection is no longer active.
+	const activeProject = $derived(
+		projects.find((project) => project.value === $selectedProject) ?? projects[0]
+	);
 
-	let projectId = $state(getInitialActiveProjectId());
+	/** Creates the record in the active project and opens its detail page. */
+	async function handleCreate() {
+		if (!activeProject) return;
 
-	$effect(() => {
-		if ($selectedProject) {
-			projectId = $selectedProject;
-		}
-	});
-	let typeOfWorkId = $state('');
-	let requestReasonId = $state('');
-	let organisation = $state('');
-	let name = $state('');
-	let tel = $state('');
-	let mobile = $state('');
-
-	/** Submits the current form values to the create action. */
-	async function handleSave() {
 		isSaving = true;
-		const formData = new FormData();
-		formData.append('project', String(projectId ?? ''));
-		formData.append('type_of_work_value', String(typeOfWorkId ?? ''));
-		formData.append('request_reason_value', String(requestReasonId ?? ''));
-		formData.append('organisation', organisation);
-		formData.append('name', name);
-		formData.append('tel', tel);
-		formData.append('mobile', mobile);
-
 		try {
-			const response = await fetch('?/createPipelineRecord', {
-				method: 'POST',
-				body: formData
+			const created = await createPipelineRecord({
+				projectId: Number(activeProject.value),
+				...draft.toInput()
 			});
-			const result = deserialize(await response.text());
-
-			if (result.type === 'redirect') {
-				globalToaster.success({
-					title: m.title_success(),
-					description: m.message_pipeline_record_created()
-				});
-				goto(result.location);
-			} else {
-				globalToaster.error({
-					title: m.common_error(),
-					description:
-						(actionData(result)?.message as string) || m.message_pipeline_record_create_failed()
-				});
-			}
+			globalToaster.success({
+				title: m.title_success(),
+				description: m.message_pipeline_record_created()
+			});
+			await goto(resolve('/pipeline-records/[uuid]', { uuid: created.uuid }));
 		} catch (err) {
 			globalToaster.error({
 				title: m.common_error(),
-				description: err instanceof Error ? err.message : String(err)
+				description: remoteErrorMessage(err) ?? m.message_pipeline_record_create_failed()
 			});
 		} finally {
 			isSaving = false;
@@ -95,28 +63,27 @@
 			<button
 				type="button"
 				class="btn preset-tonal-surface inline-flex items-center gap-2"
-				onclick={() => goto('/pipeline-records')}
+				onclick={() => goto(resolve('/pipeline-records'))}
 			>
 				<IconArrowLeft class="size-4 shrink-0" />
 				<span>{m.common_back()}</span>
 			</button>
 		</div>
 
-		<PipelineRecordForm
-			bind:projectId
-			bind:typeOfWorkId
-			bind:requestReasonId
-			bind:organisation
-			bind:name
-			bind:tel
-			bind:mobile
-			{projectOptions}
-			{typeOfWorkOptions}
-			{requestReasonOptions}
-			{isSaving}
-			projectReadonly={true}
-			saveLabel={m.common_create()}
-			onSave={handleSave}
-		/>
+		<QueryBoundary>
+			<PipelineRecordFields {draft} projectLabel={activeProject?.label ?? ''} />
+
+			<div class="flex justify-end">
+				<button
+					type="button"
+					class="btn preset-filled-primary-500 inline-flex items-center gap-2"
+					disabled={isSaving || !activeProject}
+					onclick={handleCreate}
+				>
+					<IconDeviceFloppy class="size-4 shrink-0" />
+					<span>{isSaving ? m.common_loading() : m.common_create()}</span>
+				</button>
+			</div>
+		</QueryBoundary>
 	</div>
 </div>

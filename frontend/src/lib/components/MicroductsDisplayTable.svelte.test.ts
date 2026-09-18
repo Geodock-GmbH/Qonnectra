@@ -1,10 +1,12 @@
 import type { ComponentProps } from 'svelte';
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, test, vi } from 'vitest';
 
 import MicroductsDisplayTable from './MicroductsDisplayTable.svelte';
 
 type MicroductsDisplayTableProps = ComponentProps<typeof MicroductsDisplayTable>;
+
+vi.mock('$lib/components/GenericCombobox.svelte', () => import('./GenericCombobox.fixture.svelte'));
 
 vi.mock('$lib/paraglide/messages', () => ({
 	m: new Proxy(
@@ -96,5 +98,41 @@ describe('MicroductsDisplayTable', () => {
 
 		expect(screen.getByText('defekt')).toBeInTheDocument();
 		expect(screen.getByText('3').className).toContain('line-through');
+	});
+
+	test('should pass a numeric status id to onStatusChange, not the combobox string', async () => {
+		const onStatusChange = vi.fn();
+		render(MicroductsDisplayTable, {
+			loading: false,
+			microducts: [microduct],
+			showStatus: true,
+			editableStatus: true,
+			statusOptions: [{ id: 1, microduct_status: 'defekt' }],
+			onStatusChange
+		} as unknown as MicroductsDisplayTableProps);
+
+		await fireEvent.change(screen.getByTestId('combobox-stub'), { target: { value: '1' } });
+
+		expect(onStatusChange).toHaveBeenCalledWith(microduct, 1);
+		expect(onStatusChange.mock.calls[0][1]).toBe(1);
+	});
+
+	test('should pass null to onStatusChange for the healthy option', async () => {
+		const onStatusChange = vi.fn();
+		render(MicroductsDisplayTable, {
+			loading: false,
+			microducts: [{ ...microduct, microduct_status: { id: 1, microduct_status: 'defekt' } }],
+			showStatus: true,
+			editableStatus: true,
+			statusOptions: [{ id: 1, microduct_status: 'defekt' }],
+			onStatusChange
+		} as unknown as MicroductsDisplayTableProps);
+
+		await fireEvent.change(screen.getByTestId('combobox-stub'), { target: { value: 'healthy' } });
+
+		expect(onStatusChange).toHaveBeenCalledWith(
+			{ ...microduct, microduct_status: { id: 1, microduct_status: 'defekt' } },
+			null
+		);
 	});
 });
