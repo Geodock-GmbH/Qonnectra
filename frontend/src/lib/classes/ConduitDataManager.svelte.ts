@@ -2,6 +2,7 @@ import type { Microduct } from '$lib/remote/conduit/microduct-data';
 import { deserialize } from '$app/forms';
 
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
+import { getConduitTrenches } from '$lib/remote/map/feature-search.remote';
 
 interface ConduitType {
 	conduit_type?: string;
@@ -247,37 +248,9 @@ export class ConduitDataManager {
 		}
 
 		try {
-			const formData = new FormData();
-			formData.append('conduitUuid', conduitUuid);
-
-			const response = await fetch('?/getConduitTrenches', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure') {
-				console.error(
-					'Failed to fetch trench UUIDs:',
-					(result.data as Record<string, unknown>)?.error
-				);
-				return [];
-			}
-
-			if (result.type === 'error') {
-				console.error('Failed to fetch trench UUIDs:', result.error?.message);
-				return [];
-			}
-
-			if (result.type === 'success' && result.data) {
-				const data = result.data as { trenchUuids?: string[] };
-				const trenchUuids = data.trenchUuids || [];
-				this.trenchUuidsByConduit = { ...this.trenchUuidsByConduit, [conduitUuid]: trenchUuids };
-				return trenchUuids;
-			}
-
-			return [];
+			const { trenchUuids } = await getConduitTrenches(conduitUuid);
+			this.trenchUuidsByConduit = { ...this.trenchUuidsByConduit, [conduitUuid]: trenchUuids };
+			return trenchUuids;
 		} catch (err) {
 			console.error('Error fetching trench UUIDs for conduit:', err);
 			void logToBackendClient({

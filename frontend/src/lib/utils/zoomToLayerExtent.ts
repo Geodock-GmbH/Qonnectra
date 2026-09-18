@@ -1,36 +1,26 @@
 import type OlMap from 'ol/Map';
-import { deserialize } from '$app/forms';
 
 import { zoomToExtent } from '$lib/map/searchUtils';
+import { isExtentLayerType } from '$lib/remote/map/layer-data';
+import { getLayerExtent } from '$lib/remote/map/layers.remote';
 
 /**
  * Creates a handler function that zooms the map to a layer's full extent.
- * Fetches the extent from the server via a form action and delegates to {@link zoomToExtent}.
+ * Fetches the extent through the `getLayerExtent` query and delegates to {@link zoomToExtent}.
  */
 export function createZoomToLayerExtentHandler(
 	getMap: () => OlMap | undefined,
 	getProjectId: () => string
 ): (event: { layerId: string; layerType: string | null }) => Promise<void> {
-	return async function handleZoomToExtent({ layerId, layerType }) {
+	return async function handleZoomToExtent({ layerType }) {
 		const map = getMap();
 		const projectId = getProjectId();
 
-		if (!map || !projectId) return;
+		if (!map || !projectId || !isExtentLayerType(layerType)) return;
 
 		try {
-			const formData = new FormData();
-			formData.append('layerType', String(layerType));
-			formData.append('projectId', projectId);
-
-			const response = await fetch('?/getLayerExtent', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-			if (result.type === 'success' && result.data?.extent) {
-				zoomToExtent(map, result.data.extent as number[]);
-			}
+			const { extent } = await getLayerExtent({ layerType, projectId });
+			if (extent) zoomToExtent(map, extent);
 		} catch (error) {
 			console.error('Error zooming to layer extent:', error);
 		}

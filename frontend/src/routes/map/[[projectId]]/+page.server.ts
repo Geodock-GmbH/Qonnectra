@@ -14,12 +14,6 @@ import {
 	saveTrenchProfilePosition
 } from '$lib/server/conduitData';
 import {
-	getFeatureDetailsByType,
-	getLayerExtent,
-	getTrenchUuidsForConduit,
-	searchFeaturesInProject
-} from '$lib/server/featureSearch';
-import {
 	exportNodeExcel,
 	getAddressesForNode,
 	getCablesAtNode,
@@ -61,23 +55,6 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
  * Form actions for map feature data retrieval and trench profile management.
  */
 export const actions = {
-	searchFeatures: async ({ request, fetch, cookies }) => {
-		const data = await request.formData();
-		const searchQuery = data.get('searchQuery') as string;
-		const projectId = data.get('projectId') as string;
-
-		return searchFeaturesInProject(fetch, cookies, searchQuery, projectId);
-	},
-
-	getFeatureDetails: async ({ request, fetch, cookies }) => {
-		const data = await request.formData();
-		const featureType = data.get('featureType') as 'trench' | 'node' | 'address' | 'area';
-		const featureUuid = data.get('featureUuid') as string;
-		const projectId = data.get('projectId') as string;
-
-		return getFeatureDetailsByType(fetch, cookies, featureType, featureUuid, projectId);
-	},
-
 	getPipesInTrench: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
 		const trenchId = formData.get('uuid') as string;
@@ -97,20 +74,6 @@ export const actions = {
 		const conduitId = formData.get('uuid') as string;
 
 		return getTrenchesForConduit(fetch, cookies, conduitId);
-	},
-
-	getConduitTrenches: async ({ request, fetch, cookies }) => {
-		const formData = await request.formData();
-		const conduitUuid = formData.get('conduitUuid') as string;
-
-		return getTrenchUuidsForConduit(fetch, cookies, conduitUuid);
-	},
-	getLayerExtent: async ({ request, fetch, cookies }) => {
-		const formData = await request.formData();
-		const layerType = formData.get('layerType') as 'trench' | 'node' | 'address';
-		const projectId = formData.get('projectId') as string;
-
-		return getLayerExtent(fetch, cookies, layerType, projectId);
 	},
 
 	getContainerHierarchy: async ({ request, fetch, cookies }) => {

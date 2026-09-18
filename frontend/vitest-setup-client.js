@@ -220,6 +220,25 @@ vi.mock('$lib/remote/conduit/microducts.remote', () => ({
 	getMicroductStatusOptions: vi.fn().mockResolvedValue([]),
 	updateMicroductStatus: vi.fn(() => commandStub({ uuid: '' }))
 }));
+vi.mock('$lib/remote/map/feature-search.remote', () => ({
+	searchFeatures: vi.fn().mockResolvedValue([]),
+	getFeatureDetails: vi.fn().mockResolvedValue({ id: '', properties: {} }),
+	getConduitTrenches: vi.fn().mockResolvedValue({ trenches: [], trenchUuids: [] })
+}));
+vi.mock('$lib/remote/map/layers.remote', () => ({
+	getLayerExtent: vi.fn().mockResolvedValue({ extent: null, layer: '' }),
+	getLayerStyleAttributes: vi
+		.fn()
+		.mockResolvedValue({ nodeTypes: [], surfaces: [], constructionTypes: [], areaTypes: [] })
+}));
+vi.mock('$lib/remote/fault-simulation/simulation.remote', () => ({
+	simulateFault: vi.fn().mockResolvedValue({
+		trench: null,
+		conduits: [],
+		cables: [],
+		affected_addresses_details: []
+	})
+}));
 vi.mock('$lib/remote/address/residential-units.remote', () => ({
 	getResidentialUnits: vi.fn().mockResolvedValue([]),
 	getResidentialUnit: vi.fn().mockResolvedValue({}),

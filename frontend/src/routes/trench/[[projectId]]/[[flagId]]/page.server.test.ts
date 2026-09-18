@@ -2,7 +2,6 @@ import type { Cookies } from '@sveltejs/kit';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { getPipesInTrench } from '$lib/server/conduitData';
-import { searchFeaturesInProject } from '$lib/server/featureSearch';
 
 import { actions, load } from './+page.server';
 
@@ -44,13 +43,6 @@ vi.mock('$lib/server/attributes', () => ({
 vi.mock('$lib/server/conduitData', () => ({
 	getPipesInTrench: vi.fn(() => Promise.resolve({ pipes: [] })),
 	getTrenchesForConduit: vi.fn(() => Promise.resolve({ trench_uuids: [] }))
-}));
-
-vi.mock('$lib/server/featureSearch', () => ({
-	searchFeaturesInProject: vi.fn(() => Promise.resolve([])),
-	getFeatureDetailsByType: vi.fn(() => Promise.resolve({ success: true })),
-	getTrenchUuidsForConduit: vi.fn(() => Promise.resolve({ success: true })),
-	getLayerExtent: vi.fn(() => Promise.resolve({ extent: null, layer: 'trench' }))
 }));
 
 const mockCookies = {} as Cookies;
@@ -303,21 +295,6 @@ describe('trench connection actions', () => {
 });
 
 describe('delegating actions', () => {
-	test('searchFeatures should forward query and project', async () => {
-		await actions.searchFeatures({
-			request: makeRequest({ searchQuery: 'haupt', projectId: '7' }),
-			fetch: vi.fn(),
-			cookies: mockCookies
-		} as never);
-
-		expect(searchFeaturesInProject).toHaveBeenCalledWith(
-			expect.any(Function),
-			mockCookies,
-			'haupt',
-			'7'
-		);
-	});
-
 	test('getPipesInTrench should forward the trench uuid', async () => {
 		await actions.getPipesInTrench({
 			request: makeRequest({ uuid: 'trench-1' }),

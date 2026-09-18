@@ -1,5 +1,6 @@
 <script lang="ts">
-	import type { AffectedAddress } from './exportCsv';
+	import type { AffectedAddress } from '$lib/remote/fault-simulation/simulation-data';
+	import { resolve } from '$app/paths';
 	import {
 		IconChevronDown,
 		IconChevronRight,
@@ -9,14 +10,14 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { downloadFaultSimulationCsv } from './exportCsv.js';
-	import { getFaultSimulationContext } from './faultSimulationContext.svelte.js';
+	import { getFaultSimulationState } from './FaultSimulationState.svelte';
+	import { downloadFaultSimulationCsv } from './exportCsv';
 
-	let { projectId, onreset }: { projectId: string; onreset: () => void } = $props();
+	let { projectId }: { projectId: string } = $props();
 
-	const ctx = getFaultSimulationContext();
+	const simulation = getFaultSimulationState();
 
-	const result = $derived(ctx.simulationResult);
+	const result = $derived(simulation.simulationResult);
 	const summary = $derived(result?.summary);
 	const conduits = $derived(result?.conduits ?? []);
 	const cables = $derived(result?.cables ?? []);
@@ -63,7 +64,8 @@
 					<button
 						type="button"
 						class="btn btn-sm preset-filled-primary-500 shrink-0"
-						onclick={onreset}
+						aria-label={m.common_reset()}
+						onclick={() => simulation.reset()}
 					>
 						<IconRefresh class="h-4 w-4" />
 					</button>
@@ -79,7 +81,11 @@
 					<IconDownload class="h-4 w-4" />
 					{m.action_export_csv()}
 				</button>
-				<button type="button" class="btn btn-sm preset-filled-primary-500" onclick={onreset}>
+				<button
+					type="button"
+					class="btn btn-sm preset-filled-primary-500"
+					onclick={() => simulation.reset()}
+				>
 					<IconRefresh class="h-4 w-4" />
 					{m.common_reset()}
 				</button>
@@ -135,12 +141,7 @@
 					{#if cablesExpanded}
 						<div class="flex flex-wrap gap-2">
 							{#each cables as cable (cable.uuid)}
-								<div
-									class="card px-3 py-2 text-sm text-left transition-colors {ctx.selectedCableId ===
-									cable.uuid
-										? 'preset-filled-primary-500'
-										: 'preset-outlined-surface-200-800 hover:preset-tonal'}"
-								>
+								<div class="card px-3 py-2 text-sm text-left preset-outlined-surface-200-800">
 									<div class="font-semibold">{cable.name}</div>
 									<div class="text-xs opacity-70">
 										{cable.cable_type ?? ''}
@@ -168,7 +169,7 @@
 							<div class="card px-3 py-2 preset-outlined-surface-200-800">
 								<div class="flex items-center justify-between gap-2">
 									<a
-										href="/address/{projectId}/{addr.uuid}"
+										href={resolve('/address/[projectId]/[uuid]', { projectId, uuid: addr.uuid })}
 										class="anchor underline font-mono text-xs"
 									>
 										{addr.id_address ?? '—'}
@@ -187,7 +188,11 @@
 										{#each addr.residential_units as ru (ru.uuid)}
 											<div class="text-xs opacity-70">
 												<a
-													href="/address/{projectId}/{addr.uuid}/unit/{ru.uuid}"
+													href={resolve('/address/[projectId]/[uuid]/unit/[unitUuid]', {
+														projectId,
+														uuid: addr.uuid,
+														unitUuid: ru.uuid
+													})}
 													class="anchor underline font-mono"
 												>
 													{ru.id_residential_unit ?? '—'}
@@ -222,7 +227,13 @@
 								{#each addressDetails as addr (addr.uuid)}
 									<tr class="border-b border-surface-200-800 hover:bg-surface-100-900">
 										<td class="py-2 pr-4 font-mono text-xs">
-											<a href="/address/{projectId}/{addr.uuid}" class="anchor underline">
+											<a
+												href={resolve('/address/[projectId]/[uuid]', {
+													projectId,
+													uuid: addr.uuid
+												})}
+												class="anchor underline"
+											>
 												{addr.id_address ?? '—'}
 											</a>
 										</td>
@@ -239,7 +250,11 @@
 											<tr class="hover:bg-surface-100-900 text-xs">
 												<td class="py-1 pr-4 pl-6 font-mono opacity-70">
 													<a
-														href="/address/{projectId}/{addr.uuid}/unit/{ru.uuid}"
+														href={resolve('/address/[projectId]/[uuid]/unit/[unitUuid]', {
+															projectId,
+															uuid: addr.uuid,
+															unitUuid: ru.uuid
+														})}
 														class="anchor underline"
 													>
 														{ru.id_residential_unit ?? '—'}

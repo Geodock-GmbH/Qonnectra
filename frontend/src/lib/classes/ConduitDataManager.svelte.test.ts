@@ -1,9 +1,15 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { getConduitTrenches } from '$lib/remote/map/feature-search.remote';
+
 import { ConduitDataManager } from './ConduitDataManager.svelte';
 
 vi.mock('$app/forms', () => ({
 	deserialize: vi.fn((text: string) => JSON.parse(text))
+}));
+
+vi.mock('$lib/remote/map/feature-search.remote', () => ({
+	getConduitTrenches: vi.fn()
 }));
 
 const fetchMock = vi.fn();
@@ -24,6 +30,7 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
 	fetchMock.mockReset();
+	vi.mocked(getConduitTrenches).mockReset();
 });
 
 describe('fetchPipesInTrench', () => {
@@ -150,7 +157,10 @@ describe('updateMicroductInState', () => {
 
 describe('fetchTrenchUuidsForConduit', () => {
 	test('should fetch and cache trench uuids', async () => {
-		mockActionResponse({ type: 'success', data: { trenchUuids: ['t1', 't2'] } });
+		vi.mocked(getConduitTrenches).mockResolvedValue({
+			trenches: [],
+			trenchUuids: ['t1', 't2']
+		} as never);
 		const manager = new ConduitDataManager();
 
 		const first = await manager.fetchTrenchUuidsForConduit('conduit-1');
@@ -158,12 +168,13 @@ describe('fetchTrenchUuidsForConduit', () => {
 
 		expect(first).toEqual(['t1', 't2']);
 		expect(second).toEqual(['t1', 't2']);
-		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(getConduitTrenches).toHaveBeenCalledTimes(1);
+		expect(getConduitTrenches).toHaveBeenCalledWith('conduit-1');
 		expect(manager.getTrenchUuidsForConduit('conduit-1')).toEqual(['t1', 't2']);
 	});
 
 	test('should return an empty list on failure', async () => {
-		mockActionResponse({ type: 'failure', data: { error: 'nope' } });
+		vi.mocked(getConduitTrenches).mockRejectedValue(new Error('nope') as never);
 		const manager = new ConduitDataManager();
 
 		await expect(manager.fetchTrenchUuidsForConduit('conduit-1')).resolves.toEqual([]);
@@ -173,7 +184,7 @@ describe('fetchTrenchUuidsForConduit', () => {
 		const manager = new ConduitDataManager();
 
 		await expect(manager.fetchTrenchUuidsForConduit('')).resolves.toEqual([]);
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(getConduitTrenches).not.toHaveBeenCalled();
 	});
 });
 
@@ -226,7 +237,10 @@ describe('updateMicroductStatus', () => {
 
 describe('reset', () => {
 	test('should clear all cached state', async () => {
-		mockActionResponse({ type: 'success', data: { trenchUuids: ['t1'] } });
+		vi.mocked(getConduitTrenches).mockResolvedValue({
+			trenches: [],
+			trenchUuids: ['t1']
+		} as never);
 		const manager = new ConduitDataManager();
 		await manager.fetchTrenchUuidsForConduit('conduit-1');
 

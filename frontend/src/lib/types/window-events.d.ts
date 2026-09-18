@@ -14,7 +14,7 @@ declare global {
 	interface Window {
 		__e2eFaultSim?: {
 			injectResult(
-				result: import('../../routes/fault-simulation/[[projectId]]/exportCsv').FaultSimulationResult
+				result: import('$lib/remote/fault-simulation/simulation-data').FaultSimulationResult
 			): void;
 			reset(): void;
 		};

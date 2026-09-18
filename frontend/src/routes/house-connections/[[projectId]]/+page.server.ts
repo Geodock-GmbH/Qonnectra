@@ -10,12 +10,6 @@ import {
 	getSurfaces
 } from '$lib/server/attributes';
 import { getMicroducts, getPipesInTrench } from '$lib/server/conduitData';
-import {
-	getFeatureDetailsByType,
-	getLayerExtent,
-	getTrenchUuidsForConduit,
-	searchFeaturesInProject
-} from '$lib/server/featureSearch';
 
 /**
  * Loads attribute data (node types, surfaces, construction types, area types) for the house connections page.
@@ -139,51 +133,5 @@ export const actions = {
 			console.error('Error removing node from microduct:', error);
 			return fail(500, { error: 'Internal server error' });
 		}
-	},
-	/**
-	 * Searches for features within the current project.
-	 */
-	searchFeatures: async ({ request, fetch, cookies, params }) => {
-		const data = await request.formData();
-		const searchQuery = data.get('searchQuery') as string;
-		const projectId = params.projectId;
-
-		return searchFeaturesInProject(fetch, cookies, searchQuery, projectId ?? '');
-	},
-	/**
-	 * Retrieves detailed properties for a specific feature by type and UUID.
-	 */
-	getFeatureDetails: async ({ request, fetch, cookies, params }) => {
-		const data = await request.formData();
-		const featureType = data.get('featureType') as 'trench' | 'node' | 'address';
-		const featureUuid = data.get('featureUuid') as string;
-
-		return getFeatureDetailsByType(
-			fetch,
-			cookies,
-			featureType,
-			featureUuid,
-			params.projectId ?? ''
-		);
-	},
-
-	/**
-	 * Retrieves trench UUIDs associated with a conduit.
-	 */
-	getConduitTrenches: async ({ request, fetch, cookies }) => {
-		const formData = await request.formData();
-		const conduitUuid = formData.get('conduitUuid') as string;
-
-		return getTrenchUuidsForConduit(fetch, cookies, conduitUuid);
-	},
-	/**
-	 * Retrieves the spatial extent for a layer type within a project.
-	 */
-	getLayerExtent: async ({ request, fetch, cookies }) => {
-		const formData = await request.formData();
-		const layerType = formData.get('layerType') as 'trench' | 'address' | 'node';
-		const projectId = formData.get('projectId') as string;
-
-		return getLayerExtent(fetch, cookies, layerType, projectId);
 	}
 } satisfies Actions;
