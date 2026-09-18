@@ -206,9 +206,11 @@ export async function handleAuth({ event, resolve }: Parameters<Handle>[0]) {
 		throw redirect(303, '/map');
 	}
 
-	const isInternalApiRoute = requestedPath.startsWith('/api/');
+	// Remote functions authenticate against Django themselves; the login form
+	// in particular must reach its endpoint without a session.
+	const isRemoteFunctionRoute = requestedPath.startsWith('/_app/remote/');
 
-	if (!isUserAuthenticated && !isPublicRoute && !isInternalApiRoute) {
+	if (!isUserAuthenticated && !isPublicRoute && !isRemoteFunctionRoute) {
 		const redirectToUrl = `/login?redirectTo=${encodeURIComponent(requestedPath + event.url.search)}`;
 		throw redirect(303, redirectToUrl);
 	}

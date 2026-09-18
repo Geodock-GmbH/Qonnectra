@@ -146,6 +146,44 @@ vi.mock('$lib/remote/address/attribute-options.remote', () => ({
 	getResidentialUnitTypeOptions: vi.fn().mockResolvedValue([]),
 	getResidentialUnitStatusOptions: vi.fn().mockResolvedValue([])
 }));
+/**
+ * Inert stand-in for a remote `form`: spreadable onto `<form>`, with fields
+ * whose `as()` yields plain input attributes.
+ * @param {string} name
+ * @param {string[]} fieldNames
+ */
+function formStub(name, fieldNames) {
+	const fields = Object.fromEntries(
+		fieldNames.map((field) => [
+			field,
+			{
+				as: (type) => ({ name: field, type: type === 'hidden' ? 'hidden' : type }),
+				issues: () => undefined,
+				value: () => ''
+			}
+		])
+	);
+	fields.allIssues = () => undefined;
+	const attributes = { method: 'POST', action: `/_app/remote/stub/${name}` };
+	return {
+		...attributes,
+		fields,
+		pending: 0,
+		result: undefined,
+		submit: vi.fn().mockResolvedValue(true),
+		enhance: vi.fn(() => attributes)
+	};
+}
+
+vi.mock('$lib/remote/auth/login.remote', () => ({
+	login: formStub('login', ['username', '_password', 'redirectTo'])
+}));
+vi.mock('$lib/remote/auth/logout.remote', () => ({
+	logout: formStub('logout', [])
+}));
+vi.mock('$lib/remote/admin/logs.remote', () => ({
+	getLogs: vi.fn().mockResolvedValue({ count: 0, next: null, previous: null, results: [] })
+}));
 vi.mock('$lib/remote/address/residential-units.remote', () => ({
 	getResidentialUnits: vi.fn().mockResolvedValue([]),
 	getResidentialUnit: vi.fn().mockResolvedValue({}),
