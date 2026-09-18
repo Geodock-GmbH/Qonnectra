@@ -1,8 +1,11 @@
 import { describe, expect, test } from 'vitest';
 
-import { getDefaultDashboardData, mapStatsToDashboardData } from './dashboardUtils.js';
+import { getDefaultDashboardData, mapStatsToDashboardData } from './dashboard-data';
 
-describe('dashboardUtils', () => {
+const minimalTrench = { total_length: 100, count: 1, length_by_types: [] };
+const minimalNode = { count_by_type: [{ node_type: 'MFG', count: 1 }] };
+
+describe('dashboard-data', () => {
 	const mockStatsData = {
 		trench: {
 			total_length: 5000,
@@ -24,12 +27,14 @@ describe('dashboardUtils', () => {
 		},
 		node: {
 			count_by_type: [{ node_type: 'MFG', count: 5 }],
-			expiring_warranties: [{ id: 1, name: 'Node A', days_until_expiry: 30 }],
+			expiring_warranties: [
+				{ id: 1, name: 'Node A', warranty: '2026-10-18', days_until_expiry: 30 }
+			],
 			count_by_city: [{ city: 'Berlin', count: 3 }],
 			count_by_status: [{ status: 'Active', count: 8 }],
 			count_by_network_level: [{ network_level: '1', count: 4 }],
 			count_by_owner: [{ owner: 'Company A', count: 6 }],
-			newest_nodes: [{ name: 'Node B', created: '2026-01-01' }]
+			newest_nodes: [{ name: 'Node B', node_type: 'MFG' }]
 		},
 		address: {
 			count_by_city: [{ city: 'Berlin', count: 10 }],
@@ -41,14 +46,14 @@ describe('dashboardUtils', () => {
 		},
 		conduit: {
 			length_by_type: [{ type_name: 'HDPE', total: 4000 }],
-			length_by_status_type: [{ status: 'Active', type: 'HDPE' }],
+			length_by_status_type: [{ status_name: 'Active', type_name: 'HDPE', total: 4000 }],
 			length_by_network_level: [{ network_level: '1', total: 2000 }],
-			avg_length_by_type: [{ type: 'HDPE', avg: 50 }],
-			count_by_status: [{ status: 'Active', count: 10 }],
-			length_by_owner: [{ owner: 'Co A', length: 3000 }],
-			length_by_manufacturer: [{ manufacturer: 'Mfr A', length: 2500 }],
+			avg_length_by_type: [{ type_name: 'HDPE', avg_length: 50 }],
+			count_by_status: [{ status_name: 'Active', count: 10 }],
+			length_by_owner: [{ owner_name: 'Co A', total: 3000 }],
+			length_by_manufacturer: [{ manufacturer_name: 'Mfr A', total: 2500 }],
 			conduits_by_month: [{ month: '2026-01', count: 5 }],
-			longest_conduits: [{ name: 'C1', length: 200 }]
+			longest_conduits: [{ name: 'C1', type_name: 'HDPE', total_length: 200 }]
 		},
 		area: {
 			area_count: 3,
@@ -60,16 +65,14 @@ describe('dashboardUtils', () => {
 			nodes_in_areas: 40,
 			total_residential_units: 200,
 			residential_units_in_areas: 150,
-			addresses_per_area: [{ area: 'A1', count: 40 }],
+			addresses_per_area: [{ name: 'A1', count: 40 }],
 			addresses_by_area_type: [{ type: 'Urban', count: 60 }],
-			nodes_per_area: [{ area: 'A1', count: 20 }],
+			nodes_per_area: [{ name: 'A1', count: 20 }],
 			nodes_by_area_type: [{ type: 'Urban', count: 30 }],
-			trench_length_per_area: [{ area: 'A1', length: 1000 }],
+			trench_length_per_area: [{ name: 'A1', length_m: 1000 }],
 			residential_by_area_type: [{ type: 'Urban', count: 100 }]
 		}
 	};
-
-	const mockProjectsData = [{ project: 'Project A', description: 'Test project', active: true }];
 
 	describe('getDefaultDashboardData', () => {
 		test('should return all numeric fields as 0', () => {
@@ -87,6 +90,9 @@ describe('dashboardUtils', () => {
 			expect(defaults.addressesInAreas).toBe(0);
 			expect(defaults.nodesInAreas).toBe(0);
 			expect(defaults.residentialUnitsInAreas).toBe(0);
+			expect(defaults.areaTotalAddresses).toBe(0);
+			expect(defaults.totalNodes).toBe(0);
+			expect(defaults.totalResidentialUnits).toBe(0);
 		});
 
 		test('should return all array fields as empty arrays', () => {
@@ -94,7 +100,6 @@ describe('dashboardUtils', () => {
 
 			expect(defaults.lengthByTypes).toEqual([]);
 			expect(defaults.nodesByType).toEqual([]);
-			expect(defaults.projects).toEqual([]);
 			expect(defaults.lengthByStatus).toEqual([]);
 			expect(defaults.lengthByNetworkLevel).toEqual([]);
 			expect(defaults.longestRoutes).toEqual([]);
@@ -137,7 +142,7 @@ describe('dashboardUtils', () => {
 
 	describe('mapStatsToDashboardData', () => {
 		test('should map trench statistics', () => {
-			const result = mapStatsToDashboardData(mockStatsData, mockProjectsData);
+			const result = mapStatsToDashboardData(mockStatsData);
 
 			expect(result.totalLength).toBe(5000);
 			expect(result.count).toBe(10);
@@ -159,7 +164,7 @@ describe('dashboardUtils', () => {
 		});
 
 		test('should map length_by_types picking only bauweise, oberfläche, gesamt_länge', () => {
-			const result = mapStatsToDashboardData(mockStatsData, mockProjectsData);
+			const result = mapStatsToDashboardData(mockStatsData);
 
 			expect(result.lengthByTypes).toEqual([
 				{ bauweise: 'Open', oberfläche: 'Asphalt', gesamt_länge: 3000 }
@@ -167,7 +172,7 @@ describe('dashboardUtils', () => {
 		});
 
 		test('should map node statistics', () => {
-			const result = mapStatsToDashboardData(mockStatsData, mockProjectsData);
+			const result = mapStatsToDashboardData(mockStatsData);
 
 			expect(result.nodesByType).toEqual([{ node_type: 'MFG', count: 5 }]);
 			expect(result.expiringWarranties).toHaveLength(1);
@@ -178,16 +183,8 @@ describe('dashboardUtils', () => {
 			expect(result.newestNodes).toHaveLength(1);
 		});
 
-		test('should map projects picking only project, description, active', () => {
-			const result = mapStatsToDashboardData(mockStatsData, mockProjectsData);
-
-			expect(result.projects).toEqual([
-				{ project: 'Project A', description: 'Test project', active: true }
-			]);
-		});
-
 		test('should map address statistics with optional chaining fallbacks', () => {
-			const result = mapStatsToDashboardData(mockStatsData, mockProjectsData);
+			const result = mapStatsToDashboardData(mockStatsData);
 
 			expect(result.totalAddresses).toBe(50);
 			expect(result.totalUnits).toBe(100);
@@ -203,7 +200,7 @@ describe('dashboardUtils', () => {
 				address: undefined
 			};
 
-			const result = mapStatsToDashboardData(statsWithoutAddress, mockProjectsData);
+			const result = mapStatsToDashboardData(statsWithoutAddress);
 
 			expect(result.totalAddresses).toBe(0);
 			expect(result.totalUnits).toBe(0);
@@ -217,7 +214,7 @@ describe('dashboardUtils', () => {
 				conduit: undefined
 			};
 
-			const result = mapStatsToDashboardData(statsWithoutConduit, mockProjectsData);
+			const result = mapStatsToDashboardData(statsWithoutConduit);
 
 			expect(result.conduitLengthByType).toEqual([]);
 			expect(result.conduitCountByStatus).toEqual([]);
@@ -230,7 +227,7 @@ describe('dashboardUtils', () => {
 				area: undefined
 			};
 
-			const result = mapStatsToDashboardData(statsWithoutArea, mockProjectsData);
+			const result = mapStatsToDashboardData(statsWithoutArea);
 
 			expect(result.areaCount).toBe(0);
 			expect(result.totalCoverageKm2).toBe(0);
@@ -241,7 +238,7 @@ describe('dashboardUtils', () => {
 		});
 
 		test('should map area statistics', () => {
-			const result = mapStatsToDashboardData(mockStatsData, mockProjectsData);
+			const result = mapStatsToDashboardData(mockStatsData);
 
 			expect(result.areaCount).toBe(3);
 			expect(result.totalCoverageKm2).toBe(12.5);
@@ -254,30 +251,29 @@ describe('dashboardUtils', () => {
 		});
 
 		test('should map conduit statistics', () => {
-			const result = mapStatsToDashboardData(mockStatsData, mockProjectsData);
+			const result = mapStatsToDashboardData(mockStatsData);
 
 			expect(result.conduitLengthByType).toEqual([{ type_name: 'HDPE', total: 4000 }]);
-			expect(result.conduitLengthByStatusType).toEqual([{ status: 'Active', type: 'HDPE' }]);
+			expect(result.conduitLengthByStatusType).toEqual([
+				{ status_name: 'Active', type_name: 'HDPE', total: 4000 }
+			]);
 			expect(result.conduitLengthByNetworkLevel).toEqual([{ network_level: '1', total: 2000 }]);
-			expect(result.conduitAvgLengthByType).toEqual([{ type: 'HDPE', avg: 50 }]);
-			expect(result.conduitCountByStatus).toEqual([{ status: 'Active', count: 10 }]);
-			expect(result.conduitLengthByOwner).toEqual([{ owner: 'Co A', length: 3000 }]);
-			expect(result.conduitLengthByManufacturer).toEqual([{ manufacturer: 'Mfr A', length: 2500 }]);
+			expect(result.conduitAvgLengthByType).toEqual([{ type_name: 'HDPE', avg_length: 50 }]);
+			expect(result.conduitCountByStatus).toEqual([{ status_name: 'Active', count: 10 }]);
+			expect(result.conduitLengthByOwner).toEqual([{ owner_name: 'Co A', total: 3000 }]);
+			expect(result.conduitLengthByManufacturer).toEqual([
+				{ manufacturer_name: 'Mfr A', total: 2500 }
+			]);
 			expect(result.conduitsByMonth).toEqual([{ month: '2026-01', count: 5 }]);
-			expect(result.longestConduits).toEqual([{ name: 'C1', length: 200 }]);
+			expect(result.longestConduits).toEqual([
+				{ name: 'C1', type_name: 'HDPE', total_length: 200 }
+			]);
 		});
 
 		test('should default missing trench sub-fields to fallbacks', () => {
-			const statsWithMinimalTrench = {
-				...mockStatsData,
-				trench: {
-					total_length: 100,
-					count: 1,
-					length_by_types: []
-				}
-			};
+			const statsWithMinimalTrench = { ...mockStatsData, trench: minimalTrench };
 
-			const result = mapStatsToDashboardData(statsWithMinimalTrench, mockProjectsData);
+			const result = mapStatsToDashboardData(statsWithMinimalTrench);
 
 			expect(result.avgHouseConnectionLength).toBe(0);
 			expect(result.lengthWithFunding).toBe(0);
@@ -288,14 +284,9 @@ describe('dashboardUtils', () => {
 		});
 
 		test('should default missing node sub-fields to fallbacks', () => {
-			const statsWithMinimalNode = {
-				...mockStatsData,
-				node: {
-					count_by_type: [{ node_type: 'MFG', count: 1 }]
-				}
-			};
+			const statsWithMinimalNode = { ...mockStatsData, node: minimalNode };
 
-			const result = mapStatsToDashboardData(statsWithMinimalNode, mockProjectsData);
+			const result = mapStatsToDashboardData(statsWithMinimalNode);
 
 			expect(result.expiringWarranties).toEqual([]);
 			expect(result.nodesByCity).toEqual([]);

@@ -1,57 +1,60 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages';
 
-	import Chart from './Chart.svelte';
-	import DonutChart from './DonutChart.svelte';
+	import Chart from '$lib/components/Chart.svelte';
+	import DonutChart from '$lib/components/DonutChart.svelte';
+	import { getDashboardStatistics } from '$lib/remote/dashboard/statistics.remote';
 
-	let { addressesByCity, addressesByStatus, unitsByCity, unitsByType } = $props();
+	let { projectId }: { projectId: string } = $props();
+
+	const stats = $derived(await getDashboardStatistics({ projectId }));
 
 	/**
 	 * Transform addresses by city data for chart
 	 */
 	const cityData = $derived.by(() => {
-		return addressesByCity
-			?.map((item: { city: string; count: number }) => ({
+		return stats.addressesByCity
+			.map((item) => ({
 				label: item.city || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((a: { value: number }, b: { value: number }) => b.value - a.value);
+			.sort((a, b) => b.value - a.value);
 	});
 
 	/**
 	 * Transform addresses by status data for chart
 	 */
 	const statusData = $derived.by(() => {
-		return addressesByStatus
-			?.map((item: { status: string; count: number }) => ({
+		return stats.addressesByStatus
+			.map((item) => ({
 				label: item.status || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((a: { value: number }, b: { value: number }) => b.value - a.value);
+			.sort((a, b) => b.value - a.value);
 	});
 
 	/**
 	 * Transform units by city data for chart
 	 */
 	const unitsCityData = $derived.by(() => {
-		return unitsByCity
-			?.map((item: { city: string; count: number }) => ({
+		return stats.unitsByCity
+			.map((item) => ({
 				label: item.city || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((a: { value: number }, b: { value: number }) => b.value - a.value);
+			.sort((a, b) => b.value - a.value);
 	});
 
 	/**
 	 * Transform units by type data for donut chart
 	 */
 	const unitsTypeData = $derived.by(() => {
-		return unitsByType
-			?.map((item: { type: string; count: number }) => ({
+		return stats.unitsByType
+			.map((item) => ({
 				label: item.type || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((a: { value: number }, b: { value: number }) => b.value - a.value);
+			.sort((a, b) => b.value - a.value);
 	});
 </script>
 
@@ -61,7 +64,6 @@
 		<Chart
 			data={cityData}
 			title={m.form_addresses_by_city()}
-			color="#0ea5e9"
 			unit="x"
 			axisLabel={`${m.common_count()} (x)`}
 		/>
@@ -69,7 +71,6 @@
 		<Chart
 			data={statusData}
 			title={m.form_addresses_by_status()}
-			color="#10b981"
 			unit="x"
 			axisLabel={`${m.common_count()} (x)`}
 		/>
@@ -77,7 +78,6 @@
 		<Chart
 			data={unitsCityData}
 			title={m.form_units_by_city()}
-			color="#8b5cf6"
 			unit="x"
 			axisLabel={`${m.common_count()} (x)`}
 		/>

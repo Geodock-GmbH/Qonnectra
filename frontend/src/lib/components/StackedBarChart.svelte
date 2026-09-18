@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import {
 		BarController,
 		BarElement,
@@ -12,6 +11,8 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { readChartTheme } from '$lib/utils/chartTheme';
+
 	Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 	interface Dataset {
@@ -19,8 +20,6 @@
 		label: string;
 		/** The data values */
 		data: number[];
-		/** The background color */
-		backgroundColor: string;
 	}
 
 	interface ChartData {
@@ -38,65 +37,28 @@
 
 	let { data = { labels: [], datasets: [] }, title = '', unit = 'km' }: Props = $props();
 
-	let canvas = $state<HTMLCanvasElement>();
-	let chart: Chart | null = null;
-	let themeMode = $state('');
+	const isEmpty = $derived(data.labels.length === 0);
 
-	onMount(() => {
-		const observer = new MutationObserver(() => {
-			themeMode = document.documentElement.getAttribute('data-mode') || '';
-		});
-
-		observer.observe(document.documentElement, {
-			attributes: true,
-			attributeFilter: ['data-mode']
-		});
-
-		themeMode = document.documentElement.getAttribute('data-mode') || '';
-
-		return () => {
-			observer.disconnect();
-			if (chart) {
-				chart.destroy();
-			}
-		};
-	});
-
-	$effect(() => {
-		if (!canvas || !data || !data.labels || data.labels.length === 0) return;
-
-		themeMode;
-
-		if (chart) {
-			chart.destroy();
-		}
-
+	/**
+	 * Draws the stacked bar chart onto the canvas. Re-runs when the data or
+	 * the theme change; the returned cleanup destroys the previous instance.
+	 */
+	function stackedBarChart(canvas: HTMLCanvasElement) {
 		const ctx = canvas.getContext('2d');
-		if (!ctx) return;
+		const host = canvas.parentElement;
+		if (!ctx || !host) return;
 
-		const parentEl = canvas.parentElement;
-		if (!parentEl) return;
+		const theme = readChartTheme(host);
+		const shades = theme.shades(data.datasets.length);
 
-		const tempElBorder = document.createElement('div');
-		tempElBorder.style.borderColor = 'var(--preset-filled-surface-200-800)';
-		parentEl.appendChild(tempElBorder);
-		const axisBorderColor = getComputedStyle(tempElBorder).borderColor || '#9ca3af';
-		parentEl.removeChild(tempElBorder);
-
-		const tempElText = document.createElement('div');
-		tempElText.style.color = 'var(--preset-filled-surface-900-100)';
-		parentEl.appendChild(tempElText);
-		const axisTextColor = getComputedStyle(tempElText).color || '#6b7280';
-		parentEl.removeChild(tempElText);
-
-		chart = new Chart(ctx, {
+		const chart = new Chart(ctx, {
 			type: 'bar',
 			data: {
 				labels: data.labels,
-				datasets: data.datasets.map((ds: Dataset) => ({
+				datasets: data.datasets.map((ds, i) => ({
 					label: ds.label,
 					data: ds.data,
-					backgroundColor: ds.backgroundColor,
+					backgroundColor: shades[i],
 					borderWidth: 0,
 					borderRadius: 2
 				}))
@@ -111,7 +73,7 @@
 						display: true,
 						position: 'top',
 						labels: {
-							color: axisTextColor,
+							color: theme.text,
 							usePointStyle: true,
 							font: {
 								size: 11
@@ -120,18 +82,11 @@
 					},
 					tooltip: {
 						callbacks: {
-							label: function (context) {
-								return (
-									context.dataset.label +
-									': ' +
-									(context.parsed.x ?? 0).toLocaleString('de-DE', {
-										minimumFractionDigits: 2,
-										maximumFractionDigits: 2
-									}) +
-									' ' +
-									unit
-								);
-							}
+							label: (context) =>
+								`${context.dataset.label}: ${(context.parsed.x ?? 0).toLocaleString('de-DE', {
+									minimumFractionDigits: 2,
+									maximumFractionDigits: 2
+								})} ${unit}`
 						}
 					}
 				},
@@ -141,36 +96,34 @@
 						beginAtZero: true,
 						title: {
 							display: true,
-							text: m.common_length() + ' (' + unit + ')',
+							text: `${m.common_length()} (${unit})`,
 							font: {
 								size: 12,
 								weight: 'bold'
 							},
-							color: axisTextColor
+							color: theme.text
 						},
 						border: {
-							color: axisBorderColor
+							color: theme.axisBorder
 						},
 						grid: {
 							display: false
 						},
 						ticks: {
-							color: axisTextColor,
-							callback: function (value) {
-								return value.toLocaleString('de-DE');
-							}
+							color: theme.text,
+							callback: (value) => Number(value).toLocaleString('de-DE')
 						}
 					},
 					y: {
 						stacked: true,
 						border: {
-							color: axisBorderColor
+							color: theme.axisBorder
 						},
 						grid: {
 							display: false
 						},
 						ticks: {
-							color: axisTextColor,
+							color: theme.text,
 							font: {
 								size: 11
 							}
@@ -179,7 +132,9 @@
 				}
 			}
 		});
-	});
+
+		return () => chart.destroy();
+	}
 </script>
 
 <div class="card border border-surface-200-800 overflow-hidden">
@@ -192,12 +147,12 @@
 
 	<div class="p-4">
 		<div class="relative" style="height: 300px;">
-			{#if !data || !data.labels || data.labels.length === 0}
+			{#if isEmpty}
 				<div class="flex items-center justify-center h-full text-surface-500">
 					{m.form_no_data_available()}
 				</div>
 			{:else}
-				<canvas bind:this={canvas}></canvas>
+				<canvas {@attach stackedBarChart}></canvas>
 			{/if}
 		</div>
 	</div>

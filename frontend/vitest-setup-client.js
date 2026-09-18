@@ -191,6 +191,9 @@ vi.mock('$lib/remote/auth/login.remote', () => ({
 vi.mock('$lib/remote/auth/logout.remote', () => ({
 	logout: formStub('logout', [])
 }));
+vi.mock('$lib/remote/dashboard/statistics.remote', () => ({
+	getDashboardStatistics: vi.fn().mockResolvedValue({})
+}));
 vi.mock('$lib/remote/admin/logs.remote', () => ({
 	getLogs: vi.fn().mockResolvedValue({ count: 0, next: null, previous: null, results: [] })
 }));

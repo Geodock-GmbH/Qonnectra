@@ -1,6 +1,5 @@
 <script lang="ts">
-	import type { Warranty } from './dashboardUtils';
-	import { navigating } from '$app/stores';
+	import type { Warranty } from '$lib/remote/dashboard/dashboard-data';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -28,11 +27,7 @@
 </script>
 
 <DashboardCard title={m.form_warranty()}>
-	{#if $navigating}
-		{#each Array(3) as _, i (i)}
-			<div class="h-10 bg-surface-500 rounded animate-pulse mb-2"></div>
-		{/each}
-	{:else if warranties.length === 0}
+	{#if warranties.length === 0}
 		<div class="text-center py-6 text-surface-600-300">
 			<p>{m.form_no_warranties_expiring()}</p>
 		</div>

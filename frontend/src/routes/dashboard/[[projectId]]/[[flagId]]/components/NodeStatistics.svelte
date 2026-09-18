@@ -1,32 +1,19 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages';
 
-	import TrenchChart from './Chart.svelte';
+	import Chart from '$lib/components/Chart.svelte';
+	import { getDashboardStatistics } from '$lib/remote/dashboard/statistics.remote';
 
-	interface Props {
-		nodesByCity?: Array<{ city: string; count: number }>;
-		nodesByStatus?: Array<{ status: string; count: number }>;
-		nodesByNetworkLevel?: Array<{ network_level?: string; count: number }>;
-		nodesByType?: Array<{ node_type?: string; count: number }>;
-		nodesByOwner?: Array<{ owner?: string | null; count: number }>;
-		newestNodes?: Array<{ name?: string; node_type?: string }>;
-	}
+	let { projectId }: { projectId: string } = $props();
 
-	let {
-		nodesByCity,
-		nodesByStatus,
-		nodesByNetworkLevel,
-		nodesByType,
-		nodesByOwner,
-		newestNodes
-	}: Props = $props();
+	const stats = $derived(await getDashboardStatistics({ projectId }));
 
 	/**
 	 * Transform city data for chart
 	 */
 	const cityData = $derived.by(() => {
-		return nodesByCity
-			?.map((item) => ({
+		return stats.nodesByCity
+			.map((item) => ({
 				label: item.city || m.common_unknown(),
 				value: item.count
 			}))
@@ -37,8 +24,8 @@
 	 * Transform status data for chart
 	 */
 	const statusData = $derived.by(() => {
-		return nodesByStatus
-			?.map((item) => ({
+		return stats.nodesByStatus
+			.map((item) => ({
 				label: item.status || m.common_unknown(),
 				value: item.count
 			}))
@@ -49,8 +36,8 @@
 	 * Transform network level data for chart
 	 */
 	const networkLevelData = $derived.by(() => {
-		return nodesByNetworkLevel
-			?.map((item) => ({
+		return stats.nodesByNetworkLevel
+			.map((item) => ({
 				label: item.network_level || m.common_unknown(),
 				value: item.count
 			}))
@@ -61,8 +48,8 @@
 	 * Transform node type data for chart
 	 */
 	const typeData = $derived.by(() => {
-		return nodesByType
-			?.map((item) => ({
+		return stats.nodesByType
+			.map((item) => ({
 				label: item.node_type || m.common_unknown(),
 				value: item.count
 			}))
@@ -73,8 +60,8 @@
 	 * Transform owner data for chart
 	 */
 	const ownerData = $derived.by(() => {
-		return nodesByOwner
-			?.map((item) => ({
+		return stats.nodesByOwner
+			.map((item) => ({
 				label: item.owner || m.common_unknown(),
 				value: item.count
 			}))
@@ -85,7 +72,7 @@
 	 * Transform newest nodes data for chart (by name and count as 1)
 	 */
 	const newestNodesData = $derived.by(() => {
-		return newestNodes?.map((item) => ({
+		return stats.newestNodes.map((item) => ({
 			label: `${item.name} (${item.node_type || m.common_unknown()})`,
 			value: 1
 		}));
@@ -94,50 +81,44 @@
 
 <div class="space-y-6 max-w-6xl mx-auto">
 	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-		<TrenchChart
+		<Chart
 			data={cityData}
 			title={m.form_nodes_by_city()}
-			color="#0ea5e9"
 			unit="x"
 			axisLabel={`${m.common_count()} (x)`}
 		/>
 
-		<TrenchChart
+		<Chart
 			data={statusData}
 			title={m.form_nodes_by_status()}
-			color="#10b981"
 			unit="x"
 			axisLabel={`${m.common_count()} (x)`}
 		/>
 
-		<TrenchChart
+		<Chart
 			data={networkLevelData}
 			title={m.form_nodes_by_network_level()}
-			color="#8b5cf6"
 			unit="x"
 			axisLabel={`${m.common_count()} (x)`}
 		/>
 
-		<TrenchChart
+		<Chart
 			data={typeData}
 			title={m.form_nodes_by_type()}
-			color="#f59e0b"
 			unit="x"
 			axisLabel={`${m.common_count()} (x)`}
 		/>
 
-		<TrenchChart
+		<Chart
 			data={ownerData}
 			title={m.form_nodes_by_owner()}
-			color="#ec4899"
 			unit="x"
 			axisLabel={`${m.common_count()} (x)`}
 		/>
 
-		<TrenchChart
+		<Chart
 			data={newestNodesData}
 			title={m.form_newest_nodes()}
-			color="#14b8a6"
 			unit=""
 			axisLabel={m.common_count()}
 		/>
