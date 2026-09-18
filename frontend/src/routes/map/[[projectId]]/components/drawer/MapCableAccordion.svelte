@@ -1,41 +1,35 @@
 <script lang="ts">
 	import type { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte';
-	import { getContext, untrack } from 'svelte';
+	import { getContext } from 'svelte';
 	import { Accordion } from '@skeletonlabs/skeleton-svelte';
 	import { IconHighlight, IconMinus, IconPlus, IconRoute } from '@tabler/icons-svelte';
-	import { PUBLIC_API_URL } from '$env/static/public';
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { CableTrenchDataManager } from '$lib/classes/CableTrenchDataManager.svelte';
-	import FibersDisplayTable from '$lib/components/FibersDisplayTable.svelte';
+	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
+	import { trenchCableTitle } from '$lib/remote/map/trench-data';
+	import { getCablesInTrench } from '$lib/remote/map/trenches.remote';
+	import { getLinkedTrenchesForCable } from '$lib/remote/network-schema/micropipes.remote';
 
-	import { traceFrom } from '../../trace/traceUtils';
+	import MapCableFibers from './MapCableFibers.svelte';
+	import { traceFrom } from '../../../../trace/traceUtils';
 
 	interface Props {
 		/** UUID of the trench feature */
-		featureId?: string;
+		featureId: string;
 	}
 
-	let { featureId = '' }: Props = $props();
-
-	const dataManager = new CableTrenchDataManager();
+	let { featureId }: Props = $props();
 
 	const { selectionManager } = getContext<{ selectionManager: MapSelectionManager }>('mapManagers');
 
-	let highlightLoading = $state<Record<string, boolean>>({});
+	const cables = $derived(await getCablesInTrench(featureId));
 
-	$effect(() => {
-		if (featureId) {
-			untrack(() => {
-				dataManager.fetchCablesInTrench(featureId);
-				dataManager.fetchFiberColors();
-			});
-		}
-	});
+	let openItems = $state<string[]>([]);
+	let highlightLoading = $state<Record<string, boolean>>({});
 
 	/**
 	 * Highlight all trenches containing the specified cable on the map
@@ -45,27 +39,16 @@
 	async function handleHighlightTrenches(event: Event, cableUuid: string) {
 		event.stopPropagation();
 
-		if (!cableUuid || highlightLoading[cableUuid]) return;
+		if (highlightLoading[cableUuid]) return;
 
-		highlightLoading = { ...highlightLoading, [cableUuid]: true };
+		highlightLoading[cableUuid] = true;
 
 		try {
-			const response = await fetch(`${PUBLIC_API_URL}cables/${cableUuid}/linked-trenches/`, {
-				credentials: 'include'
-			});
-
-			if (response.ok) {
-				const data = await response.json();
-				if (data.trench_uuids && data.trench_uuids.length > 0) {
-					selectionManager.selectMultipleFeatures(data.trench_uuids);
-				}
-			} else {
-				globalToaster.error({
-					description: m.message_error_highlighting_trenches()
-				});
+			const trenchUuids = await getLinkedTrenchesForCable(cableUuid);
+			if (trenchUuids.length > 0) {
+				selectionManager.selectMultipleFeatures(trenchUuids);
 			}
 		} catch (err) {
-			console.error('Error highlighting trenches for cable:', err);
 			void logToBackendClient({
 				level: 'ERROR',
 				message: 'Error highlighting trenches for cable',
@@ -79,35 +62,24 @@
 				description: m.message_error_highlighting_trenches()
 			});
 		} finally {
-			highlightLoading = { ...highlightLoading, [cableUuid]: false };
+			highlightLoading[cableUuid] = false;
 		}
 	}
 </script>
 
-{#if dataManager.loading}
-	<div class="placeholder animate-pulse min-h-6">
-		<div class="placeholder animate-pulse"></div>
-	</div>
-{:else if dataManager.error}
-	<div class="p-4 text-red-700 bg-red-100 border border-red-400 rounded">
-		<p>{dataManager.error}</p>
-	</div>
-{:else if dataManager.cablesInTrench.length === 0}
+{#if cables.length === 0}
 	<div class="border rounded-lg p-4">
 		<p>{m.message_no_cables_in_trench()}</p>
 	</div>
 {:else}
-	<Accordion multiple>
-		{#each dataManager.cablesInTrench as item (item.id)}
-			<Accordion.Item value={item.id}>
-				<Accordion.ItemTrigger
-					class="flex justify-between items-center"
-					onclick={() => dataManager.fetchFibersForCable(item.cableUuid)}
-				>
+	<Accordion multiple value={openItems} onValueChange={(details) => (openItems = details.value)}>
+		{#each cables as cable (cable.uuid)}
+			<Accordion.Item value={cable.uuid}>
+				<Accordion.ItemTrigger class="flex justify-between items-center">
 					<div class="flex-1 text-left">
-						<span class="font-medium">{item.title}</span>
+						<span class="font-medium">{trenchCableTitle(cable)}</span>
 						<span class="text-surface-500 text-sm ml-2">
-							{item.fiberCount}
+							{cable.fiber_count ?? 0}
 							{m.form_fibers()}
 						</span>
 					</div>
@@ -118,7 +90,7 @@
 						{@attach tooltip(m.action_trace())}
 						onclick={(e) => {
 							e.stopPropagation();
-							traceFrom('cable', item.cableUuid);
+							traceFrom('cable', cable.uuid);
 						}}
 					>
 						<IconRoute class="size-4" />
@@ -128,10 +100,10 @@
 						class="btn btn-sm btn-icon preset-filled-secondary-500 p-1 mr-2"
 						aria-label={m.action_highlight_trenches()}
 						{@attach tooltip(m.action_highlight_trenches())}
-						onclick={(e) => handleHighlightTrenches(e, item.cableUuid)}
-						disabled={highlightLoading[item.cableUuid]}
+						onclick={(e) => handleHighlightTrenches(e, cable.uuid)}
+						disabled={highlightLoading[cable.uuid]}
 					>
-						{#if highlightLoading[item.cableUuid]}
+						{#if highlightLoading[cable.uuid]}
 							<span
 								class="size-4 animate-spin border-2 border-current border-t-transparent rounded-full"
 							></span>
@@ -145,16 +117,11 @@
 					</Accordion.ItemIndicator>
 				</Accordion.ItemTrigger>
 				<Accordion.ItemContent>
-					<div class="space-y-2">
-						<FibersDisplayTable
-							fibers={dataManager.getFibersForCable(item.cableUuid)}
-							loading={dataManager.isLoadingFibers(item.cableUuid)}
-							error={dataManager.getFibersError(item.cableUuid)}
-							getColorHex={(color) => dataManager.getColorHex(color)}
-							getColorName={(color) => dataManager.getColorName(color)}
-							onTraceFiber={(fiberUuid) => traceFrom('fiber', fiberUuid)}
-						/>
-					</div>
+					{#if openItems.includes(cable.uuid)}
+						<QueryBoundary>
+							<MapCableFibers cableUuid={cable.uuid} />
+						</QueryBoundary>
+					{/if}
 				</Accordion.ItemContent>
 				<hr class="hr" />
 			</Accordion.Item>

@@ -102,8 +102,7 @@ vi.mock('$lib/remote/network-schema/fibers.remote', () => ({
 		.fn()
 		.mockResolvedValue({ usedResidentialUnitUuids: [], residentialUnitComponentMap: {} }),
 	getFiberStatusOptions: vi.fn().mockResolvedValue([]),
-	updateFiberStatus: vi.fn().mockResolvedValue(null),
-	getCablesInTrench: vi.fn().mockResolvedValue([])
+	updateFiberStatus: vi.fn().mockResolvedValue(null)
 }));
 vi.mock('$lib/remote/network-schema/cable-connections.remote', () => ({
 	getCableSplicesAtNode: vi.fn().mockResolvedValue([]),
@@ -224,6 +223,12 @@ vi.mock('$lib/remote/map/feature-search.remote', () => ({
 	searchFeatures: vi.fn().mockResolvedValue([]),
 	getFeatureDetails: vi.fn().mockResolvedValue({ id: '', properties: {} }),
 	getConduitTrenches: vi.fn().mockResolvedValue({ trenches: [], trenchUuids: [] })
+}));
+vi.mock('$lib/remote/map/trenches.remote', () => ({
+	getConduitsInTrench: vi.fn().mockResolvedValue([]),
+	getCablesInTrench: vi.fn().mockResolvedValue([]),
+	getTrenchProfile: vi.fn().mockResolvedValue([]),
+	saveTrenchProfilePosition: vi.fn(() => commandStub(undefined))
 }));
 vi.mock('$lib/remote/map/layers.remote', () => ({
 	getLayerExtent: vi.fn().mockResolvedValue({ extent: null, layer: '' }),

@@ -1,24 +1,29 @@
 <script lang="ts">
+	import type { ProfilePlacement } from './profileNodes';
+	import type { Node } from '@xyflow/svelte';
 	import { Controls, SvelteFlow, ViewportPortal } from '@xyflow/svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { TrenchProfileState } from '$lib/classes/TrenchProfileState.svelte';
+	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
+	import { getTrenchProfile, saveTrenchProfilePosition } from '$lib/remote/map/trenches.remote';
+	import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
 
 	import '@xyflow/svelte/dist/style.css';
 
 	import TrenchProfileBackground from './TrenchProfileBackground.svelte';
 	import TrenchProfileFitView from './TrenchProfileFitView.svelte';
 	import TrenchProfileNode from './TrenchProfileNode.svelte';
+	import { nodePlacement, toProfileNodes } from './profileNodes';
 
 	let { trenchUuid }: { trenchUuid: string } = $props();
 
 	const nodeTypes = { trenchProfileNode: TrenchProfileNode };
 
-	const profileState = new TrenchProfileState();
-
-	let previousTrenchUuid = $state<string | null>(null);
-	let locked = $state(true);
+	// Written to by SvelteFlow while dragging and resizing; loading another
+	// trench replaces it with that trench's saved placements.
+	let nodes = $derived(toProfileNodes(await getTrenchProfile(trenchUuid)));
 
 	/** The subset of a SvelteFlow node-change event this panel reacts to. */
 	type NodeDimensionChange = {
@@ -33,30 +38,36 @@
 		onnodeschange: handleNodesChange
 	};
 
-	$effect(() => {
-		if (trenchUuid && trenchUuid !== previousTrenchUuid) {
-			previousTrenchUuid = trenchUuid;
-			profileState.reset();
-			profileState.initialize(trenchUuid);
+	/**
+	 * Persists where a conduit sits on the canvas.
+	 * @param placement - The conduit's new placement.
+	 */
+	async function savePlacement(placement: ProfilePlacement) {
+		try {
+			await saveTrenchProfilePosition({ trenchUuid, ...placement });
+		} catch (error) {
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error saving trench profile position',
+				extraData: {
+					from: 'TrenchProfilePanel.savePlacement',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
+			globalToaster.error({
+				title: m.common_error(),
+				description: remoteErrorMessage(error) ?? m.message_error_saving_data()
+			});
 		}
-	});
-
-	$effect(() => {
-		return () => {
-			profileState.reset();
-		};
-	});
+	}
 
 	/**
 	 * Persists conduit position after the user finishes dragging a node.
 	 * @param event - Drag stop event from SvelteFlow
 	 */
-	function handleNodeDragStop(event: {
-		targetNode: import('@xyflow/svelte').Node | null;
-		nodes: import('@xyflow/svelte').Node[];
-		event: MouseEvent | TouchEvent;
-	}) {
-		profileState.handleNodeDragStop(event);
+	function handleNodeDragStop({ targetNode }: { targetNode: Node | null }) {
+		if (targetNode) savePlacement(nodePlacement(targetNode));
 	}
 
 	/**
@@ -65,41 +76,33 @@
 	 */
 	function handleNodesChange(changes: NodeDimensionChange[]) {
 		for (const change of changes) {
-			if (change.type === 'dimensions' && change.resizing === false) {
-				const node = profileState.nodes.find((n) => n.id === change.id);
-				if (node) {
-					profileState.saveNodeDimensions({
-						...node,
-						measured: change.dimensions
-					});
-				}
-			}
+			if (change.type !== 'dimensions' || change.resizing !== false) continue;
+
+			const node = nodes.find((n) => n.id === change.id);
+			if (node) savePlacement(nodePlacement({ ...node, measured: change.dimensions }));
 		}
 	}
 </script>
 
 <div class="trench-profile-container">
-	{#if profileState.isLoading}
-		<div class="loading-overlay">
-			<div class="loading-spinner"></div>
-		</div>
-	{:else if profileState.nodes.length === 0}
+	{#if nodes.length === 0}
 		<div class="empty-state">
-			<p>{m.message_no_conduits_found_in_trench?.()}</p>
+			<p>{m.message_no_conduits_found_in_trench()}</p>
 		</div>
 	{:else}
 		<div class="flow-wrapper">
+			<!-- Opens locked; the lock button in Controls unlocks dragging and selecting. -->
 			<SvelteFlow
-				bind:nodes={profileState.nodes}
+				bind:nodes
 				edges={[]}
 				{nodeTypes}
 				onnodedragstop={handleNodeDragStop}
 				{...nodesChangeProps}
 				minZoom={0.1}
 				maxZoom={2}
-				nodesDraggable={!locked}
-				nodesConnectable={!locked}
-				elementsSelectable={!locked}
+				nodesDraggable={false}
+				nodesConnectable={false}
+				elementsSelectable={false}
 			>
 				<ViewportPortal target="back">
 					<TrenchProfileBackground />
@@ -124,30 +127,6 @@
 		height: 100%;
 		min-height: 400px;
 		background: var(--color-surface-200);
-	}
-
-	.loading-overlay {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 100%;
-		height: 100%;
-		min-height: 400px;
-	}
-
-	.loading-spinner {
-		width: 40px;
-		height: 40px;
-		border: 3px solid var(--color-surface-300);
-		border-top-color: var(--color-primary-500);
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
-	}
-
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
 	}
 
 	.empty-state {

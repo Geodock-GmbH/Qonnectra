@@ -38,7 +38,7 @@ interface ClickedFeature {
 }
 
 export interface SearchPanelRef {
-	getHighlightLayer?: () => VectorLayer;
+	getHighlightLayer?: () => VectorLayer | undefined;
 }
 
 /**

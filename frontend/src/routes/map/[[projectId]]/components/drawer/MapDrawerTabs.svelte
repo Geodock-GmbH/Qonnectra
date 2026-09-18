@@ -16,14 +16,15 @@
 	import FileExplorer from '$lib/components/FileExplorer.svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import FloatingPanel from '$lib/components/FloatingPanel.svelte';
+	import NodeSlotConfigPanel from '$lib/components/node-structure/NodeSlotConfigPanel.svelte';
+	import NodeStructurePanel from '$lib/components/node-structure/NodeStructurePanel.svelte';
+	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
 
-	import NodeSlotConfigPanel from '../../network-schema/[[projectId]]/components/NodeSlotConfigPanel.svelte';
-	import NodeStructurePanel from '../../network-schema/[[projectId]]/components/NodeStructurePanel.svelte';
+	import TrenchProfilePanel from '../trench-profile/TrenchProfilePanel.svelte';
 	import MapCableAccordion from './MapCableAccordion.svelte';
 	import MapConduitAccordion from './MapConduitAccordion.svelte';
-	import TrenchProfilePanel from './TrenchProfilePanel.svelte';
-	import { traceFrom } from '../../trace/traceUtils';
+	import { traceFrom } from '../../../../trace/traceUtils';
 
 	interface Props {
 		/** Feature properties from MVT */
@@ -99,11 +100,19 @@
 	{/if}
 
 	{#if activeTab === 'conduits' && featureType === 'trench'}
-		<MapConduitAccordion {featureId} />
+		{#key featureId}
+			<QueryBoundary>
+				<MapConduitAccordion {featureId} />
+			</QueryBoundary>
+		{/key}
 	{/if}
 
 	{#if activeTab === 'cables' && featureType === 'trench'}
-		<MapCableAccordion {featureId} />
+		{#key featureId}
+			<QueryBoundary>
+				<MapCableAccordion {featureId} />
+			</QueryBoundary>
+		{/key}
 	{/if}
 
 	{#if activeTab === 'actions' && featureType === 'trench'}
@@ -180,7 +189,11 @@
 		maxWidth={1920}
 		maxHeight={1080}
 	>
-		<TrenchProfilePanel trenchUuid={featureId} />
+		{#if trenchProfilePanelOpen}
+			<QueryBoundary>
+				<TrenchProfilePanel trenchUuid={featureId} />
+			</QueryBoundary>
+		{/if}
 	</FloatingPanel>
 {/if}
 

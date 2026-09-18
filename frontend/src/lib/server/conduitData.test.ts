@@ -1,13 +1,7 @@
 import type { Cookies } from '@sveltejs/kit';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import {
-	getMicroducts,
-	getPipesInTrench,
-	getTrenchesForConduit,
-	getTrenchProfile,
-	saveTrenchProfilePosition
-} from './conduitData';
+import { getMicroducts, getPipesInTrench, getTrenchesForConduit } from './conduitData';
 
 vi.mock('$env/static/private', () => ({
 	API_URL: 'http://localhost:8000/'
@@ -107,77 +101,5 @@ describe('getTrenchesForConduit', () => {
 		const result = await getTrenchesForConduit(vi.fn(), mockCookies, '');
 
 		expect(result).toEqual({ status: 400, data: { error: 'Conduit ID is required' } });
-	});
-});
-
-describe('getTrenchProfile', () => {
-	test('should fetch the trench profile', async () => {
-		const fetchMock = okFetch({ conduits: [] });
-
-		const result = await getTrenchProfile(fetchMock, mockCookies, 'trench-1');
-
-		expect(fetchMock).toHaveBeenCalledWith(
-			'http://localhost:8000/trench-conduit-canvas/profile/trench-1/',
-			expect.objectContaining({ method: 'GET' })
-		);
-		expect(result).toEqual({ conduits: [] });
-	});
-
-	test('should fail without a trench uuid', async () => {
-		const result = await getTrenchProfile(vi.fn(), mockCookies, '');
-
-		expect(result).toEqual({ status: 400, data: { error: 'Trench UUID is required' } });
-	});
-});
-
-describe('saveTrenchProfilePosition', () => {
-	test('should POST the canvas position for the conduit', async () => {
-		const fetchMock = okFetch({ saved: true });
-
-		const result = await saveTrenchProfilePosition(
-			fetchMock,
-			mockCookies,
-			'trench-1',
-			'conduit-1',
-			10,
-			20,
-			100,
-			50
-		);
-
-		const [url, options] = fetchMock.mock.calls[0];
-		expect(url).toBe('http://localhost:8000/trench-conduit-canvas/bulk-save/');
-		expect(options.method).toBe('POST');
-		expect(options.headers['Content-Type']).toBe('application/json');
-		expect(JSON.parse(options.body)).toEqual({
-			trench: 'trench-1',
-			positions: [
-				{
-					conduit: 'conduit-1',
-					canvas_x: 10,
-					canvas_y: 20,
-					canvas_width: 100,
-					canvas_height: 50
-				}
-			]
-		});
-		expect(result).toEqual({ saved: true });
-	});
-
-	test('should propagate backend errors', async () => {
-		const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 400 });
-
-		const result = await saveTrenchProfilePosition(
-			fetchMock,
-			mockCookies,
-			'trench-1',
-			'conduit-1',
-			0,
-			0,
-			0,
-			0
-		);
-
-		expect(result).toEqual({ status: 400, data: { error: 'Failed to save position' } });
 	});
 });

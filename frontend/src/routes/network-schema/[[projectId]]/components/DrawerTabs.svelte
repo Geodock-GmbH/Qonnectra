@@ -21,6 +21,8 @@
 	import FileExplorer from '$lib/components/FileExplorer.svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import FloatingPanel from '$lib/components/FloatingPanel.svelte';
+	import NodeSlotConfigPanel from '$lib/components/node-structure/NodeSlotConfigPanel.svelte';
+	import NodeStructurePanel from '$lib/components/node-structure/NodeStructurePanel.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
@@ -33,8 +35,6 @@
 	import CableDiagramEdgeHandleConfig from './CableDiagramEdgeHandleConfig.svelte';
 	import CableDiagramNodeAttributeCard from './CableDiagramNodeAttributeCard.svelte';
 	import CableMicropipePanel from './CableMicropipePanel.svelte';
-	import NodeSlotConfigPanel from './NodeSlotConfigPanel.svelte';
-	import NodeStructurePanel from './NodeStructurePanel.svelte';
 
 	/** The drawer's props bag: a `type` discriminator, callbacks, and the feature's fields. */
 	interface DrawerTabsProps {

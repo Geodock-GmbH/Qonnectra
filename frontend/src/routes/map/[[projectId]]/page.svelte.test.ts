@@ -1,9 +1,25 @@
 import '@testing-library/jest-dom/vitest';
 
+import type { PageData } from './$types';
 import { render, screen } from '@testing-library/svelte';
-import { describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
+import { httpError } from '$lib/test-utils/remote-stubs';
 
 import Page from './+page.svelte';
+
+const getLayerStyleAttributes = vi.fn();
+
+vi.mock('$lib/remote/map/layers.remote', () => ({
+	getLayerStyleAttributes: (...args: unknown[]) => getLayerStyleAttributes(...args)
+}));
+
+type MapStateSpies = Record<
+	'updateTrenchLayerStyle' | 'updateAddressLayerStyle' | 'refreshTileSources' | 'cleanup',
+	ReturnType<typeof vi.fn>
+>;
+
+const { mapStates } = vi.hoisted(() => ({ mapStates: [] as MapStateSpies[] }));
 
 vi.mock('$lib/paraglide/messages', () => {
 	const mockMessages = new Proxy(
@@ -130,7 +146,7 @@ vi.mock('$lib/components/Drawer.svelte', async () => {
 	return { default: MockDrawer };
 });
 
-vi.mock('./MapDrawerTabs.svelte', () => ({
+vi.mock('./components/drawer/MapDrawerTabs.svelte', () => ({
 	default: vi.fn()
 }));
 
@@ -152,6 +168,10 @@ vi.mock('$lib/classes/MapState.svelte', () => ({
 		getLayerReferences = vi.fn().mockReturnValue({});
 		getLayers = vi.fn().mockReturnValue([]);
 		cleanup = vi.fn();
+
+		constructor() {
+			mapStates.push(this);
+		}
 	}
 }));
 
@@ -181,61 +201,94 @@ vi.mock('$lib/classes/MapInteractionManager.svelte.js', () => ({
 }));
 
 describe('/map/+page.svelte', () => {
-	const mockData: any = {
-		projects: [{ uuid: 'proj-1', name: 'Project 1' }],
-		nodeTypes: [{ uuid: 'nt-1', name: 'Type A' }],
-		surfaces: [{ uuid: 's-1', name: 'Asphalt' }],
-		constructionTypes: [{ uuid: 'ct-1', name: 'Open' }],
-		areaTypes: [{ uuid: 'at-1', name: 'Residential' }],
-		alias: { trench: 'Trench', node: 'Node' },
-		error: null
+	const data: PageData = {
+		user: { isAuthenticated: true },
+		flags: [],
+		flagsError: null,
+		projects: [{ label: 'Project 1', value: 'proj-1' }],
+		projectsError: null,
+		appVersion: null,
+		selectedProject: 'proj-1',
+		srid: null,
+		proj4Def: null
 	};
 
-	test('should render the map container when layers initialized', () => {
-		render(Page, { props: { data: mockData } });
+	beforeEach(() => {
+		getLayerStyleAttributes.mockResolvedValue({
+			nodeTypes: [],
+			surfaces: [],
+			constructionTypes: [],
+			areaTypes: []
+		});
+	});
 
-		expect(screen.getByTestId('map')).toBeInTheDocument();
+	afterEach(() => {
+		getLayerStyleAttributes.mockReset();
+		mapStates.length = 0;
+	});
+
+	test('should show a loading placeholder until the layer attributes arrive', async () => {
+		render(Page, { props: { data } });
+
+		expect(screen.getByRole('status')).toBeInTheDocument();
+		expect(screen.queryByTestId('map')).not.toBeInTheDocument();
+
+		expect(await screen.findByTestId('map')).toBeInTheDocument();
+		expect(screen.queryByRole('status')).not.toBeInTheDocument();
+	});
+
+	test('should hand the loaded attribute lists to the map', async () => {
+		getLayerStyleAttributes.mockResolvedValue({
+			nodeTypes: [{ id: 1, node_type: 'Muffe' }],
+			surfaces: [],
+			constructionTypes: [],
+			areaTypes: []
+		});
+
+		render(Page, { props: { data } });
+
+		expect(await screen.findByTestId('map')).toHaveAttribute('data-node-type-count', '1');
+	});
+
+	test('should render the popup containers next to the map', async () => {
+		render(Page, { props: { data } });
+		await screen.findByTestId('map');
+
+		expect(document.getElementById('popup')).toBeInTheDocument();
+		expect(document.getElementById('popup-content')).toBeInTheDocument();
 	});
 
 	test('should render the Drawer component', () => {
-		render(Page, { props: { data: mockData } });
+		render(Page, { props: { data } });
 
 		expect(screen.getByTestId('drawer')).toBeInTheDocument();
 	});
 
-	test('should render the popup container', () => {
-		render(Page, { props: { data: mockData } });
+	test('should apply the stored layer styles once the map is mounted', async () => {
+		render(Page, { props: { data } });
+		await screen.findByTestId('map');
 
-		const popup = document.getElementById('popup');
-		expect(popup).toBeInTheDocument();
+		const [mapState] = mapStates;
+		expect(mapState.updateTrenchLayerStyle).toHaveBeenCalledWith('default', {}, {}, '#000000');
+		expect(mapState.updateAddressLayerStyle).toHaveBeenCalledWith('#0000ff', 6);
+		expect(mapState.refreshTileSources).toHaveBeenCalledOnce();
 	});
 
-	test('should render the popup content container', () => {
-		render(Page, { props: { data: mockData } });
+	test('should offer a retry when the layer attributes fail to load', async () => {
+		getLayerStyleAttributes.mockRejectedValue(httpError(502, 'Backend unavailable'));
 
-		const popupContent = document.getElementById('popup-content');
-		expect(popupContent).toBeInTheDocument();
+		render(Page, { props: { data } });
+
+		expect(await screen.findByRole('alert')).toHaveTextContent('Backend unavailable');
+		expect(screen.queryByTestId('map')).not.toBeInTheDocument();
 	});
 
-	test('should render with all main UI components together', () => {
-		render(Page, { props: { data: mockData } });
+	test('should release the map when the page is left', async () => {
+		const { unmount } = render(Page, { props: { data } });
+		await screen.findByTestId('map');
 
-		expect(screen.getByTestId('map')).toBeInTheDocument();
-		expect(screen.getByTestId('drawer')).toBeInTheDocument();
-		expect(document.getElementById('popup')).toBeInTheDocument();
-	});
+		unmount();
 
-	test('should render with empty nodeTypes array', () => {
-		const emptyData = { ...mockData, nodeTypes: [] };
-		render(Page, { props: { data: emptyData } });
-
-		expect(screen.getByTestId('map')).toBeInTheDocument();
-	});
-
-	test('should render with null nodeTypes', () => {
-		const nullData = { ...mockData, nodeTypes: null };
-		render(Page, { props: { data: nullData } });
-
-		expect(screen.getByTestId('map')).toBeInTheDocument();
+		expect(mapStates[0].cleanup).toHaveBeenCalledOnce();
 	});
 });
