@@ -1,5 +1,48 @@
 # Changelog
 
+## [1.8.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.7.0...v1.8.0) (2026-09-19)
+
+
+### Features
+
+* Export feature endpoint ([#89](https://github.com/Geodock-GmbH/Qonnectra/issues/89)) ([65865cf](https://github.com/Geodock-GmbH/Qonnectra/commit/65865cf14ee79046c9ad23627659e53bd68ffa41))
+* Filter feature-files by project and feature_type ([cafebd5](https://github.com/Geodock-GmbH/Qonnectra/commit/cafebd59a4863693bb923a34f715bad8940f3363))
+* Openapi-Schema and any type clean up ([#85](https://github.com/Geodock-GmbH/Qonnectra/issues/85)) ([bfd6144](https://github.com/Geodock-GmbH/Qonnectra/commit/bfd6144b7f7622c4907b6ee1d4ad9101b461a846))
+
+
+### Bug Fixes
+
+* Added nokey to the vertex circle for svelte flow ([b48782b](https://github.com/Geodock-GmbH/Qonnectra/commit/b48782bb7b9b8792b07da1a2777d701cc39c5cb2))
+* Fixed bugs which the map route migration introduced ([f85deed](https://github.com/Geodock-GmbH/Qonnectra/commit/f85deed4e1029331206b9e34c5ab8f40c9fcb7ca))
+* make label reset and vertex delete reliable ([#87](https://github.com/Geodock-GmbH/Qonnectra/issues/87)) ([98e4cbe](https://github.com/Geodock-GmbH/Qonnectra/commit/98e4cbebb65f804a9bd872a19b32239e0758f84e))
+
+
+### Refactoring
+
+* Added an object in filter and wrong uuids in feature files are now returning an empty list instead of an 500 error ([e5d2e81](https://github.com/Geodock-GmbH/Qonnectra/commit/e5d2e81e9c249d9207f378f64e148ec2da286fc4))
+* Changed admin, login and logout to use remote functions ([#91](https://github.com/Geodock-GmbH/Qonnectra/issues/91)) ([c63c60a](https://github.com/Geodock-GmbH/Qonnectra/commit/c63c60a03899483fce8b2e1af9c544eb796f87cc))
+* Migrate valuation route to use remote functions ([#100](https://github.com/Geodock-GmbH/Qonnectra/issues/100)) ([4dd48b3](https://github.com/Geodock-GmbH/Qonnectra/commit/4dd48b304374399d6aeefb5e6c65cb4a2c73643a))
+* Migrated dashboard route to remote functions ([#93](https://github.com/Geodock-GmbH/Qonnectra/issues/93)) ([4433fca](https://github.com/Geodock-GmbH/Qonnectra/commit/4433fcada17529330dcf2a692bcaafac2aacce7d))
+* Migrated faul-simulation route to remote functions ([#94](https://github.com/Geodock-GmbH/Qonnectra/issues/94)) ([b497049](https://github.com/Geodock-GmbH/Qonnectra/commit/b497049a124ff0ab129dd13c786f7fc7ec39755d))
+* Migrated house-connections route to use remote functions ([355b759](https://github.com/Geodock-GmbH/Qonnectra/commit/355b7594d24ff268dd393e9496a2dec360bbf009))
+* Migrated pipe-branch to use remote functions ([#96](https://github.com/Geodock-GmbH/Qonnectra/issues/96)) ([8996799](https://github.com/Geodock-GmbH/Qonnectra/commit/89967996b1bb58eaccef6e011082d814f8e4f904))
+* Migrated pipeline-records route to use remote functions ([#98](https://github.com/Geodock-GmbH/Qonnectra/issues/98)) ([696fa96](https://github.com/Geodock-GmbH/Qonnectra/commit/696fa96adc02c2300f2ce5f666f788a3b099bef5))
+* Migrated post-compaction route to use remote functions ([#99](https://github.com/Geodock-GmbH/Qonnectra/issues/99)) ([5b60357](https://github.com/Geodock-GmbH/Qonnectra/commit/5b60357c324776442f9c18908a0dd00ff0c45174))
+* Migrated the conduit route to remote functions ([#92](https://github.com/Geodock-GmbH/Qonnectra/issues/92)) ([60f5c25](https://github.com/Geodock-GmbH/Qonnectra/commit/60f5c25d38a200e3ca96631893629e3db9aa7617))
+* Migrated the map route to remote functions ([#95](https://github.com/Geodock-GmbH/Qonnectra/issues/95)) ([65df1c8](https://github.com/Geodock-GmbH/Qonnectra/commit/65df1c87f809d47dd62e31b847db49c62e4e44c9))
+* Migrated the trench route to remote functions ([#97](https://github.com/Geodock-GmbH/Qonnectra/issues/97)) ([2d2dbb0](https://github.com/Geodock-GmbH/Qonnectra/commit/2d2dbb046103c891f1d5d6b07c9a586bda4e5c5f))
+* Migrated trace and settings route to use remote functions ([#101](https://github.com/Geodock-GmbH/Qonnectra/issues/101)) ([c07d840](https://github.com/Geodock-GmbH/Qonnectra/commit/c07d840c783b5ea824328622f597e269487f0c0f))
+* Refactor network-schema route to remote functions ([#88](https://github.com/Geodock-GmbH/Qonnectra/issues/88)) ([ef8777e](https://github.com/Geodock-GmbH/Qonnectra/commit/ef8777eb98775f81c41b7101f7b8bd9fb270f17a))
+* Refactored address route to use remote functions ([#90](https://github.com/Geodock-GmbH/Qonnectra/issues/90)) ([0886a9c](https://github.com/Geodock-GmbH/Qonnectra/commit/0886a9cfdbc1c4b351aedf8fbfe2a941ab65d5cb))
+
+
+### Miscellaneous
+
+* Added retuns to nodeassignmentmanager ([844175d](https://github.com/Geodock-GmbH/Qonnectra/commit/844175ddf938e91c4df34d4c658901404a1d4dbb))
+* Changed docker configs for better min req server hardware ([9bf751d](https://github.com/Geodock-GmbH/Qonnectra/commit/9bf751dd72ec99e261598164916b84152097e1c7))
+* Regenerate api.d.ts ([aa28575](https://github.com/Geodock-GmbH/Qonnectra/commit/aa2857516278cc5d2d0fe1f27fc255bedcc4bcc0))
+* Regenerate OpenAPI schema for feature-files project/feature_type filters ([11969c5](https://github.com/Geodock-GmbH/Qonnectra/commit/11969c50a95d1ee41780cb26a74684db20eed046))
+
 ## [1.7.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.6.0...v1.7.0) (2026-08-28)
 
 
