@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { ControlButton, Controls } from '@xyflow/svelte';
-	import { IconLock, IconLockOpen } from '@tabler/icons-svelte';
+	import { IconLockFilled, IconLockOpen } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -16,7 +16,7 @@
 <Controls showLock={false}>
 	{#snippet after()}
 		<ControlButton
-			class="svelte-flow__controls-interactive"
+			class="svelte-flow__controls-interactive lock-control"
 			onclick={() => {
 				const next = !schemaState.locked;
 				schemaState.locked = next;
@@ -27,10 +27,17 @@
 			aria-pressed={schemaState.locked}
 		>
 			{#if schemaState.locked}
-				<IconLock size={12} />
+				<IconLockFilled />
 			{:else}
-				<IconLockOpen size={12} />
+				<IconLockOpen />
 			{/if}
 		</ControlButton>
 	{/snippet}
 </Controls>
+
+<style>
+	:global(.svelte-flow__controls-button.lock-control svg) {
+		max-width: 15px;
+		max-height: 15px;
+	}
+</style>
