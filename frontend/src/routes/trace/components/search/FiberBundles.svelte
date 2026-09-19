@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Fiber } from '$lib/classes/CableFiberDataManager.svelte';
-	import type { FiberColor } from '$lib/server/nodeData';
+	import type { FiberColor } from '$lib/types/nodeData';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { slide } from 'svelte/transition';
 	import { goto } from '$app/navigation';

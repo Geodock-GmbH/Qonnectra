@@ -1,4 +1,4 @@
-import type { ComponentPlacement, FiberColor } from '$lib/server/nodeData';
+import type { ComponentPlacement, FiberColor } from '$lib/types/nodeData';
 
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
 import {

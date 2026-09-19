@@ -1,4 +1,4 @@
-import type { FiberColor } from '$lib/server/nodeData';
+import type { FiberColor } from '$lib/types/nodeData';
 
 const UNKNOWN_COLOR_HEX = '#808080';
 

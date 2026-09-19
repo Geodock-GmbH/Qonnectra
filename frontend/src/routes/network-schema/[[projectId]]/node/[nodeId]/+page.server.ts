@@ -3,7 +3,7 @@ import { redirect } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
-import { mapNodesToOptions } from '$lib/server/nodeData';
+import { mapNodesToOptions } from '$lib/remote/network-schema/node-options';
 
 export const load: PageServerLoad = async ({ fetch, cookies, params }) => {
 	const headers = getAuthHeaders(cookies);

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { mapNodesToOptions } from './nodeData';
+import { mapNodesToOptions } from './node-options';
 
 describe('mapNodesToOptions', () => {
 	test('maps GeoJSON features using id and properties.name', () => {

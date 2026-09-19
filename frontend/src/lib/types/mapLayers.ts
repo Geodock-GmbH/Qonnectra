@@ -1,8 +1,7 @@
 /**
- * Client-safe shapes for the map layer-visibility tree and search-panel option
- * lists. These mirror the option payloads produced by `$lib/server/attributes`
- * (which can't be imported into client code — it pulls in server-only env), so
- * the map UI and the pages that feed it share one definition.
+ * Shapes for the map layer-visibility tree and search-panel option lists, shared
+ * by the map UI, the pages that feed it, and the remote functions that fetch the
+ * attribute lists. The single definition of these attribute options.
  */
 
 /** A node-type option consumed by the map layer tree. */

@@ -521,10 +521,9 @@ See `package.json` for exact versions. Notable libraries:
 
 The frontend communicates with the Django REST API using:
 
-- **Server-side utilities** in `src/lib/server/`:
-  - `attributes.js` – loads attribute options (statuses, conduit types, etc.)
-  - `conduitData.js` – conduit and pipe-related data loading
-  - `featureSearch.js` – search APIs for features/addresses
+- **Remote functions** in `src/lib/remote/<domain>/`:
+  - `*.remote.ts` – `query` / `command` / `form` functions that call the backend server-side
+  - plain `*.ts` siblings – pure helpers (response mapping, fetch orchestration) shared by the remote functions and the remaining `+page.server.ts` loads
 - **Utility functions** in `src/lib/utils/`:
   - `getAuthHeaders.js` – constructs authenticated headers from cookies/session
   - `logToBackendClient.js` / `logToBackendServer.js` – logging helpers
