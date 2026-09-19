@@ -312,6 +312,16 @@ vi.mock('$lib/remote/pipeline-records/inquiry-areas.remote', () => ({
 	renameInquiryArea: vi.fn(() => commandStub(undefined)),
 	deleteInquiryArea: vi.fn(() => commandStub(undefined))
 }));
+vi.mock('$lib/remote/valuation/valuation.remote', () => ({
+	getValuationAreas: vi.fn().mockResolvedValue([]),
+	getValuationRateCount: vi.fn().mockResolvedValue(0),
+	calculateValuation: vi.fn().mockResolvedValue({
+		categories: [],
+		total: 0,
+		costPerHouseConnection: null,
+		costPerMeter: null
+	})
+}));
 vi.mock('$lib/remote/post-compaction/address-search.remote', () => ({
 	searchAddresses: vi.fn().mockResolvedValue([])
 }));

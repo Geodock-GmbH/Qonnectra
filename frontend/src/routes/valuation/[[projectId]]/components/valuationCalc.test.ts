@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'vitest';
 
-import { computeProjection, formatCurrency, formatQuantity } from './valuationCalc.js';
+import {
+	computeProjection,
+	formatCurrency,
+	formatQuantity,
+	groupAreasByType
+} from './valuationCalc.js';
 
 describe('formatCurrency', () => {
 	test('formats a number as EUR', () => {
@@ -55,5 +60,34 @@ describe('computeProjection', () => {
 
 	test('produces the requested number of years', () => {
 		expect(computeProjection(100, 2025, 0.01, 22)).toHaveLength(22);
+	});
+});
+
+describe('groupAreasByType', () => {
+	const area = (uuid: string, areaType: string | null) => ({
+		uuid,
+		name: uuid,
+		areaType,
+		geometry: null
+	});
+
+	test('groups areas by their type in order of first appearance', () => {
+		const groups = groupAreasByType(
+			[area('a', 'Cluster'), area('b', 'Polygon'), area('c', 'Cluster')],
+			'Untyped'
+		);
+
+		expect(groups.map((group) => group.type)).toEqual(['Cluster', 'Polygon']);
+		expect(groups[0].areas.map((a) => a.uuid)).toEqual(['a', 'c']);
+	});
+
+	test('collects areas without a type under the given label', () => {
+		const groups = groupAreasByType([area('a', null), area('b', null)], 'Untyped');
+
+		expect(groups).toEqual([{ type: 'Untyped', areas: [area('a', null), area('b', null)] }]);
+	});
+
+	test('returns no groups for no areas', () => {
+		expect(groupAreasByType([], 'Untyped')).toEqual([]);
 	});
 });

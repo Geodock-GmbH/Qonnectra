@@ -2,10 +2,12 @@
  * Pure helpers for the Wertermittlung (valuation) page.
  *
  * The backend performs the spatial calculation; these helpers format its
- * numeric result for display and recompute the future-value projection
+ * numeric result for display, recompute the future-value projection
  * client-side so the projection table can react to year/correction changes
- * without a server round-trip.
+ * without a server round-trip, and group the selectable areas by type.
  */
+
+import type { ValuationArea } from '$lib/remote/valuation/valuation-data';
 
 export interface ProjectionRow {
 	year: number;
@@ -59,4 +61,27 @@ export function computeProjection(
 		previous = netValue;
 	}
 	return projection;
+}
+
+/** The areas sharing one area type, as listed in the area selection. */
+export interface AreaGroup {
+	type: string;
+	areas: ValuationArea[];
+}
+
+/**
+ * Group areas by their type, keeping the order in which types first appear.
+ * @param areas - The areas to group.
+ * @param untypedLabel - Group name for areas without a type.
+ * @returns One group per area type.
+ */
+export function groupAreasByType(areas: ValuationArea[], untypedLabel: string): AreaGroup[] {
+	const groups = new Map<string, ValuationArea[]>();
+	for (const area of areas) {
+		const type = area.areaType ?? untypedLabel;
+		const group = groups.get(type);
+		if (group) group.push(area);
+		else groups.set(type, [area]);
+	}
+	return Array.from(groups, ([type, items]) => ({ type, areas: items }));
 }

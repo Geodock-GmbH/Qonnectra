@@ -1,8 +1,6 @@
 /**
  * Shared types for the network-schema attribute cards (node & edge), which read
  * the `attributeOptions` context and the drawer's node/edge props.
- *
- * The generic form-action helper `actionData` lives in `$lib/utils/forms`.
  */
 
 /**

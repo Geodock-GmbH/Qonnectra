@@ -1,5 +1,12 @@
+import type { ProjectionLike } from 'ol/proj.js';
 import { register } from 'ol/proj/proj4';
 import proj4 from 'proj4';
+
+/** The projection geometries are stored in, as the backend reports it. */
+export interface StorageProjection {
+	srid: number;
+	proj4Def: string;
+}
 
 let registeredSrid: number | null = null;
 
@@ -23,6 +30,22 @@ export function registerStorageProjection(srid: number, proj4Def: string): void 
  */
 export function storageProjection(srid: number): string {
 	return `EPSG:${srid}`;
+}
+
+/**
+ * Builds the GeoJSON read options that reproject stored geometries into a map's
+ * view, registering the storage projection on the way.
+ * @param storage - Projection the geometries are stored in; `null` reads them as they are.
+ * @param featureProjection - The map view's projection.
+ * @returns Options for `GeoJSON.readFeatures`.
+ */
+export function storageReadOptions(
+	storage: StorageProjection | null,
+	featureProjection: ProjectionLike
+): { dataProjection?: string; featureProjection?: ProjectionLike } {
+	if (!storage) return {};
+	registerStorageProjection(storage.srid, storage.proj4Def);
+	return { dataProjection: storageProjection(storage.srid), featureProjection };
 }
 
 /**

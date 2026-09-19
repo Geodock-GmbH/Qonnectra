@@ -5,7 +5,8 @@ import {
 	formatLatLon,
 	formatStorageCoordinates,
 	registerStorageProjection,
-	storageProjection
+	storageProjection,
+	storageReadOptions
 } from './projectionUtils';
 
 const ETRS89_UTM32_DEF = '+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs';
@@ -54,5 +55,18 @@ describe('formatStorageCoordinates', () => {
 
 		expect(x).toBeCloseTo(500000, 1);
 		expect(y).toBeCloseTo(5761038.2, 0);
+	});
+});
+
+describe('storageReadOptions', () => {
+	test('should reproject from the storage projection into the view', () => {
+		const options = storageReadOptions({ srid: 25832, proj4Def: ETRS89_UTM32_DEF }, 'EPSG:3857');
+
+		expect(options).toEqual({ dataProjection: 'EPSG:25832', featureProjection: 'EPSG:3857' });
+		expect(proj4.defs('EPSG:25832')).toBeDefined();
+	});
+
+	test('should read geometries as they are without a storage projection', () => {
+		expect(storageReadOptions(null, 'EPSG:3857')).toEqual({});
 	});
 });

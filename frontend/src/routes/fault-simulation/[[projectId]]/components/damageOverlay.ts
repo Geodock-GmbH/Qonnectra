@@ -1,3 +1,4 @@
+import type { StorageProjection } from '$lib/map/projectionUtils.js';
 import type { FaultSimulationResult } from '$lib/remote/fault-simulation/simulation-data';
 import type { Coordinate } from 'ol/coordinate.js';
 import type { FeatureLike } from 'ol/Feature.js';
@@ -9,19 +10,13 @@ import Point from 'ol/geom/Point.js';
 import VectorLayer from 'ol/layer/Vector.js';
 import VectorSource from 'ol/source/Vector.js';
 
-import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
+import { storageReadOptions } from '$lib/map/projectionUtils.js';
 import {
 	createAffectedAddressStyle,
 	createAffectedNodeStyle,
 	createAffectedTrenchStyle,
 	createDamagePointStyle
 } from '$lib/map/styles';
-
-/** Storage projection the simulation geometries are delivered in. */
-export interface StorageProjection {
-	srid: number;
-	proj4Def: string;
-}
 
 /**
  * Map layers that visualise a fault simulation: the damage point and the
@@ -103,14 +98,7 @@ export class DamageOverlay {
 		this.result = result;
 		if (!this.map || !result.geometry) return;
 
-		let readOptions = {};
-		if (this.storage) {
-			registerStorageProjection(this.storage.srid, this.storage.proj4Def);
-			readOptions = {
-				dataProjection: storageProjection(this.storage.srid),
-				featureProjection: this.map.getView().getProjection()
-			};
-		}
+		const readOptions = storageReadOptions(this.storage, this.map.getView().getProjection());
 		const format = new GeoJSON();
 		const { affected_trenches, affected_nodes, affected_addresses } = result.geometry;
 

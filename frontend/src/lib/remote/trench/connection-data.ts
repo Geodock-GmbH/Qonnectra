@@ -1,8 +1,7 @@
 import { API_URL } from '$env/static/private';
 
 import { failFromResponse } from '$lib/remote/shared/backend-error';
-
-import { property } from './json';
+import { property } from '$lib/remote/shared/json';
 
 /** A trench a conduit runs through, as listed in the conduit assignment table. */
 export interface TrenchConnection {

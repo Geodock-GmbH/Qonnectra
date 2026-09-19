@@ -6,8 +6,7 @@ import {
 	errorStatus,
 	failFromResponse
 } from '$lib/remote/shared/backend-error';
-
-import { property } from './json';
+import { property } from '$lib/remote/shared/json';
 
 /** What a route is calculated from. */
 export interface RouteInput {
