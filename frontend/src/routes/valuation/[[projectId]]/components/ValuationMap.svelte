@@ -35,7 +35,7 @@
 	/**
 	 * Adds the area outlines to the map and catches up on a project or global view
 	 * change that happened while the map was still loading.
-	 * @param detail - Map ready event with the OpenLayers map instance
+	 * @param map - The ready OpenLayers map instance
 	 */
 	function handleMapReady({ map }: { map: OlMap }): void {
 		mapState.olMap = map;

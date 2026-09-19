@@ -17,6 +17,8 @@ export interface ProjectionRow {
 
 /**
  * Format a numeric value as EUR currency (de-DE).
+ * @param value - The amount; strings are parsed, and blank or non-finite values show as a dash.
+ * @returns The formatted amount, or an en dash when there is no usable number.
  */
 export function formatCurrency(value: number | string | null | undefined): string {
 	if (value === null || value === undefined || value === '') return '–';
@@ -31,6 +33,8 @@ export function formatCurrency(value: number | string | null | undefined): strin
 
 /**
  * Format a numeric quantity (de-DE) with up to two decimals.
+ * @param value - The quantity; strings are parsed, and blank or non-finite values show as a dash.
+ * @returns The formatted quantity, or an en dash when there is no usable number.
  */
 export function formatQuantity(value: number | string | null | undefined): string {
 	if (value === null || value === undefined || value === '') return '–';
@@ -44,6 +48,11 @@ export function formatQuantity(value: number | string | null | undefined): strin
  *
  * Each year's net value is `total * (1 + annualCorrection) ** offset`, and the
  * increase is the delta from the previous year (null for the base year).
+ * @param total - The base-year net value the projection grows from.
+ * @param baseYear - The year the projection starts in.
+ * @param annualCorrection - Yearly value correction as a fraction (e.g. 0.025 for 2.5 %).
+ * @param years - Number of years to project, including the base year.
+ * @returns One row per projected year, oldest first.
  */
 export function computeProjection(
 	total: number,
