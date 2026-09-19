@@ -1,371 +1,140 @@
-import type { ComponentProps } from 'svelte';
-import { tick } from 'svelte';
-import { render } from '@testing-library/svelte';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import '@testing-library/jest-dom/vitest';
+
+import type { ValuationArea } from '$lib/remote/valuation/valuation-data';
+import { render, screen } from '@testing-library/svelte';
+import userEvent from '@testing-library/user-event';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import Page from './+page.svelte';
 
-type PageData = ComponentProps<typeof Page>['data'];
+const { pageState, remote } = vi.hoisted(() => ({
+	pageState: { params: { projectId: '1' as string | undefined }, data: {} },
+	remote: {
+		getValuationAreas: vi.fn(),
+		getValuationRateCount: vi.fn(),
+		calculateValuation: vi.fn()
+	}
+}));
 
-interface MockStore<T> {
-	subscribe: (callback: (value: T) => void) => () => void;
-	set: (newValue: T) => void;
-	update: (fn: (value: T) => T) => void;
+vi.mock('$lib/remote/valuation/valuation.remote', () => remote);
+
+vi.mock('$app/state', () => ({ page: pageState }));
+
+vi.mock('$app/environment', () => ({ browser: true }));
+
+vi.mock('$lib/stores/store', async () => {
+	const { writable } = await import('svelte/store');
+	return { selectedProject: writable('1'), globalMapView: writable(false) };
+});
+
+vi.mock('./components/ValuationMap.svelte', async () => ({
+	default: (await import('$lib/test-utils/mocks/MockMap.svelte')).default
+}));
+
+vi.mock('$lib/paraglide/messages', () => ({
+	m: new Proxy({}, { get: (_target, prop: string) => () => `${prop}` })
+}));
+
+const { selectedProject, globalMapView } = await import('$lib/stores/store');
+
+const user = userEvent.setup();
+
+const areas: ValuationArea[] = [
+	{ uuid: 'area-1', name: 'Nord', areaType: 'Cluster', geometry: null }
+];
+
+const result = {
+	categories: [{ name: 'Tiefbau', unit: 'per_meter', amount: 100, quantity: 10, totalPrice: 1000 }],
+	total: 1000,
+	costPerHouseConnection: null,
+	costPerMeter: 100
+};
+
+/** Renders the page, picks the area and calculates, so there is state to reset. */
+async function renderCalculatedPage() {
+	render(Page);
+
+	await user.click(await screen.findByRole('checkbox', { name: 'Nord' }));
+	await user.click(await screen.findByRole('button', { name: 'valuation_calculate' }));
+	await screen.findByText('Tiefbau');
 }
 
-const {
-	mockReinitializeForProject,
-	mockReinitializeForGlobalView,
-	mockMapStateCtorCapture,
-	mockStores
-} = vi.hoisted(() => ({
-	mockReinitializeForProject: vi.fn(),
-	mockReinitializeForGlobalView: vi.fn(),
-	mockMapStateCtorCapture: { args: [] as unknown[] },
-	mockStores: {
-		selectedProject: null as MockStore<string | null> | null,
-		globalMapView: null as MockStore<boolean | null> | null
-	}
-}));
-
-vi.mock('$lib/classes/MapState.svelte', () => {
-	class MockMapState {
-		selectedProject: unknown;
-		isGlobalView: boolean;
-		olMap: null;
-		constructor(...args: unknown[]) {
-			mockMapStateCtorCapture.args = args;
-			this.selectedProject = args[0];
-			this.isGlobalView = (args[4] as boolean) ?? false;
-			this.olMap = null;
-		}
-		initializeLayers() {
-			return true;
-		}
-		getLayers() {
-			return [];
-		}
-		getLayerReferences() {
-			return {
-				vectorTileLayer: null,
-				addressLayer: null,
-				nodeLayer: null,
-				areaLayer: null
-			};
-		}
-		get reinitializeForProject() {
-			return mockReinitializeForProject;
-		}
-		get reinitializeForGlobalView() {
-			return mockReinitializeForGlobalView;
-		}
-		updateNodeLayerStyle() {}
-		updateTrenchLayerStyle() {}
-		updateAddressLayerStyle() {}
-		updateAreaLayerStyle() {}
-		updateLabelVisibility() {}
-		refreshTileSources() {}
-		cleanup() {}
-	}
-	return { MapState: MockMapState };
+beforeEach(() => {
+	pageState.params.projectId = '1';
+	selectedProject.set('1');
+	globalMapView.set(false);
+	remote.getValuationAreas.mockResolvedValue(areas);
+	remote.getValuationRateCount.mockResolvedValue(2);
+	remote.calculateValuation.mockResolvedValue(result);
 });
 
-vi.mock('$lib/stores/store', () => {
-	const createStore = <T>(initialValue: T | null = null) => {
-		let value = initialValue;
-		const subscribers = new Set<(value: T | null) => void>();
-		return {
-			subscribe: (callback: (value: T | null) => void) => {
-				subscribers.add(callback);
-				callback(value);
-				return () => subscribers.delete(callback);
-			},
-			set: (newValue: T | null) => {
-				value = newValue;
-				subscribers.forEach((cb) => cb(value));
-			},
-			update: (fn: (value: T | null) => T | null) => {
-				value = fn(value);
-				subscribers.forEach((cb) => cb(value));
-			}
-		};
-	};
-
-	mockStores.selectedProject = createStore<string>('1');
-	mockStores.globalMapView = createStore<boolean>(false);
-
-	return {
-		selectedProject: mockStores.selectedProject,
-		globalMapView: mockStores.globalMapView,
-		trenchColor: createStore('#000000'),
-		trenchColorSelected: createStore('#ff0000'),
-		nodeTypeStyles: createStore({}),
-		addressStyle: createStore({ color: '#000000', size: 8 }),
-		areaTypeStyles: createStore({}),
-		labelVisibilityConfig: createStore({}),
-		trenchConstructionTypeStyles: createStore({}),
-		trenchStyleMode: createStore('default'),
-		trenchSurfaceStyles: createStore({})
-	};
+afterEach(() => {
+	vi.clearAllMocks();
 });
 
-vi.mock('$env/static/public', () => ({
-	PUBLIC_API_URL: 'http://mock-api.test/'
-}));
+describe('Valuation page', () => {
+	test('should start with the whole project selected and no result', async () => {
+		render(Page);
 
-vi.mock('$app/environment', () => ({
-	browser: true
-}));
-
-vi.mock('$app/navigation', () => ({
-	goto: vi.fn()
-}));
-
-vi.mock('$app/state', () => ({
-	page: {
-		data: {
-			srid: 25832,
-			proj4Def: '+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs'
-		},
-		params: { projectId: '1' },
-		url: { pathname: '/valuation/1' }
-	}
-}));
-
-vi.mock('$app/forms', () => ({
-	deserialize: vi.fn()
-}));
-
-vi.mock('$lib/paraglide/messages', () => {
-	const mockMessages = new Proxy(
-		{},
-		{
-			get: (_target: Record<string, unknown>, prop: string) => {
-				return () => String(prop);
-			}
-		}
-	);
-	return { m: mockMessages };
-});
-
-vi.mock('ol/format/GeoJSON.js', () => ({
-	default: class GeoJSON {
-		readFeature() {
-			return { getGeometry: () => ({ getExtent: () => [0, 0, 1, 1] }) };
-		}
-	}
-}));
-
-vi.mock('ol/layer/Vector.js', () => ({
-	default: class VectorLayer {
-		options: Record<string, unknown>;
-		source: unknown;
-		constructor(options?: Record<string, unknown>) {
-			this.options = options ?? {};
-			this.source = options?.source;
-		}
-		getSource() {
-			return { addFeature: vi.fn(), removeFeature: vi.fn(), clear: vi.fn(), dispose: vi.fn() };
-		}
-		changed() {}
-	}
-}));
-
-vi.mock('ol/source/Vector.js', () => ({
-	default: class VectorSource {
-		constructor() {}
-		addFeature() {}
-		removeFeature() {}
-		clear() {}
-	}
-}));
-
-vi.mock('ol/style.js', () => ({
-	Fill: class Fill {
-		opts: Record<string, unknown>;
-		constructor(opts: Record<string, unknown>) {
-			this.opts = opts;
-		}
-	},
-	Stroke: class Stroke {
-		opts: Record<string, unknown>;
-		constructor(opts: Record<string, unknown>) {
-			this.opts = opts;
-		}
-	},
-	Style: class Style {
-		opts: Record<string, unknown>;
-		constructor(opts: Record<string, unknown>) {
-			this.opts = opts;
-		}
-	}
-}));
-
-vi.mock('$lib/components/Map.svelte', () => ({
-	default: vi.fn().mockImplementation(() => ({
-		$$: { render: () => '<div data-testid="mock-map"></div>' }
-	}))
-}));
-
-vi.mock('$lib/components/MapHint.svelte', () => ({
-	default: vi.fn().mockImplementation(() => ({
-		$$: { render: () => '<div></div>' }
-	}))
-}));
-
-vi.mock('$lib/map/projectionUtils.js', () => ({
-	registerStorageProjection: vi.fn(),
-	storageProjection: vi.fn(() => 'EPSG:25832')
-}));
-
-vi.mock('$lib/stores/toaster', () => ({
-	globalToaster: { error: vi.fn(), success: vi.fn() }
-}));
-
-global.fetch = vi.fn(() => Promise.resolve({ ok: false })) as unknown as typeof fetch;
-
-const defaultData = {
-	projectId: '1',
-	areas: [],
-	rates: [],
-	nodeTypes: [],
-	surfaces: [],
-	constructionTypes: [],
-	areaTypes: []
-} as unknown as PageData;
-
-describe('Valuation Page - Map project refresh', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-		mockStores.selectedProject!.set('1');
-		mockStores.globalMapView!.set(false);
+		expect(screen.getByRole('checkbox', { name: 'valuation_area_gesamt' })).toBeChecked();
+		expect(await screen.findByRole('checkbox', { name: 'Nord' })).not.toBeChecked();
+		expect(screen.queryByText('valuation_total')).not.toBeInTheDocument();
 	});
 
-	it('should render the valuation page', () => {
-		const { container } = render(Page, { data: defaultData });
-		expect(container).toBeTruthy();
+	test('should adopt the project of a deep link before anything is loaded', async () => {
+		pageState.params.projectId = '5';
+
+		render(Page);
+
+		await screen.findByRole('checkbox', { name: 'Nord' });
+		const { get } = await import('svelte/store');
+		expect(get(selectedProject)).toBe('5');
+		expect(remote.getValuationAreas).toHaveBeenCalledWith({ projectId: '5' });
+		expect(remote.getValuationRateCount).toHaveBeenCalledWith({ projectId: '5' });
 	});
 
-	it('should call reinitializeForProject when selectedProject store changes', async () => {
-		render(Page, { data: defaultData });
-		await tick();
+	test('should calculate the selected areas and list the priced cost rates', async () => {
+		await renderCalculatedPage();
 
-		mockReinitializeForProject.mockClear();
-		mockStores.selectedProject!.set('2');
-		await tick();
-
-		expect(mockReinitializeForProject).toHaveBeenCalledWith('2');
-	});
-});
-
-describe('Valuation Page - Area selection', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-		mockStores.selectedProject!.set('1');
-		mockStores.globalMapView!.set(false);
-	});
-
-	it('should toggle area checkbox when clicked', async () => {
-		const testAreas = [
-			{ uuid: 'area-1', name: 'Test Area 1', areaType: 'Type A', geom: null },
-			{ uuid: 'area-2', name: 'Test Area 2', areaType: 'Type A', geom: null }
-		];
-
-		const { container } = render(Page, {
-			data: { ...defaultData, areas: testAreas } as unknown as PageData
+		expect(remote.calculateValuation).toHaveBeenCalledWith({
+			projectId: '1',
+			areaUuids: ['area-1']
 		});
-		await tick();
-
-		const checkboxes = container.querySelectorAll(
-			'input[type="checkbox"]'
-		) as NodeListOf<HTMLInputElement>;
-		const gesamtCheckbox = checkboxes[0];
-		const area1Checkbox = checkboxes[1];
-
-		expect(gesamtCheckbox.checked).toBe(true);
-		expect(area1Checkbox.checked).toBe(false);
-
-		area1Checkbox.click();
-		await tick();
-
-		expect(area1Checkbox.checked).toBe(true);
-		expect(gesamtCheckbox.checked).toBe(false);
-	});
-});
-
-describe('Valuation Page - Global map view', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-		mockStores.selectedProject!.set('1');
-		mockStores.globalMapView!.set(false);
+		expect(screen.getByRole('checkbox', { name: 'valuation_area_gesamt' })).not.toBeChecked();
+		expect(screen.getByText('valuation_total')).toBeInTheDocument();
 	});
 
-	it('should call reinitializeForGlobalView when globalMapView store changes', async () => {
-		render(Page, { data: defaultData });
-		await tick();
+	test('should project the result over the years following the base year', async () => {
+		await renderCalculatedPage();
 
-		mockReinitializeForGlobalView.mockClear();
-		mockStores.globalMapView!.set(true);
-		await tick();
+		const baseYear = screen.getByLabelText('valuation_base_year');
+		await user.clear(baseYear);
+		await user.type(baseYear, '2030');
 
-		expect(mockReinitializeForGlobalView).toHaveBeenCalledWith(true);
+		expect(await screen.findByRole('cell', { name: '2030' })).toBeInTheDocument();
+		expect(screen.getByRole('cell', { name: '2051' })).toBeInTheDocument();
+		expect(remote.calculateValuation).toHaveBeenCalledTimes(1);
 	});
 
-	it('should pass globalMapView initial value to MapState constructor', async () => {
-		mockStores.globalMapView!.set(true);
-		await tick();
+	test('should drop the selection and the result when the project changes', async () => {
+		await renderCalculatedPage();
 
-		render(Page, { data: defaultData });
-		await tick();
+		pageState.params.projectId = '2';
+		selectedProject.set('2');
 
-		expect(mockMapStateCtorCapture.args[4]).toBe(true);
+		await vi.waitFor(() => expect(screen.queryByText('Tiefbau')).not.toBeInTheDocument());
+		expect(screen.getByRole('checkbox', { name: 'valuation_area_gesamt' })).toBeChecked();
 	});
 
-	it('should fetch global areas and rates when globalMapView is activated', async () => {
-		const globalAreaResponse = {
-			results: {
-				features: [
-					{
-						id: 'global-area-1',
-						properties: { name: 'Global Area', area_type: { area_type: 'Type B' } },
-						geometry: null
-					}
-				]
-			}
-		};
-		const globalRatesResponse = { results: [{ name: 'Rate 1', amount: 100 }] };
+	test('should drop the selection and the result when the global view is toggled', async () => {
+		await renderCalculatedPage();
 
-		vi.mocked(fetch).mockImplementation((url: string | URL | Request) => {
-			const urlStr = String(url);
-			if (urlStr.includes('area/')) {
-				return Promise.resolve({
-					ok: true,
-					json: () => Promise.resolve(globalAreaResponse)
-				}) as Promise<Response>;
-			}
-			if (urlStr.includes('valuation-rates')) {
-				return Promise.resolve({
-					ok: true,
-					json: () => Promise.resolve(globalRatesResponse)
-				}) as Promise<Response>;
-			}
-			return Promise.resolve({ ok: false }) as Promise<Response>;
-		});
+		globalMapView.set(true);
 
-		const { container } = render(Page, { data: defaultData });
-		await tick();
-
-		mockStores.globalMapView!.set(true);
-		await tick();
-		await tick();
-
-		expect(fetch).toHaveBeenCalledWith(
-			expect.stringContaining('area/?page_size=100'),
-			expect.objectContaining({ credentials: 'include' })
-		);
-		expect(fetch).toHaveBeenCalledWith(
-			expect.stringContaining('valuation-rates/'),
-			expect.objectContaining({ credentials: 'include' })
+		await vi.waitFor(() => expect(screen.queryByText('Tiefbau')).not.toBeInTheDocument());
+		expect(screen.getByRole('checkbox', { name: 'valuation_area_gesamt' })).toBeChecked();
+		await vi.waitFor(() =>
+			expect(remote.getValuationAreas).toHaveBeenLastCalledWith({ projectId: '' })
 		);
 	});
 });
