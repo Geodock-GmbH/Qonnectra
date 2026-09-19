@@ -95,7 +95,6 @@
 	const signalAnalysis = $derived(result?.signal_analysis);
 	const affectedSummary = $derived(result?.affected_summary);
 	const traceTree = $derived(result?.trace_tree);
-	const statistics = $derived(result?.statistics);
 	const availableSources = $derived(signalAnalysis?.available_sources || []);
 	const sourceOptions = $derived(
 		availableSources.map(

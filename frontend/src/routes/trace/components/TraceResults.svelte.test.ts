@@ -66,13 +66,10 @@ describe('TraceResults', () => {
 		expect(container.textContent).toBe('');
 	});
 
-	test('should render the statistics cards', () => {
+	test('should not render the statistics cards', () => {
 		render(TraceResults, { result: baseResult, entryType: 'node', entryId: 'node-1' });
 
-		expect(screen.getByText('trace_statistics')).toBeInTheDocument();
-		expect(screen.getByText('12')).toBeInTheDocument();
-		expect(screen.getByText('5')).toBeInTheDocument();
-		expect(screen.getByText('8')).toBeInTheDocument();
+		expect(screen.queryByText('trace_statistics')).not.toBeInTheDocument();
 	});
 
 	test('should show the entry point with its type label and name', () => {
