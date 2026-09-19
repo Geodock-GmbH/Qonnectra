@@ -83,8 +83,8 @@ describe('TraceOutcome', () => {
 
 		renderOutcome({ entryType: 'cable', entryId: 'cable-1', options: traceOptions });
 
-		expect(await screen.findByText('trace_statistics')).toBeInTheDocument();
-		expect(screen.getByText('42')).toBeInTheDocument();
+		expect(await screen.findByText('trace_entry_point')).toBeInTheDocument();
+		expect(screen.getByRole('button', { name: 'K-Nord' })).toBeInTheDocument();
 		expect(getFiberTrace).toHaveBeenCalledWith({
 			entryType: 'cable',
 			entryId: 'cable-1',
