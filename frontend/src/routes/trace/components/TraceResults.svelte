@@ -9,7 +9,7 @@
 		ResidentialUnitInfo,
 		SpliceInfo,
 		TraceResult
-	} from '../traceUtils';
+	} from '$lib/types/trace';
 	import { cubicOut } from 'svelte/easing';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { fly, slide } from 'svelte/transition';
@@ -25,8 +25,9 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { downloadGeoJSON, hasGeometries, traceFrom } from '$lib/utils/traceUtils';
+
 	import FiberPathsTable from './FiberPathsTable.svelte';
-	import { downloadGeoJSON, hasGeometries, traceFrom } from '../traceUtils';
 
 	interface Props {
 		/** The trace result data */

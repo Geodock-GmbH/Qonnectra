@@ -2,9 +2,9 @@ import { error } from '@sveltejs/kit';
 
 /**
  * Builds a user-facing message from a Django REST Framework error body.
- * A `detail` string wins; otherwise field errors are joined as
- * `field: message; other: message`, falling back to `fallback` when the
- * body carries nothing usable.
+ * A `detail` string wins, then the `error` string plain API views report
+ * under; otherwise field errors are joined as `field: message; other: message`,
+ * falling back to `fallback` when the body carries nothing usable.
  * @param errorData - Parsed JSON error body (may be anything).
  * @param fallback - Message when the body has no detail or field errors.
  * @returns A user-facing error message.
@@ -13,6 +13,7 @@ export function backendErrorMessage(errorData: unknown, fallback: string): strin
 	if (!errorData || typeof errorData !== 'object') return fallback;
 	const data = errorData as Record<string, unknown>;
 	if (typeof data.detail === 'string' && data.detail) return data.detail;
+	if (typeof data.error === 'string' && data.error) return data.error;
 	const fieldErrors = Object.entries(data)
 		.map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : String(value)}`)
 		.join('; ');

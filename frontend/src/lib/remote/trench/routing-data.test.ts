@@ -5,8 +5,7 @@ import {
 	fetchTrenchFeature,
 	mapRouteResult,
 	pickTrenchFeature,
-	requestRoute,
-	routingErrorMessage
+	requestRoute
 } from './routing-data';
 
 vi.mock('$env/static/private', () => ({ API_URL: 'http://api.test/' }));
@@ -57,21 +56,6 @@ describe('buildRoutingBody', () => {
 			project_id: [7],
 			tolerance: [2.5]
 		});
-	});
-});
-
-describe('routingErrorMessage', () => {
-	test('prefers the routing view’s `error` key', () => {
-		expect(routingErrorMessage({ error: 'No path found' }, 'fallback')).toBe('No path found');
-	});
-
-	test('falls back to a DRF detail', () => {
-		expect(routingErrorMessage({ detail: 'Forbidden' }, 'fallback')).toBe('Forbidden');
-	});
-
-	test('uses the fallback for an unusable body', () => {
-		expect(routingErrorMessage({}, 'fallback')).toBe('fallback');
-		expect(routingErrorMessage(null, 'fallback')).toBe('fallback');
 	});
 });
 

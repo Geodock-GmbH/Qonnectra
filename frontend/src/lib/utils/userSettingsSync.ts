@@ -1,6 +1,6 @@
 import { browser } from '$app/environment';
-import { invalidateAll } from '$app/navigation';
-import { PUBLIC_API_URL } from '$env/static/public';
+
+import { getSavedSettings, saveSettings } from '$lib/remote/settings/user-settings.remote';
 
 /**
  * localStorage keys that make up a user's portable settings snapshot.
@@ -87,15 +87,6 @@ export function applySettingsSnapshot(storage: Storage, snapshot: SettingsSnapsh
 	return applied;
 }
 
-/** Performs a fetch against the user-settings endpoint, retrying once after a 401. */
-async function fetchWithAuthRetry(input: string, init: RequestInit): Promise<Response> {
-	const response = await fetch(input, { ...init, credentials: 'include' });
-	if (response.status !== 401) return response;
-
-	await invalidateAll();
-	return fetch(input, { ...init, credentials: 'include' });
-}
-
 /**
  * Saves the current local settings snapshot to the server, overwriting any
  * previously saved settings for the user.
@@ -105,16 +96,7 @@ async function fetchWithAuthRetry(input: string, init: RequestInit): Promise<Res
 export async function saveUserSettings(): Promise<void> {
 	if (!browser) throw new Error('saveUserSettings must run in the browser');
 
-	const snapshot = snapshotLocalSettings(localStorage);
-	const response = await fetchWithAuthRetry(`${PUBLIC_API_URL}user-settings/`, {
-		method: 'PUT',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ settings: snapshot })
-	});
-
-	if (!response.ok) {
-		throw new Error(`Failed to save settings: ${response.statusText}`);
-	}
+	await saveSettings(snapshotLocalSettings(localStorage));
 }
 
 /**
@@ -126,11 +108,5 @@ export async function saveUserSettings(): Promise<void> {
 export async function loadUserSettings(): Promise<number> {
 	if (!browser) throw new Error('loadUserSettings must run in the browser');
 
-	const response = await fetchWithAuthRetry(`${PUBLIC_API_URL}user-settings/`, { method: 'GET' });
-	if (!response.ok) {
-		throw new Error(`Failed to load settings: ${response.statusText}`);
-	}
-
-	const data = (await response.json()) as { settings?: SettingsSnapshot };
-	return applySettingsSnapshot(localStorage, data.settings ?? {});
+	return applySettingsSnapshot(localStorage, await getSavedSettings());
 }
