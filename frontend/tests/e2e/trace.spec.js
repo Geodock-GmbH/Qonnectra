@@ -33,15 +33,21 @@ test.describe('Fiber trace search page', () => {
 	test('typing a query issues a trace-search request to the backend', async ({ page }) => {
 		const search = page.getByPlaceholder(/street, city|straße, stadt/i).first();
 
+		// Typing must call the real searchTraceEntries remote query; if the search
+		// wiring breaks, no request fires and this fails.
 		const requestPromise = page.waitForRequest(
-			(req) => req.url().includes('trace-search') && req.url().includes('type=address'),
+			(req) => req.url().includes('/_app/remote/') && req.url().includes('searchTraceEntries'),
 			{ timeout: 15000 }
 		);
 		await search.fill('Süder');
 		const request = await requestPromise;
 
-		// The query and active type are both encoded in the search URL.
-		expect(request.url()).toContain('search=S');
+		// Queries travel as GET requests; the payload is the base64url-encoded argument.
+		expect(request.method()).toBe('GET');
+		const payload = new URL(request.url()).searchParams.get('payload') ?? '';
+		const argument = Buffer.from(payload, 'base64url').toString('utf8');
+		expect(argument).toContain('Süder');
+		expect(argument).toContain('address');
 	});
 
 	test('a matching search shows selectable result rows', async ({ page }) => {

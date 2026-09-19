@@ -1,4 +1,4 @@
-import type { FiberColor } from '$lib/server/nodeData';
+import type { FiberColor } from '$lib/types/nodeData';
 import { describe, expect, test } from 'vitest';
 
 import { fiberColorHex, fiberColorName } from './fiberColors';

@@ -6,7 +6,7 @@
 		FiberWaypoint,
 		ResidentialUnitInfo,
 		SpliceInfo
-	} from '../traceUtils';
+	} from '$lib/types/trace';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { slide } from 'svelte/transition';
 	import {
@@ -20,7 +20,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { traceFrom } from '../traceUtils';
+	import { traceFrom } from '$lib/utils/traceUtils';
 
 	interface Props {
 		/** Array of fiber path tree objects */

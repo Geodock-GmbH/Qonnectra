@@ -322,6 +322,17 @@ vi.mock('$lib/remote/valuation/valuation.remote', () => ({
 		costPerMeter: null
 	})
 }));
+vi.mock('$lib/remote/settings/user-settings.remote', () => ({
+	getSavedSettings: vi.fn().mockResolvedValue({}),
+	saveSettings: vi.fn(() => commandStub(undefined))
+}));
+vi.mock('$lib/remote/trace/trace.remote', () => ({
+	getFiberTrace: vi.fn().mockResolvedValue({}),
+	getSignalAnalysis: vi.fn().mockResolvedValue({})
+}));
+vi.mock('$lib/remote/trace/trace-search.remote', () => ({
+	searchTraceEntries: vi.fn().mockResolvedValue([])
+}));
 vi.mock('$lib/remote/post-compaction/address-search.remote', () => ({
 	searchAddresses: vi.fn().mockResolvedValue([])
 }));
@@ -334,6 +345,21 @@ vi.mock('$lib/remote/address/residential-units.remote', () => ({
 	deleteResidentialUnit: vi.fn().mockResolvedValue(undefined),
 	regenerateResidentialUnitId: vi.fn().mockResolvedValue({})
 }));
+
+// jsdom does not implement the Web Animations API used by svelte transitions
+Element.prototype.animate = function () {
+	const animation = {
+		onfinish: null,
+		oncancel: null,
+		cancel() {},
+		finish() {},
+		pause() {},
+		play() {},
+		finished: Promise.resolve()
+	};
+	queueMicrotask(() => animation.onfinish?.());
+	return animation;
+};
 
 // jsdom does not provide ResizeObserver (required by @zag-js/tabs / Skeleton Tabs)
 global.ResizeObserver = class ResizeObserver {

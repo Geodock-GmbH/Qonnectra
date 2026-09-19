@@ -1,4 +1,4 @@
-import type { AreaType, ConstructionType, NodeType, Surface } from '$lib/server/attributes';
+import type { AreaType, ConstructionType, NodeType, Surface } from '$lib/types/mapLayers';
 
 /** Layers whose extent the backend can compute. */
 export const EXTENT_LAYER_TYPES = ['trench', 'address', 'node', 'area'] as const;

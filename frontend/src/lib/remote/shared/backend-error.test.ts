@@ -9,6 +9,12 @@ describe('backendErrorMessage', () => {
 		);
 	});
 
+	test('should read the `error` string plain API views report under', () => {
+		expect(backendErrorMessage({ error: 'Invalid UUID format' }, 'fallback')).toBe(
+			'Invalid UUID format'
+		);
+	});
+
 	test('should join DRF field errors', () => {
 		expect(
 			backendErrorMessage({ street: ['This field is required.'], zip_code: 'invalid' }, 'fallback')

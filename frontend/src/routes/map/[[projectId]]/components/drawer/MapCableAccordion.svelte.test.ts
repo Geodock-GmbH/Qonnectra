@@ -4,11 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalToaster } from '$lib/stores/toaster';
+import { traceFrom } from '$lib/utils/traceUtils';
 import { httpError } from '$lib/test-utils/remote-stubs';
 
 import MapCableAccordion from './MapCableAccordion.svelte';
 import MapManagersFixture from './MapManagers.fixture.svelte';
-import { traceFrom } from '../../../../trace/traceUtils';
 
 const getCablesInTrench = vi.fn();
 const getLinkedTrenchesForCable = vi.fn();
@@ -27,7 +27,7 @@ vi.mock('$lib/remote/network-schema/fibers.remote', () => ({
 	getFiberColors: vi.fn().mockResolvedValue([])
 }));
 
-vi.mock('../../../../trace/traceUtils', () => ({ traceFrom: vi.fn() }));
+vi.mock('$lib/utils/traceUtils', () => ({ traceFrom: vi.fn() }));
 
 vi.mock('$lib/paraglide/messages', () => ({
 	m: new Proxy(

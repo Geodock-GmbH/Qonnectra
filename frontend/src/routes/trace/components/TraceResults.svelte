@@ -9,7 +9,7 @@
 		ResidentialUnitInfo,
 		SpliceInfo,
 		TraceResult
-	} from '../traceUtils';
+	} from '$lib/types/trace';
 	import { cubicOut } from 'svelte/easing';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { fly, slide } from 'svelte/transition';
@@ -25,8 +25,9 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { downloadGeoJSON, hasGeometries, traceFrom } from '$lib/utils/traceUtils';
+
 	import FiberPathsTable from './FiberPathsTable.svelte';
-	import { downloadGeoJSON, hasGeometries, traceFrom } from '../traceUtils';
 
 	interface Props {
 		/** The trace result data */
@@ -112,34 +113,6 @@
 
 {#if result}
 	<div class="min-w-0 space-y-8" transition:fly={{ y: 30, duration: 400, easing: cubicOut }}>
-		<section class="@container min-w-0">
-			<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
-				{m.trace_statistics()}
-			</h2>
-			<div class="grid grid-cols-1 gap-3 @min-[30rem]:grid-cols-2 @min-[48rem]:grid-cols-4">
-				{@render statCard(m.form_fibers(), result.statistics?.total_fibers, 'text-primary-500')}
-				{@render statCard(m.nav_node(), result.statistics?.total_nodes, 'text-success-500')}
-				{@render statCard(m.trace_splice(), result.statistics?.total_splices, 'text-secondary-500')}
-				{@render statCard(
-					m.form_cables(),
-					result.statistics?.total_cables ?? 0,
-					'text-warning-500'
-				)}
-				{@render statCard(
-					m.form_selected_trenches(),
-					result.statistics?.total_trenches ?? 0,
-					'text-tertiary-500'
-				)}
-				{@render statCard(m.form_addresses(), result.statistics?.total_addresses, 'text-error-500')}
-				{@render statCard(
-					m.form_residential_units(),
-					result.statistics?.total_residential_units,
-					'text-primary-400'
-				)}
-				{@render statBadge(m.trace_branches(), result.statistics?.has_branches)}
-			</div>
-		</section>
-
 		{#if includeGeometry && hasGeometries(result)}
 			<div class="flex justify-center">
 				<button
@@ -205,32 +178,6 @@
 		</section>
 	</div>
 {/if}
-
-{#snippet statCard(label: string, value: string | number | null | undefined, colorClass: string)}
-	<div
-		class="flex min-w-0 flex-col items-center rounded-lg border border-surface-200-800 bg-surface-50-950 p-4"
-	>
-		<span class="font-mono text-2xl font-bold {colorClass}">{value}</span>
-		<span class="mt-1 text-xs font-medium uppercase tracking-wide text-surface-600-400"
-			>{label}</span
-		>
-	</div>
-{/snippet}
-
-{#snippet statBadge(label: string, value: boolean | undefined)}
-	<div
-		class="flex min-w-0 flex-col items-center rounded-lg border border-surface-200-800 bg-surface-50-950 p-4"
-	>
-		<span
-			class="font-mono text-2xl font-bold {value ? 'text-success-500' : 'text-surface-600-400'}"
-		>
-			{value ? m.common_yes() : m.common_no()}
-		</span>
-		<span class="mt-1 text-xs font-medium uppercase tracking-wide text-surface-600-400"
-			>{label}</span
-		>
-	</div>
-{/snippet}
 
 {#snippet infrastructureCard(cableId: string, infra: CableInfrastructure)}
 	<details class="group rounded-lg border border-surface-200-800">

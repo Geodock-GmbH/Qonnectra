@@ -10,12 +10,12 @@
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
+	import { traceFrom } from '$lib/utils/traceUtils';
 	import { trenchCableTitle } from '$lib/remote/map/trench-data';
 	import { getCablesInTrench } from '$lib/remote/map/trenches.remote';
 	import { getLinkedTrenchesForCable } from '$lib/remote/network-schema/micropipes.remote';
 
 	import MapCableFibers from './MapCableFibers.svelte';
-	import { traceFrom } from '../../../../trace/traceUtils';
 
 	interface Props {
 		/** UUID of the trench feature */

@@ -8,7 +8,7 @@
 		ResidentialUnitInfo,
 		SignalAnalysisResult,
 		SpliceInfo
-	} from '../traceUtils';
+	} from '$lib/types/trace';
 	import { cubicOut } from 'svelte/easing';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { fly, slide } from 'svelte/transition';
@@ -28,8 +28,11 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
-
-	import { downloadGeoJSON as downloadGeoJSONFile, hasGeometries, traceFrom } from '../traceUtils';
+	import {
+		downloadGeoJSON as downloadGeoJSONFile,
+		hasGeometries,
+		traceFrom
+	} from '$lib/utils/traceUtils';
 
 	interface Props {
 		/** The signal analysis result data */
@@ -92,7 +95,6 @@
 	const signalAnalysis = $derived(result?.signal_analysis);
 	const affectedSummary = $derived(result?.affected_summary);
 	const traceTree = $derived(result?.trace_tree);
-	const statistics = $derived(result?.statistics);
 	const availableSources = $derived(signalAnalysis?.available_sources || []);
 	const sourceOptions = $derived(
 		availableSources.map(

@@ -1,11 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
-import {
-	backendErrorMessage,
-	errorStatus,
-	failFromResponse
-} from '$lib/remote/shared/backend-error';
+import { failFromResponse } from '$lib/remote/shared/backend-error';
 import { property } from '$lib/remote/shared/json';
 
 /** What a route is calculated from. */
@@ -56,19 +52,6 @@ export function buildRoutingBody(input: RouteInput): Record<string, unknown> {
 }
 
 /**
- * Builds a user-facing message from a routing error body. The routing view
- * reports failures under `error` instead of DRF's `detail`.
- * @param errorData - Parsed JSON error body (may be anything).
- * @param fallback - Message when the body names no reason.
- * @returns A user-facing error message.
- */
-export function routingErrorMessage(errorData: unknown, fallback: string): string {
-	const reason = property(errorData, 'error');
-	if (typeof reason === 'string' && reason) return reason;
-	return backendErrorMessage(errorData, fallback);
-}
-
-/**
  * Maps the routing view's result to the route the page draws.
  * @param data - Body of a successful `routing/` response.
  * @returns The route, or `null` when it carries no geometry or no trenches.
@@ -107,10 +90,7 @@ export async function requestRoute(
 		headers,
 		body: JSON.stringify(buildRoutingBody(input))
 	});
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		error(errorStatus(response), routingErrorMessage(errorData, 'Routing failed'));
-	}
+	if (!response.ok) await failFromResponse(response, 'Routing failed');
 
 	const route = mapRouteResult(await response.json());
 	if (!route) error(404, 'No route found');

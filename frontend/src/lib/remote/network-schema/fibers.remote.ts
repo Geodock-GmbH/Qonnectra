@@ -1,5 +1,5 @@
 import type { Cable, Fiber, NodeAddress } from '$lib/classes/CableFiberDataManager.svelte';
-import type { ComponentPlacement, FiberColor } from '$lib/server/nodeData';
+import type { ComponentPlacement, FiberColor } from '$lib/types/nodeData';
 import { command, query } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';

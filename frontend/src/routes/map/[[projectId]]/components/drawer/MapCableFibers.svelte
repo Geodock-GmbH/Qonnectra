@@ -3,9 +3,8 @@
 
 	import FibersDisplayTable from '$lib/components/FibersDisplayTable.svelte';
 	import { fiberColorHex, fiberColorName } from '$lib/utils/fiberColors';
+	import { traceFrom } from '$lib/utils/traceUtils';
 	import { getFiberColors, getFibersForCable } from '$lib/remote/network-schema/fibers.remote';
-
-	import { traceFrom } from '../../../../trace/traceUtils';
 
 	let { cableUuid }: { cableUuid: string } = $props();
 

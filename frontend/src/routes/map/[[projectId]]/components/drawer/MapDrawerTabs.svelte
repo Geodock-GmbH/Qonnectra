@@ -20,11 +20,11 @@
 	import NodeStructurePanel from '$lib/components/node-structure/NodeStructurePanel.svelte';
 	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
+	import { traceFrom } from '$lib/utils/traceUtils';
 
 	import TrenchProfilePanel from '../trench-profile/TrenchProfilePanel.svelte';
 	import MapCableAccordion from './MapCableAccordion.svelte';
 	import MapConduitAccordion from './MapConduitAccordion.svelte';
-	import { traceFrom } from '../../../../trace/traceUtils';
 
 	interface Props {
 		/** Feature properties from MVT */

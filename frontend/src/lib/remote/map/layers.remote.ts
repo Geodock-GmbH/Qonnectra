@@ -1,5 +1,5 @@
 import type { LayerExtent, LayerStyleAttributes } from './layer-data';
-import type { AreaType, ConstructionType, NodeType, Surface } from '$lib/server/attributes';
+import type { AreaType, ConstructionType, NodeType, Surface } from '$lib/types/mapLayers';
 import { query } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';

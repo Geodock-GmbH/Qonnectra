@@ -20,7 +20,7 @@
 		EndpointNode,
 		FiberPathNode,
 		TraceResult
-	} from '../traceUtils';
+	} from '$lib/types/trace';
 
 	import { basemapTheme, tileServerAvailable } from '$lib/stores/store';
 
@@ -49,6 +49,8 @@
 	let Stroke: typeof import('ol/style/Stroke').default;
 	let Fill: typeof import('ol/style/Fill').default;
 	let CircleStyle: typeof import('ol/style/Circle').default;
+	let geoJSONFormat: import('ol/format/GeoJSON').default;
+	let extendExtent: typeof import('ol/extent').extend;
 
 	/**
 	 * Check if the tile server is available.
@@ -148,7 +150,9 @@
 			StyleModule,
 			StrokeModule,
 			FillModule,
-			CircleModule
+			CircleModule,
+			{ default: GeoJSON },
+			{ extend }
 		] = await Promise.all([
 			import('ol/Map'),
 			import('ol/View'),
@@ -157,13 +161,17 @@
 			import('ol/style/Style'),
 			import('ol/style/Stroke'),
 			import('ol/style/Fill'),
-			import('ol/style/Circle')
+			import('ol/style/Circle'),
+			import('ol/format/GeoJSON'),
+			import('ol/extent')
 		]);
 
 		Style = StyleModule.default;
 		Stroke = StrokeModule.default;
 		Fill = FillModule.default;
 		CircleStyle = CircleModule.default;
+		geoJSONFormat = new GeoJSON();
+		extendExtent = extend;
 
 		registerStorageProjection(page.data.srid, page.data.proj4Def);
 
@@ -182,7 +190,7 @@
 		});
 		markerLayer.set('isTraceLayer', true);
 
-		map = new OlMap({
+		const olMap = new OlMap({
 			target: mapTarget,
 			layers: [vectorLayer, markerLayer],
 			view: new OlView({
@@ -192,16 +200,6 @@
 			})
 		});
 
-		// Setup basemap
-		const tileServerIsAvailable = await checkTileServerHealth();
-		if (tileServerIsAvailable) {
-			const theme = $basemapTheme || 'light';
-			await applyVectorTileStyle(map, theme);
-		} else {
-			await setupFallbackOSM(map);
-		}
-
-		const olMap = map;
 		olMap.on('click', (evt) => {
 			const feature = olMap.forEachFeatureAtPixel(evt.pixel, (f) => f);
 			if (feature) {
@@ -217,7 +215,13 @@
 			olMap.getTargetElement().style.cursor = hit ? 'pointer' : '';
 		});
 
-		if (traceResult) loadFeatures(traceResult);
+		map = olMap;
+
+		if (await checkTileServerHealth()) {
+			await applyVectorTileStyle(olMap, $basemapTheme || 'light');
+		} else {
+			await setupFallbackOSM(olMap);
+		}
 	});
 
 	onDestroy(() => {
@@ -227,33 +231,35 @@
 		}
 	});
 
-	$effect(() => {
-		if (!map || !selectedFeatureId) return;
+	/**
+	 * Attachment that draws the trace once the map exists and redraws it when
+	 * another trace arrives, e.g. after switching to the signal analysis.
+	 */
+	function drawTrace(): void {
+		if (map && traceResult) loadFeatures(map, traceResult);
+	}
 
-		let targetFeature: import('ol').Feature | null = null;
-		vectorSource?.forEachFeature((f) => {
-			if (f.get('featureId') === selectedFeatureId) targetFeature = f;
-		});
-		if (!targetFeature) {
-			markerSource?.forEachFeature((f) => {
-				if (f.get('featureId') === selectedFeatureId) targetFeature = f;
-			});
-		}
-
-		if (targetFeature) {
-			const geometry = (targetFeature as import('ol').Feature).getGeometry();
-			const extent = geometry?.getExtent();
-			if (!extent) return;
-			map.getView().fit(extent, {
-				padding: [100, 100, 100, 100],
-				maxZoom: 17,
-				duration: 500
-			});
-		}
+	/**
+	 * Attachment that restyles the features for the current selection and zooms
+	 * to the selected one.
+	 */
+	function focusSelection(): void {
+		const featureId = selectedFeatureId;
+		if (!map) return;
 
 		vectorSource?.changed();
 		markerSource?.changed();
-	});
+		if (!featureId) return;
+
+		const isSelected = (feature: import('ol/Feature').default) =>
+			feature.get('featureId') === featureId;
+		const target =
+			vectorSource?.getFeatures().find(isSelected) ?? markerSource?.getFeatures().find(isSelected);
+		const extent = target?.getGeometry()?.getExtent();
+		if (!extent) return;
+
+		map.getView().fit(extent, { padding: [100, 100, 100, 100], maxZoom: 17, duration: 500 });
+	}
 
 	/**
 	 * Style function for cable/trench line features, with selection and signal state styling.
@@ -336,19 +342,27 @@
 	}
 
 	/**
-	 * Parse trace result data into OpenLayers features and add them to the map sources.
+	 * Reads one GeoJSON feature from the storage projection into the map's.
+	 * @param geojson - A GeoJSON feature object.
+	 * @returns The feature in the map projection.
+	 */
+	function readOne(geojson: object): import('ol/Feature').default {
+		return geoJSONFormat.readFeature(geojson, {
+			dataProjection: SOURCE_PROJECTION,
+			featureProjection: TARGET_PROJECTION
+		}) as import('ol/Feature').default;
+	}
+
+	/**
+	 * Replace the map's features with those of a trace result and zoom to them.
+	 * @param olMap - The OpenLayers map instance
 	 * @param result - The trace result containing cable_infrastructure, trace_tree, and entry_point
 	 */
-	async function loadFeatures(result: TraceResult): Promise<void> {
-		if (!result || !vectorSource || !markerSource || !map) return;
-		const olMap = map;
+	function loadFeatures(olMap: import('ol/Map').default, result: TraceResult): void {
+		if (!vectorSource || !markerSource) return;
+		vectorSource.clear();
+		markerSource.clear();
 
-		const { default: GeoJSON } = await import('ol/format/GeoJSON');
-
-		const format = new GeoJSON();
-		const readOne = (
-			...args: Parameters<typeof format.readFeature>
-		): import('ol/Feature').default => format.readFeature(...args) as import('ol/Feature').default;
 		const allFeatures: import('ol/Feature').default[] = [];
 
 		const cableInfra: Record<string, CableInfrastructure> = result.cable_infrastructure || {};
@@ -359,10 +373,7 @@
 					properties: { featureId: `cable:${cableId}`, cableId, featureType: 'cable' },
 					geometry: infra.merged_geometry
 				};
-				const feature = readOne(geojson, {
-					dataProjection: SOURCE_PROJECTION,
-					featureProjection: TARGET_PROJECTION
-				});
+				const feature = readOne(geojson);
 				allFeatures.push(feature);
 			} else if (infra.trenches) {
 				for (const trench of infra.trenches) {
@@ -376,10 +387,7 @@
 							},
 							geometry: trench.geometry
 						};
-						const feature = readOne(geojson, {
-							dataProjection: SOURCE_PROJECTION,
-							featureProjection: TARGET_PROJECTION
-						});
+						const feature = readOne(geojson);
 						allFeatures.push(feature);
 					}
 				}
@@ -390,29 +398,23 @@
 
 		const markers: import('ol/Feature').default[] = [];
 		const seenIds = new Set<string>();
-		await extractMarkersFromTree(result.trace_tree, markers, seenIds);
+		extractMarkersFromTree(result.trace_tree, markers, seenIds);
 		if (result.trace_trees) {
 			for (const tree of result.trace_trees) {
-				await extractMarkersFromTree(tree, markers, seenIds);
+				extractMarkersFromTree(tree, markers, seenIds);
 			}
 		}
 
 		if (result.entry_point?.geometry) {
-			const entryFeature = readOne(
-				{
-					type: 'Feature',
-					properties: {
-						featureId: `${result.entry_point.type}:${result.entry_point.id}`,
-						featureType: 'entry_point',
-						name: result.entry_point.name
-					},
-					geometry: result.entry_point.geometry
+			const entryFeature = readOne({
+				type: 'Feature',
+				properties: {
+					featureId: `${result.entry_point.type}:${result.entry_point.id}`,
+					featureType: 'entry_point',
+					name: result.entry_point.name
 				},
-				{
-					dataProjection: SOURCE_PROJECTION,
-					featureProjection: TARGET_PROJECTION
-				}
-			);
+				geometry: result.entry_point.geometry
+			});
 			markers.push(entryFeature);
 		}
 
@@ -421,8 +423,7 @@
 		const allExtent = vectorSource.getExtent();
 		const markerExtent = markerSource.getExtent();
 		if (allExtent && allExtent[0] !== Infinity) {
-			const { extend } = await import('ol/extent');
-			const combinedExtent = extend(allExtent, markerExtent);
+			const combinedExtent = extendExtent(allExtent, markerExtent);
 			olMap.getView().fit(combinedExtent, { padding: [50, 50, 50, 50], maxZoom: 18 });
 		} else if (markerExtent && markerExtent[0] !== Infinity) {
 			olMap.getView().fit(markerExtent, { padding: [50, 50, 50, 50], maxZoom: 18 });
@@ -435,18 +436,12 @@
 	 * @param markers - Accumulator array for created marker features
 	 * @param seenIds - Set of already-added feature IDs for deduplication
 	 */
-	async function extractMarkersFromTree(
+	function extractMarkersFromTree(
 		node: FiberPathNode | null | undefined,
 		markers: import('ol/Feature').default[],
 		seenIds: Set<string>
-	): Promise<void> {
+	): void {
 		if (!node) return;
-
-		const { default: GeoJSON } = await import('ol/format/GeoJSON');
-		const format = new GeoJSON();
-		const readOne = (
-			...args: Parameters<typeof format.readFeature>
-		): import('ol/Feature').default => format.readFeature(...args) as import('ol/Feature').default;
 
 		const signalState = node.signal_state || null;
 
@@ -459,37 +454,31 @@
 			if (!nodeData?.geometry || !nodeData.id || seenIds.has(nodeData.id)) return;
 			seenIds.add(nodeData.id);
 			markers.push(
-				readOne(
-					{
-						type: 'Feature',
-						properties: {
-							featureId: `node:${nodeData.id}`,
-							featureType: 'node',
-							name: nodeData.name,
-							signalState: signal
-						},
-						geometry: nodeData.geometry
+				readOne({
+					type: 'Feature',
+					properties: {
+						featureId: `node:${nodeData.id}`,
+						featureType: 'node',
+						name: nodeData.name,
+						signalState: signal
 					},
-					{ dataProjection: SOURCE_PROJECTION, featureProjection: TARGET_PROJECTION }
-				)
+					geometry: nodeData.geometry
+				})
 			);
 			if (nodeData.address?.geometry && nodeData.address.id && !seenIds.has(nodeData.address.id)) {
 				seenIds.add(nodeData.address.id);
 				const addr = nodeData.address;
 				markers.push(
-					readOne(
-						{
-							type: 'Feature',
-							properties: {
-								featureId: `address:${addr.id}`,
-								featureType: 'address',
-								name: `${addr.street} ${addr.housenumber}`,
-								signalState: signal
-							},
-							geometry: addr.geometry
+					readOne({
+						type: 'Feature',
+						properties: {
+							featureId: `address:${addr.id}`,
+							featureType: 'address',
+							name: `${addr.street} ${addr.housenumber}`,
+							signalState: signal
 						},
-						{ dataProjection: SOURCE_PROJECTION, featureProjection: TARGET_PROJECTION }
-					)
+						geometry: addr.geometry
+					})
 				);
 			}
 		}
@@ -506,19 +495,16 @@
 				if (ru.geometry && ru.id && !seenIds.has(ru.id)) {
 					seenIds.add(ru.id);
 					markers.push(
-						readOne(
-							{
-								type: 'Feature',
-								properties: {
-									featureId: `residential_unit:${ru.id}`,
-									featureType: 'residential_unit',
-									name: ru.id_residential_unit,
-									signalState
-								},
-								geometry: ru.geometry
+						readOne({
+							type: 'Feature',
+							properties: {
+								featureId: `residential_unit:${ru.id}`,
+								featureType: 'residential_unit',
+								name: ru.id_residential_unit,
+								signalState
 							},
-							{ dataProjection: SOURCE_PROJECTION, featureProjection: TARGET_PROJECTION }
-						)
+							geometry: ru.geometry
+						})
 					);
 				}
 			}
@@ -526,14 +512,14 @@
 
 		if (node.children) {
 			for (const child of node.children) {
-				await extractMarkersFromTree(child, markers, seenIds);
+				extractMarkersFromTree(child, markers, seenIds);
 			}
 		}
 	}
 </script>
 
 <div class="map-container rounded-xl border border-surface-200-800 overflow-hidden">
-	<div bind:this={container} class="map"></div>
+	<div bind:this={container} class="map" {@attach drawTrace} {@attach focusSelection}></div>
 </div>
 
 <style>
