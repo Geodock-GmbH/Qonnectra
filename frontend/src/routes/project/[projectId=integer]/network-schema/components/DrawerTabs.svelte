@@ -1,7 +1,11 @@
 <script lang="ts">
 	import type { Fiber } from '$lib/classes/CableFiberDataManager.svelte';
 	import type { SlotConfiguration } from '$lib/classes/NodeStructureContext.svelte.js';
-	import type { AttributeOptions } from '$lib/types/attributeCardTypes';
+	import type {
+		AttributeOptions,
+		CableDrawerProps,
+		NodeDrawerProps
+	} from '$lib/types/attributeCardTypes';
 	import { getContext, onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -25,30 +29,33 @@
 	import NodeSlotConfigPanel from '$lib/components/node-structure/NodeSlotConfigPanel.svelte';
 	import NodeStructurePanel from '$lib/components/node-structure/NodeStructurePanel.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
-	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { isNetworkSchemaChildView } from '$lib/config/routes';
 	import { getSchemaState } from '$lib/context/networkSchemaContext';
 	import { routeProjectId } from '$lib/context/project';
-	import { recalculateCableLength } from '$lib/remote/network-schema/cables.remote';
+	import {
+		getCableDetails,
+		recalculateCableLength
+	} from '$lib/remote/network-schema/cables.remote';
 	import { getMicropipeConnectionsForCable } from '$lib/remote/network-schema/micropipes.remote';
+	import { getNodeDetails } from '$lib/remote/network-schema/nodes.remote';
 
 	import CableDiagramEdgeAttributeCard from './CableDiagramEdgeAttributeCard.svelte';
 	import CableDiagramEdgeHandleConfig from './CableDiagramEdgeHandleConfig.svelte';
 	import CableDiagramNodeAttributeCard from './CableDiagramNodeAttributeCard.svelte';
 	import CableMicropipePanel from './CableMicropipePanel.svelte';
 
-	/** The drawer's props bag: a `type` discriminator, callbacks, and the feature's fields. */
+	/** Feature kinds the network-schema drawer can show, as named in `?feature=kind:id`. */
+	export type SchemaFeatureKind = 'node' | 'cable';
+
 	interface DrawerTabsProps {
-		type?: 'node' | 'edge';
-		uuid?: string;
-		id?: string;
-		node_type?: { id?: number | string } | number | string | null;
-		onLabelUpdate?: (name: string) => void;
-		onEdgeDelete?: (uuid: string) => void;
-		onNodeDelete?: (id: string) => void;
-		[key: string]: unknown;
+		/** The feature kind named in the URL. */
+		kind: SchemaFeatureKind;
+		/** The node or cable uuid named in the URL. */
+		id: string;
+		/** The drawer header, reported up once the record is known and after a rename. */
+		title?: string;
 	}
 
 	const attributeOptions = getContext<AttributeOptions>('attributeOptions');
@@ -56,7 +63,31 @@
 
 	const fiberDataManager = new CableFiberDataManager();
 
-	let allProps: DrawerTabsProps = $props();
+	let { kind, id, title = $bindable('') }: DrawerTabsProps = $props();
+
+	/**
+	 * The record lives in the remote query cache, the single source for the
+	 * drawer: a refresh of the query updates every card. A node detail is a
+	 * GeoJSON feature, so its fields sit under `properties`.
+	 * @param raw - The detail payload.
+	 */
+	function recordOf(raw: Record<string, unknown>): CableDrawerProps | NodeDrawerProps {
+		if (kind === 'cable') return raw as CableDrawerProps;
+		return {
+			id,
+			...((raw.properties as Record<string, unknown> | undefined) ?? {})
+		} as NodeDrawerProps;
+	}
+
+	const detailsQuery = $derived(kind === 'cable' ? getCableDetails(id) : getNodeDetails(id));
+
+	// The page re-keys this component per feature, so the first load names
+	// the drawer once; renames report through `onLabelUpdate`.
+	// svelte-ignore state_referenced_locally
+	title = String(recordOf(await detailsQuery).name ?? '');
+
+	const data = $derived(recordOf(await detailsQuery));
+	const type = $derived(kind === 'cable' ? 'edge' : 'node');
 
 	let slotConfigPanelOpen = $state(false);
 	let structurePanelOpen = $state(false);
@@ -74,11 +105,6 @@
 	});
 
 	let group = $state('attributes');
-
-	const data = $derived.by(() => {
-		const { type, onLabelUpdate, onEdgeDelete, onNodeDelete, ...rest } = allProps;
-		return rest;
-	});
 
 	const isChildView = $derived(isNetworkSchemaChildView(page.route.id));
 	const childViewEnabledTypeIds = $derived(attributeOptions?.childViewEnabledNodeTypeIds ?? []);
@@ -98,15 +124,30 @@
 		goto(
 			resolve('/project/[projectId=integer]/network-schema/node/[nodeId]', {
 				projectId: routeProjectId(),
-				nodeId: String(data.uuid || data.id)
+				nodeId: id
 			})
 		);
 	}
 
-	const type = $derived(allProps.type);
-	const onLabelUpdate = $derived(allProps.onLabelUpdate);
-	const onEdgeDelete = $derived(allProps.onEdgeDelete);
-	const onNodeDelete = $derived(allProps.onNodeDelete);
+	/**
+	 * A rename in a card: the drawer header and the canvas label follow.
+	 * @param name - The saved name.
+	 */
+	function onLabelUpdate(name: string) {
+		title = name;
+		if (kind === 'cable') schemaState.updateEdgeName(id, name);
+		else schemaState.updateNodeName(id, name);
+	}
+
+	/** A deleted cable leaves the canvas; the card already closed the drawer by URL. */
+	function onEdgeDelete(uuid: string) {
+		schemaState.handleEdgeDelete(uuid);
+	}
+
+	/** A deleted node leaves the canvas; the card already closed the drawer by URL. */
+	function onNodeDelete(nodeId: string) {
+		schemaState.handleNodeDelete(nodeId);
+	}
 
 	const tabItems = $derived.by(() => {
 		const baseTabs = [{ value: 'attributes', label: m.common_attributes() }];
@@ -165,7 +206,7 @@
 		return () => fiberDataManager.cleanup();
 	});
 
-	const featureId = $derived((data?.uuid || data?.id || '') as string);
+	const featureId = $derived(id);
 
 	$effect(() => {
 		if (group === 'status' && featureId && type === 'edge') {
@@ -233,15 +274,15 @@
 	}
 
 	/**
-	 * Refreshes cable data from the server, updates the drawer props, and dispatches
-	 * a micropipeLinkageChanged event to update edge micropipe connection coloring.
+	 * Refreshes the cable record from the server, which updates every card
+	 * awaiting the query, and dispatches a micropipeLinkageChanged event to
+	 * update edge micropipe connection coloring.
 	 */
 	async function refreshCableData() {
 		if (type !== 'edge' || !featureId) return;
 
 		try {
-			const parsedData = await schemaState.loadCableDetails(featureId);
-			drawerStore.updateProps(parsedData);
+			await schemaState.loadCableDetails(featureId);
 
 			const connections = await getMicropipeConnectionsForCable(featureId);
 			window.dispatchEvent(
@@ -268,13 +309,17 @@
 	{#if group === 'attributes'}
 		{#if type === 'edge'}
 			<CableDiagramEdgeAttributeCard
-				{...data}
+				cable={data as CableDrawerProps}
 				{onLabelUpdate}
 				{onEdgeDelete}
 				onSaveComplete={refreshCableData}
 			/>
 		{:else if type === 'node'}
-			<CableDiagramNodeAttributeCard {...data} {onLabelUpdate} {onNodeDelete} />
+			<CableDiagramNodeAttributeCard
+				node={data as NodeDrawerProps}
+				{onLabelUpdate}
+				{onNodeDelete}
+			/>
 		{/if}
 	{/if}
 
@@ -292,7 +337,10 @@
 	{/if}
 
 	{#if group === 'handles'}
-		<CableDiagramEdgeHandleConfig />
+		<CableDiagramEdgeHandleConfig
+			cable={data as CableDrawerProps}
+			onConnectionChange={refreshCableData}
+		/>
 	{/if}
 
 	{#if group === 'actions'}
@@ -379,7 +427,7 @@
 	>
 		<NodeSlotConfigPanel
 			nodeUuid={featureId}
-			nodeName={data.name as string | undefined}
+			nodeName={String(data.name ?? '')}
 			onViewStructure={(slotConfigUuid) => handleOpenStructurePanel(slotConfigUuid)}
 			bind:sharedSlotState
 		/>
@@ -397,7 +445,7 @@
 	>
 		<NodeStructurePanel
 			nodeUuid={featureId}
-			nodeName={data.name as string | undefined}
+			nodeName={String(data.name ?? '')}
 			initialSlotConfigUuid={structurePanelSlotConfigUuid}
 			bind:sharedSlotState
 		/>
@@ -417,7 +465,7 @@
 	>
 		<CableMicropipePanel
 			cableId={featureId}
-			cableName={(data.name as string) ?? ''}
+			cableName={String(data.name ?? '')}
 			onClose={() => (micropipePanelOpen = false)}
 			onLinkageChange={refreshCableData}
 		/>

@@ -5,9 +5,9 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import MessageBox from '$lib/components/MessageBox.svelte';
-	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
+	import { closeFeature } from '$lib/utils/urlState';
 	import {
 		deleteCable as deleteCableCommand,
 		getCableSplices,
@@ -25,29 +25,31 @@
 	};
 
 	let {
+		cable,
 		onLabelUpdate,
 		onEdgeDelete,
 		onSaveComplete = () => {}
 	}: {
+		/** The cable's detail record, owned by the drawer tabs. */
+		cable: CableDrawerProps;
 		onLabelUpdate?: (name: string) => void;
 		onEdgeDelete?: (uuid: string) => void;
 		onSaveComplete?: () => void | Promise<void>;
 	} = $props();
 
 	let messageBoxConfirm = $state<ReturnType<typeof MessageBox> | null>(null);
-	let cable = $derived($drawerStore.props as CableDrawerProps | undefined);
 	let fiberCount = $derived<number>(
-		Number(cable?.cable_type?.fiber_count ?? cable?.fiber_count ?? 0) || 0
+		Number(cable.cable_type?.fiber_count ?? cable.fiber_count ?? 0) || 0
 	);
 	let connectedSpliceCount = $state(0);
 
 	// Connected conduits are server truth rendered read-only; the query re-runs
 	// per cable and its reactive `.current` feeds the form without an effect.
-	const conduitsQuery = $derived(cable?.uuid ? getConduitsForCable(cable.uuid) : undefined);
+	const conduitsQuery = $derived(cable.uuid ? getConduitsForCable(cable.uuid) : undefined);
 	const connectedConduits = $derived((conduitsQuery?.current ?? []).join(', '));
 
 	async function confirmDelete() {
-		if (!cable?.uuid) return;
+		if (!cable.uuid) return;
 
 		try {
 			const splices = await getCableSplices(cable.uuid);
@@ -69,8 +71,9 @@
 		messageBoxConfirm?.open();
 	}
 
+	/** Deletes the cable, closes the drawer by URL and drops the edge from the canvas. */
 	async function handleDelete() {
-		if (!cable?.uuid) return;
+		if (!cable.uuid) return;
 
 		try {
 			await deleteCableCommand(cable.uuid);
@@ -79,7 +82,7 @@
 				title: m.title_success(),
 				description: m.message_success_deleting_cable()
 			});
-			drawerStore.close();
+			closeFeature();
 			onEdgeDelete?.(cable.uuid);
 		} catch (error) {
 			console.error('Error deleting cable:', error);
@@ -102,10 +105,8 @@
 </script>
 
 <!-- Cable form (keyed so a different cable remounts and re-initialises fields) -->
-{#key cable?.uuid}
-	{#if cable}
-		<CableAttributeForm {cable} {attributes} {connectedConduits} {onLabelUpdate} {onSaveComplete} />
-	{/if}
+{#key cable.uuid}
+	<CableAttributeForm {cable} {attributes} {connectedConduits} {onLabelUpdate} {onSaveComplete} />
 {/key}
 
 <!-- Delete and update buttons -->

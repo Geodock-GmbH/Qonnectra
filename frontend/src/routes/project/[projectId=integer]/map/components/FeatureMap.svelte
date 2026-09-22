@@ -9,16 +9,19 @@
 	import type OlMap from 'ol/Map.js';
 	import { getContext, onMount } from 'svelte';
 	import { get } from 'svelte/store';
+	import { page } from '$app/state';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import Map from '$lib/components/Map.svelte';
 	import MapHint from '$lib/components/MapHint.svelte';
+	import { MAP_FEATURE_KINDS } from '$lib/map/featureDetails';
 	import { syncLayerStyles } from '$lib/map/layerStyleSync';
 	import { syncGlobalView, syncMapProject } from '$lib/map/projectScopeSync';
-	import { drawerStore } from '$lib/stores/drawer';
-	import { nodeTypeStyles, trenchColorSelected } from '$lib/stores/store';
-	import { onProjectChange } from '$lib/context/project';
+	import { selectUrlFeature } from '$lib/map/urlFeatureSelection';
+	import { globalMapView, nodeTypeStyles, trenchColorSelected } from '$lib/stores/store';
+	import { onFeatureChange, queryFeature } from '$lib/utils/urlState';
+	import { onProjectChange, routeProjectId } from '$lib/context/project';
 	import { getLayerStyleAttributes } from '$lib/remote/map/layers.remote';
 
 	import 'ol/ol.css';
@@ -41,8 +44,30 @@
 			(mapRef?.getSearchPanelRef() as SearchPanelRef | undefined)?.getHighlightLayer?.()
 	};
 
+	const drawerOpen = $derived(queryFeature(page.url, MAP_FEATURE_KINDS) !== null);
+
 	/**
-	 * Initializes selection layers, popup overlay, and interaction handlers when the map is ready.
+	 * Mirrors the feature named in the URL onto the map selection. The URL
+	 * is the source: a click already selected its feature, a shared link or
+	 * the back button selects (and zooms to) the feature now.
+	 */
+	function followUrlFeature() {
+		const { srid, proj4Def } = page.data;
+		void selectUrlFeature({
+			map: mapState.olMap,
+			selectionManager,
+			feature: queryFeature(page.url, MAP_FEATURE_KINDS),
+			hash: page.url.hash,
+			lookupProjectId: get(globalMapView) ? '' : routeProjectId(),
+			storage: srid && proj4Def ? { srid, proj4Def } : null
+		});
+	}
+
+	onFeatureChange(followUrlFeature);
+
+	/**
+	 * Initializes selection layers, popup overlay, and interaction handlers
+	 * when the map is ready, then applies the feature the URL already names.
 	 * @param detail - Map ready event with the OpenLayers map instance
 	 */
 	function handleMapReady({ map }: { map: OlMap }) {
@@ -58,6 +83,7 @@
 
 		popupManager.initialize(map);
 		interactionManager.initialize(map, mapState.getLayerReferences(), searchPanel);
+		followUrlFeature();
 	}
 
 	onProjectChange((projectId) =>
@@ -97,7 +123,7 @@
 		<div id="popup-content"></div>
 	</div>
 </div>
-<MapHint message={m.message_map_hint_map_infos()} visible={$drawerStore.open == false} />
+<MapHint message={m.message_map_hint_map_infos()} visible={!drawerOpen} />
 
 <style>
 	.ol-popup {

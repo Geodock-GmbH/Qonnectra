@@ -26,15 +26,16 @@ vi.mock('@xyflow/svelte', async () => {
 	return mocks;
 });
 
-vi.mock('$lib/stores/drawer', () => ({
-	drawerStore: {
-		subscribe: (cb: (value: unknown) => void) => {
-			cb({ open: false });
-			return () => {};
-		},
-		open: vi.fn()
-	}
-}));
+vi.mock('$app/state', async () => {
+	const { pageStub } = await import('$lib/test-utils/pageStub');
+	return {
+		page: pageStub({
+			routeId: '/project/[projectId=integer]/network-schema/node/[nodeId]',
+			params: { projectId: '7', nodeId: 'node-1' },
+			url: 'http://localhost/project/7/network-schema/node/node-1'
+		})
+	};
+});
 
 vi.mock('$lib/stores/toaster', () => ({
 	globalToaster: {
@@ -63,7 +64,8 @@ vi.mock('$app/stores', () => {
 });
 
 vi.mock('$app/navigation', () => ({
-	goto: vi.fn()
+	goto: vi.fn(),
+	afterNavigate: vi.fn()
 }));
 
 vi.mock('$lib/stores/store', () => ({

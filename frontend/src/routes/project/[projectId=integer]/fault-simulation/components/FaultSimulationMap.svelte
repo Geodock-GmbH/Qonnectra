@@ -31,6 +31,8 @@
 
 	const simulation = getFaultSimulationState();
 
+	// The map is built once; a later project switch goes through `onProjectChange`.
+	// svelte-ignore state_referenced_locally
 	const mapState = new MapState(projectId, get(trenchColorSelected), {
 		trench: true,
 		address: true,

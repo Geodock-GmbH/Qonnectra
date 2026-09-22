@@ -2,8 +2,12 @@ import { goto } from '$app/navigation';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
+	closeFeature,
 	DEFAULT_PAGE_SIZE,
+	featureParam,
+	openFeature,
 	queryEnum,
+	queryFeature,
 	queryInt,
 	queryList,
 	queryString,
@@ -132,5 +136,91 @@ describe('queryList', () => {
 	test('should return an empty list when missing or empty', () => {
 		expect(queryList(url(), 'areas')).toEqual([]);
 		expect(queryList(url('?areas='), 'areas')).toEqual([]);
+	});
+});
+
+describe('queryFeature', () => {
+	const kinds = ['conduit', 'trench'] as const;
+
+	test('should read the kind and id of the drawer feature', () => {
+		expect(queryFeature(url('?feature=conduit:9b1c-2'), kinds)).toEqual({
+			kind: 'conduit',
+			id: '9b1c-2'
+		});
+	});
+
+	test('should treat a missing parameter as a closed drawer', () => {
+		expect(queryFeature(url(), kinds)).toBeNull();
+		expect(queryFeature(url('?feature='), kinds)).toBeNull();
+	});
+
+	test('should ignore a kind the page cannot show', () => {
+		expect(queryFeature(url('?feature=cable:abc'), kinds)).toBeNull();
+	});
+
+	test('should ignore a malformed value', () => {
+		expect(queryFeature(url('?feature=bogus'), kinds)).toBeNull();
+		expect(queryFeature(url('?feature=conduit:'), kinds)).toBeNull();
+		expect(queryFeature(url('?feature=conduit:a%20b'), kinds)).toBeNull();
+	});
+});
+
+describe('featureParam', () => {
+	test('should join kind and id', () => {
+		expect(featureParam('trench', '3f2a')).toBe('trench:3f2a');
+	});
+});
+
+describe('openFeature', () => {
+	beforeEach(() => {
+		vi.mocked(goto).mockClear();
+	});
+
+	test('should push a history entry when the drawer was closed', () => {
+		appState.page.url = url('?search=DN50');
+
+		openFeature('conduit', 'abc');
+
+		expect(goto).toHaveBeenCalledWith('/conduit/5?search=DN50&feature=conduit%3Aabc', {
+			keepFocus: true,
+			noScroll: true,
+			replaceState: false
+		});
+	});
+
+	test('should replace the entry when switching the open feature', () => {
+		appState.page.url = url('?feature=conduit%3Aabc&tab=files');
+
+		openFeature('conduit', 'def');
+
+		expect(goto).toHaveBeenCalledWith('/conduit/5?feature=conduit%3Adef', {
+			keepFocus: true,
+			noScroll: true,
+			replaceState: true
+		});
+	});
+});
+
+describe('closeFeature', () => {
+	test('should do nothing while no drawer is open', () => {
+		vi.mocked(goto).mockClear();
+		appState.page.url = url('?search=DN50');
+
+		closeFeature();
+
+		expect(goto).not.toHaveBeenCalled();
+	});
+
+	test('should replace the entry with the URL without feature and tab', () => {
+		vi.mocked(goto).mockClear();
+		appState.page.url = url('?search=DN50&feature=conduit%3Aabc&tab=files', '#map=1/2/3');
+
+		closeFeature();
+
+		expect(goto).toHaveBeenCalledWith('/conduit/5?search=DN50#map=1/2/3', {
+			keepFocus: true,
+			noScroll: true,
+			replaceState: true
+		});
 	});
 });

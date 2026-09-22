@@ -5,7 +5,6 @@
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
-	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { getSchemaState } from '$lib/context/networkSchemaContext';
@@ -21,14 +20,27 @@
 		data?: { node?: { name?: string } };
 	}
 
+	let {
+		cable,
+		onConnectionChange = () => {}
+	}: {
+		/** The cable's detail record, owned by the drawer tabs. */
+		cable: CableDrawerProps;
+		/** Called after a node connection was saved, so the record can be refreshed. */
+		onConnectionChange?: () => void | Promise<void>;
+	} = $props();
+
 	const schemaState = getSchemaState();
 
-	let cable = $derived($drawerStore.props as CableDrawerProps | undefined);
-	let handleStart = $state('top');
-	let handleEnd = $state('top');
-
-	let selectedNodeStart = $state<string[]>([]);
-	let selectedNodeEnd = $state<string[]>([]);
+	// The drawer tabs are keyed per cable, so the form starts from the record once.
+	// svelte-ignore state_referenced_locally
+	let handleStart = $state(cable.handle_start || 'top');
+	// svelte-ignore state_referenced_locally
+	let handleEnd = $state(cable.handle_end || 'top');
+	// svelte-ignore state_referenced_locally
+	let selectedNodeStart = $state<string[]>(cable.uuid_node_start ? [cable.uuid_node_start] : []);
+	// svelte-ignore state_referenced_locally
+	let selectedNodeEnd = $state<string[]>(cable.uuid_node_end ? [cable.uuid_node_end] : []);
 
 	// Nodes are sourced from schemaState context so child-view filtering is respected
 	const availableNodes = $derived(
@@ -45,14 +57,14 @@
 	} | null>(null);
 	let confirmMessageBox: ReturnType<typeof MessageBox> | null = $state(null);
 
-	$effect(() => {
-		if (cable) {
-			handleStart = cable.handle_start || 'top';
-			handleEnd = cable.handle_end || 'top';
-			selectedNodeStart = cable.uuid_node_start ? [cable.uuid_node_start] : [];
-			selectedNodeEnd = cable.uuid_node_end ? [cable.uuid_node_end] : [];
-		}
-	});
+	/**
+	 * The display name of a node on the canvas, falling back to its id.
+	 * @param uuid - The node uuid, or null when the cable end is unset.
+	 */
+	function nodeName(uuid: string | null | undefined): string {
+		if (!uuid) return m.common_unknown();
+		return availableNodes.find((node) => node.value === uuid)?.label || uuid;
+	}
 
 	const handleOptions = [
 		{ label: m.form_top(), value: 'top' },
@@ -66,7 +78,7 @@
 	 * Opens a confirmation dialog if splices would be lost.
 	 */
 	async function handleNodeChange(side: 'start' | 'end', newNodeId: string) {
-		const currentNodeId = side === 'start' ? cable?.uuid_node_start : cable?.uuid_node_end;
+		const currentNodeId = side === 'start' ? cable.uuid_node_start : cable.uuid_node_end;
 
 		if (!newNodeId || newNodeId === currentNodeId) {
 			return;
@@ -74,7 +86,7 @@
 
 		try {
 			const splices = await getCableSplicesAtNode({
-				cableUuid: cable?.uuid ?? '',
+				cableUuid: cable.uuid ?? '',
 				nodeUuid: currentNodeId ?? ''
 			});
 			const spliceCount = splices.length;
@@ -106,7 +118,7 @@
 	async function executeNodeChange(side: 'start' | 'end', newNodeId: string) {
 		try {
 			await updateCableConnection({
-				cableId: cable?.uuid ?? '',
+				cableId: cable.uuid ?? '',
 				nodeStartId: side === 'start' ? newNodeId : undefined,
 				nodeEndId: side === 'end' ? newNodeId : undefined,
 				handleStart: side === 'start' ? handleStart : undefined,
@@ -118,7 +130,7 @@
 				description: m.message_success_updating_cable()
 			});
 
-			if (cable?.uuid) {
+			if (cable.uuid) {
 				schemaState.updateEdgeConnection(
 					cable.uuid,
 					side,
@@ -127,19 +139,8 @@
 				);
 			}
 
-			// Update drawer props so subsequent saves use correct IDs
-			const newNodeName = availableNodes.find((n) => n.value === newNodeId)?.label || newNodeId;
-			if (side === 'start') {
-				drawerStore.updateProps({
-					uuid_node_start: newNodeId,
-					uuid_node_start_name: newNodeName
-				});
-			} else {
-				drawerStore.updateProps({
-					uuid_node_end: newNodeId,
-					uuid_node_end_name: newNodeName
-				});
-			}
+			// The record refreshes so subsequent saves use the persisted ids.
+			await onConnectionChange();
 		} catch (error) {
 			console.error('Error updating cable connection:', error);
 			void logToBackendClient({
@@ -157,9 +158,9 @@
 			});
 			// Restore the combobox to the persisted node since the change failed.
 			if (side === 'start') {
-				selectedNodeStart = cable?.uuid_node_start ? [cable.uuid_node_start] : [];
+				selectedNodeStart = cable.uuid_node_start ? [cable.uuid_node_start] : [];
 			} else {
-				selectedNodeEnd = cable?.uuid_node_end ? [cable.uuid_node_end] : [];
+				selectedNodeEnd = cable.uuid_node_end ? [cable.uuid_node_end] : [];
 			}
 		}
 
@@ -171,7 +172,7 @@
 	 */
 	async function handleSubmit(event: SubmitEvent) {
 		event.preventDefault();
-		if (!cable?.uuid) return;
+		if (!cable.uuid) return;
 		const cableUuid = cable.uuid;
 
 		try {
@@ -202,7 +203,7 @@
 	}
 
 	async function handleConfirmNodeChange() {
-		if (pendingNodeChange && cable?.uuid) {
+		if (pendingNodeChange && cable.uuid) {
 			const oldNodeId =
 				pendingNodeChange.side === 'start' ? cable.uuid_node_start : cable.uuid_node_end;
 
@@ -236,9 +237,9 @@
 
 	function handleCancelNodeChange() {
 		if (pendingNodeChange?.side === 'start') {
-			selectedNodeStart = cable?.uuid_node_start ? [cable.uuid_node_start] : [];
+			selectedNodeStart = cable.uuid_node_start ? [cable.uuid_node_start] : [];
 		} else if (pendingNodeChange?.side === 'end') {
-			selectedNodeEnd = cable?.uuid_node_end ? [cable.uuid_node_end] : [];
+			selectedNodeEnd = cable.uuid_node_end ? [cable.uuid_node_end] : [];
 		}
 		pendingNodeChange = null;
 	}
@@ -247,7 +248,7 @@
 <form id="handle-config-form" class="flex flex-col gap-6" onsubmit={handleSubmit}>
 	<div class="space-y-3">
 		<h3 class="text-lg font-semibold">
-			{cable?.uuid_node_start_name || cable?.uuid_node_start || m.common_unknown()}
+			{nodeName(cable.uuid_node_start)}
 		</h3>
 
 		<div class="space-y-2">
@@ -261,7 +262,7 @@
 				placeholder={m.placeholder_select_node?.() || 'Select node...'}
 				onValueChange={(e) => {
 					const newNodeId = e.value?.[0];
-					if (newNodeId && newNodeId !== cable?.uuid_node_start) {
+					if (newNodeId && newNodeId !== cable.uuid_node_start) {
 						handleNodeChange('start', newNodeId);
 					}
 				}}
@@ -296,7 +297,7 @@
 
 	<div class="space-y-3">
 		<h3 class="text-lg font-semibold">
-			{cable?.uuid_node_end_name || cable?.uuid_node_end || m.common_unknown()}
+			{nodeName(cable.uuid_node_end)}
 		</h3>
 
 		<div class="space-y-2">
@@ -310,7 +311,7 @@
 				placeholder={m.placeholder_select_node?.() || 'Select node...'}
 				onValueChange={(e) => {
 					const newNodeId = e.value?.[0];
-					if (newNodeId && newNodeId !== cable?.uuid_node_end) {
+					if (newNodeId && newNodeId !== cable.uuid_node_end) {
 						handleNodeChange('end', newNodeId);
 					}
 				}}

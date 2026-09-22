@@ -1,13 +1,18 @@
+import type { NodeDrawerProps } from '$lib/types/attributeCardTypes';
 import { render, screen } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { drawerStore } from '$lib/stores/drawer';
 import { globalToaster } from '$lib/stores/toaster';
 
 import CableDiagramNodeAttributeCard from './CableDiagramNodeAttributeCard.svelte';
 
 vi.mock('$app/environment', () => ({
 	browser: true
+}));
+
+const gotoMock = vi.fn();
+vi.mock('$app/navigation', () => ({
+	goto: (...args: unknown[]) => gotoMock(...args)
 }));
 
 vi.mock('$app/state', () => ({
@@ -61,7 +66,10 @@ const emptyDependencies = {
 	}
 };
 
-const node = {
+// `constructor: null` names the company field, so the literal is assignable
+// to the card's record type instead of inheriting Object.prototype.constructor.
+const node: NodeDrawerProps = {
+	constructor: null,
 	id: 'node-1',
 	name: 'PoP-1',
 	node_type: { id: 4 },
@@ -75,7 +83,6 @@ beforeEach(() => {
 	getNodeDependencies.mockReturnValue(emptyDependencies);
 	updateNode.mockResolvedValue({});
 	deleteNode.mockResolvedValue(undefined);
-	drawerStore.open({ props: node });
 });
 
 afterEach(() => {
@@ -83,20 +90,20 @@ afterEach(() => {
 	getNodeDependencies.mockReset();
 	updateNode.mockReset();
 	deleteNode.mockReset();
-	drawerStore.close();
+	gotoMock.mockReset();
 	vi.mocked(globalToaster.success).mockClear();
 	vi.mocked(globalToaster.error).mockClear();
 });
 
 describe('CableDiagramNodeAttributeCard', () => {
 	test('should prefill the form from the drawer node', () => {
-		render(CableDiagramNodeAttributeCard, {});
+		render(CableDiagramNodeAttributeCard, { node });
 
 		expect(screen.getByDisplayValue('PoP-1')).toBeInTheDocument();
 	});
 
 	test('should query dependencies for the current node', () => {
-		render(CableDiagramNodeAttributeCard, {});
+		render(CableDiagramNodeAttributeCard, { node });
 
 		expect(getNodeDependencies).toHaveBeenCalledWith({ nodeId: 'node-1', projectId: '7' });
 	});
@@ -105,6 +112,7 @@ describe('CableDiagramNodeAttributeCard', () => {
 		const onLabelUpdate = vi.fn();
 
 		render(CableDiagramNodeAttributeCard, {
+			node,
 			onLabelUpdate
 		} as unknown as Parameters<typeof render<typeof CableDiagramNodeAttributeCard>>[1]);
 
@@ -127,7 +135,7 @@ describe('CableDiagramNodeAttributeCard', () => {
 	test('should toast an error when the update fails', async () => {
 		updateNode.mockRejectedValue(new Error('nein'));
 
-		render(CableDiagramNodeAttributeCard, {});
+		render(CableDiagramNodeAttributeCard, { node });
 
 		const form = document.getElementById('node-form') as HTMLFormElement;
 		form.requestSubmit();

@@ -6,11 +6,19 @@
 	import Drawer from '$lib/components/Drawer.svelte';
 	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import SearchInput from '$lib/components/SearchInput.svelte';
-	import { DEFAULT_PAGE_SIZE, queryInt, queryString, setQuery } from '$lib/utils/urlState';
+	import {
+		closeFeature,
+		DEFAULT_PAGE_SIZE,
+		queryFeature,
+		queryInt,
+		queryString,
+		setQuery
+	} from '$lib/utils/urlState';
 	import { routeProjectId } from '$lib/context/project';
 	import { getConduitList } from '$lib/remote/conduit/conduits.remote';
 
 	import ConduitImportControls from './components/ConduitImportControls.svelte';
+	import ConduitDrawerTabs from './components/drawer/ConduitDrawerTabs.svelte';
 	import PipeModal from './components/PipeModal.svelte';
 	import PipeTable from './components/PipeTable.svelte';
 
@@ -18,6 +26,13 @@
 	const searchTerm = $derived(queryString(page.url, 'search'));
 	const currentPage = $derived(queryInt(page.url, 'page', 1, { min: 1 }));
 	const pageSize = $derived(queryInt(page.url, 'page_size', DEFAULT_PAGE_SIZE, { min: 1 }));
+
+	/** Feature kinds this page can show in the drawer. */
+	const DRAWER_KINDS = ['conduit'] as const;
+
+	// `?feature=conduit:<uuid>` is the drawer: present means open with that conduit.
+	const feature = $derived(queryFeature(page.url, DRAWER_KINDS));
+	let drawerTitle = $state('');
 
 	// Follows the URL (back/forward, reload) but stays editable until submitted.
 	let searchInput = $derived(searchTerm);
@@ -93,11 +108,23 @@
 						$effect.pending() > 0 && 'opacity-60 pointer-events-none'
 					]}
 				>
-					<PipeTable pipes={list.conduits} pagination={list.pagination} />
+					<PipeTable
+						pipes={list.conduits}
+						pagination={list.pagination}
+						selectedUuid={feature?.id ?? null}
+					/>
 				</div>
 			</QueryBoundary>
 		</div>
 	</div>
 
-	<Drawer />
+	<Drawer open={feature !== null} title={feature ? drawerTitle : ''} onclose={closeFeature}>
+		{#if feature}
+			{#key feature.id}
+				<QueryBoundary>
+					<ConduitDrawerTabs uuid={feature.id} bind:title={drawerTitle} />
+				</QueryBoundary>
+			{/key}
+		{/if}
+	</Drawer>
 </div>

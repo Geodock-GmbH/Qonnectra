@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test';
 
+/** @typedef {import('./helpers/api.js').ListedFeature} ListedFeature */
+
+import { firstFeature } from './helpers/api.js';
 import { loginOrSkip } from './helpers/auth.js';
-import { gotoProjectRoute, projectIdFromUrl } from './helpers/routes.js';
+import { gotoProjectRoute, projectIdFromUrl, projectPath } from './helpers/routes.js';
 
 test.describe('Map page', () => {
 	test.beforeEach(async ({ page }) => {
@@ -112,6 +115,30 @@ test.describe('Map page', () => {
 			.poll(() => tilesFor(secondProjectId).length, { timeout: 15000 })
 			.toBeGreaterThan(0);
 		expect(tilesFor(firstProjectId)).toHaveLength(0);
+	});
+
+	test('a URL naming a trench opens its drawer; reload keeps it and back closes it', async ({
+		page
+	}) => {
+		const id = /** @type {string} */ (projectIdFromUrl(page.url()));
+		const trench = await firstFeature(page, 'trench', id);
+		test.skip(!trench, 'Needs at least one trench in the project');
+		const uuid = /** @type {ListedFeature} */ (trench).uuid;
+
+		await page.goto(projectPath(id, 'map', { feature: `trench:${uuid}` }));
+
+		const drawer = page.locator('[data-drawer]');
+		await expect(drawer).toBeVisible({ timeout: 15000 });
+		// The drawer fetched the trench itself: the title is its id.
+		await expect(drawer.locator('h2')).toHaveText(/** @type {ListedFeature} */ (trench).label);
+
+		await page.reload();
+		await expect(page.locator('[data-drawer]')).toBeVisible({ timeout: 15000 });
+
+		await page.goBack();
+		await expect(page).not.toHaveURL(/feature=/);
+		await expect(page.locator('[data-drawer]')).not.toBeVisible();
+		await expect(page.locator('.ol-viewport').first()).toBeVisible();
 	});
 
 	test('shows the map hint prompting the user to click a layer', async ({ page }) => {

@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
 
+import { firstFeature } from './helpers/api.js';
 import { loginOrSkip } from './helpers/auth.js';
-import { gotoProjectRoute } from './helpers/routes.js';
+import { gotoProjectRoute, projectIdFromUrl, projectPath } from './helpers/routes.js';
 
 /**
  * Key-behaviour coverage for the routes that are otherwise map/canvas
@@ -128,5 +129,18 @@ test.describe('House connections page', () => {
 	test('renders the map canvas and the search input', async ({ page }) => {
 		await expect(page.locator('canvas').first()).toBeVisible({ timeout: 15000 });
 		await expect(page.locator('[data-testid="search-input"]').first()).toBeVisible();
+	});
+
+	test('a URL naming a trench opens its drawer with the trench title', async ({ page }) => {
+		const id = /** @type {string} */ (projectIdFromUrl(page.url()));
+		const trench = await firstFeature(page, 'trench', id);
+		test.skip(!trench, 'Needs at least one trench in the project');
+		const { uuid, label } = /** @type {import('./helpers/api.js').ListedFeature} */ (trench);
+
+		await page.goto(projectPath(id, 'house-connections', { feature: `trench:${uuid}` }));
+
+		const drawer = page.locator('[data-drawer]');
+		await expect(drawer).toBeVisible({ timeout: 15000 });
+		await expect(drawer.locator('h2')).toHaveText(label);
 	});
 });

@@ -1,10 +1,7 @@
 import type { ConduitListRow } from '$lib/remote/conduit/conduit-data';
-import { get } from 'svelte/store';
 import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, test, vi } from 'vitest';
-
-import { drawerStore } from '$lib/stores/drawer';
 
 import PipeTable from './PipeTable.svelte';
 
@@ -54,7 +51,6 @@ const pagination = { totalCount: 2, pageSize: 25, page: 1 };
 
 afterEach(() => {
 	gotoMock.mockReset();
-	drawerStore.close();
 });
 
 function desktopTable() {
@@ -136,17 +132,33 @@ describe('PipeTable', () => {
 		expect(cells[1]).toHaveTextContent('Aachen');
 	});
 
-	test('should open the drawer with the conduit uuid and name when a row is clicked', async () => {
+	test('should open the drawer by naming the conduit in the URL when a row is clicked', async () => {
 		const user = userEvent.setup();
 		render(PipeTable, { pipes: [makePipe({ value: 'uuid-1', name: 'Rohr-A' })], pagination });
 
 		await user.click(within(desktopTable()).getByText('Rohr-A'));
 
-		const drawer = get(drawerStore);
-		expect(drawer.open).toBe(true);
-		expect(drawer.title).toBe('Rohr-A');
-		expect(drawer.props).toEqual({ uuid: 'uuid-1' });
-		expect(drawer.component).not.toBeNull();
+		expect(gotoMock).toHaveBeenCalledWith('/conduit/proj-42?feature=conduit%3Auuid-1', {
+			keepFocus: true,
+			noScroll: true,
+			replaceState: false
+		});
+	});
+
+	test('should highlight the row of the conduit open in the drawer', () => {
+		render(PipeTable, {
+			pipes: [
+				makePipe({ value: 'uuid-1', name: 'Rohr-A' }),
+				makePipe({ value: 'uuid-2', name: 'Rohr-B' })
+			],
+			pagination,
+			selectedUuid: 'uuid-2'
+		});
+
+		const rows = within(desktopTable()).getAllByRole('row');
+		const selected = rows.filter((row) => row.getAttribute('aria-selected') === 'true');
+		expect(selected).toHaveLength(1);
+		expect(selected[0]).toHaveTextContent('Rohr-B');
 	});
 
 	test('should navigate to the requested page on pagination change', async () => {

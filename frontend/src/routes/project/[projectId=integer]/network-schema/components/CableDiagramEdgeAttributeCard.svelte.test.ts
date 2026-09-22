@@ -1,13 +1,22 @@
+import type { CableDrawerProps } from '$lib/types/attributeCardTypes';
 import { render, screen } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { drawerStore } from '$lib/stores/drawer';
 import { globalToaster } from '$lib/stores/toaster';
 
 import CableDiagramEdgeAttributeCard from './CableDiagramEdgeAttributeCard.svelte';
 
 vi.mock('$app/environment', () => ({
 	browser: true
+}));
+
+const gotoMock = vi.fn();
+vi.mock('$app/navigation', () => ({
+	goto: (...args: unknown[]) => gotoMock(...args)
+}));
+
+vi.mock('$app/state', () => ({
+	page: { url: new URL('http://localhost/project/7/network-schema?feature=cable%3Acable-1') }
 }));
 
 // Cable reads/writes run through the cables.remote module; mock it so the
@@ -40,7 +49,10 @@ vi.mock('$lib/stores/toaster', () => ({
 	}
 }));
 
-const cable = {
+// `constructor: null` names the company field, so the literal is assignable
+// to the card's record type instead of inheriting Object.prototype.constructor.
+const cable: CableDrawerProps = {
+	constructor: null,
 	uuid: 'cable-1',
 	name: 'K-Nord',
 	length: 120,
@@ -56,7 +68,6 @@ beforeEach(() => {
 	getCableSplices.mockResolvedValue([]);
 	updateCable.mockResolvedValue({});
 	deleteCable.mockResolvedValue(undefined);
-	drawerStore.open({ props: cable });
 });
 
 afterEach(() => {
@@ -65,7 +76,7 @@ afterEach(() => {
 	getCableSplices.mockReset();
 	updateCable.mockReset();
 	deleteCable.mockReset();
-	drawerStore.close();
+	gotoMock.mockReset();
 	vi.mocked(globalToaster.success).mockClear();
 	vi.mocked(globalToaster.error).mockClear();
 });
@@ -78,7 +89,7 @@ describe('CableDiagramEdgeAttributeCard', () => {
 			error: undefined
 		});
 
-		render(CableDiagramEdgeAttributeCard, {});
+		render(CableDiagramEdgeAttributeCard, { cable });
 
 		expect(screen.getByDisplayValue('K-Nord')).toBeInTheDocument();
 		expect(getConduitsForCable).toHaveBeenCalledWith('cable-1');
@@ -92,6 +103,7 @@ describe('CableDiagramEdgeAttributeCard', () => {
 		const onSaveComplete = vi.fn();
 
 		render(CableDiagramEdgeAttributeCard, {
+			cable,
 			onEdgeDelete: vi.fn(),
 			onLabelUpdate,
 			onSaveComplete
@@ -116,7 +128,7 @@ describe('CableDiagramEdgeAttributeCard', () => {
 	test('should toast an error when the update fails', async () => {
 		updateCable.mockRejectedValue(new Error('nein'));
 
-		render(CableDiagramEdgeAttributeCard, {});
+		render(CableDiagramEdgeAttributeCard, { cable });
 
 		const form = document.getElementById('cable-form') as HTMLFormElement;
 		form.requestSubmit();

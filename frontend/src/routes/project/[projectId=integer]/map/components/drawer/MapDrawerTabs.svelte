@@ -3,6 +3,7 @@
 		SharedSlotState,
 		SlotConfiguration
 	} from '$lib/classes/NodeStructureContext.svelte';
+	import type { MapFeatureKind } from '$lib/map/featureDetails';
 	import {
 		IconLayoutGrid,
 		IconLayoutList,
@@ -20,35 +21,52 @@
 	import NodeStructurePanel from '$lib/components/node-structure/NodeStructurePanel.svelte';
 	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
+	import { displayProperties, featureTitle } from '$lib/map/featureDetails';
 	import { traceFrom } from '$lib/utils/traceUtils';
+	import { getFeatureDetails } from '$lib/remote/map/feature-search.remote';
+	import { getConduitsInTrench } from '$lib/remote/map/trenches.remote';
 
 	import TrenchProfilePanel from '../trench-profile/TrenchProfilePanel.svelte';
 	import MapCableAccordion from './MapCableAccordion.svelte';
 	import MapConduitAccordion from './MapConduitAccordion.svelte';
 
 	interface Props {
-		/** Feature properties from MVT */
-		featureData?: Record<string, unknown>;
-		/** Type of feature ('trench', 'address', 'node') */
-		featureType?: string;
-		/** UUID of the feature */
-		featureId?: string;
+		/** The feature kind named in the URL. */
+		kind: MapFeatureKind;
+		/** The feature uuid named in the URL. */
+		uuid: string;
+		/** Project to look the feature up in; empty in the global view. */
+		lookupProjectId?: string;
 		/** Field name alias mapping (English -> Localized) */
 		alias?: Record<string, string>;
-		/** Project ID of the feature (used in global view) */
-		featureProjectId?: string | null;
 		/** List of projects for name lookup */
 		projects?: Array<{ label: string; value: string; name?: string }>;
+		/** The drawer header, reported up once the feature is known. */
+		title?: string;
 	}
 
 	let {
-		featureData = {},
-		featureType = 'trench',
-		featureId = '',
+		kind,
+		uuid,
+		lookupProjectId = '',
 		alias = {},
-		featureProjectId = null,
-		projects = []
+		projects = [],
+		title = $bindable('')
 	}: Props = $props();
+
+	// The page re-keys this component per feature, so the details load once
+	// per drawer. The conduit names come from the tile layer today and are
+	// not part of the detail payload, hence the second query for trenches.
+	/* svelte-ignore state_referenced_locally */
+	const [feature, conduits] = await Promise.all([
+		getFeatureDetails({ featureType: kind, featureUuid: uuid, projectId: lookupProjectId }),
+		kind === 'trench' ? getConduitsInTrench(uuid) : Promise.resolve([])
+	]);
+	const featureData = displayProperties(kind, feature.properties, {
+		conduitNames: conduits.flatMap((item) => (item.conduit?.name ? [item.conduit.name] : []))
+	});
+	title = featureTitle(kind, featureData);
+	const featureName = String(featureData.name ?? '');
 
 	let activeTab = $state('attributes');
 
@@ -65,15 +83,15 @@
 		lastUpdated: 0
 	});
 
-	const tabItems = $derived([
+	// The kind is fixed for this instance, so the tab list is built once.
+	/* svelte-ignore state_referenced_locally */
+	const tabItems = [
 		{ value: 'attributes', label: m.common_attributes() },
-		...(featureType === 'trench' ? [{ value: 'conduits', label: m.form_conduit_overview() }] : []),
-		...(featureType === 'trench' ? [{ value: 'cables', label: m.form_cable_overview() }] : []),
-		...(featureType === 'trench' ? [{ value: 'actions', label: m.form_actions() }] : []),
-		...(featureType === 'node' ? [{ value: 'actions', label: m.form_actions() }] : []),
-		...(featureType === 'address' ? [{ value: 'actions', label: m.form_actions() }] : []),
+		...(kind === 'trench' ? [{ value: 'conduits', label: m.form_conduit_overview() }] : []),
+		...(kind === 'trench' ? [{ value: 'cables', label: m.form_cable_overview() }] : []),
+		...(kind !== 'area' ? [{ value: 'actions', label: m.form_actions() }] : []),
 		{ value: 'files', label: m.form_attachments() }
-	]);
+	];
 
 	let fileExplorer = $state<{ refresh: () => void } | null>(null);
 
@@ -96,26 +114,22 @@
 
 <Tabs tabs={tabItems} bind:value={activeTab}>
 	{#if activeTab === 'attributes'}
-		<FeatureAttributeCard properties={featureData} {featureType} {alias} {projects} />
+		<FeatureAttributeCard properties={featureData} featureType={kind} {alias} {projects} />
 	{/if}
 
-	{#if activeTab === 'conduits' && featureType === 'trench'}
-		{#key featureId}
-			<QueryBoundary>
-				<MapConduitAccordion {featureId} />
-			</QueryBoundary>
-		{/key}
+	{#if activeTab === 'conduits' && kind === 'trench'}
+		<QueryBoundary>
+			<MapConduitAccordion featureId={uuid} />
+		</QueryBoundary>
 	{/if}
 
-	{#if activeTab === 'cables' && featureType === 'trench'}
-		{#key featureId}
-			<QueryBoundary>
-				<MapCableAccordion {featureId} />
-			</QueryBoundary>
-		{/key}
+	{#if activeTab === 'cables' && kind === 'trench'}
+		<QueryBoundary>
+			<MapCableAccordion featureId={uuid} />
+		</QueryBoundary>
 	{/if}
 
-	{#if activeTab === 'actions' && featureType === 'trench'}
+	{#if activeTab === 'actions' && kind === 'trench'}
 		<div class="space-y-4">
 			<button
 				type="button"
@@ -128,7 +142,7 @@
 		</div>
 	{/if}
 
-	{#if activeTab === 'actions' && featureType === 'node'}
+	{#if activeTab === 'actions' && kind === 'node'}
 		<div class="space-y-4">
 			<button
 				type="button"
@@ -149,7 +163,7 @@
 			<button
 				type="button"
 				class="btn preset-filled-tertiary-500 w-full"
-				onclick={() => traceFrom('node', featureId)}
+				onclick={() => traceFrom('node', uuid)}
 			>
 				<IconSTurnRight size={18} />
 				{m.action_trace()}
@@ -157,12 +171,12 @@
 		</div>
 	{/if}
 
-	{#if activeTab === 'actions' && featureType === 'address'}
+	{#if activeTab === 'actions' && kind === 'address'}
 		<div class="space-y-4">
 			<button
 				type="button"
 				class="btn preset-filled-tertiary-500 w-full"
-				onclick={() => traceFrom('address', featureId)}
+				onclick={() => traceFrom('address', uuid)}
 			>
 				<IconSTurnRight size={18} />
 				{m.action_trace()}
@@ -172,13 +186,13 @@
 
 	{#if activeTab === 'files'}
 		<div class="space-y-4">
-			<FileUpload {featureType} {featureId} onUploadComplete={handleUploadComplete} />
-			<FileExplorer bind:this={fileExplorer} {featureType} {featureId} />
+			<FileUpload featureType={kind} featureId={uuid} onUploadComplete={handleUploadComplete} />
+			<FileExplorer bind:this={fileExplorer} featureType={kind} featureId={uuid} />
 		</div>
 	{/if}
 </Tabs>
 
-{#if featureType === 'trench'}
+{#if kind === 'trench'}
 	<FloatingPanel
 		bind:open={trenchProfilePanelOpen}
 		title={m.title_trench_profile()}
@@ -191,13 +205,13 @@
 	>
 		{#if trenchProfilePanelOpen}
 			<QueryBoundary>
-				<TrenchProfilePanel trenchUuid={featureId} />
+				<TrenchProfilePanel trenchUuid={uuid} />
 			</QueryBoundary>
 		{/if}
 	</FloatingPanel>
 {/if}
 
-{#if featureType === 'node'}
+{#if kind === 'node'}
 	<FloatingPanel
 		bind:open={slotConfigPanelOpen}
 		title={m.title_slot_configuration()}
@@ -209,8 +223,8 @@
 		maxHeight={1080}
 	>
 		<NodeSlotConfigPanel
-			nodeUuid={featureId}
-			nodeName={String(featureData?.name ?? '')}
+			nodeUuid={uuid}
+			nodeName={featureName}
 			readonly={true}
 			onViewStructure={(slotConfigUuid: string) => handleOpenStructurePanel(slotConfigUuid)}
 			bind:sharedSlotState
@@ -228,8 +242,8 @@
 		maxHeight={1080}
 	>
 		<NodeStructurePanel
-			nodeUuid={featureId}
-			nodeName={String(featureData?.name ?? '')}
+			nodeUuid={uuid}
+			nodeName={featureName}
 			readonly={true}
 			initialSlotConfigUuid={structurePanelSlotConfigUuid}
 			bind:sharedSlotState

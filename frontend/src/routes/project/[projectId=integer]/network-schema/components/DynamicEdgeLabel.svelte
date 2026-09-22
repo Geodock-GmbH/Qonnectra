@@ -6,10 +6,8 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { drawerStore } from '$lib/stores/drawer';
+	import { openFeature } from '$lib/utils/urlState';
 	import { getSchemaState } from '$lib/context/networkSchemaContext';
-
-	import DrawerTabs from './DrawerTabs.svelte';
 
 	interface CableData {
 		label?: string;
@@ -25,9 +23,7 @@
 		defaultY,
 		onPositionUpdate,
 		onLabelReset,
-		onEdgeDelete,
 		onEdgeSelect,
-		onNameUpdate,
 		selected = false
 	}: {
 		edgeId: string;
@@ -42,9 +38,7 @@
 			text?: string;
 		}) => boolean | Promise<boolean>;
 		onLabelReset?: (labelId: string) => boolean | Promise<boolean>;
-		onEdgeDelete?: (edgeId: string) => void;
 		onEdgeSelect?: (edgeId: string) => void;
-		onNameUpdate?: (label: string) => void;
 		selected?: boolean;
 	} = $props();
 
@@ -249,23 +243,8 @@
 			onEdgeSelect(edgeId);
 		}
 
-		const parsedData = await schemaState.loadCableDetails(
-			cableData?.cable?.uuid || cableData?.uuid || ''
-		);
-
-		drawerStore.open({
-			title: (parsedData?.name as string) || m.title_cable_details(),
-			component: DrawerTabs,
-			props: {
-				...parsedData,
-				type: 'edge',
-				onLabelUpdate: (newLabel: string) => {
-					drawerStore.setTitle(newLabel);
-					onNameUpdate?.(newLabel);
-				},
-				onEdgeDelete
-			}
-		});
+		// Naming the cable in the URL opens its drawer.
+		openFeature('cable', cableData?.cable?.uuid || cableData?.uuid || edgeId);
 	}
 
 	/**

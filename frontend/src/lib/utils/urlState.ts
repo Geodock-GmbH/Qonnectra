@@ -1,4 +1,4 @@
-import { goto } from '$app/navigation';
+import { afterNavigate, goto } from '$app/navigation';
 import { page } from '$app/state';
 
 /**
@@ -139,4 +139,88 @@ export function queryList(url: URL, key: string): string[] {
 		.split(',')
 		.map((entry) => entry.trim())
 		.filter((entry) => entry !== '');
+}
+
+/** The drawer feature named in the URL: its kind and identifier. */
+export interface UrlFeature<K extends string = string> {
+	kind: K;
+	id: string;
+}
+
+/** Identifiers are uuids or numeric ids; anything else is treated as absent. */
+const FEATURE_ID = /^[A-Za-z0-9-]{1,64}$/;
+
+/**
+ * Reads the drawer feature from `?feature=kind:id`. The drawer is open
+ * exactly when this returns a feature. A kind outside the page's allow-list
+ * or a malformed id counts as absent, so a stray URL closes the drawer
+ * instead of erroring.
+ * @param url - The page URL.
+ * @param kinds - The feature kinds the page can show.
+ * @returns The feature, or null when the drawer is closed.
+ */
+export function queryFeature<K extends string>(
+	url: URL,
+	kinds: readonly K[]
+): UrlFeature<K> | null {
+	const raw = url.searchParams.get('feature');
+	if (!raw) return null;
+	const separator = raw.indexOf(':');
+	if (separator === -1) return null;
+	const kind = kinds.find((candidate) => candidate === raw.slice(0, separator));
+	const id = raw.slice(separator + 1);
+	if (!kind || !FEATURE_ID.test(id)) return null;
+	return { kind, id };
+}
+
+/**
+ * Builds the `feature` parameter value for a feature.
+ * @param kind - The feature kind.
+ * @param id - The feature identifier.
+ * @returns `kind:id`.
+ */
+export function featureParam(kind: string, id: string): string {
+	return `${kind}:${id}`;
+}
+
+/**
+ * Opens a feature in the drawer. Opening from a closed drawer is a place,
+ * so it pushes a history entry and back closes the drawer; switching the
+ * feature while the drawer is open replaces the entry, so back still closes
+ * the drawer in one step. The drawer tab is reset with the feature.
+ * @param kind - The feature kind.
+ * @param id - The feature identifier.
+ * @returns Resolves once the navigation has completed.
+ */
+export function openFeature(kind: string, id: string) {
+	const isOpen = page.url.searchParams.has('feature');
+	return setQuery({ feature: featureParam(kind, id), tab: null }, { push: !isOpen });
+}
+
+/**
+ * Closes the drawer by rewriting the current entry without the feature, so
+ * back never reopens it; after a delete that would resurrect a dead entity.
+ * @returns Resolves once the navigation has completed.
+ */
+export function closeFeature() {
+	if (!page.url.searchParams.has('feature')) return Promise.resolve();
+	return setQuery({ feature: null, tab: null });
+}
+
+/**
+ * Runs a callback after a navigation that changed the `feature` parameter
+ * while the calling component stayed mounted: opening, switching or closing
+ * the drawer, including back and forward. For the consumers that mirror the
+ * drawer feature into imperative state (a map selection, a canvas
+ * selection). Built on `afterNavigate`, so it must be called during
+ * component initialisation; the initial page load is not a change.
+ * @param callback - Receives the raw `feature` value the URL now carries, or null.
+ */
+export function onFeatureChange(callback: (feature: string | null) => void): void {
+	afterNavigate(({ from, to }) => {
+		if (!from || !to) return;
+		const next = to.url.searchParams.get('feature');
+		if (from.url.searchParams.get('feature') === next) return;
+		callback(next);
+	});
 }

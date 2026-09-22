@@ -4,8 +4,6 @@ import { fireEvent, render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { drawerStore } from '$lib/stores/drawer';
-
 import DynamicEdgeLabelFixture from './DynamicEdgeLabel.fixture.svelte';
 import DynamicEdgeLabel from './DynamicEdgeLabel.svelte';
 
@@ -27,6 +25,15 @@ vi.mock('$app/environment', () => ({
 	browser: true
 }));
 
+const gotoMock = vi.fn();
+vi.mock('$app/navigation', () => ({
+	goto: (...args: unknown[]) => gotoMock(...args)
+}));
+
+vi.mock('$app/state', () => ({
+	page: { url: new URL('http://localhost/project/7/network-schema') }
+}));
+
 const screenToFlowPositionMock = vi.hoisted(() =>
 	vi.fn((p: { x: number; y: number }) => ({ x: p.x, y: p.y }))
 );
@@ -45,10 +52,6 @@ vi.mock('$lib/paraglide/messages', () => ({
 	)
 }));
 
-vi.mock('./DrawerTabs.svelte', () => ({
-	default: () => {}
-}));
-
 const loadCableDetailsMock = vi.fn();
 
 const baseProps = {
@@ -59,7 +62,6 @@ const baseProps = {
 	defaultY: 80,
 	onPositionUpdate: vi.fn(),
 	onLabelReset: vi.fn(),
-	onEdgeDelete: vi.fn(),
 	onEdgeSelect: vi.fn()
 };
 
@@ -72,7 +74,7 @@ afterEach(() => {
 	vi.restoreAllMocks();
 	loadCableDetailsMock.mockReset();
 	screenToFlowPositionMock.mockClear();
-	drawerStore.close();
+	gotoMock.mockReset();
 });
 
 describe('DynamicEdgeLabel', () => {
@@ -100,7 +102,6 @@ describe('DynamicEdgeLabel', () => {
 			defaultY: 0,
 			onPositionUpdate: vi.fn(),
 			onLabelReset: vi.fn(),
-			onEdgeDelete: vi.fn(),
 			onEdgeSelect: vi.fn()
 		});
 
@@ -114,23 +115,20 @@ describe('DynamicEdgeLabel', () => {
 		expect(label.className).toContain('border-primary-500');
 	});
 
-	test('should fetch cable details, select the edge, and open the drawer on click', async () => {
+	test('should select the edge and name the cable in the URL on click', async () => {
 		const user = userEvent.setup();
 		const onEdgeSelect = vi.fn();
-		const openSpy = vi.spyOn(drawerStore, 'open');
-		loadCableDetailsMock.mockResolvedValue({ name: 'K-Details', uuid: 'cab-1' });
 
 		renderLabel({ ...baseProps, onEdgeSelect });
 
 		await user.click(screen.getByRole('button', { name: /tooltip_open_cable_details/ }));
 
 		expect(onEdgeSelect).toHaveBeenCalledWith('edge-1');
-
-		await vi.waitFor(() => expect(loadCableDetailsMock).toHaveBeenCalledWith('cab-1'));
-
-		await vi.waitFor(() => expect(openSpy).toHaveBeenCalled());
-		const openArg = openSpy.mock.calls[0][0] as { props: Record<string, unknown> };
-		expect(openArg.props.type).toBe('edge');
+		// Naming the cable in the URL is what opens the drawer.
+		expect(gotoMock).toHaveBeenCalledWith(
+			'/project/7/network-schema?feature=cable%3Acab-1',
+			expect.objectContaining({ replaceState: false })
+		);
 	});
 
 	test('should reset the label position on Shift+Click and call onLabelReset', async () => {
@@ -197,7 +195,10 @@ describe('DynamicEdgeLabel', () => {
 		await user.click(screen.getByRole('button', { name: /tooltip_open_cable_details/ }));
 
 		expect(onEdgeSelect).toHaveBeenCalledWith('edge-1');
-		await vi.waitFor(() => expect(loadCableDetailsMock).toHaveBeenCalledWith('cab-1'));
+		expect(gotoMock).toHaveBeenCalledWith(
+			expect.stringContaining('feature=cable%3Acab-1'),
+			expect.anything()
+		);
 	});
 
 	test('should still open cable details on a plain click when the canvas is locked', async () => {
@@ -210,7 +211,10 @@ describe('DynamicEdgeLabel', () => {
 		await user.click(screen.getByRole('button', { name: /tooltip_open_cable_details/ }));
 
 		expect(onEdgeSelect).toHaveBeenCalledWith('edge-1');
-		await vi.waitFor(() => expect(loadCableDetailsMock).toHaveBeenCalledWith('cab-1'));
+		expect(gotoMock).toHaveBeenCalledWith(
+			expect.stringContaining('feature=cable%3Acab-1'),
+			expect.anything()
+		);
 	});
 
 	test('should not enter move mode or save a position when dragged while locked', async () => {
@@ -306,7 +310,6 @@ describe('DynamicEdgeLabel', () => {
 
 	test('should enter edit mode instantly on Alt+click without opening the drawer', async () => {
 		const enterEditMode = vi.fn();
-		const openSpy = vi.spyOn(drawerStore, 'open');
 
 		// The label starts on a locked, non-editing cable — Alt+click must switch
 		// editing to it regardless of the current edit target.
@@ -322,7 +325,7 @@ describe('DynamicEdgeLabel', () => {
 
 		expect(enterEditMode).toHaveBeenCalledWith('edge-1');
 		// The fast-switch must not open the cable-details drawer.
-		expect(openSpy).not.toHaveBeenCalled();
+		expect(gotoMock).not.toHaveBeenCalled();
 	});
 
 	test('should not arm move mode when an Alt+press is held past the long-press delay', async () => {
@@ -404,7 +407,6 @@ describe('DynamicEdgeLabel', () => {
 
 	test('should open the drawer on Enter keydown for accessibility', async () => {
 		const user = userEvent.setup();
-		const openSpy = vi.spyOn(drawerStore, 'open');
 
 		renderLabel({ ...baseProps });
 
@@ -412,6 +414,9 @@ describe('DynamicEdgeLabel', () => {
 		button.focus();
 		await user.keyboard('{Enter}');
 
-		await vi.waitFor(() => expect(openSpy).toHaveBeenCalled());
+		expect(gotoMock).toHaveBeenCalledWith(
+			expect.stringContaining('feature=cable%3Acab-1'),
+			expect.anything()
+		);
 	});
 });

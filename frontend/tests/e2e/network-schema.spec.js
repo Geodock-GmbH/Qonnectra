@@ -37,6 +37,36 @@ test.describe('Network schema page', () => {
 		await page.waitForLoadState('networkidle');
 	});
 
+	test('clicking a node names it in the URL and opens its drawer; back closes it', async ({
+		page
+	}) => {
+		await expect(page.locator('.svelte-flow').first()).toBeVisible({ timeout: 15000 });
+		// The label box, not a connection handle (which is also a button).
+		const nodeLabel = page
+			.locator('.svelte-flow__node [role="button"]:not(.svelte-flow__handle)')
+			.first();
+		test.skip((await nodeLabel.count()) === 0, 'Needs at least one node in the schema');
+
+		// Nodes can sit outside the viewport of the canvas; the click handler
+		// is what matters here, so dispatch the event directly.
+		await nodeLabel.dispatchEvent('click');
+
+		await expect(page).toHaveURL(/[?&]feature=node%3A[0-9a-f-]{36}/);
+		const drawer = page.locator('[data-drawer]');
+		await expect(drawer).toBeVisible();
+		await expect(drawer.locator('input[name="node_name"], input[name="name"]').first()).toBeVisible(
+			{ timeout: 15000 }
+		);
+
+		await page.reload();
+		await expect(page.locator('[data-drawer]')).toBeVisible({ timeout: 15000 });
+
+		await page.goBack();
+		await expect(page).not.toHaveURL(/feature=/);
+		await expect(page.locator('[data-drawer]')).not.toBeVisible();
+		await expect(page.locator('.svelte-flow').first()).toBeVisible();
+	});
+
 	test('renders the SvelteFlow canvas and the attributes panel', async ({ page }) => {
 		// The @xyflow/svelte canvas mounts a .svelte-flow root once initialised.
 		await expect(page.locator('.svelte-flow').first()).toBeVisible({ timeout: 15000 });

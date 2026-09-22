@@ -49,15 +49,16 @@ vi.mock('$lib/utils/tokenHeartbeat.svelte.js', () => ({
 
 vi.mock('ol/ol.css', () => ({}));
 
-vi.mock('$lib/stores/drawer', () => ({
-	drawerStore: {
-		subscribe: (cb: (...args: unknown[]) => unknown) => {
-			cb({ open: false });
-			return () => {};
-		},
-		open: vi.fn()
-	}
-}));
+vi.mock('$app/state', async () => {
+	const { pageStub } = await import('$lib/test-utils/pageStub');
+	return {
+		page: pageStub({
+			routeId: '/project/[projectId=integer]/map',
+			params: { projectId: 'proj-1' },
+			url: 'http://localhost/project/proj-1/map'
+		})
+	};
+});
 
 vi.mock('$lib/stores/toaster', () => ({
 	globalToaster: {
@@ -189,7 +190,6 @@ vi.mock('$lib/classes/MapPopupManager.svelte.js', () => ({
 
 vi.mock('$lib/classes/MapInteractionManager.svelte.js', () => ({
 	MapInteractionManager: class MockMapInteractionManager {
-		setAdditionalDrawerProps = vi.fn();
 		initialize = vi.fn();
 		setSearchPanelRef = vi.fn();
 		cleanup = vi.fn();

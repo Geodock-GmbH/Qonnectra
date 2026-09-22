@@ -2,6 +2,7 @@
 	import type { PageData } from './$types';
 	import { onMount, setContext } from 'svelte';
 	import { get } from 'svelte/store';
+	import { page } from '$app/state';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -11,9 +12,10 @@
 	import { MapState } from '$lib/classes/MapState.svelte';
 	import Drawer from '$lib/components/Drawer.svelte';
 	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
-	import { drawerStore } from '$lib/stores/drawer';
+	import { MAP_FEATURE_KINDS } from '$lib/map/featureDetails';
 	import { globalMapView, trenchColorSelected } from '$lib/stores/store';
 	import { getFieldAliases } from '$lib/utils/fieldAliases';
+	import { closeFeature, openFeature, queryFeature } from '$lib/utils/urlState';
 	import { routeProjectId } from '$lib/context/project';
 
 	import MapDrawerTabs from './components/drawer/MapDrawerTabs.svelte';
@@ -22,6 +24,12 @@
 	let { data }: { data: PageData } = $props();
 
 	const alias = getFieldAliases();
+
+	// `?feature=kind:uuid` is the drawer: present means open with that feature.
+	const feature = $derived(queryFeature(page.url, MAP_FEATURE_KINDS));
+	let drawerTitle = $state('');
+	// In the global view the open feature may belong to another project.
+	const lookupProjectId = $derived($globalMapView ? '' : routeProjectId());
 
 	const mapState = new MapState(
 		routeProjectId(),
@@ -32,16 +40,12 @@
 	);
 	const selectionManager = new MapSelectionManager();
 	const popupManager = new MapPopupManager(alias);
-	const interactionManager = new MapInteractionManager(
-		selectionManager,
-		popupManager,
-		drawerStore,
-		MapDrawerTabs,
-		alias
-	);
-
-	// svelte-ignore state_referenced_locally
-	interactionManager.setAdditionalDrawerProps({ projects: data.projects });
+	// A click reports the feature; the URL opens the drawer and, through
+	// `FeatureMap`, keeps the selection in step.
+	const interactionManager = new MapInteractionManager(selectionManager, popupManager, {
+		onFeatureSelected: openFeature,
+		onSelectionCleared: closeFeature
+	});
 
 	setContext('mapManagers', {
 		mapState,
@@ -88,5 +92,20 @@
 		{/if}
 	</div>
 
-	<Drawer />
+	<Drawer open={feature !== null} title={feature ? drawerTitle : ''} onclose={closeFeature}>
+		{#if feature}
+			{#key feature.id}
+				<QueryBoundary>
+					<MapDrawerTabs
+						kind={feature.kind}
+						uuid={feature.id}
+						{lookupProjectId}
+						{alias}
+						projects={data.projects}
+						bind:title={drawerTitle}
+					/>
+				</QueryBoundary>
+			{/key}
+		{/if}
+	</Drawer>
 </div>

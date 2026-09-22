@@ -2,6 +2,7 @@
 	import type { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte';
 	import type { ComponentProps } from 'svelte';
 
+	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import { setSchemaState } from '$lib/context/networkSchemaContext';
 
 	import DrawerTabs from './DrawerTabs.svelte';
@@ -24,4 +25,7 @@
 	} as unknown as NetworkSchemaState);
 </script>
 
-<DrawerTabs {...drawerProps} />
+<!-- The tabs await the feature's record, so a boundary hosts them like the page does. -->
+<QueryBoundary>
+	<DrawerTabs {...drawerProps} />
+</QueryBoundary>

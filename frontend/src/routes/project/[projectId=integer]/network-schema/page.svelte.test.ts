@@ -46,16 +46,16 @@ vi.mock('@xyflow/svelte', async () => {
 	return mocks;
 });
 
-// Mock stores
-vi.mock('$lib/stores/drawer', () => ({
-	drawerStore: {
-		subscribe: (cb: (value: unknown) => void) => {
-			cb({ open: false });
-			return () => {};
-		},
-		open: vi.fn()
-	}
-}));
+vi.mock('$app/state', async () => {
+	const { pageStub } = await import('$lib/test-utils/pageStub');
+	return {
+		page: pageStub({
+			routeId: '/project/[projectId=integer]/network-schema',
+			params: { projectId: '7' },
+			url: 'http://localhost/project/7/network-schema'
+		})
+	};
+});
 
 vi.mock('$lib/stores/toaster', () => ({
 	globalToaster: {
@@ -186,7 +186,8 @@ vi.mock('$lib/classes/NetworkSchemaState.svelte', () => ({
 		updateEdgeMicropipeConnections = vi.fn();
 		updateCableHandles = vi.fn();
 		updateEdgeConnection = vi.fn();
-		deselectAllNodes = vi.fn();
+		deselectAllNodes = vi.fn()
+		deselectAllEdges = vi.fn();
 		setShiftFromKeyboard = vi.fn();
 		clearShift = vi.fn();
 		transformNodesToSvelteFlow = vi.fn().mockReturnValue([]);

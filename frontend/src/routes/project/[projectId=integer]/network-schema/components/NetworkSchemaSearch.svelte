@@ -9,18 +9,14 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { drawerStore } from '$lib/stores/drawer';
-
-	import DrawerTabs from './DrawerTabs.svelte';
+	import { openFeature } from '$lib/utils/urlState';
 
 	let {
 		searchManager,
-		schemaState,
-		onNodeDelete = null
+		schemaState
 	}: {
 		searchManager: NetworkSchemaSearchManager;
 		schemaState: NetworkSchemaState;
-		onNodeDelete?: ((uuid: string) => void) | null;
 	} = $props();
 
 	const { setCenter } = useSvelteFlow();
@@ -90,60 +86,12 @@
 			}
 		}
 
+		// Naming the result in the URL opens its drawer.
 		if (searchManager.openDrawer) {
-			if (result.type === 'node') {
-				await openNodeDrawer(result.id);
-			} else {
-				await openCableDrawer(result.id);
-			}
+			openFeature(result.type === 'node' ? 'node' : 'cable', result.id);
 		}
 
 		searchManager.searchTerm = '';
-	}
-
-	/**
-	 * Fetch and open node details in drawer
-	 * @param nodeId - Node UUID
-	 */
-	async function openNodeDrawer(nodeId: string) {
-		const parsedData = await schemaState.loadNodeDetails(nodeId);
-		const properties = (parsedData?.properties ?? {}) as Record<string, unknown>;
-
-		drawerStore.open({
-			title: (properties.name as string) || m.title_node_details(),
-			component: DrawerTabs,
-			props: {
-				id: nodeId,
-				...properties,
-				type: 'node',
-				onLabelUpdate: (newLabel: string) => {
-					drawerStore.setTitle(newLabel);
-					schemaState.updateNodeName(nodeId, newLabel);
-				},
-				onNodeDelete
-			}
-		});
-	}
-
-	/**
-	 * Fetch and open cable details in drawer
-	 * @param cableId - Cable UUID
-	 */
-	async function openCableDrawer(cableId: string) {
-		const parsedData = await schemaState.loadCableDetails(cableId);
-
-		drawerStore.open({
-			title: (parsedData?.name as string) || m.title_cable_details(),
-			component: DrawerTabs,
-			props: {
-				...parsedData,
-				type: 'edge',
-				onLabelUpdate: (newLabel: string) => {
-					drawerStore.setTitle(newLabel);
-					schemaState.updateEdgeName(cableId, newLabel);
-				}
-			}
-		});
 	}
 
 	function handleBlur() {

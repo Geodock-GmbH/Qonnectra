@@ -638,6 +638,95 @@ test.describe('Conduit Route Tests', () => {
 
 			await expect(page.locator('[data-drawer]')).not.toBeVisible();
 		});
+
+		test('the open conduit lives in the URL: reload keeps it, back closes it', async ({ page }) => {
+			const firstRow = page.locator('tbody tr').first();
+			await expect(firstRow).toBeVisible({ timeout: 10000 });
+			const name = (await firstRow.locator('td').first().innerText()).trim();
+
+			await firstRow.click();
+			await expect(page).toHaveURL(/[?&]feature=conduit%3A[0-9a-f-]{36}/);
+			await expect(page.locator('[data-drawer]')).toBeVisible();
+			await expect(firstRow).toHaveAttribute('aria-selected', 'true');
+
+			await page.reload();
+			await expect(page.locator('[data-drawer]')).toBeVisible({ timeout: 15000 });
+			await expect(page.locator('[data-drawer] h2')).toHaveText(name);
+
+			await page.goBack();
+			await expect(page.locator('[data-drawer]')).not.toBeVisible();
+			await expect(page).toHaveURL(/\/conduit$/);
+			await expect(page.locator('tbody tr').first()).toBeVisible();
+		});
+
+		test('closing is a replace: back after closing does not reopen the conduit', async ({
+			page
+		}) => {
+			await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 10000 });
+			await page.locator('tbody tr').first().click();
+			await expect(page.locator('[data-drawer]')).toBeVisible();
+
+			await page
+				.locator('[data-drawer]')
+				.getByLabel(/Close drawer|Seitenleiste schließen/i)
+				.click();
+			await expect(page).not.toHaveURL(/feature=/);
+
+			// Opening pushed one entry and closing rewrote it, so back returns to
+			// the list as it was before the open, never to the closed conduit.
+			await page.goBack();
+			await expect(page).toHaveURL(/\/conduit$/);
+			await expect(page.locator('[data-drawer]')).not.toBeVisible();
+		});
+
+		test('a fresh URL with a feature opens the drawer for that conduit', async ({ page }) => {
+			const firstRow = page.locator('tbody tr').first();
+			await expect(firstRow).toBeVisible({ timeout: 10000 });
+			await firstRow.click();
+			await expect(page).toHaveURL(/feature=conduit%3A/);
+			const url = page.url();
+
+			// A hard load of the shared URL, as a recipient would open it.
+			await page.goto(url);
+
+			await expect(page.locator('[data-drawer]')).toBeVisible({ timeout: 15000 });
+			await expect(page.locator('[data-drawer] input[name="conduit_name"]')).toBeVisible();
+		});
+
+		test('opening the drawer is a cheap navigation: no layout data request, no progress bar', async ({
+			page
+		}) => {
+			await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 10000 });
+			/** @type {string[]} */
+			const dataRequests = [];
+			page.on('request', (req) => {
+				if (req.url().includes('__data.json')) dataRequests.push(req.url());
+			});
+
+			await page.locator('tbody tr').first().click();
+			await expect(page.locator('[data-drawer] input[name="conduit_name"]')).toBeVisible();
+
+			expect(dataRequests).toHaveLength(0);
+			await expect(page.locator('body')).not.toHaveAttribute(
+				'data-navigation-progress-seen',
+				'true'
+			);
+		});
+
+		test('an unknown conduit shows the error state, a bogus feature keeps the drawer closed', async ({
+			page
+		}) => {
+			const base = page.url().split('?')[0];
+
+			await page.goto(`${base}?feature=conduit:00000000-0000-0000-0000-000000000000`);
+			await expect(page.locator('[data-drawer]')).toBeVisible({ timeout: 15000 });
+			await expect(page.locator('[data-drawer] .preset-filled-error-500')).toBeVisible();
+			await expect(page.locator('tbody tr').first()).toBeVisible();
+
+			await page.goto(`${base}?feature=bogus`);
+			await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 10000 });
+			await expect(page.locator('[data-drawer]')).not.toBeVisible();
+		});
 	});
 
 	test.describe('Import/Export', () => {

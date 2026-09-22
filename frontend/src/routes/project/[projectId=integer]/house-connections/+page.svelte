@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
+	import { page } from '$app/state';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -11,9 +12,9 @@
 	import Drawer from '$lib/components/Drawer.svelte';
 	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import { LinkedTrenchHighlights } from '$lib/map/linkedTrenchHighlights';
-	import { drawerStore } from '$lib/stores/drawer';
 	import { trenchColorSelected } from '$lib/stores/store';
 	import { getFieldAliases } from '$lib/utils/fieldAliases';
+	import { closeFeature, openFeature, queryFeature } from '$lib/utils/urlState';
 	import { routeProjectId } from '$lib/context/project';
 
 	import HouseConnectionDrawerTabs from './components/drawer/HouseConnectionDrawerTabs.svelte';
@@ -26,6 +27,13 @@
 
 	const alias = getFieldAliases();
 
+	/** Only trenches open the drawer here; other layers stay with the popup. */
+	const DRAWER_KINDS = ['trench'] as const;
+
+	// `?feature=trench:<uuid>` is the drawer: present means open with that trench.
+	const feature = $derived(queryFeature(page.url, DRAWER_KINDS));
+	let drawerTitle = $state('');
+
 	const mapState = new MapState(routeProjectId(), get(trenchColorSelected), {
 		trench: true,
 		address: true,
@@ -34,19 +42,11 @@
 	});
 	const selectionManager = new MapSelectionManager();
 	const popupManager = new MapPopupManager(alias);
-	const interactionManager = new MapInteractionManager(
-		selectionManager,
-		popupManager,
-		drawerStore,
-		HouseConnectionDrawerTabs,
-		alias,
-		{
-			trench: true,
-			address: false,
-			node: false,
-			area: false
-		}
-	);
+	const interactionManager = new MapInteractionManager(selectionManager, popupManager, {
+		selectableLayers: { trench: true, address: false, node: false, area: false },
+		onFeatureSelected: openFeature,
+		onSelectionCleared: closeFeature
+	});
 	const nodeAssignment = new NodeAssignmentManager(interactionManager);
 	const trenchHighlights = new LinkedTrenchHighlights();
 
@@ -92,5 +92,13 @@
 		{/if}
 	</div>
 
-	<Drawer />
+	<Drawer open={feature !== null} title={feature ? drawerTitle : ''} onclose={closeFeature}>
+		{#if feature}
+			{#key feature.id}
+				<QueryBoundary>
+					<HouseConnectionDrawerTabs uuid={feature.id} bind:title={drawerTitle} />
+				</QueryBoundary>
+			{/key}
+		{/if}
+	</Drawer>
 </div>

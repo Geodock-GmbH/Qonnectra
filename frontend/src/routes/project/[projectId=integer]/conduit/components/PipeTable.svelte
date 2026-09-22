@@ -11,17 +11,17 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { drawerStore } from '$lib/stores/drawer';
-	import { setQuery } from '$lib/utils/urlState';
-
-	import ConduitDrawerTabs from './drawer/ConduitDrawerTabs.svelte';
+	import { openFeature, setQuery } from '$lib/utils/urlState';
 
 	let {
 		pipes,
-		pagination
+		pagination,
+		selectedUuid = null
 	}: {
 		pipes: ConduitListRow[];
 		pagination: { totalCount: number; pageSize: number; page: number };
+		/** The conduit open in the drawer, highlighted in the table; from the URL. */
+		selectedUuid?: string | null;
 	} = $props();
 
 	type ColumnKey = keyof ConduitListRow;
@@ -148,15 +148,12 @@
 	});
 
 	/**
-	 * Opens the drawer for a conduit; the drawer's cards load the details.
+	 * Opens the drawer for a conduit by naming it in the URL; the drawer
+	 * loads the details itself.
 	 * @param pipe - The clicked row.
 	 */
 	function handleRowClick(pipe: ConduitListRow) {
-		drawerStore.open({
-			title: pipe.name || m.common_conduit_details(),
-			component: ConduitDrawerTabs,
-			props: { uuid: pipe.value }
-		});
+		openFeature('conduit', pipe.value);
 	}
 </script>
 
@@ -219,7 +216,12 @@
 					</thead>
 					<tbody class="[&>tr]:hover:preset-tonal-primary cursor-pointer">
 						{#each sortedPipes as row (row.value)}
-							<tr onclick={() => handleRowClick(row)}>
+							<tr
+								onclick={() => handleRowClick(row)}
+								class:bg-primary-500={row.value === selectedUuid}
+								class:text-white={row.value === selectedUuid}
+								aria-selected={row.value === selectedUuid}
+							>
 								{#each columnConfig as column (column.key)}
 									<td data-label={column.label}>{row[column.key]}</td>
 								{/each}

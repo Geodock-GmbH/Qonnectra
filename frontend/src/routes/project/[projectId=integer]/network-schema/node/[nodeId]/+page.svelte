@@ -3,6 +3,7 @@
 	import type { NetworkSchemaInitData } from '$lib/classes/NetworkSchemaState.svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import { Background, ConnectionMode, Panel, SvelteFlow } from '@xyflow/svelte';
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
 	import { IconArrowLeft, IconChevronDown, IconChevronRight } from '@tabler/icons-svelte';
@@ -13,13 +14,14 @@
 	import { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte';
 	import Drawer from '$lib/components/Drawer.svelte';
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
-	import { drawerStore } from '$lib/stores/drawer';
+	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import {
 		cableDirectionAnimationEnabled,
 		edgeSnappingEnabled,
 		networkSchemaDisplayOptionsExpanded,
 		networkSchemaPanelExpanded
 	} from '$lib/stores/store';
+	import { closeFeature, onFeatureChange, queryFeature } from '$lib/utils/urlState';
 	import { setSchemaState } from '$lib/context/networkSchemaContext';
 	import { routeProjectId } from '$lib/context/project';
 
@@ -30,6 +32,7 @@
 
 	import CableDiagramEdge from '../../components/CableDiagramEdge.svelte';
 	import CableDiagramNode from '../../components/CableDiagramNode.svelte';
+	import DrawerTabs from '../../components/DrawerTabs.svelte';
 	import MicroductChoiceDialog from '../../components/MicroductChoiceDialog.svelte';
 	import NetworkSchemaControls from '../../components/NetworkSchemaControls.svelte';
 	import NetworkSchemaEditModeBadge from '../../components/NetworkSchemaEditModeBadge.svelte';
@@ -123,14 +126,31 @@
 		goto(resolve('/project/[projectId=integer]/network-schema', { projectId: routeProjectId() }));
 	}
 
-	let previousDrawerOpen = $state(false);
-	$effect(() => {
-		const currentDrawerOpen = $drawerStore.open;
-		if (previousDrawerOpen && !currentDrawerOpen) {
+	/** Feature kinds this page can show in the drawer. */
+	const DRAWER_KINDS = ['node', 'cable'] as const;
+
+	// `?feature=kind:id` is the drawer: present means open with that element.
+	const feature = $derived(queryFeature(page.url, DRAWER_KINDS));
+	let drawerTitle = $state('');
+
+	/**
+	 * Mirrors the feature named in the URL onto the canvas selection, in one
+	 * direction: the URL is the source, the selection its cache.
+	 */
+	function followUrlFeature() {
+		const current = queryFeature(page.url, DRAWER_KINDS);
+		if (!current) {
 			schemaState.deselectAllNodes();
+			schemaState.deselectAllEdges();
+		} else if (current.kind === 'node') {
+			schemaState.selectNode(current.id);
+		} else {
+			schemaState.selectEdge(current.id);
 		}
-		previousDrawerOpen = currentDrawerOpen;
-	});
+	}
+
+	followUrlFeature();
+	onFeatureChange(followUrlFeature);
 </script>
 
 <svelte:head>
@@ -279,7 +299,15 @@
 		</SvelteFlow>
 	</div>
 
-	<Drawer />
+	<Drawer open={feature !== null} title={feature ? drawerTitle : ''} onclose={closeFeature}>
+		{#if feature}
+			{#key feature.id}
+				<QueryBoundary>
+					<DrawerTabs kind={feature.kind} id={feature.id} bind:title={drawerTitle} />
+				</QueryBoundary>
+			{/key}
+		{/if}
+	</Drawer>
 </div>
 
 <MicroductChoiceDialog {schemaState} />

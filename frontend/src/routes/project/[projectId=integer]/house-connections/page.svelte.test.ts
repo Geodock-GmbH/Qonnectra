@@ -43,16 +43,6 @@ vi.mock('$env/dynamic/public', () => ({
 
 vi.mock('ol/ol.css', () => ({}));
 
-vi.mock('$lib/stores/drawer', () => ({
-	drawerStore: {
-		subscribe: (cb: (...args: unknown[]) => unknown) => {
-			cb({ open: false });
-			return () => {};
-		},
-		open: vi.fn()
-	}
-}));
-
 vi.mock('$lib/stores/toaster', () => ({
 	globalToaster: {
 		success: vi.fn(),
@@ -217,12 +207,11 @@ describe('/house-connections/+page.svelte', () => {
 	test('should let only trenches open the drawer', () => {
 		render(Page);
 
-		expect(interactionManagerArgs[0][5]).toEqual({
-			trench: true,
-			address: false,
-			node: false,
-			area: false
-		});
+		expect(interactionManagerArgs[0][2]).toEqual(
+			expect.objectContaining({
+				selectableLayers: { trench: true, address: false, node: false, area: false }
+			})
+		);
 	});
 
 	test('should render the Drawer component', () => {

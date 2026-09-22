@@ -376,9 +376,7 @@
 		defaultY={labelY}
 		onPositionUpdate={handleLabelPositionUpdate}
 		onLabelReset={handleLabelReset}
-		onEdgeDelete={(edgeId: string) => schemaState.handleEdgeDelete(edgeId)}
 		onEdgeSelect={(edgeId: string) => schemaState.selectEdge(edgeId)}
-		onNameUpdate={(newName: string) => schemaState.updateEdgeName(id, newName)}
 		{selected}
 	/>
 {/if}

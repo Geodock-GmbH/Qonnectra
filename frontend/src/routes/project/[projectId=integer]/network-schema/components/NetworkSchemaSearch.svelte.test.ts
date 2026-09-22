@@ -2,12 +2,19 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { drawerStore } from '$lib/stores/drawer';
-
 import NetworkSchemaSearch from './NetworkSchemaSearch.svelte';
 
 vi.mock('$app/environment', () => ({
 	browser: true
+}));
+
+const gotoMock = vi.fn();
+vi.mock('$app/navigation', () => ({
+	goto: (...args: unknown[]) => gotoMock(...args)
+}));
+
+vi.mock('$app/state', () => ({
+	page: { url: new URL('http://localhost/project/7/network-schema') }
 }));
 
 const setCenterMock = vi.hoisted(() => vi.fn());
@@ -23,10 +30,6 @@ vi.mock('$lib/paraglide/messages', () => ({
 			get: (_target, prop: string) => () => `${prop}`
 		}
 	)
-}));
-
-vi.mock('./DrawerTabs.svelte', () => ({
-	default: () => {}
 }));
 
 /**
@@ -68,7 +71,7 @@ beforeEach(() => {
 afterEach(() => {
 	vi.restoreAllMocks();
 	setCenterMock.mockReset();
-	drawerStore.close();
+	gotoMock.mockReset();
 });
 
 describe('NetworkSchemaSearch', () => {
@@ -109,7 +112,6 @@ describe('NetworkSchemaSearch', () => {
 		const user = userEvent.setup();
 		const searchManager = makeSearchManager();
 		const schemaState = makeSchemaState();
-		const openSpy = vi.spyOn(drawerStore, 'open');
 
 		render(NetworkSchemaSearch, { searchManager, schemaState });
 
@@ -122,11 +124,14 @@ describe('NetworkSchemaSearch', () => {
 		expect(setCenterMock).toHaveBeenCalledWith(10, 20, expect.objectContaining({ zoom: 1 }));
 		expect(schemaState.selectNode).toHaveBeenCalledWith('node-1');
 
-		await vi.waitFor(() => expect(openSpy).toHaveBeenCalled());
-		expect(schemaState.loadNodeDetails).toHaveBeenCalledWith('node-1');
+		// Naming the node in the URL is what opens the drawer.
+		expect(gotoMock).toHaveBeenCalledWith(
+			'/project/7/network-schema?feature=node%3Anode-1',
+			expect.objectContaining({ replaceState: false })
+		);
 	});
 
-	test('should select an edge result and fetch cable details', async () => {
+	test('should select an edge result and name the cable in the URL', async () => {
 		const user = userEvent.setup();
 		const searchManager = makeSearchManager();
 		const schemaState = makeSchemaState();
@@ -137,7 +142,10 @@ describe('NetworkSchemaSearch', () => {
 		await user.click(screen.getByText('K-Süd'));
 
 		expect(schemaState.selectEdge).toHaveBeenCalledWith('cable-1');
-		await vi.waitFor(() => expect(schemaState.loadCableDetails).toHaveBeenCalledWith('cable-1'));
+		expect(gotoMock).toHaveBeenCalledWith(
+			'/project/7/network-schema?feature=cable%3Acable-1',
+			expect.anything()
+		);
 	});
 
 	test('should clear the search when the clear button is clicked', async () => {

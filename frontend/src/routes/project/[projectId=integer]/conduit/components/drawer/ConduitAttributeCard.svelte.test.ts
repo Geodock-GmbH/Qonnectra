@@ -1,10 +1,8 @@
 import type { ConduitRecord } from '$lib/remote/conduit/conduit-data';
-import { get } from 'svelte/store';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { drawerStore } from '$lib/stores/drawer';
 import { globalToaster } from '$lib/stores/toaster';
 import BoundaryFixture from '$lib/test-utils/Boundary.fixture.svelte';
 import { commandFailure, commandResult, httpError } from '$lib/test-utils/remote-stubs';
@@ -13,6 +11,15 @@ import ConduitAttributeCard from './ConduitAttributeCard.svelte';
 
 vi.mock('$app/environment', () => ({
 	browser: true
+}));
+
+const gotoMock = vi.fn();
+vi.mock('$app/navigation', () => ({
+	goto: (...args: unknown[]) => gotoMock(...args)
+}));
+
+vi.mock('$app/state', () => ({
+	page: { url: new URL('http://localhost/project/5/conduit?feature=conduit%3Aconduit-1') }
 }));
 
 const getConduit = vi.fn();
@@ -71,9 +78,11 @@ const conduit: ConduitRecord = {
 	flag: { id: 7, flag: 'Bau' }
 };
 
+const onrename = vi.fn();
+
 function renderCard() {
 	return render(BoundaryFixture, {
-		props: { component: ConduitAttributeCard, props: { uuid: 'conduit-1' } }
+		props: { component: ConduitAttributeCard, props: { uuid: 'conduit-1', onrename } }
 	});
 }
 
@@ -85,7 +94,6 @@ beforeEach(() => {
 	getConduit.mockResolvedValue(conduit);
 	updateConduit.mockReturnValue(commandResult({ ...conduit, name: 'Rohr-Neu' }));
 	deleteConduit.mockReturnValue(commandResult(undefined));
-	drawerStore.open({ title: 'Rohr-A', props: { uuid: 'conduit-1' } });
 });
 
 afterEach(() => {
@@ -93,7 +101,8 @@ afterEach(() => {
 	getConduitList.mockReset();
 	updateConduit.mockReset();
 	deleteConduit.mockReset();
-	drawerStore.close();
+	gotoMock.mockReset();
+	onrename.mockReset();
 	vi.mocked(globalToaster.success).mockClear();
 	vi.mocked(globalToaster.error).mockClear();
 });
@@ -131,7 +140,7 @@ describe('ConduitAttributeCard', () => {
 			manufacturer_id: 6,
 			flag_id: 7
 		});
-		expect(get(drawerStore).title).toBe('Rohr-Neu');
+		expect(onrename).toHaveBeenCalledWith('Rohr-Neu');
 	});
 
 	test('should toast the backend message when the update is rejected', async () => {
@@ -147,7 +156,7 @@ describe('ConduitAttributeCard', () => {
 			)
 		);
 		expect(globalToaster.success).not.toHaveBeenCalled();
-		expect(get(drawerStore).title).toBe('Rohr-A');
+		expect(onrename).not.toHaveBeenCalled();
 	});
 
 	test('should delete the conduit and close the drawer on confirm', async () => {
@@ -159,7 +168,12 @@ describe('ConduitAttributeCard', () => {
 		await user.click(await screen.findByText('common_delete'));
 
 		await vi.waitFor(() => expect(deleteConduit).toHaveBeenCalledWith('conduit-1'));
-		await vi.waitFor(() => expect(get(drawerStore).open).toBe(false));
+		await vi.waitFor(() =>
+			expect(gotoMock).toHaveBeenCalledWith(
+				'/project/5/conduit',
+				expect.objectContaining({ replaceState: true })
+			)
+		);
 		expect(globalToaster.success).toHaveBeenCalled();
 	});
 
@@ -177,6 +191,6 @@ describe('ConduitAttributeCard', () => {
 				expect.objectContaining({ description: 'Conduit is in use' })
 			)
 		);
-		expect(get(drawerStore).open).toBe(true);
+		expect(gotoMock).not.toHaveBeenCalled();
 	});
 });

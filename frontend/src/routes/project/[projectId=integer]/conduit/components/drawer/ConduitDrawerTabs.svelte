@@ -5,12 +5,26 @@
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
+	import { getConduit } from '$lib/remote/conduit/conduits.remote';
 
 	import ConduitAttributeCard from './ConduitAttributeCard.svelte';
 	import ConduitMicroductStatus from './ConduitMicroductStatus.svelte';
 
-	// The drawer store spreads an untyped props bag; only `uuid` is read here.
-	let { uuid = '' }: { uuid?: string; [key: string]: unknown } = $props();
+	let {
+		uuid,
+		title = $bindable('')
+	}: {
+		/** The conduit named in the URL. */
+		uuid: string;
+		/** The drawer header, reported up once the conduit is known. */
+		title?: string;
+	} = $props();
+
+	// The page re-keys this component per uuid, so the conduit loads once per
+	// drawer; the attribute card shares the same query.
+	// svelte-ignore state_referenced_locally
+	const conduit = await getConduit(uuid);
+	title = conduit.name;
 
 	let group = $state('attributes');
 
@@ -27,31 +41,25 @@
 	}
 </script>
 
-{#key uuid}
-	<Tabs tabs={tabItems} bind:value={group}>
-		{#if group === 'attributes'}
+<Tabs tabs={tabItems} bind:value={group}>
+	{#if group === 'attributes'}
+		<QueryBoundary>
+			<ConduitAttributeCard {uuid} onrename={(name) => (title = name)} />
+		</QueryBoundary>
+	{/if}
+
+	{#if group === 'status'}
+		<div class="p-4">
 			<QueryBoundary>
-				<ConduitAttributeCard {uuid} />
+				<ConduitMicroductStatus conduitUuid={uuid} />
 			</QueryBoundary>
-		{/if}
+		</div>
+	{/if}
 
-		{#if group === 'status'}
-			<div class="p-4">
-				<QueryBoundary>
-					<ConduitMicroductStatus conduitUuid={uuid} />
-				</QueryBoundary>
-			</div>
-		{/if}
-
-		{#if group === 'files'}
-			<div class="space-y-4">
-				<FileUpload
-					featureType="conduit"
-					featureId={uuid}
-					onUploadComplete={handleUploadComplete}
-				/>
-				<FileExplorer bind:this={fileExplorer} featureType="conduit" featureId={uuid} />
-			</div>
-		{/if}
-	</Tabs>
-{/key}
+	{#if group === 'files'}
+		<div class="space-y-4">
+			<FileUpload featureType="conduit" featureId={uuid} onUploadComplete={handleUploadComplete} />
+			<FileExplorer bind:this={fileExplorer} featureType="conduit" featureId={uuid} />
+		</div>
+	{/if}
+</Tabs>

@@ -6,10 +6,10 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import MessageBox from '$lib/components/MessageBox.svelte';
-	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
+	import { closeFeature } from '$lib/utils/urlState';
 	import { isNetworkSchemaChildView } from '$lib/config/routes';
 	import { routeProjectId } from '$lib/context/project';
 	import {
@@ -31,14 +31,19 @@
 
 	const isChildView = $derived(isNetworkSchemaChildView(page.route.id));
 
-	let node = $derived($drawerStore.props as NodeDrawerProps | undefined);
-	let id = $derived(node?.id || '');
-	const projectId = $derived(routeProjectId());
-
 	let {
+		node,
 		onLabelUpdate,
 		onNodeDelete
-	}: { onLabelUpdate?: (name: string) => void; onNodeDelete?: (id: string) => void } = $props();
+	}: {
+		/** The node's detail record, owned by the drawer tabs. */
+		node: NodeDrawerProps;
+		onLabelUpdate?: (name: string) => void;
+		onNodeDelete?: (id: string) => void;
+	} = $props();
+
+	let id = $derived(node.id || '');
+	const projectId = $derived(routeProjectId());
 
 	let deleteMessageBox = $state<ReturnType<typeof MessageBox> | null>(null);
 	let cableBlockedMessageBox = $state<ReturnType<typeof MessageBox> | null>(null);
@@ -70,6 +75,7 @@
 		deleteMessageBox?.open();
 	}
 
+	/** Deletes the node, closes the drawer by URL and drops it from the canvas. */
 	async function handleDelete() {
 		if (!id) return;
 
@@ -80,7 +86,7 @@
 				title: m.title_success(),
 				description: m.message_success_deleting_node?.() || 'Node deleted successfully'
 			});
-			drawerStore.close();
+			closeFeature();
 			onNodeDelete?.(id);
 		} catch (error) {
 			console.error('Error deleting node:', error);
@@ -121,16 +127,14 @@
 
 <!-- Node form (keyed so a different node remounts and re-initialises fields) -->
 {#key id}
-	{#if node}
-		<NodeAttributeForm
-			{node}
-			{attributes}
-			{nodeTypeDisabled}
-			{parentNodeDisabled}
-			{isCheckingDependencies}
-			{onLabelUpdate}
-		/>
-	{/if}
+	<NodeAttributeForm
+		{node}
+		{attributes}
+		{nodeTypeDisabled}
+		{parentNodeDisabled}
+		{isCheckingDependencies}
+		{onLabelUpdate}
+	/>
 {/key}
 
 <!-- Update buttons -->

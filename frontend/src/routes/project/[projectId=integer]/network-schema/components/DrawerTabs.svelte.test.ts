@@ -1,8 +1,6 @@
 import { render, screen } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { drawerStore } from '$lib/stores/drawer';
-
 import DrawerTabsFixture from './DrawerTabs.fixture.svelte';
 
 vi.mock('$app/environment', () => ({
@@ -74,52 +72,38 @@ beforeEach(() => {
 		json: () => Promise.resolve([])
 	});
 	vi.spyOn(console, 'error').mockImplementation(() => {});
-	drawerStore.open({ props: {} });
 });
 
 afterEach(() => {
 	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
 	fetchMock.mockReset();
-	drawerStore.close();
 });
 
 describe('DrawerTabs', () => {
-	test('should show edge tabs for cables', () => {
-		render(DrawerTabsFixture, {
-			drawerProps: {
-				type: 'edge',
-				uuid: 'cable-1',
-				name: 'K-Nord'
-			}
-		});
+	test('should show edge tabs for cables', async () => {
+		render(DrawerTabsFixture, { drawerProps: { kind: 'cable', id: 'cable-1' } });
 
-		expect(screen.getByRole('tab', { name: 'common_attributes' })).toBeInTheDocument();
+		expect(await screen.findByRole('tab', { name: 'common_attributes' })).toBeInTheDocument();
 		expect(screen.getByRole('tab', { name: 'form_status' })).toBeInTheDocument();
 		expect(screen.getByRole('tab', { name: 'form_handles' })).toBeInTheDocument();
 		expect(screen.getByRole('tab', { name: 'form_actions' })).toBeInTheDocument();
 		expect(screen.getByRole('tab', { name: 'form_attachments' })).toBeInTheDocument();
 	});
 
-	test('should show node tabs without cable-specific entries', () => {
-		render(DrawerTabsFixture, {
-			drawerProps: {
-				type: 'node',
-				uuid: 'node-1',
-				name: 'PoP-1'
-			}
-		});
+	test('should show node tabs without cable-specific entries', async () => {
+		render(DrawerTabsFixture, { drawerProps: { kind: 'node', id: 'node-1' } });
 
-		expect(screen.getByRole('tab', { name: 'common_attributes' })).toBeInTheDocument();
+		expect(await screen.findByRole('tab', { name: 'common_attributes' })).toBeInTheDocument();
 		expect(screen.getByRole('tab', { name: 'form_actions' })).toBeInTheDocument();
 		expect(screen.queryByRole('tab', { name: 'form_status' })).not.toBeInTheDocument();
 		expect(screen.queryByRole('tab', { name: 'form_handles' })).not.toBeInTheDocument();
 	});
 
-	test('should select the attributes tab by default', () => {
-		render(DrawerTabsFixture, { drawerProps: { type: 'node', uuid: 'node-1' } });
+	test('should select the attributes tab by default', async () => {
+		render(DrawerTabsFixture, { drawerProps: { kind: 'node', id: 'node-1' } });
 
-		expect(screen.getByRole('tab', { name: 'common_attributes' })).toHaveAttribute(
+		expect(await screen.findByRole('tab', { name: 'common_attributes' })).toHaveAttribute(
 			'aria-selected',
 			'true'
 		);

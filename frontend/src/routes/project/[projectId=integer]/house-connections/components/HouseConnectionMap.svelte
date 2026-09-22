@@ -2,6 +2,7 @@
 	import type { SearchPanelRef } from '$lib/classes/MapInteractionManager.svelte';
 	import type OlMap from 'ol/Map.js';
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -9,9 +10,10 @@
 	import MapHint from '$lib/components/MapHint.svelte';
 	import { syncLayerStyles } from '$lib/map/layerStyleSync';
 	import { syncMapProject } from '$lib/map/projectScopeSync';
-	import { drawerStore } from '$lib/stores/drawer';
+	import { selectUrlFeature } from '$lib/map/urlFeatureSelection';
 	import { trenchColorSelected } from '$lib/stores/store';
-	import { onProjectChange } from '$lib/context/project';
+	import { onFeatureChange, queryFeature } from '$lib/utils/urlState';
+	import { onProjectChange, routeProjectId } from '$lib/context/project';
 	import { getLayerStyleAttributes } from '$lib/remote/map/layers.remote';
 
 	import {
@@ -36,9 +38,34 @@
 			(mapRef?.getSearchPanelRef() as SearchPanelRef | undefined)?.getHighlightLayer?.()
 	};
 
+	/** Only trenches open the drawer here. */
+	const DRAWER_KINDS = ['trench'] as const;
+
+	const drawerOpen = $derived(queryFeature(page.url, DRAWER_KINDS) !== null);
+
 	/**
-	 * Initializes selection layers, the linked-trench overlay, popup and interaction handlers
-	 * when the map is ready.
+	 * Mirrors the trench named in the URL onto the map selection. The URL is
+	 * the source: a click already selected its trench, a shared link or the
+	 * back button selects (and zooms to) the trench now.
+	 */
+	function followUrlFeature() {
+		const { srid, proj4Def } = page.data;
+		void selectUrlFeature({
+			map: mapState.olMap,
+			selectionManager,
+			feature: queryFeature(page.url, DRAWER_KINDS),
+			hash: page.url.hash,
+			lookupProjectId: routeProjectId(),
+			storage: srid && proj4Def ? { srid, proj4Def } : null
+		});
+	}
+
+	onFeatureChange(followUrlFeature);
+
+	/**
+	 * Initializes selection layers, the linked-trench overlay, popup and
+	 * interaction handlers when the map is ready, then applies the trench
+	 * the URL already names.
 	 * @param detail - Map ready event with the OpenLayers map instance
 	 */
 	function handleMapReady({ map }: { map: OlMap }) {
@@ -51,6 +78,7 @@
 		trenchHighlights.attach(map, mapState.vectorTileLayer?.getSource());
 		popupManager.initialize(map);
 		interactionManager.initialize(map, mapState.getLayerReferences(), searchPanel);
+		followUrlFeature();
 	}
 
 	onProjectChange((projectId) =>
@@ -90,7 +118,7 @@
 		<div id="popup-content"></div>
 	</div>
 </div>
-<MapHint message={m.message_map_hint_reveal_drawer()} visible={$drawerStore.open == false} />
+<MapHint message={m.message_map_hint_reveal_drawer()} visible={!drawerOpen} />
 
 <style>
 	.ol-popup {

@@ -3,8 +3,8 @@
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
-	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { closeFeature } from '$lib/utils/urlState';
 	import {
 		getCompanyOptions,
 		getConduitTypeOptions,
@@ -20,7 +20,14 @@
 	} from '$lib/remote/conduit/conduits.remote';
 	import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
 
-	let { uuid }: { uuid: string } = $props();
+	let {
+		uuid,
+		onrename = () => {}
+	}: {
+		uuid: string;
+		/** Called with the new name after a save, so the drawer header follows. */
+		onrename?: (name: string) => void;
+	} = $props();
 
 	// The form edits a snapshot of the conduit; the drawer tabs re-key this
 	// component per uuid, so the loads below run once per conduit.
@@ -86,7 +93,7 @@
 				flag_id: idOf(conduitFlag)
 			}).updates(getConduitList);
 
-			drawerStore.setTitle(updated.name);
+			onrename(updated.name);
 			globalToaster.success({
 				title: m.title_success(),
 				description: m.message_success_updating_conduit()
@@ -104,7 +111,8 @@
 	}
 
 	/**
-	 * Deletes the conduit, refreshes the list and closes the drawer.
+	 * Deletes the conduit, refreshes the list and closes the drawer by
+	 * rewriting the URL, so back never reopens the deleted conduit.
 	 */
 	async function handleDelete() {
 		try {
@@ -113,7 +121,7 @@
 				title: m.title_success(),
 				description: m.message_success_deleting_conduit()
 			});
-			drawerStore.close();
+			closeFeature();
 		} catch (err) {
 			globalToaster.error({
 				title: m.common_error(),
