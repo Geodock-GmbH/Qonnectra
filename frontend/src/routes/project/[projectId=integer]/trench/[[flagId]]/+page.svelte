@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, setContext } from 'svelte';
-	import { derived, get } from 'svelte/store';
+	import { get } from 'svelte/store';
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -11,12 +11,7 @@
 	import { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte.js';
 	import { MapState } from '$lib/classes/MapState.svelte';
 	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
-	import {
-		selectedConduit,
-		selectedFlag,
-		selectedProject,
-		trenchColorSelected
-	} from '$lib/stores/store';
+	import { selectedConduit, selectedFlag, trenchColorSelected } from '$lib/stores/store';
 	import { getFieldAliases } from '$lib/utils/fieldAliases';
 	import { routeProjectId } from '$lib/context/project';
 
@@ -30,7 +25,8 @@
 
 	const alias = getFieldAliases();
 
-	// A conduit remembered from another flag does not belong to the one in the URL.
+	// The flag in the URL becomes the preferred flag; a conduit remembered
+	// from another flag does not belong to the one in the URL.
 	const urlFlagId = page.params.flagId;
 	if (browser && urlFlagId && urlFlagId !== get(selectedFlag)?.[0]) {
 		selectedFlag.set([urlFlagId]);
@@ -53,25 +49,23 @@
 
 	const layersInitialized = mapState.initializeLayers();
 
-	const trenchScope = derived([selectedProject, selectedFlag], ([projectId, flag]) =>
-		projectId && flag?.[0] ? { projectId, flagId: flag[0] } : null
-	);
-
 	onMount(() => {
-		const stopUrlSync = trenchScope.subscribe((scope) => {
-			if (!scope) return;
-			if (resolve('/project/[projectId=integer]/trench/[[flagId]]', scope) === page.url.pathname)
-				return;
-
-			goto(resolve('/project/[projectId=integer]/trench/[[flagId]]', scope), {
-				keepFocus: true,
-				noScroll: true,
-				replaceState: true
-			});
-		});
+		// A URL without a flag gets the preferred one, so the picker, the
+		// conduit list and the URL agree; the flag is an adjustment, so the
+		// history entry is rewritten.
+		const flagId = page.params.flagId ?? get(selectedFlag)?.[0];
+		if (!page.params.flagId && flagId) {
+			goto(
+				resolve('/project/[projectId=integer]/trench/[[flagId]]', {
+					projectId: routeProjectId(),
+					flagId
+				}),
+				{ keepFocus: true, noScroll: true, replaceState: true }
+			);
+		}
+		void assignment.validateConduit(routeProjectId(), flagId);
 
 		return () => {
-			stopUrlSync();
 			assignment.cleanup();
 			mapState.cleanup();
 			selectionManager.cleanup();

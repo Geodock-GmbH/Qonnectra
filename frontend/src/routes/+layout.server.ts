@@ -32,7 +32,6 @@ export const load: LayoutServerLoad = async ({ locals, fetch, cookies, depends }
 		user: locals.user,
 		...reference,
 		appVersion: (packageJson.version as string | undefined) ?? null,
-		rememberedProject,
-		selectedProject: rememberedProject
+		rememberedProject
 	};
 };

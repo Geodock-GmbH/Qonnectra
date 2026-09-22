@@ -101,6 +101,17 @@ test.describe('Map page', () => {
 
 		await expect.poll(() => tilesFor(firstProjectId).length, { timeout: 15000 }).toBeGreaterThan(0);
 		expect(tilesFor(secondProjectId)).toHaveLength(0);
+
+		// The map follows the URL alone: browser back returns to the second
+		// project and its tiles without anyone touching the picker.
+		tileRequests.length = 0;
+		await page.goBack();
+		await page.waitForURL((url) => projectIdFromUrl(url.href) === secondProjectId);
+
+		await expect
+			.poll(() => tilesFor(secondProjectId).length, { timeout: 15000 })
+			.toBeGreaterThan(0);
+		expect(tilesFor(firstProjectId)).toHaveLength(0);
 	});
 
 	test('shows the map hint prompting the user to click a layer', async ({ page }) => {

@@ -1,11 +1,12 @@
 <script lang="ts">
 	import type { TraceSearchResult } from '$lib/types/trace';
-	import { fromStore } from 'svelte/store';
 	import { slide } from 'svelte/transition';
+	import { page } from '$app/state';
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { selectedProject } from '$lib/stores/store';
+	import { defaultProject } from '$lib/utils/rememberedProject';
+	import { getRememberedProject } from '$lib/context/rememberedProject.svelte';
 	import { searchTraceEntries } from '$lib/remote/trace/trace-search.remote';
 
 	import { getTraceSearchState } from './TraceSearchState.svelte';
@@ -21,7 +22,14 @@
 	} = $props();
 
 	const search = getTraceSearchState();
-	const project = fromStore(selectedProject);
+	const remembered = getRememberedProject();
+
+	/**
+	 * The project searched on this global page: the remembered project as a
+	 * default, never navigation state. Live, so picking another project in the
+	 * app bar re-runs the search without a navigation.
+	 */
+	const projectId = $derived(defaultProject(remembered.id, page.data.projects ?? [])?.value ?? '');
 
 	const display = $derived(TRACE_TYPE_DISPLAY[search.searchType]);
 
@@ -29,7 +37,7 @@
 		await searchTraceEntries({
 			searchQuery: searchTerm,
 			type: search.searchType,
-			projectId: search.globalSearch ? '' : project.current
+			projectId: search.globalSearch ? '' : projectId
 		})
 	);
 </script>

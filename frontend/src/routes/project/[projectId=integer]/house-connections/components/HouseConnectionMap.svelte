@@ -8,9 +8,10 @@
 	import Map from '$lib/components/Map.svelte';
 	import MapHint from '$lib/components/MapHint.svelte';
 	import { syncLayerStyles } from '$lib/map/layerStyleSync';
-	import { syncSelectedProject } from '$lib/map/projectScopeSync';
+	import { syncMapProject } from '$lib/map/projectScopeSync';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { trenchColorSelected } from '$lib/stores/store';
+	import { onProjectChange } from '$lib/context/project';
 	import { getLayerStyleAttributes } from '$lib/remote/map/layers.remote';
 
 	import {
@@ -52,16 +53,16 @@
 		interactionManager.initialize(map, mapState.getLayerReferences(), searchPanel);
 	}
 
+	onProjectChange((projectId) =>
+		syncMapProject(mapState, projectId, () => selectionManager.clearSelection())
+	);
+
 	onMount(() => {
 		const stopStyleSync = syncLayerStyles(mapState);
-		const stopProjectSync = syncSelectedProject(mapState, () => {
-			selectionManager.clearSelection();
-		});
 		mapState.refreshTileSources();
 
 		return () => {
 			stopStyleSync();
-			stopProjectSync();
 			trenchHighlights.detach();
 		};
 	});
@@ -74,6 +75,7 @@
 		className="rounded-lg overflow-hidden"
 		showSearchPanel={true}
 		layers={mapState.getLayers()}
+		projectId={mapState.selectedProject}
 		nodeTypes={attributes.nodeTypes}
 		surfaces={attributes.surfaces}
 		constructionTypes={attributes.constructionTypes}

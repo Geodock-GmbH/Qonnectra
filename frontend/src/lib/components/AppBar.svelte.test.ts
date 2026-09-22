@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { globalMapView, selectedProject } from '$lib/stores/store';
+import { globalMapView } from '$lib/stores/store';
 
 import AppBar from './AppBar.svelte';
 
@@ -68,9 +68,7 @@ const authenticatedData = { ...data, user: { isAuthenticated: true, username: 'm
 
 beforeEach(() => {
 	globalMapView.set(false);
-	selectedProject.set('7');
 	appState.page.url = new URL('http://localhost/dashboard');
-	document.cookie = 'selected-project=7; path=/';
 });
 
 describe('AppBar', () => {
@@ -112,7 +110,7 @@ describe('AppBar', () => {
 		expect(screen.getByRole('button', { name: 'tooltip_view_all_projects' })).toBeInTheDocument();
 	});
 
-	test('should toggle global map view and re-adopt the URL project when leaving', async () => {
+	test('should toggle the global map view', async () => {
 		const user = userEvent.setup();
 		appState.page.route.id = '/project/[projectId=integer]/map';
 		render(AppBar, { data: authenticatedData });
@@ -120,9 +118,7 @@ describe('AppBar', () => {
 		await user.click(screen.getByRole('button', { name: 'tooltip_view_all_projects' }));
 		expect(get(globalMapView)).toBe(true);
 
-		selectedProject.set('99');
 		await user.click(screen.getByRole('button', { name: 'tooltip_view_current_project' }));
 		expect(get(globalMapView)).toBe(false);
-		expect(get(selectedProject)).toBe('7');
 	});
 });

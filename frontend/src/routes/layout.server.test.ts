@@ -115,7 +115,6 @@ describe('root layout load', () => {
 		const data = await runLoad({}).result;
 
 		expect(data.rememberedProject).toBe('7');
-		expect(data.selectedProject).toBe('7');
 	});
 
 	test('should prefer a remembered project the user can see', async () => {

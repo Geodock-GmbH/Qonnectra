@@ -15,9 +15,10 @@
 	import Map from '$lib/components/Map.svelte';
 	import MapHint from '$lib/components/MapHint.svelte';
 	import { syncLayerStyles } from '$lib/map/layerStyleSync';
-	import { syncProjectScope } from '$lib/map/projectScopeSync';
+	import { syncGlobalView, syncMapProject } from '$lib/map/projectScopeSync';
 	import { drawerStore } from '$lib/stores/drawer';
-	import { nodeTypeStyles, selectedProject, trenchColorSelected } from '$lib/stores/store';
+	import { nodeTypeStyles, trenchColorSelected } from '$lib/stores/store';
+	import { onProjectChange } from '$lib/context/project';
 	import { getLayerStyleAttributes } from '$lib/remote/map/layers.remote';
 
 	import 'ol/ol.css';
@@ -59,14 +60,18 @@
 		interactionManager.initialize(map, mapState.getLayerReferences(), searchPanel);
 	}
 
+	onProjectChange((projectId) =>
+		syncMapProject(mapState, projectId, () => selectionManager.clearSelection())
+	);
+
 	onMount(() => {
 		const stopStyleSync = syncLayerStyles(mapState);
-		const stopScopeSync = syncProjectScope(mapState, () => selectionManager.clearSelection());
+		const stopGlobalViewSync = syncGlobalView(mapState);
 		mapState.refreshTileSources();
 
 		return () => {
 			stopStyleSync();
-			stopScopeSync();
+			stopGlobalViewSync();
 		};
 	});
 
@@ -81,7 +86,7 @@
 		surfaces={attributes.surfaces}
 		constructionTypes={attributes.constructionTypes}
 		areaTypes={attributes.areaTypes}
-		projectId={$selectedProject}
+		projectId={mapState.selectedProject}
 		onready={handleMapReady}
 		searchPanelProps={{ trenchColorSelected: $trenchColorSelected, alias }}
 		bind:this={mapRef}

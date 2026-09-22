@@ -67,13 +67,9 @@ vi.mock('$lib/stores/toaster', () => ({
 	}
 }));
 
+vi.mock('$app/navigation', () => ({ goto: vi.fn(), afterNavigate: vi.fn() }));
+
 vi.mock('$lib/stores/store', () => ({
-	selectedProject: {
-		subscribe: (cb: (...args: unknown[]) => unknown) => {
-			cb('proj-1');
-			return () => {};
-		}
-	},
 	globalMapView: {
 		subscribe: (cb: (...args: unknown[]) => unknown) => {
 			cb(false);
@@ -208,7 +204,6 @@ describe('/map/+page.svelte', () => {
 		projects: [{ label: 'Project 1', value: 'proj-1' }],
 		projectsError: null,
 		appVersion: null,
-		selectedProject: 'proj-1',
 		rememberedProject: 'proj-1',
 		project: { id: 'proj-1', label: 'Project 1' },
 		srid: null,

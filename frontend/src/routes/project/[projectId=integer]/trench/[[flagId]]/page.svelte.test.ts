@@ -2,10 +2,10 @@ import '@testing-library/jest-dom/vitest';
 
 import { get } from 'svelte/store';
 import { goto } from '$app/navigation';
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { selectedConduit, selectedFlag, selectedProject } from '$lib/stores/store';
+import { selectedConduit, selectedFlag } from '$lib/stores/store';
 
 import Page from './+page.svelte';
 
@@ -19,7 +19,10 @@ const { pageState, mapStates, mapStateArgs, selectionManagers, layersInitialized
 			params: {} as Record<string, string | undefined>,
 			url: new URL('http://localhost/trench'),
 			data: {
-				flags: [{ value: '2', label: 'Ausbau' }],
+				flags: [
+					{ value: '2', label: 'Ausbau' },
+					{ value: '3', label: 'Ausbau Süd' }
+				],
 				flagsError: null,
 				srid: 25832,
 				proj4Def: ''
@@ -40,7 +43,7 @@ vi.mock('$app/state', () => ({ page: pageState }));
 
 vi.mock('$app/environment', () => ({ browser: true }));
 
-vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
+vi.mock('$app/navigation', () => ({ goto: vi.fn(), afterNavigate: vi.fn() }));
 
 vi.mock('$app/paths', () => ({
 	resolve: (_route: string, params: { projectId: string; flagId: string }) =>
@@ -58,7 +61,6 @@ vi.mock('$lib/utils/fieldAliases', () => ({ getFieldAliases: () => ({}) }));
 vi.mock('$lib/stores/store', async () => {
 	const { writable } = await import('svelte/store');
 	return {
-		selectedProject: writable('1'),
 		selectedFlag: writable(['2']),
 		selectedConduit: writable(undefined),
 		routingMode: writable(false),
@@ -140,7 +142,6 @@ beforeEach(() => {
 afterEach(() => {
 	vi.mocked(goto).mockClear();
 	getConduitOptions.mockReset();
-	selectedProject.set('1');
 	selectedFlag.set(['2']);
 	selectedConduit.set(undefined);
 	mapStates.length = 0;
@@ -185,8 +186,8 @@ describe('/trench/+page.svelte', () => {
 		expect(getConduitOptions).toHaveBeenCalledWith({ projectId: '1', flagId: '2' });
 	});
 
-	test('should complete a bare route with the stored project and flag', () => {
-		openPage('/trench');
+	test('should complete a URL without a flag with the preferred one', () => {
+		openPage('/project/1/trench', { projectId: '1' });
 
 		expect(goto).toHaveBeenCalledWith('/trench/1/2', {
 			keepFocus: true,
@@ -201,14 +202,20 @@ describe('/trench/+page.svelte', () => {
 		expect(goto).not.toHaveBeenCalled();
 	});
 
-	test('should follow a project or flag that changes later', () => {
+	test('should navigate to the chosen flag and keep it as the preferred one', async () => {
 		openPage('/trench/1/2', { projectId: '1', flagId: '2' });
+		const flagPicker = document.querySelector(
+			'[data-placeholder="placeholder_select_flag"] select'
+		) as HTMLSelectElement;
 
-		selectedFlag.set(['3']);
-		expect(goto).toHaveBeenLastCalledWith('/trench/1/3', expect.anything());
+		await fireEvent.change(flagPicker, { target: { value: '3' } });
 
-		selectedProject.set('8');
-		expect(goto).toHaveBeenLastCalledWith('/trench/8/3', expect.anything());
+		expect(goto).toHaveBeenCalledWith('/trench/1/3', {
+			keepFocus: true,
+			noScroll: true,
+			replaceState: true
+		});
+		expect(get(selectedFlag)).toEqual(['3']);
 	});
 
 	test('should adopt the flag named in the URL', () => {

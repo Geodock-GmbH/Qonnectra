@@ -2,9 +2,8 @@ import { error } from '@sveltejs/kit';
 import { goto } from '$app/navigation';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { selectedProject } from '$lib/stores/store';
 import { getFiberColors, getFibersForCable } from '$lib/remote/network-schema/fibers.remote';
 
 import TracePage from './+page.svelte';
@@ -18,6 +17,21 @@ vi.mock('$lib/remote/trace/trace-search.remote', () => ({
 vi.mock('$app/navigation', () => ({
 	goto: vi.fn()
 }));
+
+vi.mock('$app/state', () => ({
+	page: {
+		data: { projects: [{ value: '7', label: 'Ausbau Nord' }] },
+		params: {},
+		url: new URL('http://localhost/trace')
+	}
+}));
+
+// The remembered project is the search's default on this global page.
+vi.mock('$lib/context/rememberedProject.svelte', async (importOriginal) => {
+	const original = await importOriginal<typeof import('$lib/context/rememberedProject.svelte')>();
+	const remembered = new original.RememberedProject('7');
+	return { ...original, getRememberedProject: () => remembered };
+});
 
 vi.mock('$lib/paraglide/messages', () => ({
 	m: new Proxy(
@@ -51,10 +65,6 @@ function httpError(status: number, message: string): unknown {
 	}
 	return null;
 }
-
-beforeEach(() => {
-	selectedProject.set('7');
-});
 
 afterEach(() => {
 	searchTraceEntries.mockReset();

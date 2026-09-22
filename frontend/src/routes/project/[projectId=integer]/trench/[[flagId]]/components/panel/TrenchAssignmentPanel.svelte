@@ -1,12 +1,14 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
-	import { selectedFlag, selectedProject } from '$lib/stores/store';
+	import { selectedFlag } from '$lib/stores/store';
+	import { routeProjectId } from '$lib/context/project';
 
 	import { getTrenchAssignment } from '../TrenchAssignmentState.svelte';
 	import ConduitPicker from './ConduitPicker.svelte';
@@ -17,11 +19,28 @@
 
 	const flags = $derived(page.data.flags ?? []);
 	const flagsError = $derived(page.data.flagsError ?? undefined);
-	const flagId = $derived($selectedFlag?.[0]);
+	const projectId = $derived(routeProjectId());
+	/** The flag scoping the conduits, from the URL alone. */
+	const flagId = $derived(page.params.flagId);
 
-	onMount(() => {
-		void assignment.validateConduit($selectedProject, flagId);
-	});
+	/**
+	 * Navigates to the trench URL of the chosen flag, which is what scopes the
+	 * conduit picker; the flag is also kept as the preferred one for the pages
+	 * that use it as a default filter. Clearing the input keeps the current flag.
+	 * @param e - The picker's selection.
+	 */
+	function handleFlagChange(e: { value: string[] }) {
+		const next = e.value[0];
+		if (!next || next === flagId) return;
+
+		selectedFlag.set([next]);
+		assignment.selectConduit(undefined);
+		goto(resolve('/project/[projectId=integer]/trench/[[flagId]]', { projectId, flagId: next }), {
+			keepFocus: true,
+			noScroll: true,
+			replaceState: true
+		});
+	}
 </script>
 
 {#snippet pickerSkeleton()}
@@ -49,9 +68,8 @@
 					data={flags}
 					error={flagsError}
 					errorMessage={flagsError}
-					bind:value={$selectedFlag}
-					defaultValue={$selectedFlag}
-					onValueChange={() => assignment.selectConduit(undefined)}
+					value={flagId ? [flagId] : []}
+					onValueChange={handleFlagChange}
 					placeholder={m.placeholder_select_flag()}
 				/>
 			</div>
@@ -60,9 +78,9 @@
 				<span class="text-xs font-semibold text-surface-600-400 uppercase tracking-wide block"
 					>{m.form_conduit({ count: 1 })}</span
 				>
-				{#if $selectedProject && flagId}
+				{#if projectId && flagId}
 					<QueryBoundary pending={pickerSkeleton}>
-						<ConduitPicker projectId={$selectedProject} {flagId} />
+						<ConduitPicker {projectId} {flagId} />
 					</QueryBoundary>
 				{:else}
 					<GenericCombobox data={[]} value={[]} noDataMessage={m.message_no_conduits_found()} />

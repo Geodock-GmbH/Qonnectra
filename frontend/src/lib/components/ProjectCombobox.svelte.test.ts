@@ -1,10 +1,8 @@
-import { get } from 'svelte/store';
 import { goto } from '$app/navigation';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { selectedProject } from '$lib/stores/store';
 import { globalToaster } from '$lib/stores/toaster';
 import { pageStub } from '$lib/test-utils/pageStub';
 
@@ -68,7 +66,6 @@ async function choose(label: string) {
 }
 
 beforeEach(() => {
-	selectedProject.set('5');
 	setPage(null, {}, 'http://localhost/trace');
 	document.cookie = 'last-project=; path=/; max-age=0';
 	vi.mocked(globalToaster.error).mockClear();
@@ -141,7 +138,6 @@ describe('ProjectCombobox', () => {
 		await choose('Ausbau Süd');
 
 		expect(goto).not.toHaveBeenCalled();
-		expect(get(selectedProject)).toBe('9');
 		expect(document.cookie).toContain('last-project=9');
 		expect(document.cookie).not.toContain('selected-project');
 	});

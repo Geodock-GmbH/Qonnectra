@@ -70,7 +70,7 @@ vi.mock('$app/state', () => ({
 
 vi.mock('$lib/stores/store', async () => {
 	const { writable } = await import('svelte/store');
-	return { selectedProject: writable('1'), trenchColorSelected: writable('#ff0000') };
+	return { trenchColorSelected: writable('#ff0000') };
 });
 
 const getInquiryAreas = vi.fn();

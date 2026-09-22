@@ -3,9 +3,9 @@ import type { ValuationResult } from '$lib/remote/valuation/valuation-data';
 import { createContext } from 'svelte';
 import { SvelteSet } from 'svelte/reactivity';
 import { fromStore } from 'svelte/store';
-import { page } from '$app/state';
 
-import { globalMapView, selectedProject } from '$lib/stores/store';
+import { globalMapView } from '$lib/stores/store';
+import { routeProjectId } from '$lib/context/project';
 
 import { AreaHighlight } from './areaHighlight';
 import { computeProjection } from './valuationCalc';
@@ -31,7 +31,6 @@ export class ValuationState {
 
 	readonly highlight = new AreaHighlight();
 
-	readonly #selectedProject = fromStore(selectedProject);
 	readonly #globalView = fromStore(globalMapView);
 
 	/**
@@ -45,9 +44,9 @@ export class ValuationState {
 		return computeProjection(result.total, baseYear, annualCorrectionPercent / 100);
 	});
 
-	/** The project that is valued. Cost rates belong to one project, also in the global view. */
+	/** The project that is valued, from the URL. Cost rates belong to one project, also in the global view. */
 	get projectId(): string {
-		return page.params.projectId ?? this.#selectedProject.current ?? '';
+		return routeProjectId();
 	}
 
 	/** Project whose areas can be selected; empty in the global view, which offers all areas. */

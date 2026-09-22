@@ -67,12 +67,6 @@ vi.mock('$app/navigation', () => ({
 }));
 
 vi.mock('$lib/stores/store', () => ({
-	selectedProject: {
-		subscribe: (cb: (value: unknown) => void) => {
-			cb(null);
-			return () => {};
-		}
-	},
 	edgeSnappingEnabled: {
 		subscribe: (cb: (value: unknown) => void) => {
 			cb(false);

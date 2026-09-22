@@ -27,7 +27,7 @@ vi.mock('$app/state', () => ({ page: { params: { projectId: '7' } } }));
 
 vi.mock('$lib/stores/store', async () => {
 	const { writable } = await import('svelte/store');
-	return { selectedProject: writable('7'), globalMapView: writable(false) };
+	return { globalMapView: writable(false) };
 });
 
 vi.mock('$lib/paraglide/messages', () => ({

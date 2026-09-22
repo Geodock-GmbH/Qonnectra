@@ -5,7 +5,6 @@ import { describe, expect, test, vi } from 'vitest';
 import {
 	getWMSLayerVisibility,
 	getWMSSourceExpanded,
-	selectedProject,
 	setWMSLayerVisibility,
 	setWMSSourceExpanded,
 	wmsSourcesData
@@ -16,10 +15,6 @@ vi.mock('$app/environment', () => ({
 }));
 
 describe('store defaults', () => {
-	test('should default the selected project to "1"', () => {
-		expect(get(selectedProject)).toBe('1');
-	});
-
 	test('should start with no loaded WMS sources', () => {
 		expect(get(wmsSourcesData)).toEqual({ sources: [], loaded: false });
 	});

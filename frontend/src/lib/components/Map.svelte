@@ -23,7 +23,6 @@
 		layerVisibilityConfig,
 		mapCenter,
 		mapZoom,
-		selectedProject,
 		tileServerAvailable,
 		wmsSourcesData
 	} from '$lib/stores/store';
@@ -443,7 +442,7 @@
 
 	const handleZoomToExtent = createZoomToLayerExtentHandler(
 		() => map,
-		() => $selectedProject
+		() => projectId
 	);
 
 	/**
@@ -470,6 +469,7 @@
 			{#if showSearchPanel && map}
 				<SearchPanel
 					olMapInstance={map}
+					{projectId}
 					onFeatureSelect={handleFeatureSelect}
 					onSearchError={handleSearchError}
 					{...searchPanelProps}
@@ -548,6 +548,7 @@
 			<div class="hidden sm:block absolute sm:top-4 sm:left-4 sm:right-auto z-10 sm:max-w-md">
 				<SearchPanel
 					olMapInstance={map}
+					{projectId}
 					onFeatureSelect={handleFeatureSelect}
 					onSearchError={handleSearchError}
 					{...searchPanelProps}
@@ -564,6 +565,7 @@
 						<div class="relative">
 							<SearchPanel
 								olMapInstance={map}
+								{projectId}
 								onFeatureSelect={(detail) => {
 									handleFeatureSelect(detail);
 									isMobileSearchOpen = false;

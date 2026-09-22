@@ -12,14 +12,14 @@
 	import MapHint from '$lib/components/MapHint.svelte';
 	import { syncLayerStyles } from '$lib/map/layerStyleSync';
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
-	import { syncSelectedProject } from '$lib/map/projectScopeSync';
+	import { syncMapProject } from '$lib/map/projectScopeSync';
 	import {
 		routingMode,
 		routingTolerance,
-		selectedProject,
 		showLinkedTrenches,
 		trenchColorSelected
 	} from '$lib/stores/store';
+	import { onProjectChange, routeProjectId } from '$lib/context/project';
 	import { getLayerStyleAttributes } from '$lib/remote/map/layers.remote';
 
 	import { getTrenchAssignment } from './TrenchAssignmentState.svelte';
@@ -69,26 +69,26 @@
 			{ uuid: String(uuid), label: String(label), feature },
 			{
 				enabled: get(routingMode),
-				projectId: get(selectedProject),
+				projectId: routeProjectId(),
 				tolerance: get(routingTolerance)[0] ?? 1,
 				dataProjection: storageProjection(page.data.srid)
 			}
 		);
 	}
 
-	onMount(() => {
-		const stopStyleSync = syncLayerStyles(mapState);
-		const stopProjectSync = syncSelectedProject(mapState, () => {
+	onProjectChange((projectId) =>
+		syncMapProject(mapState, projectId, () => {
 			assignment.selectConduit(undefined);
 			assignment.trenchHighlights.clear();
 			assignment.trenchHighlights.setSource(mapState.vectorTileLayer?.getSource());
-		});
+		})
+	);
+
+	onMount(() => {
+		const stopStyleSync = syncLayerStyles(mapState);
 		mapState.refreshTileSources();
 
-		return () => {
-			stopStyleSync();
-			stopProjectSync();
-		};
+		return stopStyleSync;
 	});
 
 	const attributes = $derived(await getLayerStyleAttributes());
@@ -97,6 +97,7 @@
 <Map
 	className="rounded-lg overflow-hidden h-full w-full"
 	layers={mapState.getLayers()}
+	projectId={mapState.selectedProject}
 	showLayerVisibilityTree={true}
 	showSearchPanel={true}
 	onready={handleMapReady}

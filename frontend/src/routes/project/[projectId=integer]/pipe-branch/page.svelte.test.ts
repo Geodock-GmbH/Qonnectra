@@ -6,18 +6,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import Page from './+page.svelte';
 import { page } from './components/pageState.fixture.svelte';
 
-const stored = vi.hoisted(() => ({ project: 'proj-stored' as string | null }));
-
 vi.mock('$app/state', async () => await import('./components/pageState.fixture.svelte'));
-
-vi.mock('$lib/stores/store', () => ({
-	selectedProject: {
-		subscribe: (run: (value: string | null) => void) => {
-			run(stored.project);
-			return () => {};
-		}
-	}
-}));
 
 vi.mock('$lib/paraglide/messages', () => ({
 	m: new Proxy(
@@ -36,7 +25,6 @@ vi.mock('./components/PipeBranchCanvas.svelte', async () => {
 
 afterEach(() => {
 	delete page.params.projectId;
-	stored.project = 'proj-stored';
 });
 
 describe('/pipe-branch/+page.svelte', () => {

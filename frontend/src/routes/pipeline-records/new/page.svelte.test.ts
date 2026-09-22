@@ -2,8 +2,8 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { selectedProject } from '$lib/stores/store';
 import { globalToaster } from '$lib/stores/toaster';
+import { getRememberedProject } from '$lib/context/rememberedProject.svelte';
 import { httpError } from '$lib/test-utils/remote-stubs';
 
 import Page from './+page.svelte';
@@ -25,9 +25,11 @@ vi.mock('$app/state', () => ({
 	}
 }));
 
-vi.mock('$lib/stores/store', async () => {
-	const { writable } = await import('svelte/store');
-	return { selectedProject: writable('2') };
+// The remembered project is the form's default on this global page.
+vi.mock('$lib/context/rememberedProject.svelte', async (importOriginal) => {
+	const original = await importOriginal<typeof import('$lib/context/rememberedProject.svelte')>();
+	const remembered = new original.RememberedProject('2');
+	return { ...original, getRememberedProject: () => remembered };
 });
 
 const createPipelineRecord = vi.fn();
@@ -59,7 +61,7 @@ vi.mock('$lib/stores/toaster', () => ({
 const user = userEvent.setup();
 
 beforeEach(() => {
-	selectedProject.set('2');
+	getRememberedProject().set('2');
 	createPipelineRecord.mockResolvedValue({ uuid: 'rec-new' });
 });
 
@@ -79,11 +81,21 @@ describe('new pipeline record page', () => {
 		expect(project).toHaveAttribute('readonly');
 	});
 
-	test('should fall back to the first project when the stored selection is not active', async () => {
-		selectedProject.set('99');
+	test('should fall back to the first project when the remembered one is not active', async () => {
+		getRememberedProject().set('99');
 		render(Page);
 
 		expect(await screen.findByTestId('active-project')).toHaveValue('Fiber North');
+	});
+
+	test('should follow the remembered project live, without a navigation', async () => {
+		render(Page);
+		expect(await screen.findByTestId('active-project')).toHaveValue('Fiber South');
+
+		getRememberedProject().set('1');
+
+		await vi.waitFor(() => expect(screen.getByTestId('active-project')).toHaveValue('Fiber North'));
+		expect(gotoMock).not.toHaveBeenCalled();
 	});
 
 	test('should create the record in the active project and open its detail page', async () => {

@@ -1,9 +1,12 @@
 import '@testing-library/jest-dom/vitest';
 
+import type { AfterNavigate } from '@sveltejs/kit';
 import type { ValuationArea } from '$lib/remote/valuation/valuation-data';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
+import { fireAfterNavigate } from '$lib/test-utils/afterNavigateStub';
 
 import Page from './+page.svelte';
 
@@ -20,11 +23,20 @@ vi.mock('$lib/remote/valuation/valuation.remote', () => remote);
 
 vi.mock('$app/state', () => ({ page: pageState }));
 
+const nav = vi.hoisted(() => ({
+	callbacks: [] as Array<(navigation: AfterNavigate) => void>
+}));
+
+vi.mock('$app/navigation', async () => {
+	const { afterNavigateStub } = await import('$lib/test-utils/afterNavigateStub');
+	return { goto: vi.fn(), afterNavigate: afterNavigateStub(nav.callbacks) };
+});
+
 vi.mock('$app/environment', () => ({ browser: true }));
 
 vi.mock('$lib/stores/store', async () => {
 	const { writable } = await import('svelte/store');
-	return { selectedProject: writable('1'), globalMapView: writable(false) };
+	return { globalMapView: writable(false) };
 });
 
 vi.mock('./components/ValuationMap.svelte', async () => ({
@@ -35,7 +47,7 @@ vi.mock('$lib/paraglide/messages', () => ({
 	m: new Proxy({}, { get: (_target, prop: string) => () => `${prop}` })
 }));
 
-const { selectedProject, globalMapView } = await import('$lib/stores/store');
+const { globalMapView } = await import('$lib/stores/store');
 
 const user = userEvent.setup();
 
@@ -61,7 +73,7 @@ async function renderCalculatedPage() {
 
 beforeEach(() => {
 	pageState.params.projectId = '1';
-	selectedProject.set('1');
+	nav.callbacks.length = 0;
 	globalMapView.set(false);
 	remote.getValuationAreas.mockResolvedValue(areas);
 	remote.getValuationRateCount.mockResolvedValue(2);
@@ -118,7 +130,7 @@ describe('Valuation page', () => {
 		await renderCalculatedPage();
 
 		pageState.params.projectId = '2';
-		selectedProject.set('2');
+		fireAfterNavigate(nav.callbacks, { projectId: '1' }, { projectId: '2' });
 
 		await vi.waitFor(() => expect(screen.queryByText('Tiefbau')).not.toBeInTheDocument());
 		expect(screen.getByRole('checkbox', { name: 'valuation_area_gesamt' })).toBeChecked();

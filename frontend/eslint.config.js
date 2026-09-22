@@ -35,7 +35,19 @@ export default tseslint.config(
 		},
 		rules: {
 			'@typescript-eslint/no-explicit-any': 'error',
-			'svelte/no-navigation-without-resolve': 'error'
+			'svelte/no-navigation-without-resolve': 'error',
+			// Runes read `page` from `$app/state`; the store form is legacy.
+			'no-restricted-imports': [
+				'error',
+				{
+					paths: [
+						{
+							name: '$app/stores',
+							message: 'Use `$app/state` (page, navigating, updated) instead of the legacy stores.'
+						}
+					]
+				}
+			]
 		}
 	},
 	{

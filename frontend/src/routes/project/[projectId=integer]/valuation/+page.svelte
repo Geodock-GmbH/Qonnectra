@@ -4,7 +4,8 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
-	import { globalMapView, selectedProject } from '$lib/stores/store';
+	import { globalMapView } from '$lib/stores/store';
+	import { onProjectChange } from '$lib/context/project';
 
 	import ValuationPanel from './components/panel/ValuationPanel.svelte';
 	import ValuationMap from './components/ValuationMap.svelte';
@@ -12,14 +13,9 @@
 
 	const valuation = setValuationState(new ValuationState());
 
-	onMount(() => {
-		const subscriptions = [
-			selectedProject.subscribe(() => valuation.reset()),
-			globalMapView.subscribe(() => valuation.reset())
-		];
-
-		return () => subscriptions.forEach((unsubscribe) => unsubscribe());
-	});
+	// Another project or scope starts from a clean valuation.
+	onProjectChange(() => valuation.reset());
+	onMount(() => globalMapView.subscribe(() => valuation.reset()));
 </script>
 
 <svelte:head>

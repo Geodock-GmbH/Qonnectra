@@ -10,9 +10,10 @@
 	import { MapState } from '$lib/classes/MapState.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import { syncLayerStyles } from '$lib/map/layerStyleSync';
-	import { syncProjectScope } from '$lib/map/projectScopeSync';
-	import { globalMapView, selectedProject, trenchColorSelected } from '$lib/stores/store';
+	import { syncGlobalView, syncMapProject } from '$lib/map/projectScopeSync';
+	import { globalMapView, trenchColorSelected } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { onProjectChange, routeProjectId } from '$lib/context/project';
 	import { getLayerStyleAttributes } from '$lib/remote/map/layers.remote';
 	import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
 	import { getValuationAreas } from '$lib/remote/valuation/valuation.remote';
@@ -24,7 +25,7 @@
 	const valuation = getValuationState();
 
 	const mapState = new MapState(
-		get(selectedProject),
+		routeProjectId(),
 		get(trenchColorSelected),
 		{ trench: true, address: true, node: true, area: true },
 		null,
@@ -39,7 +40,7 @@
 	 */
 	function handleMapReady({ map }: { map: OlMap }): void {
 		mapState.olMap = map;
-		mapState.reinitializeForProject(get(selectedProject));
+		mapState.reinitializeForProject(routeProjectId());
 		mapState.reinitializeForGlobalView(get(globalMapView));
 		const { srid, proj4Def } = page.data;
 		valuation.highlight.attach(map, srid && proj4Def ? { srid, proj4Def } : null);
@@ -69,13 +70,15 @@
 		}
 	}
 
+	onProjectChange((projectId) => syncMapProject(mapState, projectId));
+
 	onMount(() => {
 		const stopStyleSync = syncLayerStyles(mapState);
-		const stopScopeSync = syncProjectScope(mapState);
+		const stopGlobalViewSync = syncGlobalView(mapState);
 
 		return () => {
 			stopStyleSync();
-			stopScopeSync();
+			stopGlobalViewSync();
 			valuation.highlight.detach();
 			mapState.cleanup();
 		};
@@ -88,6 +91,7 @@
 	<Map
 		className="rounded-lg overflow-hidden h-full w-full"
 		layers={mapState.getLayers()}
+		projectId={mapState.selectedProject}
 		showLayerVisibilityTree={true}
 		showSearchPanel={true}
 		onready={handleMapReady}

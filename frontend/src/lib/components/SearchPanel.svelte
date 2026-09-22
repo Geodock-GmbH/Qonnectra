@@ -8,7 +8,7 @@
 	import { getContext } from 'svelte';
 	import { cubicOut } from 'svelte/easing';
 	import { fade, fly } from 'svelte/transition';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import Fuse from 'fuse.js';
 
 	import { m } from '$lib/paraglide/messages';
@@ -23,7 +23,7 @@
 		zoomToMultipleFeatures
 	} from '$lib/map/searchUtils';
 	import { createSearchHighlightStyle } from '$lib/map/styles';
-	import { globalMapView, selectedProject } from '$lib/stores/store';
+	import { globalMapView } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import {
@@ -36,6 +36,8 @@
 
 	interface Props {
 		olMapInstance?: OlMap | null;
+		/** The project searched; empty in the global view or on a page without one. */
+		projectId?: string;
 		trenchColorSelected?: string;
 		onFeatureSelect?: (feature: SearchFeaturePayload) => void;
 		onSearchError?: (error: unknown) => void;
@@ -43,6 +45,7 @@
 
 	let {
 		olMapInstance = null,
+		projectId = '',
 		trenchColorSelected = '#ff0000',
 		onFeatureSelect = () => {},
 		onSearchError = () => {}
@@ -136,7 +139,7 @@
 		try {
 			searchResults = await searchFeatures({
 				searchQuery: query,
-				projectId: $globalMapView ? '' : $selectedProject
+				projectId: $globalMapView ? '' : projectId
 			});
 			filterQuery = '';
 			showSearchResults = true;
@@ -173,7 +176,7 @@
 		if (!result || !olMapInstance) return;
 
 		const { type, value } = result;
-		registerStorageProjection($page.data.srid, $page.data.proj4Def);
+		registerStorageProjection(page.data.srid, page.data.proj4Def);
 
 		try {
 			if (type === 'conduit') {
@@ -184,12 +187,12 @@
 			const feature = await getFeatureDetails({
 				featureType: type,
 				featureUuid: value,
-				projectId: $globalMapView ? '' : $selectedProject
+				projectId: $globalMapView ? '' : projectId
 			});
 
 			const geometry = await parseFeatureGeometry(
 				feature,
-				storageProjection($page.data.srid),
+				storageProjection(page.data.srid),
 				olMapInstance.getView().getProjection().getCode()
 			);
 
@@ -250,7 +253,7 @@
 	 */
 	async function handleConduitSelect(conduitUuid: string) {
 		if (!olMapInstance) return;
-		registerStorageProjection($page.data.srid, $page.data.proj4Def);
+		registerStorageProjection(page.data.srid, page.data.proj4Def);
 		try {
 			const { trenches, trenchUuids } = await getConduitTrenches(conduitUuid);
 
@@ -264,7 +267,7 @@
 
 			const rawGeometries = await parseMultipleFeatureGeometries(
 				trenches,
-				storageProjection($page.data.srid),
+				storageProjection(page.data.srid),
 				olMapInstance.getView().getProjection().getCode()
 			);
 			const geometries = rawGeometries.filter(

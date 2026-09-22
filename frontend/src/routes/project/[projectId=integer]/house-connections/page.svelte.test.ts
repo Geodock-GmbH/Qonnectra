@@ -77,7 +77,6 @@ vi.mock('$lib/stores/store', () => {
 		}
 	});
 	return {
-		selectedProject: fixed('proj-1'),
 		globalMapView: fixed(true),
 		nodeTypeStyles: fixed({}),
 		trenchStyleMode: fixed('default'),
@@ -90,6 +89,8 @@ vi.mock('$lib/stores/store', () => {
 		labelVisibilityConfig: fixed({})
 	};
 });
+
+vi.mock('$app/navigation', () => ({ goto: vi.fn(), afterNavigate: vi.fn() }));
 
 vi.mock('$lib/components/Map.svelte', async () => {
 	const { default: MockMap } = await import('$lib/test-utils/mocks/MockMap.svelte');

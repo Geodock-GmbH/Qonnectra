@@ -7,7 +7,6 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { findProjectLink, navHref } from '$lib/config/navLinks';
 	import { getRememberedProject } from '$lib/context/rememberedProject.svelte';
@@ -85,7 +84,6 @@
 			goto(navHref(link, newProject, { flagId: page.params.flagId }));
 		} else {
 			remembered.set(newProject);
-			selectedProject.set(newProject);
 		}
 
 		onChange({ value: newProject });

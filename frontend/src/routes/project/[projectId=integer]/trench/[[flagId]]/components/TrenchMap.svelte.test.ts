@@ -1,11 +1,13 @@
 import '@testing-library/jest-dom/vitest';
 
 import type { TrenchMapManagers } from './trenchMapContext';
+import type { AfterNavigate } from '@sveltejs/kit';
 import { tick } from 'svelte';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { routingMode, routingTolerance, selectedProject } from '$lib/stores/store';
+import { routingMode, routingTolerance } from '$lib/stores/store';
+import { fireAfterNavigate } from '$lib/test-utils/afterNavigateStub';
 
 import { TrenchAssignmentState } from './TrenchAssignmentState.svelte';
 import TrenchContextFixture from './TrenchContext.fixture.svelte';
@@ -18,8 +20,20 @@ vi.mock('$lib/remote/map/layers.remote', () => ({
 }));
 
 vi.mock('$app/state', () => ({
-	page: { data: { srid: 25832, proj4Def: '+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs' } }
+	page: {
+		params: { projectId: '7' },
+		data: { srid: 25832, proj4Def: '+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs' }
+	}
 }));
+
+const nav = vi.hoisted(() => ({
+	callbacks: [] as Array<(navigation: AfterNavigate) => void>
+}));
+
+vi.mock('$app/navigation', async () => {
+	const { afterNavigateStub } = await import('$lib/test-utils/afterNavigateStub');
+	return { goto: vi.fn(), afterNavigate: afterNavigateStub(nav.callbacks) };
+});
 
 vi.mock('ol/ol.css', () => ({}));
 
@@ -30,7 +44,6 @@ vi.mock('$lib/paraglide/messages', () => ({
 vi.mock('$lib/stores/store', async () => {
 	const { writable } = await import('svelte/store');
 	return {
-		selectedProject: writable('7'),
 		selectedConduit: writable(undefined),
 		routingMode: writable(false),
 		routingTolerance: writable([2.5]),
@@ -110,7 +123,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	getLayerStyleAttributes.mockReset();
-	selectedProject.set('7');
+	nav.callbacks.length = 0;
 	routingMode.set(false);
 	routingTolerance.set([2.5]);
 });
@@ -215,7 +228,7 @@ describe('TrenchMap', () => {
 		assignment.trenchHighlights.show('conduit-1', ['trench-1']);
 		const setSource = vi.spyOn(assignment.trenchHighlights, 'setSource');
 
-		selectedProject.set('8');
+		fireAfterNavigate(nav.callbacks, { projectId: '7' }, { projectId: '8' });
 
 		expect(mapState.reinitializeForProject).toHaveBeenCalledWith('8');
 		expect(assignment.conduitUuid).toBeUndefined();
@@ -228,7 +241,7 @@ describe('TrenchMap', () => {
 		await screen.findByTestId('map');
 
 		unmount();
-		selectedProject.set('9');
+		fireAfterNavigate(nav.callbacks, { projectId: '7' }, { projectId: '9' });
 
 		expect(mapState.reinitializeForProject).not.toHaveBeenCalled();
 	});

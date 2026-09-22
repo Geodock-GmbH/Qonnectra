@@ -1,14 +1,21 @@
 import '@testing-library/jest-dom/vitest';
 
+import type { AfterNavigate } from '@sveltejs/kit';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
+import { fireAfterNavigate } from '$lib/test-utils/afterNavigateStub';
 
 import { readyMap } from './ReadyMap.fixture.svelte';
 import ValuationContextFixture from './ValuationContext.fixture.svelte';
 import ValuationMap from './ValuationMap.svelte';
 import { ValuationState } from './ValuationState.svelte';
 
-const { mapStates, remote, toastError } = vi.hoisted(() => ({
+const { mapStates, remote, toastError, pageState } = vi.hoisted(() => ({
+	pageState: {
+		params: { projectId: '7' },
+		data: { srid: 25832, proj4Def: '+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs' }
+	},
 	mapStates: [] as {
 		olMap: unknown;
 		areaLayer: object;
@@ -31,12 +38,16 @@ vi.mock('$lib/remote/valuation/valuation.remote', () => ({
 
 vi.mock('$lib/stores/toaster', () => ({ globalToaster: { error: toastError } }));
 
-vi.mock('$app/state', () => ({
-	page: {
-		params: { projectId: '7' },
-		data: { srid: 25832, proj4Def: '+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs' }
-	}
+vi.mock('$app/state', () => ({ page: pageState }));
+
+const nav = vi.hoisted(() => ({
+	callbacks: [] as Array<(navigation: AfterNavigate) => void>
 }));
+
+vi.mock('$app/navigation', async () => {
+	const { afterNavigateStub } = await import('$lib/test-utils/afterNavigateStub');
+	return { goto: vi.fn(), afterNavigate: afterNavigateStub(nav.callbacks) };
+});
 
 vi.mock('ol/ol.css', () => ({}));
 
@@ -47,7 +58,6 @@ vi.mock('$lib/paraglide/messages', () => ({
 vi.mock('$lib/stores/store', async () => {
 	const { writable } = await import('svelte/store');
 	return {
-		selectedProject: writable('7'),
 		globalMapView: writable(false),
 		trenchColorSelected: writable('#ff0000'),
 		trenchColor: writable('#000000'),
@@ -94,7 +104,7 @@ vi.mock('$lib/classes/MapState.svelte', () => ({
 	}
 }));
 
-const { selectedProject, globalMapView } = await import('$lib/stores/store');
+const { globalMapView } = await import('$lib/stores/store');
 
 const forEachFeatureAtPixel = vi.fn();
 
@@ -118,7 +128,8 @@ beforeEach(() => {
 	mapStates.length = 0;
 	readyMap.current = { forEachFeatureAtPixel };
 	readyMap.deferred = false;
-	selectedProject.set('7');
+	pageState.params.projectId = '7';
+	nav.callbacks.length = 0;
 	globalMapView.set(false);
 	remote.getLayerStyleAttributes.mockResolvedValue({
 		nodeTypes: [{ id: 1, node_type: 'Muffe' }],
@@ -222,7 +233,8 @@ describe('ValuationMap', () => {
 		renderMap();
 		await screen.findByTestId('map');
 
-		selectedProject.set('8');
+		pageState.params.projectId = '8';
+		fireAfterNavigate(nav.callbacks, { projectId: '7' }, { projectId: '8' });
 
 		expect(mapStates[0].reinitializeForProject).toHaveBeenCalledWith('8');
 	});
@@ -241,7 +253,8 @@ describe('ValuationMap', () => {
 		renderMap();
 		await screen.findByTestId('map');
 
-		selectedProject.set('8');
+		pageState.params.projectId = '8';
+		fireAfterNavigate(nav.callbacks, { projectId: '7' }, { projectId: '8' });
 		expect(mapStates[0].reinitializeForProject).not.toHaveBeenCalled();
 
 		readyMap.announce();

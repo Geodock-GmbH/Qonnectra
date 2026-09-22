@@ -24,9 +24,6 @@ const defaultFlagValue = ['1'];
 /** Whether the sidebar is expanded */
 export const sidebarExpanded = persisted('isSidebarExpanded', true);
 
-/** Selected project */
-export const selectedProject: Writable<string> = writable('1');
-
 /** Map center */
 export const mapCenter: Writable<number[]> = persisted('mapCenter', defaultCenter);
 

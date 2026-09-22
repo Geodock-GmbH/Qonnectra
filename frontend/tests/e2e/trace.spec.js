@@ -30,6 +30,48 @@ test.describe('Fiber trace search page', () => {
 		await expect(page.getByPlaceholder(/node name|netzknotenname/i).first()).toBeVisible();
 	});
 
+	test('switching the project in the app bar re-runs the search without a navigation', async ({
+		page
+	}) => {
+		const search = page.getByPlaceholder(/street, city|straße, stadt/i).first();
+		/** @param {import('@playwright/test').Request} req */
+		const isTraceSearch = (req) =>
+			req.url().includes('/_app/remote/') && req.url().includes('searchTraceEntries');
+
+		/**
+		 * The remote query's arguments, base64url-encoded in the request URL.
+		 * @param {import('@playwright/test').Request} req
+		 */
+		const payloadOf = (req) =>
+			Buffer.from(new URL(req.url()).searchParams.get('payload') ?? '', 'base64url').toString();
+
+		const firstRequest = page.waitForRequest(isTraceSearch, { timeout: 15000 });
+		await search.fill('Ma');
+		const firstPayload = payloadOf(await firstRequest);
+
+		const input = page.locator('[data-scope="combobox"][data-part="input"]').first();
+		const trigger = page.locator('[data-scope="combobox"][data-part="trigger"]').first();
+		const options = page.locator('[data-scope="combobox"][data-part="item"]:visible');
+		await trigger.click();
+		test.skip((await options.count()) < 2, 'Needs at least two active projects');
+		const current = (await input.inputValue()).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+		// A global page: the picker changes the remembered project and the
+		// search follows it live; nothing navigates.
+		const secondRequest = page.waitForRequest(isTraceSearch, { timeout: 15000 });
+		await options
+			.filter({ hasNotText: new RegExp(`^\\s*${current}\\s*$`) })
+			.first()
+			.click();
+		const secondPayload = payloadOf(await secondRequest);
+
+		await expect(page).toHaveURL(/\/trace$/);
+		const remembered = (await page.context().cookies()).find((c) => c.name === 'last-project');
+		expect(remembered?.value).toBeTruthy();
+		expect(secondPayload).toContain(`"${remembered?.value}"`);
+		expect(firstPayload).not.toContain(`"${remembered?.value}"`);
+	});
+
 	test('typing a query issues a trace-search request to the backend', async ({ page }) => {
 		const search = page.getByPlaceholder(/street, city|straße, stadt/i).first();
 

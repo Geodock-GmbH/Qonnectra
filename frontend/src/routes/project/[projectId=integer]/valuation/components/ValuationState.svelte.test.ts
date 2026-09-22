@@ -9,12 +9,14 @@ const { pageParams } = vi.hoisted(() => ({
 
 vi.mock('$app/state', () => ({ page: { params: pageParams } }));
 
+vi.mock('$app/navigation', () => ({ afterNavigate: vi.fn() }));
+
 vi.mock('$lib/stores/store', async () => {
 	const { writable } = await import('svelte/store');
-	return { selectedProject: writable('1'), globalMapView: writable(false) };
+	return { globalMapView: writable(false) };
 });
 
-const { selectedProject, globalMapView } = await import('$lib/stores/store');
+const { globalMapView } = await import('$lib/stores/store');
 
 const result: ValuationResult = {
 	categories: [],
@@ -28,7 +30,6 @@ describe('ValuationState', () => {
 
 	beforeEach(() => {
 		pageParams.projectId = undefined;
-		selectedProject.set('1');
 		globalMapView.set(false);
 		valuation = new ValuationState();
 	});
@@ -160,12 +161,6 @@ describe('ValuationState', () => {
 
 			expect(valuation.projectId).toBe('7');
 			expect(valuation.areaScope).toBe('7');
-		});
-
-		test('should fall back to the selected project when the route has none', () => {
-			selectedProject.set('3');
-
-			expect(valuation.projectId).toBe('3');
 		});
 
 		test('should list the areas of all projects in the global view', () => {

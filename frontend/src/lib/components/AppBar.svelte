@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { AppBar } from '@skeletonlabs/skeleton-svelte';
@@ -8,7 +7,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { globalMapView, selectedProject } from '$lib/stores/store';
+	import { globalMapView } from '$lib/stores/store';
 	import { tooltip } from '$lib/utils/tooltip';
 	import { MAP_ROUTE_ID, VALUATION_ROUTE_ID } from '$lib/config/routes';
 	import { logout } from '$lib/remote/auth/logout.remote';
@@ -19,19 +18,9 @@
 
 	let { data } = $props();
 
-	/**
-	 * Toggles the global map view. Leaving it re-adopts the URL's project into
-	 * the legacy store, which the global view had detached from it.
-	 */
+	/** Toggles the global map view; the project never leaves the URL, so nothing else changes. */
 	function toggleGlobalMapView() {
-		if ($globalMapView) {
-			if (browser && page.params.projectId) {
-				selectedProject.set(page.params.projectId);
-			}
-			globalMapView.set(false);
-		} else {
-			globalMapView.set(true);
-		}
+		globalMapView.set(!$globalMapView);
 	}
 
 	/**

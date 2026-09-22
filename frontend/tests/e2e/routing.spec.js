@@ -126,6 +126,31 @@ test.describe('Routing contract', () => {
 
 		await expect(page).toHaveURL(new RegExp(`${projectPath(String(otherId), 'map')}$`));
 	});
+
+	test('logging out and back in lands on the project visited last', async ({ page }) => {
+		const id = await getProjectId(page);
+		await gotoProjectRoute(page, 'address');
+		const trigger = page.locator('[data-scope="combobox"][data-part="trigger"]').first();
+		const options = page.locator('[data-scope="combobox"][data-part="item"]:visible');
+		await trigger.click();
+		test.skip((await options.count()) < 2, 'Needs at least two active projects');
+		await (await otherProjectOption(page)).click();
+		await page.waitForURL((url) => projectIdFromUrl(url.href) !== id);
+		const otherId = projectIdFromUrl(page.url());
+		// The project layout remembers the project right after the navigation settles.
+		await expect
+			.poll(
+				async () => (await page.context().cookies()).find((c) => c.name === 'last-project')?.value
+			)
+			.toBe(otherId);
+
+		// The remembered project survives the logout by decision.
+		await page.getByRole('button', { name: /logout|abmelden/i }).click();
+		await page.waitForURL(/\/login/);
+		expect(await submitLoginForm(page)).toBe(true);
+
+		await expect(page).toHaveURL(new RegExp(`${projectPath(String(otherId), 'map')}$`));
+	});
 });
 
 test.describe('Deep links through login', () => {

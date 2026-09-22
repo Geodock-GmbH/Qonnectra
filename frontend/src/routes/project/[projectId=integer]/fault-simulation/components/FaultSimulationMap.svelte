@@ -19,7 +19,9 @@
 	import MapHint from '$lib/components/MapHint.svelte';
 	import { syncLayerStyles } from '$lib/map/layerStyleSync';
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
-	import { selectedProject, trenchColorSelected } from '$lib/stores/store';
+	import { syncMapProject } from '$lib/map/projectScopeSync';
+	import { trenchColorSelected } from '$lib/stores/store';
+	import { onProjectChange } from '$lib/context/project';
 	import { getLayerStyleAttributes } from '$lib/remote/map/layers.remote';
 
 	import FaultSimulationPopUp from './FaultSimulationPopUp.svelte';
@@ -29,7 +31,7 @@
 
 	const simulation = getFaultSimulationState();
 
-	const mapState = new MapState(get(selectedProject), get(trenchColorSelected), {
+	const mapState = new MapState(projectId, get(trenchColorSelected), {
 		trench: true,
 		address: true,
 		node: true,
@@ -109,6 +111,10 @@
 		updatePopupPixel();
 	}
 
+	onProjectChange((nextProjectId) =>
+		syncMapProject(mapState, nextProjectId, () => simulation.reset())
+	);
+
 	onMount(() => {
 		const stopStyleSync = syncLayerStyles(mapState);
 
@@ -128,6 +134,7 @@
 		<Map
 			className="rounded-lg overflow-hidden"
 			layers={mapState.getLayers()}
+			projectId={mapState.selectedProject}
 			showLayerVisibilityTree={true}
 			showSearchPanel={true}
 			onready={handleMapReady}
