@@ -614,7 +614,6 @@
 	"message_pipeline_record_updated": "Leitungsauskunft-Datensatz erfolgreich aktualisiert",
 	"message_please_select_exactly_2_nodes": "Bitte wählen Sie genau 2 Netzknoten aus",
 	"message_please_try_again": "Bitte versuche es erneut.",
-	"message_please_wait": "Bitte warten...",
 	"message_ports_merged": "{count} Ports zusammengeführt",
 	"message_ports_unmerged": "Ports getrennt",
 	"message_residential_unit_connected": "Wohneinheit erfolgreich verbunden",

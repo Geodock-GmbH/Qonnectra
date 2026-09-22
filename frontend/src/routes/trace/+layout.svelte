@@ -8,7 +8,7 @@
 
 	import TraceMapPanel from './components/TraceMapPanel.svelte';
 	import { setTraceSelection, TraceSelection } from './components/TraceSelection.svelte';
-	import { traceRequestFromPage } from './components/traceOptions';
+	import { traceRequestFromPage, traceRequestKey } from './components/traceOptions';
 
 	let { children }: { children: Snippet } = $props();
 
@@ -62,7 +62,7 @@
 			</div>
 
 			<div class="order-1 h-[35vh] min-w-0 shrink-0 sm:h-[40vh] xl:order-2 xl:h-auto xl:w-1/2">
-				{#key page.url.href}
+				{#key traceRequestKey(mapRequest)}
 					<svelte:boundary>
 						<TraceMapPanel request={mapRequest} />
 

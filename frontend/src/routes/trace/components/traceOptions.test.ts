@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { traceOptionsFromUrl, traceRequestFromPage } from './traceOptions';
+import { traceOptionsFromUrl, traceRequestFromPage, traceRequestKey } from './traceOptions';
 
 /**
  * Builds a trace page URL with the given query string.
@@ -78,5 +78,33 @@ describe('traceRequestFromPage', () => {
 
 	test('should find no request on the search page', () => {
 		expect(traceRequestFromPage({}, new URL('http://localhost/trace'))).toBeNull();
+	});
+});
+
+describe('traceRequestKey', () => {
+	const url = 'http://localhost/trace/fiber/f-1?include_geometry=true&geometry_mode=merged';
+	const params = { entryType: 'fiber', uuid: 'f-1' };
+
+	test('should ignore URL deltas outside the request', () => {
+		const plain = traceRequestFromPage(params, new URL(url));
+		const withHash = traceRequestFromPage(params, new URL(`${url}&feature=x#map=1/2/3`));
+
+		expect(traceRequestKey(plain!)).toBe(traceRequestKey(withHash!));
+	});
+
+	test('should change with every option that changes the trace', () => {
+		const base = traceRequestFromPage(params, new URL(url))!;
+		const variants = [
+			traceRequestFromPage({ ...params, uuid: 'f-2' }, new URL(url)),
+			traceRequestFromPage({ ...params, entryType: 'cable' }, new URL(url)),
+			traceRequestFromPage(params, new URL(`${url}&orient_geometry=true`)),
+			traceRequestFromPage(params, new URL(url.replace('merged', 'segments'))),
+			traceRequestFromPage(params, new URL(`${url}&mode=signal`)),
+			traceRequestFromPage(params, new URL(`${url}&mode=signal&source=n-1`))
+		];
+
+		const keys = new Set(variants.map((request) => traceRequestKey(request!)));
+		expect(keys.size).toBe(variants.length);
+		expect(keys.has(traceRequestKey(base))).toBe(false);
 	});
 });

@@ -5,8 +5,8 @@
 	import { Toast } from '@skeletonlabs/skeleton-svelte';
 
 	import AppBar from '$lib/components/AppBar.svelte';
-	import LoadingOverlay from '$lib/components/LoadingOverlay.svelte';
 	import MobileNav from '$lib/components/MobileNav.svelte';
+	import NavigationProgress from '$lib/components/NavigationProgress.svelte';
 	import Sidebar from '$lib/components/SideBar.svelte';
 	import { setupNavigationCancellation } from '$lib/map/navigationCancellation.js';
 	import { updateUserStore } from '$lib/stores/auth';
@@ -52,7 +52,7 @@
 
 <MobileNav />
 
-<LoadingOverlay />
+<NavigationProgress />
 
 <Toast.Group toaster={globalToaster}>
 	{#snippet children(toast)}

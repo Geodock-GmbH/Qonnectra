@@ -90,3 +90,22 @@ export function traceQuery({ entryType, entryId, options }: TraceRequest) {
 		orientGeometry: options.orientGeometry
 	});
 }
+
+/**
+ * Identity of a trace request for `{#key}` blocks: two requests with the
+ * same key show the same result and map, so URL deltas outside the request
+ * (a map hash, a drawer parameter) do not remount them.
+ * @param request - The requested trace.
+ * @returns A string that changes exactly when the request does.
+ */
+export function traceRequestKey({ entryType, entryId, options }: TraceRequest): string {
+	return [
+		entryType,
+		entryId,
+		options.mode,
+		options.includeGeometry,
+		options.geometryMode,
+		options.orientGeometry,
+		options.signalSource ?? ''
+	].join('|');
+}

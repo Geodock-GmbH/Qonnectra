@@ -614,7 +614,6 @@
 	"message_pipeline_record_updated": "Pipeline record updated successfully",
 	"message_please_select_exactly_2_nodes": "Please select exactly 2 nodes",
 	"message_please_try_again": "Please try again.",
-	"message_please_wait": "Please wait...",
 	"message_ports_merged": "Merged {count} ports",
 	"message_ports_unmerged": "Ports unmerged",
 	"message_residential_unit_connected": "Residential unit connected successfully",

@@ -9,7 +9,7 @@
 	import { traceEntryPath } from '$lib/utils/traceUtils';
 
 	import TraceOutcome from '../../components/TraceOutcome.svelte';
-	import { traceRequestFromPage } from '../../components/traceOptions';
+	import { traceRequestFromPage, traceRequestKey } from '../../components/traceOptions';
 
 	const request = $derived(traceRequestFromPage(page.params, page.url));
 
@@ -65,7 +65,7 @@
 		</div>
 	{/if}
 
-	{#key page.url.href}
+	{#key traceRequestKey(request)}
 		<QueryBoundary>
 			<TraceOutcome {request} />
 		</QueryBoundary>
