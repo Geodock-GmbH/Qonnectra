@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 
 import type { AfterNavigate } from '@sveltejs/kit';
+import { goto } from '$app/navigation';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -13,6 +14,7 @@ import { ValuationState } from './ValuationState.svelte';
 
 const { mapStates, remote, toastError, pageState } = vi.hoisted(() => ({
 	pageState: {
+		url: new URL('http://localhost/project/7/valuation'),
 		params: { projectId: '7' },
 		data: { srid: 25832, proj4Def: '+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs' }
 	},
@@ -33,7 +35,8 @@ vi.mock('$lib/remote/map/layers.remote', () => ({
 }));
 
 vi.mock('$lib/remote/valuation/valuation.remote', () => ({
-	getValuationAreas: remote.getValuationAreas
+	getValuationAreas: remote.getValuationAreas,
+	calculateValuation: vi.fn(() => ({ current: undefined, loading: false }))
 }));
 
 vi.mock('$lib/stores/toaster', () => ({ globalToaster: { error: toastError } }));
@@ -177,12 +180,17 @@ describe('ValuationMap', () => {
 		expect(attach).toHaveBeenCalledWith(readyMap.current, expect.objectContaining({ srid: 25832 }));
 	});
 
-	test('should toggle a clicked area that the list offers', async () => {
-		const { valuation } = renderMap('area-1');
+	test('should write a clicked area that the list offers to the URL', async () => {
+		renderMap('area-1');
 
 		await fireEvent.click(await screen.findByTestId('map'));
 
-		await vi.waitFor(() => expect(valuation.selectedAreaUuids.has('area-1')).toBe(true));
+		await vi.waitFor(() =>
+			expect(goto).toHaveBeenCalledWith(
+				'/project/7/valuation?areas=area-1',
+				expect.objectContaining({ replaceState: true })
+			)
+		);
 		expect(remote.getValuationAreas).toHaveBeenCalledWith({ projectId: '7' });
 	});
 
@@ -198,21 +206,21 @@ describe('ValuationMap', () => {
 	});
 
 	test('should ignore a clicked area that the list does not offer', async () => {
-		const { valuation } = renderMap('area-of-another-project');
+		renderMap('area-of-another-project');
 
 		await fireEvent.click(await screen.findByTestId('map'));
 
 		await vi.waitFor(() => expect(remote.getValuationAreas).toHaveBeenCalled());
-		expect(valuation.selectedAreaUuids.size).toBe(0);
+		expect(goto).not.toHaveBeenCalled();
 	});
 
 	test('should ignore a click that hits no area', async () => {
-		const { valuation } = renderMap(null);
+		renderMap(null);
 
 		await fireEvent.click(await screen.findByTestId('map'));
 
 		expect(remote.getValuationAreas).not.toHaveBeenCalled();
-		expect(valuation.selectedAreaUuids.size).toBe(0);
+		expect(goto).not.toHaveBeenCalled();
 	});
 
 	test('should report areas that cannot be loaded for a click', async () => {

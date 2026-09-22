@@ -1,15 +1,22 @@
 import type { ValuationResult } from '$lib/remote/valuation/valuation-data';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { ValuationState } from './ValuationState.svelte';
+import { calculateValuation } from '$lib/remote/valuation/valuation.remote';
 
-const { pageParams } = vi.hoisted(() => ({
-	pageParams: { projectId: undefined as string | undefined }
+import { ValuationState } from './ValuationState.svelte';
+import { defaultBaseYear, MAX_URL_AREAS } from './valuationRequest';
+
+const { pageState, gotoMock } = vi.hoisted(() => ({
+	pageState: { url: new URL('http://localhost/project/7/valuation'), params: { projectId: '7' } },
+	gotoMock: vi.fn()
 }));
 
-vi.mock('$app/state', () => ({ page: { params: pageParams } }));
+vi.mock('$app/state', () => ({ page: pageState }));
+vi.mock('$app/navigation', () => ({ goto: (...args: unknown[]) => gotoMock(...args) }));
 
-vi.mock('$app/navigation', () => ({ afterNavigate: vi.fn() }));
+vi.mock('$lib/remote/valuation/valuation.remote', () => ({
+	calculateValuation: vi.fn()
+}));
 
 vi.mock('$lib/stores/store', async () => {
 	const { writable } = await import('svelte/store');
@@ -25,146 +32,166 @@ const result: ValuationResult = {
 	costPerMeter: null
 };
 
+/** A remote query stand-in that resolved to the valuation. */
+function queryOf(current: ValuationResult) {
+	return Promise.resolve(current);
+}
+
+/** The last navigation's target and options. */
+function lastGoto() {
+	return gotoMock.mock.calls.at(-1);
+}
+
 describe('ValuationState', () => {
 	let valuation: ValuationState;
 
 	beforeEach(() => {
-		pageParams.projectId = undefined;
+		pageState.url = new URL('http://localhost/project/7/valuation');
+		gotoMock.mockReset();
+		vi.mocked(calculateValuation).mockReset();
+		vi.mocked(calculateValuation).mockReturnValue(queryOf(result) as never);
 		globalMapView.set(false);
 		valuation = new ValuationState();
 	});
 
-	test('should start covering the whole project without a result', () => {
+	test('should value the whole project with default inputs when the URL names nothing', () => {
 		expect(valuation.wholeProject).toBe(true);
 		expect(valuation.selectedAreaUuids.size).toBe(0);
-		expect(valuation.result).toBeNull();
 		expect(valuation.selectionValid).toBe(true);
 		expect(valuation.areaUuids).toEqual([]);
+		expect(valuation.baseYear).toBe(defaultBaseYear());
+		expect(valuation.annualCorrectionPercent).toBe(2.5);
+		expect(valuation.query).not.toBeNull();
+		expect(calculateValuation).toHaveBeenCalledWith({ projectId: '7', areaUuids: [] });
+	});
+
+	test('should value the areas the URL names', () => {
+		pageState.url = new URL('http://localhost/project/7/valuation?areas=area-1,area-2');
+
+		expect(valuation.wholeProject).toBe(false);
+		expect(valuation.areaUuids).toEqual(['area-1', 'area-2']);
+		expect(valuation.query).not.toBeNull();
+		expect(calculateValuation).toHaveBeenCalledWith({
+			projectId: '7',
+			areaUuids: ['area-1', 'area-2']
+		});
 	});
 
 	describe('toggleArea', () => {
-		test('should select an area and stop covering the whole project', () => {
+		test('should write the selection to the URL as an adjustment', () => {
 			valuation.toggleArea('area-1');
 
-			expect(valuation.selectedAreaUuids.has('area-1')).toBe(true);
-			expect(valuation.wholeProject).toBe(false);
-			expect(valuation.areaUuids).toEqual(['area-1']);
+			expect(lastGoto()).toEqual([
+				'/project/7/valuation?areas=area-1',
+				{ keepFocus: true, noScroll: true, replaceState: true }
+			]);
 		});
 
-		test('should deselect an area that is already selected', () => {
-			valuation.toggleArea('area-1');
-			valuation.toggleArea('area-1');
+		test('should add to and remove from the areas in the URL', () => {
+			pageState.url = new URL('http://localhost/project/7/valuation?areas=area-1');
 
-			expect(valuation.selectedAreaUuids.size).toBe(0);
+			valuation.toggleArea('area-2');
+			expect(lastGoto()?.[0]).toBe('/project/7/valuation?areas=area-1%2Carea-2');
+
+			valuation.toggleArea('area-1');
+			expect(lastGoto()?.[0]).toBe('/project/7/valuation');
 		});
 
-		test('should leave the selection invalid once the last area is deselected', () => {
-			valuation.toggleArea('area-1');
-			valuation.toggleArea('area-1');
+		test('should keep a selection too long for a link on the page with a hint', () => {
+			const many = Array.from({ length: MAX_URL_AREAS }, (_, i) => `area-${i}`);
+			pageState.url = new URL(`http://localhost/project/7/valuation?areas=${many.join(',')}`);
 
-			expect(valuation.wholeProject).toBe(false);
-			expect(valuation.selectionValid).toBe(false);
+			valuation.toggleArea('one-more');
+
+			expect(gotoMock).not.toHaveBeenCalled();
+			expect(valuation.selectionBeyondUrl).toBe(true);
+			expect(valuation.selectedAreaUuids.size).toBe(MAX_URL_AREAS + 1);
+			expect(valuation.areaUuids).toContain('one-more');
 		});
 	});
 
 	describe('toggleWholeProject', () => {
-		test('should drop the selected areas when switching back to the whole project', () => {
-			valuation.toggleArea('area-1');
-			valuation.toggleWholeProject();
-
-			expect(valuation.wholeProject).toBe(true);
-			expect(valuation.selectedAreaUuids.size).toBe(0);
-			expect(valuation.areaUuids).toEqual([]);
-		});
-
-		test('should require an area once the whole project is switched off', () => {
+		test('should enter area picking without touching the URL', () => {
 			valuation.toggleWholeProject();
 
 			expect(valuation.wholeProject).toBe(false);
 			expect(valuation.selectionValid).toBe(false);
+			expect(valuation.query).toBeNull();
+			expect(gotoMock).not.toHaveBeenCalled();
+		});
+
+		test('should drop the selected areas from the URL when switching back to the whole project', () => {
+			pageState.url = new URL('http://localhost/project/7/valuation?areas=area-1&baseYear=2030');
+
+			valuation.toggleWholeProject();
+
+			expect(lastGoto()?.[0]).toBe('/project/7/valuation?baseYear=2030');
 		});
 	});
 
-	describe('reset', () => {
-		test('should return to the whole project and drop the result', () => {
-			valuation.toggleArea('area-1');
-			valuation.result = result;
+	describe('projection inputs', () => {
+		test('should write a changed base year and correction, never the defaults', () => {
+			valuation.setBaseYear(2030);
+			expect(lastGoto()?.[0]).toBe('/project/7/valuation?baseYear=2030');
 
-			valuation.reset();
+			valuation.setAnnualCorrection(4);
+			expect(lastGoto()?.[0]).toBe('/project/7/valuation?correction=4');
 
-			expect(valuation.wholeProject).toBe(true);
-			expect(valuation.selectedAreaUuids.size).toBe(0);
-			expect(valuation.result).toBeNull();
+			pageState.url = new URL('http://localhost/project/7/valuation?baseYear=2030&correction=4');
+			valuation.setBaseYear(defaultBaseYear());
+			expect(lastGoto()?.[0]).toBe('/project/7/valuation?correction=4');
+			valuation.setAnnualCorrection(undefined);
+			expect(lastGoto()?.[0]).toBe('/project/7/valuation?baseYear=2030');
 		});
 
-		test('should let a running calculation tell that it is outdated', () => {
-			const { resetCount } = valuation;
-
-			valuation.reset();
-
-			expect(valuation.resetCount).not.toBe(resetCount);
-		});
-
-		test('should keep the projection inputs', () => {
-			valuation.baseYear = 2030;
-			valuation.annualCorrectionPercent = 4;
-
-			valuation.reset();
+		test('should read the inputs from the URL', () => {
+			pageState.url = new URL('http://localhost/project/7/valuation?baseYear=2030&correction=4');
 
 			expect(valuation.baseYear).toBe(2030);
 			expect(valuation.annualCorrectionPercent).toBe(4);
 		});
 	});
 
-	describe('projectionRows', () => {
-		test('should be empty without a result', () => {
-			expect(valuation.projectionRows).toEqual([]);
+	describe('reset', () => {
+		test('should return to the whole project, keeping the projection inputs', async () => {
+			pageState.url = new URL('http://localhost/project/7/valuation?areas=area-1&baseYear=2030');
+			valuation.toggleWholeProject();
+
+			await valuation.reset();
+
+			expect(lastGoto()?.[0]).toBe('/project/7/valuation?baseYear=2030');
 		});
 
-		test('should project the total from the base year', () => {
-			valuation.result = result;
-			valuation.baseYear = 2025;
-			valuation.annualCorrectionPercent = 10;
+		test('should not navigate when the URL names no areas', async () => {
+			valuation.toggleWholeProject();
 
-			const rows = valuation.projectionRows;
+			await valuation.reset();
+
+			expect(valuation.wholeProject).toBe(true);
+			expect(gotoMock).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('projectionRowsFor', () => {
+		test('should project the total from the base year in the URL', () => {
+			pageState.url = new URL('http://localhost/project/7/valuation?baseYear=2025&correction=10');
+
+			const rows = valuation.projectionRowsFor(result);
 
 			expect(rows).toHaveLength(22);
 			expect(rows[0]).toEqual({ year: 2025, netValue: 1000, increase: null });
 			expect(rows[1].year).toBe(2026);
 			expect(rows[1].netValue).toBeCloseTo(1100);
 		});
-
-		test('should follow a changed correction without a new calculation', () => {
-			valuation.result = result;
-			valuation.baseYear = 2025;
-			valuation.annualCorrectionPercent = 10;
-			valuation.annualCorrectionPercent = -50;
-
-			expect(valuation.projectionRows[1].netValue).toBeCloseTo(500);
-		});
-
-		test('should be empty while an input is cleared', () => {
-			valuation.result = result;
-
-			valuation.annualCorrectionPercent = undefined;
-			expect(valuation.projectionRows).toEqual([]);
-
-			valuation.annualCorrectionPercent = 2.5;
-			valuation.baseYear = undefined;
-			expect(valuation.projectionRows).toEqual([]);
-		});
 	});
 
 	describe('project scope', () => {
 		test('should read the project from the route', () => {
-			pageParams.projectId = '7';
-
 			expect(valuation.projectId).toBe('7');
 			expect(valuation.areaScope).toBe('7');
 		});
 
 		test('should list the areas of all projects in the global view', () => {
-			pageParams.projectId = '7';
 			globalMapView.set(true);
 
 			expect(valuation.areaScope).toBe('');

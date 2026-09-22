@@ -12,10 +12,17 @@ import AreaList from './AreaList.svelte';
 const getValuationAreas = vi.fn();
 
 vi.mock('$lib/remote/valuation/valuation.remote', () => ({
-	getValuationAreas: (...args: unknown[]) => getValuationAreas(...args)
+	getValuationAreas: (...args: unknown[]) => getValuationAreas(...args),
+	calculateValuation: vi.fn(() => ({ current: undefined, loading: false }))
 }));
 
-vi.mock('$app/state', () => ({ page: { params: { projectId: '7' } } }));
+const { pageState, gotoMock } = vi.hoisted(() => ({
+	pageState: { url: new URL('http://localhost/project/7/valuation'), params: { projectId: '7' } },
+	gotoMock: vi.fn()
+}));
+
+vi.mock('$app/state', () => ({ page: pageState }));
+vi.mock('$app/navigation', () => ({ goto: (...args: unknown[]) => gotoMock(...args) }));
 
 vi.mock('$lib/stores/store', async () => {
 	const { writable } = await import('svelte/store');
@@ -48,6 +55,8 @@ function renderList() {
 }
 
 beforeEach(() => {
+	pageState.url = new URL('http://localhost/project/7/valuation');
+	gotoMock.mockReset();
 	globalMapView.set(false);
 	getValuationAreas.mockResolvedValue(areas);
 });
@@ -91,35 +100,37 @@ describe('AreaList', () => {
 		expect(await screen.findByTestId('boundary-failed')).toHaveTextContent('Failed to load areas');
 	});
 
-	test('should select an area and outline it on the map', async () => {
-		const { valuation, show } = renderList();
+	test('should write a picked area to the URL', async () => {
+		renderList();
 
 		await user.click(await screen.findByRole('checkbox', { name: 'Nord' }));
 
-		expect(valuation.selectedAreaUuids.has('area-1')).toBe(true);
-		expect(valuation.wholeProject).toBe(false);
-		expect(screen.getByRole('checkbox', { name: 'Nord' })).toBeChecked();
-		expect(show).toHaveBeenLastCalledWith([areas[0]]);
+		expect(gotoMock).toHaveBeenCalledWith(
+			'/project/7/valuation?areas=area-1',
+			expect.objectContaining({ replaceState: true })
+		);
 	});
 
-	test('should follow a selection made on the map', async () => {
-		const { valuation, show } = renderList();
-		const checkbox = await screen.findByRole('checkbox', { name: 'Süd' });
+	test('should show and outline the areas the URL names', async () => {
+		pageState.url = new URL('http://localhost/project/7/valuation?areas=area-2');
+		const { show } = renderList();
 
-		valuation.toggleArea('area-2');
-
-		await vi.waitFor(() => expect(checkbox).toBeChecked());
+		expect(await screen.findByRole('checkbox', { name: 'Süd' })).toBeChecked();
+		expect(screen.getByRole('checkbox', { name: 'Nord' })).not.toBeChecked();
 		expect(show).toHaveBeenLastCalledWith([areas[1]]);
 	});
 
-	test('should drop the outlines when the whole project is valued again', async () => {
-		const { valuation, show } = renderList();
-		await user.click(await screen.findByRole('checkbox', { name: 'Nord' }));
+	test('should drop the areas from the URL when the whole project is valued again', async () => {
+		pageState.url = new URL('http://localhost/project/7/valuation?areas=area-1');
+		const { valuation } = renderList();
+		await screen.findByRole('checkbox', { name: 'Nord' });
 
 		valuation.toggleWholeProject();
 
-		await vi.waitFor(() => expect(show).toHaveBeenLastCalledWith([]));
-		expect(screen.getByRole('checkbox', { name: 'Nord' })).not.toBeChecked();
+		expect(gotoMock).toHaveBeenCalledWith(
+			'/project/7/valuation',
+			expect.objectContaining({ replaceState: true })
+		);
 	});
 
 	test('should fold a group away and open it again', async () => {

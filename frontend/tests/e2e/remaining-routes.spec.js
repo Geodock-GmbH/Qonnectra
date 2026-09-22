@@ -134,7 +134,60 @@ test.describe('Valuation page', () => {
 		await expect(
 			page.getByRole('heading', { name: /select area|gebiet auswählen/i })
 		).toBeVisible();
-		await expect(page.getByRole('heading', { name: /valuation|wertermittlung/i })).toBeVisible();
+		// The whole-project valuation runs from the URL, so its projection heading
+		// appears in the results as well as in the inputs.
+		await expect(
+			page.getByRole('heading', { name: /valuation|wertermittlung/i }).first()
+		).toBeVisible();
+	});
+
+	test('the selection and inputs live in the URL and survive a reload', async ({ page }) => {
+		const areaBoxes = page.locator('.max-h-60 input[type="checkbox"]');
+		await expect(
+			page.getByRole('heading', { name: /select area|gebiet auswählen/i })
+		).toBeVisible();
+		await page.waitForLoadState('networkidle');
+		test.skip((await areaBoxes.count()) < 2, 'Needs at least two areas in the project');
+
+		await areaBoxes.nth(0).check();
+		await expect(page).toHaveURL(/[?&]areas=[0-9a-f-]{36}/);
+		await areaBoxes.nth(1).check();
+		await expect(page).toHaveURL(/[?&]areas=[0-9a-f-]{36}%2C[0-9a-f-]{36}/);
+
+		const baseYear = page.getByLabel(/completion year|bauabschluss/i);
+		await baseYear.fill('2030');
+		await baseYear.press('Tab');
+		await expect(page).toHaveURL(/[?&]baseYear=2030/);
+
+		// The valuation of the selection replaces the whole-project one; read
+		// the total once it has stopped changing.
+		const total = page.locator('tfoot').first();
+		await expect(total).toBeVisible({ timeout: 20000 });
+		/** @type {string} */
+		/** @param {import('@playwright/test').Locator} cell */
+		const textOf = async (cell) => (await cell.innerText()).replace(/\s+/g, ' ').trim();
+		let totalText = '';
+		await expect
+			.poll(
+				async () => {
+					const before = await textOf(total);
+					await page.waitForTimeout(1500);
+					totalText = await textOf(total);
+					return totalText === before;
+				},
+				{ timeout: 30000 }
+			)
+			.toBe(true);
+
+		await page.reload();
+
+		await expect(page.locator('.max-h-60 input[type="checkbox"]:checked')).toHaveCount(2, {
+			timeout: 15000
+		});
+		await expect(page.getByLabel(/completion year|bauabschluss/i)).toHaveValue('2030');
+		await expect
+			.poll(() => textOf(page.locator('tfoot').first()), { timeout: 20000 })
+			.toBe(totalText);
 	});
 
 	test('exposes the area search input', async ({ page }) => {

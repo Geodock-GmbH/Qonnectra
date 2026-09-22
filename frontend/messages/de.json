@@ -976,6 +976,7 @@
 	"valuation_rate": "Kosten (EP)",
 	"valuation_result_failed": "Berechnung fehlgeschlagen.",
 	"valuation_select_area_hint": "Wähle ein Ausbaugebiet oder „Gesamt“, um die Wertermittlung zu starten.",
+	"valuation_selection_too_long": "Zu viele Gebiete für einen teilbaren Link; die Auswahl bleibt auf dieser Seite.",
 	"valuation_title": "Werteermittlung",
 	"valuation_total": "Gesamtinvestition",
 	"valuation_unit": "Einheit",

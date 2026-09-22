@@ -975,6 +975,7 @@
 	"valuation_rate": "Rate (EP)",
 	"valuation_result_failed": "Calculation failed.",
 	"valuation_select_area_hint": "Select a development area or “Total” to run the valuation.",
+	"valuation_selection_too_long": "Too many areas for a shareable link; the selection stays on this page.",
 	"valuation_title": "Valuation",
 	"valuation_total": "Total investment",
 	"valuation_unit": "Unit",

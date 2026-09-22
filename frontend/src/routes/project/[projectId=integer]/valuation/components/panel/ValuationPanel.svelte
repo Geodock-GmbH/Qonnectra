@@ -5,9 +5,9 @@
 
 	import { getValuationState } from '../ValuationState.svelte';
 	import AreaList from './AreaList.svelte';
-	import CalculateButton from './CalculateButton.svelte';
 	import ProjectionInputs from './ProjectionInputs.svelte';
 	import ValuationResults from './ValuationResults.svelte';
+	import ValuationStatus from './ValuationStatus.svelte';
 
 	const valuation = getValuationState();
 </script>
@@ -20,8 +20,8 @@
 	</div>
 {/snippet}
 
-{#snippet buttonSkeleton()}
-	<div class="placeholder animate-pulse h-10 rounded-md" role="status">
+{#snippet statusSkeleton()}
+	<div class="placeholder animate-pulse h-6 rounded-md" role="status">
 		<span class="sr-only">{m.common_loading()}</span>
 	</div>
 {/snippet}
@@ -50,8 +50,8 @@
 </div>
 
 <div class="p-3 border-b border-surface-200-800">
-	<QueryBoundary pending={buttonSkeleton}>
-		<CalculateButton />
+	<QueryBoundary pending={statusSkeleton}>
+		<ValuationStatus />
 	</QueryBoundary>
 </div>
 

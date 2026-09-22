@@ -2,16 +2,22 @@ import '@testing-library/jest-dom/vitest';
 
 import type { AfterNavigate } from '@sveltejs/kit';
 import type { ValuationArea } from '$lib/remote/valuation/valuation-data';
-import { render, screen } from '@testing-library/svelte';
+import { goto } from '$app/navigation';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { fireAfterNavigate } from '$lib/test-utils/afterNavigateStub';
+import { httpError } from '$lib/test-utils/remote-stubs';
 
 import Page from './+page.svelte';
 
 const { pageState, remote } = vi.hoisted(() => ({
-	pageState: { params: { projectId: '1' as string | undefined }, data: {} },
+	pageState: {
+		url: new URL('http://localhost/project/1/valuation'),
+		params: { projectId: '1' as string | undefined },
+		data: {}
+	},
 	remote: {
 		getValuationAreas: vi.fn(),
 		getValuationRateCount: vi.fn(),
@@ -62,22 +68,27 @@ const result = {
 	costPerMeter: 100
 };
 
-/** Renders the page, picks the area and calculates, so there is state to reset. */
+/** A remote query stand-in that resolves to the valuation. */
+function calculated() {
+	return Promise.resolve(result);
+}
+
+/** Renders the page with an area named in the URL, so its valuation shows. */
 async function renderCalculatedPage() {
+	pageState.url = new URL('http://localhost/project/1/valuation?areas=area-1');
 	render(Page);
 
-	await user.click(await screen.findByRole('checkbox', { name: 'Nord' }));
-	await user.click(await screen.findByRole('button', { name: 'valuation_calculate' }));
 	await screen.findByText('Tiefbau');
 }
 
 beforeEach(() => {
+	pageState.url = new URL('http://localhost/project/1/valuation');
 	pageState.params.projectId = '1';
 	nav.callbacks.length = 0;
 	globalMapView.set(false);
 	remote.getValuationAreas.mockResolvedValue(areas);
 	remote.getValuationRateCount.mockResolvedValue(2);
-	remote.calculateValuation.mockResolvedValue(result);
+	remote.calculateValuation.mockReturnValue(calculated());
 });
 
 afterEach(() => {
@@ -85,12 +96,13 @@ afterEach(() => {
 });
 
 describe('Valuation page', () => {
-	test('should start with the whole project selected and no result', async () => {
+	test('should value the whole project when the URL names no areas', async () => {
 		render(Page);
 
 		expect(screen.getByRole('checkbox', { name: 'valuation_area_gesamt' })).toBeChecked();
 		expect(await screen.findByRole('checkbox', { name: 'Nord' })).not.toBeChecked();
-		expect(screen.queryByText('valuation_total')).not.toBeInTheDocument();
+		expect(remote.calculateValuation).toHaveBeenCalledWith({ projectId: '1', areaUuids: [] });
+		expect(screen.getByText('valuation_total')).toBeInTheDocument();
 	});
 
 	test('should value the project named in the URL', async () => {
@@ -103,7 +115,7 @@ describe('Valuation page', () => {
 		expect(remote.getValuationRateCount).toHaveBeenCalledWith({ projectId: '5' });
 	});
 
-	test('should calculate the selected areas and list the priced cost rates', async () => {
+	test('should value the areas named in the URL and list the priced cost rates', async () => {
 		await renderCalculatedPage();
 
 		expect(remote.calculateValuation).toHaveBeenCalledWith({
@@ -111,38 +123,75 @@ describe('Valuation page', () => {
 			areaUuids: ['area-1']
 		});
 		expect(screen.getByRole('checkbox', { name: 'valuation_area_gesamt' })).not.toBeChecked();
+		expect(await screen.findByRole('checkbox', { name: 'Nord' })).toBeChecked();
 		expect(screen.getByText('valuation_total')).toBeInTheDocument();
 	});
 
-	test('should project the result over the years following the base year', async () => {
-		await renderCalculatedPage();
+	test('should write a picked area to the URL as an adjustment', async () => {
+		render(Page);
 
-		const baseYear = screen.getByLabelText('valuation_base_year');
-		await user.clear(baseYear);
-		await user.type(baseYear, '2030');
+		await user.click(await screen.findByRole('checkbox', { name: 'Nord' }));
+
+		expect(goto).toHaveBeenCalledWith(
+			'/project/1/valuation?areas=area-1',
+			expect.objectContaining({ replaceState: true })
+		);
+	});
+
+	test('should project the result over the years following the base year in the URL', async () => {
+		pageState.url = new URL('http://localhost/project/1/valuation?areas=area-1&baseYear=2030');
+		render(Page);
 
 		expect(await screen.findByRole('cell', { name: '2030' })).toBeInTheDocument();
 		expect(screen.getByRole('cell', { name: '2051' })).toBeInTheDocument();
-		expect(remote.calculateValuation).toHaveBeenCalledTimes(1);
 	});
 
-	test('should drop the selection and the result when the project changes', async () => {
+	test('should write a changed base year to the URL', async () => {
+		await renderCalculatedPage();
+
+		await fireEvent.change(screen.getByLabelText('valuation_base_year'), {
+			target: { value: '2030' }
+		});
+
+		expect(goto).toHaveBeenCalledWith(
+			'/project/1/valuation?areas=area-1&baseYear=2030',
+			expect.objectContaining({ replaceState: true })
+		);
+	});
+
+	test('should show the backend message and a retry when the valuation fails', async () => {
+		remote.calculateValuation.mockReturnValue(Promise.reject(httpError(400, 'No rates')));
+		render(Page);
+
+		expect(await screen.findByRole('alert')).toHaveTextContent('No rates');
+		expect(screen.getByRole('button', { name: 'common_retry' })).toBeInTheDocument();
+	});
+
+	test('should drop the selection from the URL when the project changes', async () => {
 		await renderCalculatedPage();
 
 		pageState.params.projectId = '2';
 		fireAfterNavigate(nav.callbacks, { projectId: '1' }, { projectId: '2' });
 
-		await vi.waitFor(() => expect(screen.queryByText('Tiefbau')).not.toBeInTheDocument());
-		expect(screen.getByRole('checkbox', { name: 'valuation_area_gesamt' })).toBeChecked();
+		await vi.waitFor(() =>
+			expect(goto).toHaveBeenCalledWith(
+				'/project/1/valuation',
+				expect.objectContaining({ replaceState: true })
+			)
+		);
 	});
 
-	test('should drop the selection and the result when the global view is toggled', async () => {
+	test('should drop the selection from the URL when the global view is toggled', async () => {
 		await renderCalculatedPage();
 
 		globalMapView.set(true);
 
-		await vi.waitFor(() => expect(screen.queryByText('Tiefbau')).not.toBeInTheDocument());
-		expect(screen.getByRole('checkbox', { name: 'valuation_area_gesamt' })).toBeChecked();
+		await vi.waitFor(() =>
+			expect(goto).toHaveBeenCalledWith(
+				'/project/1/valuation',
+				expect.objectContaining({ replaceState: true })
+			)
+		);
 		await vi.waitFor(() =>
 			expect(remote.getValuationAreas).toHaveBeenLastCalledWith({ projectId: '' })
 		);
