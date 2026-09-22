@@ -7,26 +7,20 @@ vi.mock('$env/static/private', () => ({
 	API_URL: 'http://localhost:8000/'
 }));
 
-vi.mock('@sveltejs/kit', () => ({
-	redirect: (status: number, location: string) => {
-		const redirectError = new Error('redirect') as Error & { status: number; location: string };
-		redirectError.status = status;
-		redirectError.location = location;
-		throw redirectError;
-	}
-}));
-
-vi.mock('../hooks.server.js', () => ({
-	PUBLIC_ROUTES: ['/login', '/logout']
-}));
-
 function makeCookies(values: Record<string, string>): Cookies {
 	return { get: (name: string) => values[name] } as unknown as Cookies;
 }
 
-function makeUrl(pathname: string): URL {
-	return new URL(`http://localhost:5173${pathname}`);
-}
+/**
+ * A `url` that fails on any property access. Every test passes it, which
+ * proves the load has no URL dependency and so never reruns on a query,
+ * hash or same-route param change.
+ */
+const forbiddenUrl = new Proxy({} as URL, {
+	get(_target, property) {
+		throw new Error(`root layout load must not read url.${String(property)}`);
+	}
+});
 
 function okJson(data: unknown) {
 	return { ok: true, json: () => Promise.resolve(data) };
@@ -35,7 +29,7 @@ function okJson(data: unknown) {
 const authenticatedLocals = { user: { isAuthenticated: true, username: 'malte' } };
 
 function makeFetch() {
-	return vi.fn((url: string) => {
+	return vi.fn((url: string, _init?: RequestInit) => {
 		if (url.includes('flags/')) {
 			return Promise.resolve(okJson([{ id: 1, flag: 'Bau' }]));
 		}
@@ -46,76 +40,87 @@ function makeFetch() {
 	});
 }
 
+/**
+ * Runs the load with the forbidden URL and a recording `depends`.
+ * @param overrides - Event fields to replace.
+ */
+function runLoad(overrides: {
+	locals?: Record<string, unknown>;
+	fetch?: ReturnType<typeof vi.fn>;
+	cookies?: Cookies;
+}) {
+	const depends = vi.fn();
+	const result = load({
+		locals: overrides.locals ?? authenticatedLocals,
+		url: forbiddenUrl,
+		fetch: overrides.fetch ?? makeFetch(),
+		cookies: overrides.cookies ?? makeCookies({}),
+		depends
+	} as never) as Promise<Record<string, unknown>>;
+	return { result, depends };
+}
+
 beforeEach(() => {
 	vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 describe('root layout load', () => {
-	test('should redirect unauthenticated users to login with a return path', async () => {
-		await expect(
-			load({
-				locals: { user: null },
-				url: makeUrl('/map/7?foo=bar'),
-				fetch: vi.fn(),
-				cookies: makeCookies({})
-			} as never)
-		).rejects.toMatchObject({
-			status: 303,
-			location: '/login?redirectTo=%2Fmap%2F7%3Ffoo%3Dbar'
-		});
+	test('should not read the URL and should register the reference-data dependency', async () => {
+		const { result, depends } = runLoad({});
+
+		await expect(result).resolves.toBeDefined();
+		expect(depends).toHaveBeenCalledWith('app:reference-data');
 	});
 
-	test('should not redirect on public routes', async () => {
-		const result = (await load({
-			locals: { user: null },
-			url: makeUrl('/login'),
-			fetch: vi.fn(),
-			cookies: makeCookies({})
-		} as never)) as Record<string, unknown>;
+	test('should return empty reference data without fetching for unauthenticated users', async () => {
+		const fetchMock = vi.fn();
+		const { result } = runLoad({ locals: { user: { isAuthenticated: false } }, fetch: fetchMock });
+		const data = await result;
 
-		expect(result.user).toBeNull();
-		expect(result.flags).toEqual([]);
+		expect(data.flags).toEqual([]);
+		expect(data.projects).toEqual([]);
+		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
 	test('should load flags, projects, and config for authenticated users', async () => {
 		const fetchMock = makeFetch();
-
-		const result = (await load({
-			locals: authenticatedLocals,
-			url: makeUrl('/map/7'),
+		const { result } = runLoad({
 			fetch: fetchMock,
 			cookies: makeCookies({ 'api-access-token': 'tok' })
-		} as never)) as Record<string, unknown>;
+		});
+		const data = await result;
 
-		expect(result.flags).toEqual([{ label: 'Bau', value: '1' }]);
-		expect(result.projects).toEqual([{ label: 'Ausbau Nord', value: '7' }]);
-		expect(result.srid).toBe(25832);
-		expect(result.proj4Def).toBe('+proj=utm +zone=32');
-		expect(result.flagsError).toBeNull();
-		expect(result.projectsError).toBeNull();
-		expect(typeof result.appVersion).toBe('string');
+		expect(data.flags).toEqual([{ label: 'Bau', value: '1' }]);
+		expect(data.projects).toEqual([{ label: 'Ausbau Nord', value: '7' }]);
+		expect(data.srid).toBe(25832);
+		expect(data.proj4Def).toBe('+proj=utm +zone=32');
+		expect(data.flagsError).toBeNull();
+		expect(data.projectsError).toBeNull();
+		expect(typeof data.appVersion).toBe('string');
+	});
+
+	test('should send the access token as a Cookie header on every reference call', async () => {
+		const fetchMock = makeFetch();
+		await runLoad({ fetch: fetchMock, cookies: makeCookies({ 'api-access-token': 'tok' }) }).result;
+
+		expect(fetchMock).toHaveBeenCalledTimes(3);
+		for (const [, init] of fetchMock.mock.calls) {
+			expect((init as { headers: Record<string, string> }).headers).toEqual({
+				Cookie: 'api-access-token=tok'
+			});
+		}
 	});
 
 	test('should fall back to the first project when no cookie is set', async () => {
-		const result = (await load({
-			locals: authenticatedLocals,
-			url: makeUrl('/map'),
-			fetch: makeFetch(),
-			cookies: makeCookies({})
-		} as never)) as Record<string, unknown>;
+		const { result } = runLoad({});
 
-		expect(result.selectedProject).toBe('7');
+		expect((await result).selectedProject).toBe('7');
 	});
 
 	test('should prefer the selected-project cookie', async () => {
-		const result = (await load({
-			locals: authenticatedLocals,
-			url: makeUrl('/map'),
-			fetch: makeFetch(),
-			cookies: makeCookies({ 'selected-project': '3' })
-		} as never)) as Record<string, unknown>;
+		const { result } = runLoad({ cookies: makeCookies({ 'selected-project': '3' }) });
 
-		expect(result.selectedProject).toBe('3');
+		expect((await result).selectedProject).toBe('3');
 	});
 
 	test('should report errors per failing endpoint without crashing', async () => {
@@ -128,16 +133,11 @@ describe('root layout load', () => {
 			}
 			return Promise.resolve(okJson({}));
 		});
+		const { result } = runLoad({ fetch: fetchMock });
+		const data = await result;
 
-		const result = (await load({
-			locals: authenticatedLocals,
-			url: makeUrl('/map'),
-			fetch: fetchMock,
-			cookies: makeCookies({})
-		} as never)) as Record<string, unknown>;
-
-		expect(result.flagsError).toBe('Failed to fetch flags');
-		expect(result.projectsError).toBe('Failed to fetch projects');
-		expect(result.selectedProject).toBe('1');
+		expect(data.flagsError).toBe('Failed to fetch flags');
+		expect(data.projectsError).toBe('Failed to fetch projects');
+		expect(data.selectedProject).toBe('1');
 	});
 });

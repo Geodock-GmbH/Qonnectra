@@ -1,12 +1,11 @@
-import type { Handle, RequestEvent } from '@sveltejs/kit';
+import type { Handle } from '@sveltejs/kit';
 import type { Permissions } from '$lib/utils/permissions';
-import type { CookieSerializeOptions } from 'cookie';
 import { redirect } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
-import { API_URL } from '$env/static/private';
-import setCookieParser from 'set-cookie-parser';
 
 import { paraglideMiddleware } from '$lib/paraglide/server';
+
+import { resolveSession } from '$lib/server/session';
 
 /** Routes accessible without authentication. */
 export const PUBLIC_ROUTES = ['/login'];
@@ -54,55 +53,6 @@ export async function handleProjectRedirect({ event, resolve }: Parameters<Handl
 }
 
 /**
- * Attempts to refresh the access token using the refresh token cookie.
- * On success, sets new auth cookies on the event.
- */
-async function attemptTokenRefresh(event: RequestEvent): Promise<boolean> {
-	const refreshToken = event.cookies.get('api-refresh-token');
-	if (!refreshToken) return false;
-
-	try {
-		const response = await event.fetch(`${API_URL}auth/token/refresh/`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				Cookie: `api-refresh-token=${refreshToken}`
-			}
-		});
-
-		if (!response.ok) return false;
-
-		const setCookieHeaders = response.headers.getSetCookie?.() ?? [];
-		if (setCookieHeaders.length > 0) {
-			const cookies = setCookieParser.parse(setCookieHeaders);
-			cookies.forEach((cookie) => {
-				const options: CookieSerializeOptions & { path: string } = {
-					path: cookie.path || '/',
-					httpOnly: cookie.httpOnly,
-					secure: cookie.secure || event.url.protocol === 'https:',
-					sameSite: (cookie.sameSite as 'lax' | 'strict' | 'none') || 'lax'
-				};
-				if (cookie.domain) options.domain = cookie.domain;
-				event.cookies.set(cookie.name, cookie.value, options);
-			});
-		}
-
-		return true;
-	} catch (error) {
-		console.error('Token refresh failed:', error);
-		return false;
-	}
-}
-
-/**
- * Deletes the access and refresh token cookies.
- */
-function clearAuthCookies(event: RequestEvent): void {
-	event.cookies.delete('api-access-token', { path: '/' });
-	event.cookies.delete('api-refresh-token', { path: '/' });
-}
-
-/**
  * Checks if a user can access a route based on their permissions.
  * Supports exact matches and wildcard patterns (e.g. `/admin/*`).
  */
@@ -128,75 +78,18 @@ function canAccessRoute(permissions: Permissions | null, route: string): boolean
 }
 
 /**
- * Authenticates the user by validating auth cookies against the API.
- * Populates `event.locals.user` and enforces route-level access control.
+ * Authenticates the request and enforces route-level access control.
+ *
+ * Per-request budget: at most one session lookup, answered from the in-memory
+ * session cache for 30 s per access token (`resolveSession`), so a burst of
+ * remote-function calls costs Django nothing after the first. The root layout
+ * load reads nothing from the URL, so a same-route query change (`?page=`,
+ * `?feature=`, `?tab=`) triggers zero layout fetches and, on a page without
+ * a server `load`, no `__data.json` request at all. This hook is the single
+ * auth gate; layout loads do not guard again.
  */
 export async function handleAuth({ event, resolve }: Parameters<Handle>[0]) {
-	const accessToken = event.cookies.get('api-access-token');
-	const headers = new Headers();
-
-	if (accessToken) {
-		headers.append('Cookie', `api-access-token=${accessToken}`);
-	}
-
-	try {
-		let response = await event.fetch(`${API_URL}auth/user/`, {
-			headers: headers
-		});
-
-		if (response.status === 401 || response.status === 403) {
-			const refreshed = await attemptTokenRefresh(event);
-
-			if (refreshed) {
-				const newAccessToken = event.cookies.get('api-access-token');
-				const newHeaders = new Headers();
-				if (newAccessToken) {
-					newHeaders.append('Cookie', `api-access-token=${newAccessToken}`);
-				}
-				response = await event.fetch(`${API_URL}auth/user/`, {
-					headers: newHeaders
-				});
-			}
-		}
-
-		if (response.ok) {
-			const userDetails = await response.json();
-
-			let permissions: Permissions | null = null;
-			const currentAccessToken = event.cookies.get('api-access-token');
-			if (currentAccessToken) {
-				const permHeaders = new Headers();
-				permHeaders.append('Cookie', `api-access-token=${currentAccessToken}`);
-				try {
-					const permResponse = await event.fetch(`${API_URL}auth/permissions/`, {
-						headers: permHeaders
-					});
-					if (permResponse.ok) {
-						permissions = await permResponse.json();
-					}
-				} catch (permError) {
-					console.error('Error fetching permissions:', permError);
-				}
-			}
-
-			event.locals.user = {
-				isAuthenticated: true,
-				...userDetails,
-				isAdmin: userDetails.is_staff || false,
-				permissions
-			};
-		} else {
-			if (response.status !== 401 && response.status !== 403) {
-				console.error('API error fetching user:', response.status, await response.text());
-			}
-			clearAuthCookies(event);
-			event.locals.user = { isAuthenticated: false };
-		}
-	} catch (error) {
-		console.error('Network error during user fetch:', error);
-		clearAuthCookies(event);
-		event.locals.user = { isAuthenticated: false };
-	}
+	event.locals.user = await resolveSession(event);
 
 	const isUserAuthenticated = event.locals.user?.isAuthenticated ?? false;
 	const requestedPath = event.url.pathname;

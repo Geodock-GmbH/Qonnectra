@@ -1,24 +1,20 @@
 import type { LayoutServerLoad } from './$types';
-import { redirect } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
+import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
+
 import packageJson from '../../package.json';
-import { PUBLIC_ROUTES } from '../hooks.server.js';
 
 /**
- * Root layout server load function.
- * Redirects unauthenticated users to login and loads flags, projects, and app version
- * for authenticated users.
+ * Root layout server load: flags, projects, app version and the map
+ * projection for authenticated users. Authentication itself is decided by
+ * `handleAuth` in `hooks.server.ts`. The load reads nothing from the URL, so
+ * a navigation reruns it only when `app:reference-data` is invalidated (or on
+ * `invalidateAll()`), never for a query, hash or same-route param change.
  */
-export const load: LayoutServerLoad = async ({ locals, url, fetch, cookies }) => {
+export const load: LayoutServerLoad = async ({ locals, fetch, cookies, depends }) => {
+	depends('app:reference-data');
 	const isUserAuthenticated = locals.user?.isAuthenticated ?? false;
-	const requestedPath = url.pathname;
-	const isPublicRoute = PUBLIC_ROUTES.some((route) => requestedPath.startsWith(route));
-
-	if (!isUserAuthenticated && !isPublicRoute) {
-		const redirectToUrl = `/login?redirectTo=${encodeURIComponent(requestedPath + url.search)}`;
-		throw redirect(303, redirectToUrl);
-	}
 
 	let selectedProject = cookies.get('selected-project') || null;
 
@@ -35,11 +31,7 @@ export const load: LayoutServerLoad = async ({ locals, url, fetch, cookies }) =>
 	}
 
 	if (isUserAuthenticated) {
-		const accessToken = cookies.get('api-access-token');
-		const headers = new Headers();
-		if (accessToken) {
-			headers.append('Cookie', `api-access-token=${accessToken}`);
-		}
+		const headers = getAuthHeaders(cookies);
 
 		const [flagsResponse, projectsResponse, configResponse] = await Promise.allSettled([
 			fetch(`${API_URL}flags/`, { headers }),
