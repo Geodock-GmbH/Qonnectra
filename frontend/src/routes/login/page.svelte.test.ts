@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalToaster } from '$lib/stores/toaster';
+import { pageStub } from '$lib/test-utils/pageStub';
 
 import LoginPage from './+page.svelte';
 
@@ -45,6 +46,12 @@ const loginStub = vi.hoisted(() => {
 
 vi.mock('$lib/remote/auth/login.remote', () => ({ login: loginStub.login }));
 
+const appState = vi.hoisted(() => ({ page: { url: new URL('http://localhost/login') } }));
+
+vi.mock('$app/state', () => ({
+	page: appState.page
+}));
+
 vi.mock('$lib/stores/toaster', () => ({
 	globalToaster: { create: vi.fn() }
 }));
@@ -64,6 +71,7 @@ function submitThrough(submit: () => Promise<boolean>) {
 }
 
 beforeEach(() => {
+	appState.page.url = new URL('http://localhost/login');
 	vi.mocked(globalToaster.create).mockClear();
 	loginStub.state.enhanceCallback = null;
 	loginStub.state.pending = 0;
@@ -77,7 +85,18 @@ describe('login page', () => {
 		expect(form).toHaveAttribute('action', '/_app/remote/stub/login');
 		expect(screen.getByLabelText('auth_username')).toHaveAttribute('name', 'username');
 		expect(screen.getByLabelText('auth_password')).toHaveAttribute('name', '_password');
-		expect(form.querySelector('input[name="redirectTo"]')).toHaveValue('/dashboard');
+		expect(form.querySelector('input[name="redirectTo"]')).toHaveValue('');
+	});
+
+	test('carries the deep link from the query string into the hidden field', () => {
+		appState.page.url = pageStub({
+			url: 'http://localhost/login?redirectTo=%2Fproject%2F5%2Fconduit%3Fsearch%3Dx'
+		}).url;
+		render(LoginPage);
+
+		expect(document.querySelector('input[name="redirectTo"]')).toHaveValue(
+			'/project/5/conduit?search=x'
+		);
 	});
 
 	test('toggles password visibility without swapping the field', async () => {

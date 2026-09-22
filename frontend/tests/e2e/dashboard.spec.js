@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { loginOrSkip } from './helpers/auth.js';
+import { gotoProjectRoute } from './helpers/routes.js';
 
 /**
  * Locates a dashboard tab trigger by its bilingual (de/en) accessible name.
@@ -14,7 +15,7 @@ function tab(page, name) {
 test.describe('Dashboard page', () => {
 	test.beforeEach(async ({ page }) => {
 		await loginOrSkip(page, test.skip);
-		await page.goto('/dashboard');
+		await gotoProjectRoute(page, 'dashboard');
 		await page.waitForLoadState('networkidle');
 	});
 

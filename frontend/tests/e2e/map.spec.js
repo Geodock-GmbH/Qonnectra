@@ -1,13 +1,12 @@
 import { expect, test } from '@playwright/test';
 
 import { loginOrSkip } from './helpers/auth.js';
+import { gotoProjectRoute, projectIdFromUrl } from './helpers/routes.js';
 
 test.describe('Map page', () => {
 	test.beforeEach(async ({ page }) => {
 		await loginOrSkip(page, test.skip);
-		// Bare /map resolves to the active project's map.
-		await page.goto('/map');
-		await page.waitForURL(/\/map\/[^/]+$/, { timeout: 10000 });
+		await gotoProjectRoute(page, 'map');
 		await page.waitForLoadState('networkidle');
 	});
 
@@ -63,13 +62,13 @@ test.describe('Map page', () => {
 		const input = page.locator('[data-scope="combobox"][data-part="input"]').first();
 		const trigger = page.locator('[data-scope="combobox"][data-part="trigger"]').first();
 		const options = page.locator('[data-scope="combobox"][data-part="item"]:visible');
-		const projectIdInUrl = () => new URL(page.url()).pathname.split('/')[2];
+		const projectIdInUrl = () => projectIdFromUrl(page.url());
 
 		const firstProjectLabel = (await input.inputValue()).trim();
 		const firstProjectOption = new RegExp(
 			`^\\s*${firstProjectLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`
 		);
-		const firstProjectId = projectIdInUrl();
+		const firstProjectId = /** @type {string} */ (projectIdInUrl());
 
 		await trigger.click();
 		const otherProject = options.filter({ hasNotText: firstProjectOption }).first();
@@ -85,8 +84,8 @@ test.describe('Map page', () => {
 			tileRequests.filter((url) => new URL(url).searchParams.get('project') === projectId);
 
 		await otherProject.click();
-		await page.waitForURL((url) => url.pathname.split('/')[2] !== firstProjectId);
-		const secondProjectId = projectIdInUrl();
+		await page.waitForURL((url) => projectIdFromUrl(url.href) !== firstProjectId);
+		const secondProjectId = /** @type {string} */ (projectIdInUrl());
 
 		await expect
 			.poll(() => tilesFor(secondProjectId).length, { timeout: 15000 })
@@ -98,7 +97,7 @@ test.describe('Map page', () => {
 		tileRequests.length = 0;
 		await trigger.click();
 		await options.filter({ hasText: firstProjectOption }).first().click();
-		await page.waitForURL((url) => url.pathname.split('/')[2] === firstProjectId);
+		await page.waitForURL((url) => projectIdFromUrl(url.href) === firstProjectId);
 
 		await expect.poll(() => tilesFor(firstProjectId).length, { timeout: 15000 }).toBeGreaterThan(0);
 		expect(tilesFor(secondProjectId)).toHaveLength(0);

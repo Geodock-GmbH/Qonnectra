@@ -65,6 +65,7 @@ export function withParams(url: URL, changes: QueryChanges): string {
  * @returns Resolves once the navigation has completed.
  */
 export function setQuery(changes: QueryChanges, { push = false }: { push?: boolean } = {}) {
+	// eslint-disable-next-line svelte/no-navigation-without-resolve -- same-page navigation: the path is the already-resolved current path
 	return goto(withParams(page.url, changes), {
 		keepFocus: true,
 		noScroll: true,

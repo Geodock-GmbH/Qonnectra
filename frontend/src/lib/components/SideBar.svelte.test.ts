@@ -13,7 +13,11 @@ vi.mock('$app/environment', () => ({
 }));
 
 vi.mock('$app/state', () => ({
-	page: { url: new URL('http://localhost/dashboard') }
+	page: {
+		route: { id: '/project/[projectId=integer]/dashboard/[[flagId]]' },
+		params: { projectId: '7' },
+		url: new URL('http://localhost/project/7/dashboard')
+	}
 }));
 
 vi.mock('$env/dynamic/public', () => ({
@@ -65,12 +69,22 @@ describe('SideBar', () => {
 		expect(screen.getByLabelText('nav_dashboard')).toBeInTheDocument();
 	});
 
-	test('should hide everything without permissions', () => {
+	test('should show everything when the permissions could not be loaded', () => {
 		updateUserStore({ isAuthenticated: true, permissions: undefined });
 
 		render(SideBar);
 
-		expect(screen.queryByLabelText('nav_dashboard')).not.toBeInTheDocument();
+		expect(screen.getByLabelText('nav_dashboard')).toBeInTheDocument();
+	});
+
+	test('should point every project link at the current project', () => {
+		render(SideBar);
+
+		for (const label of ['nav_dashboard', 'nav_map', 'nav_address', 'nav_network_schema']) {
+			expect(screen.getByLabelText(label).getAttribute('href')).toMatch(/^\/project\/7\//);
+		}
+		expect(screen.getByLabelText('nav_settings')).toHaveAttribute('href', '/settings');
+		expect(screen.getByLabelText('nav_dashboard')).toHaveAttribute('href', '/project/7/dashboard');
 	});
 
 	test('should render in rail mode when collapsed', () => {

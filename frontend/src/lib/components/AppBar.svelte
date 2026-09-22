@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { AppBar } from '@skeletonlabs/skeleton-svelte';
 	import { IconBook, IconLogin, IconLogout, IconWorld } from '@tabler/icons-svelte';
@@ -9,6 +10,7 @@
 
 	import { globalMapView, selectedProject } from '$lib/stores/store';
 	import { tooltip } from '$lib/utils/tooltip';
+	import { MAP_ROUTE_ID, VALUATION_ROUTE_ID } from '$lib/config/routes';
 	import { logout } from '$lib/remote/auth/logout.remote';
 
 	import LightSwitch from './LightSwitch.svelte';
@@ -17,16 +19,14 @@
 
 	let { data } = $props();
 
+	/**
+	 * Toggles the global map view. Leaving it re-adopts the URL's project into
+	 * the legacy store, which the global view had detached from it.
+	 */
 	function toggleGlobalMapView() {
 		if ($globalMapView) {
-			if (browser) {
-				const cookieProject = document.cookie
-					.split('; ')
-					.find((row) => row.startsWith('selected-project='))
-					?.split('=')[1];
-				if (cookieProject) {
-					selectedProject.set(cookieProject);
-				}
+			if (browser && page.params.projectId) {
+				selectedProject.set(page.params.projectId);
 			}
 			globalMapView.set(false);
 		} else {
@@ -41,7 +41,7 @@
 	 */
 	let isAuthenticated = $derived(data.user?.isAuthenticated ?? false);
 
-	let isMapRoute = $derived(['/map', '/valuation'].some((p) => page.url.pathname.startsWith(p)));
+	let isMapRoute = $derived(page.route.id === MAP_ROUTE_ID || page.route.id === VALUATION_ROUTE_ID);
 </script>
 
 <div>
@@ -95,6 +95,7 @@
 
 					<!-- Documentation link - hidden on mobile -->
 					{#if env.PUBLIC_DOCUMENTATION_URL}
+						<!-- eslint-disable svelte/no-navigation-without-resolve -- external documentation URL -->
 						<a
 							href={env.PUBLIC_DOCUMENTATION_URL}
 							aria-label={m.tooltip_documentation()}
@@ -105,6 +106,7 @@
 						>
 							<IconBook class="size-5" />
 						</a>
+						<!-- eslint-enable svelte/no-navigation-without-resolve -->
 					{/if}
 
 					<!-- GitHub link - hidden on mobile -->
@@ -146,7 +148,7 @@
 							</button>
 						</form>
 					{:else}
-						<a href="/login">
+						<a href={resolve('/login')}>
 							<button
 								class="btn-icon hover:preset-tonal"
 								aria-label={m.tooltip_login()}

@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { loginOrSkip } from './helpers/auth.js';
+import { gotoProjectRoute } from './helpers/routes.js';
 
 /**
  * Reads a persisted store value out of localStorage the way the `persisted`
@@ -19,7 +20,7 @@ async function readPersisted(page, key) {
 test.describe('Trench (conduit assignment) page', () => {
 	test.beforeEach(async ({ page }) => {
 		await loginOrSkip(page, test.skip);
-		await page.goto('/trench');
+		await gotoProjectRoute(page, 'trench');
 		await page.waitForLoadState('networkidle');
 	});
 

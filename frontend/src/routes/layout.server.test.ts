@@ -111,16 +111,37 @@ describe('root layout load', () => {
 		}
 	});
 
-	test('should fall back to the first project when no cookie is set', async () => {
-		const { result } = runLoad({});
+	test('should remember the first project when no project is remembered', async () => {
+		const data = await runLoad({}).result;
 
-		expect((await result).selectedProject).toBe('7');
+		expect(data.rememberedProject).toBe('7');
+		expect(data.selectedProject).toBe('7');
 	});
 
-	test('should prefer the selected-project cookie', async () => {
-		const { result } = runLoad({ cookies: makeCookies({ 'selected-project': '3' }) });
+	test('should prefer a remembered project the user can see', async () => {
+		const fetchMock = vi.fn((url: string) => {
+			if (url.includes('projects/')) {
+				return Promise.resolve(
+					okJson({
+						results: [
+							{ id: 7, project: 'Ausbau Nord' },
+							{ id: 3, project: 'Ausbau Süd' }
+						]
+					})
+				);
+			}
+			return Promise.resolve(okJson([]));
+		});
+		const data = await runLoad({ fetch: fetchMock, cookies: makeCookies({ 'last-project': '3' }) })
+			.result;
 
-		expect((await result).selectedProject).toBe('3');
+		expect(data.rememberedProject).toBe('3');
+	});
+
+	test('should ignore a remembered project the user cannot see', async () => {
+		const data = await runLoad({ cookies: makeCookies({ 'last-project': '42' }) }).result;
+
+		expect(data.rememberedProject).toBe('7');
 	});
 
 	test('should report errors per failing endpoint without crashing', async () => {
@@ -138,6 +159,6 @@ describe('root layout load', () => {
 
 		expect(data.flagsError).toBe('Failed to fetch flags');
 		expect(data.projectsError).toBe('Failed to fetch projects');
-		expect(data.selectedProject).toBe('1');
+		expect(data.rememberedProject).toBeNull();
 	});
 });

@@ -6,10 +6,13 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { tooltip } from '$lib/utils/tooltip';
+	import { isActive, navHref } from '$lib/config/navLinks';
 
 	interface Props {
 		/** Navigation entry to render */
 		link: NavLink;
+		/** Project the link points at; null when the user has none */
+		projectId: string | null;
 		/** Builds the anchor CSS classes */
 		anchorClass: (isSelected: boolean) => string;
 		/** Render only the icon (rail layout) */
@@ -24,6 +27,7 @@
 
 	let {
 		link,
+		projectId,
 		anchorClass,
 		iconOnly = false,
 		customizing = false,
@@ -32,22 +36,26 @@
 	}: Props = $props();
 
 	const Icon = $derived(link.icon);
-	const isSelected = $derived(link.pathMatch(page.url.pathname));
+	const href = $derived(navHref(link, projectId));
+	const isSelected = $derived(isActive(link, page.route.id));
 </script>
 
 {#if iconOnly}
+	<!-- eslint-disable svelte/no-navigation-without-resolve -- href comes from navHref(), which resolves the typed route id -->
 	<a
-		href={link.href}
+		{href}
 		class={anchorClass(isSelected)}
 		aria-label={link.label()}
 		{@attach tooltip(link.label())}
 	>
 		<Icon class="size-7 text-surface-700-300" />
 	</a>
+	<!-- eslint-enable svelte/no-navigation-without-resolve -->
 {:else}
 	<div class="flex items-center gap-1 {hidden ? 'opacity-50' : ''}">
+		<!-- eslint-disable svelte/no-navigation-without-resolve -- href comes from navHref(), which resolves the typed route id -->
 		<a
-			href={link.href}
+			{href}
 			class={anchorClass(isSelected)}
 			aria-label={link.label()}
 			{@attach tooltip(link.label())}
@@ -55,6 +63,7 @@
 			<Icon class="size-7 text-surface-700-300" />
 			<span>{link.label()}</span>
 		</a>
+		<!-- eslint-enable svelte/no-navigation-without-resolve -->
 		{#if customizing}
 			<button
 				type="button"

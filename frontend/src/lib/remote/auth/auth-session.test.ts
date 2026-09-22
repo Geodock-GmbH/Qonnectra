@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
 	clearAuthCookies,
-	ensureSelectedProjectCookie,
 	forwardSetCookies,
 	loginErrorMessage,
 	logoutHeaders,
@@ -89,30 +88,6 @@ describe('clearAuthCookies', () => {
 
 		expect(cookies.delete).toHaveBeenCalledWith('api-access-token', { path: '/' });
 		expect(cookies.delete).toHaveBeenCalledWith('api-refresh-token', { path: '/' });
-	});
-});
-
-describe('ensureSelectedProjectCookie', () => {
-	test('sets the default project when none is selected', () => {
-		const cookies = makeCookies();
-
-		ensureSelectedProjectCookie(cookies, true);
-
-		expect(cookies.set).toHaveBeenCalledWith('selected-project', '1', {
-			path: '/',
-			maxAge: 60 * 60 * 24 * 365,
-			httpOnly: false,
-			secure: true,
-			sameSite: 'lax'
-		});
-	});
-
-	test('keeps an existing selection', () => {
-		const cookies = makeCookies({ 'selected-project': '5' });
-
-		ensureSelectedProjectCookie(cookies, false);
-
-		expect(cookies.set).not.toHaveBeenCalled();
 	});
 });
 

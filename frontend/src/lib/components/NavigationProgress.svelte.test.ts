@@ -44,14 +44,17 @@ describe('NavigationProgress', () => {
 	});
 
 	test('should render nothing for a same-route change', () => {
-		setNavigating('/conduit/[[projectId]]', '/conduit/[[projectId]]');
+		setNavigating('/project/[projectId=integer]/conduit', '/project/[projectId=integer]/conduit');
 		render(NavigationProgress);
 
 		expect(screen.queryByRole('status')).toBeNull();
 	});
 
 	test('should render a delayed, non-blocking bar for a route change', () => {
-		setNavigating('/dashboard/[[projectId]]', '/map/[[projectId]]');
+		setNavigating(
+			'/project/[projectId=integer]/dashboard/[[flagId]]',
+			'/project/[projectId=integer]/map'
+		);
 		render(NavigationProgress);
 
 		const status = screen.getByRole('status', { name: 'Laden...' });
@@ -63,14 +66,17 @@ describe('NavigationProgress', () => {
 	});
 
 	test('should render for the first navigation after hydration', () => {
-		setNavigating(null, '/map/[[projectId]]');
+		setNavigating(null, '/project/[projectId=integer]/map');
 		render(NavigationProgress);
 
 		expect(screen.getByRole('status')).toBeInTheDocument();
 	});
 
 	test('should name the schema sync by its route id', () => {
-		setNavigating('/map/[[projectId]]', '/network-schema/[[projectId]]');
+		setNavigating(
+			'/project/[projectId=integer]/map',
+			'/project/[projectId=integer]/network-schema'
+		);
 		render(NavigationProgress);
 
 		expect(screen.getByRole('status', { name: 'Netzschema wird geladen...' })).toBeInTheDocument();

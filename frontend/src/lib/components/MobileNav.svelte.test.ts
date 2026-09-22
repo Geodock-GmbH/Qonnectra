@@ -9,7 +9,11 @@ import { updateUserStore } from '$lib/stores/auth';
 import MobileNav from './MobileNav.svelte';
 
 vi.mock('$app/state', () => ({
-	page: { url: new URL('http://localhost/dashboard') }
+	page: {
+		route: { id: '/project/[projectId=integer]/dashboard/[[flagId]]' },
+		params: { projectId: '7' },
+		url: new URL('http://localhost/project/7/dashboard')
+	}
 }));
 
 vi.mock('$env/dynamic/public', () => ({
@@ -91,12 +95,18 @@ describe('MobileNav', () => {
 		expect(screen.getByText('nav_pipeline_records')).toBeInTheDocument();
 	});
 
-	test('should hide the more menu entirely without permissions', () => {
+	test('should show everything when the permissions could not be loaded', () => {
 		updateUserStore({ isAuthenticated: true, permissions: undefined });
 		render(MobileNav);
 
-		expect(screen.queryByText('common_more')).not.toBeInTheDocument();
-		expect(screen.queryByText('nav_dashboard')).not.toBeInTheDocument();
+		expect(screen.getByText('common_more')).toBeInTheDocument();
+		expect(screen.getByText('nav_dashboard')).toBeInTheDocument();
+	});
+
+	test('should point the bar links at the current project', () => {
+		render(MobileNav);
+
+		expect(screen.getByText('nav_map').closest('a')).toHaveAttribute('href', '/project/7/map');
 	});
 
 	test('should switch the locale from the more menu', async () => {

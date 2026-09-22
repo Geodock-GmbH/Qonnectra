@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { IconEye, IconEyeOff, IconLock, IconUser } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -9,7 +10,8 @@
 
 	let showPassword = $state(false);
 
-	const redirectTo = '/dashboard';
+	// The deep link the hook sent us here from; empty means the landing page.
+	const redirectTo = $derived(page.url.searchParams.get('redirectTo') ?? '');
 	const submitting = $derived(login.pending > 0);
 
 	function notifyLoginError() {

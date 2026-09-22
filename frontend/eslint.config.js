@@ -2,7 +2,7 @@ import svelte from 'eslint-plugin-svelte';
 import tseslint from 'typescript-eslint';
 
 /**
- * Minimal flat ESLint config enforcing the `any` ban.
+ * Minimal flat ESLint config enforcing the `any` ban and typed navigation.
  *
  * ```
  * npm run lint:ts
@@ -34,7 +34,8 @@ export default tseslint.config(
 			}
 		},
 		rules: {
-			'@typescript-eslint/no-explicit-any': 'error'
+			'@typescript-eslint/no-explicit-any': 'error',
+			'svelte/no-navigation-without-resolve': 'error'
 		}
 	},
 	{

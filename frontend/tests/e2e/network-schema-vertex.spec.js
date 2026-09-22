@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { loginOrSkip } from './helpers/auth.js';
+import { gotoProjectRoute } from './helpers/routes.js';
 
 /**
  * Prepares the canvas so exactly one cable edge is in edit mode with exactly one
@@ -185,7 +186,7 @@ async function vertexCount(page, edgeId) {
 test.describe('Network schema cable vertex handles', () => {
 	test.beforeEach(async ({ page }) => {
 		await loginOrSkip(page, test.skip);
-		await page.goto('/network-schema');
+		await gotoProjectRoute(page, 'network-schema');
 		await page.waitForLoadState('networkidle');
 		await expect(page.locator('.svelte-flow').first()).toBeVisible({ timeout: 15000 });
 	});

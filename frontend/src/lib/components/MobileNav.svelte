@@ -12,9 +12,15 @@
 	import { userStore } from '$lib/stores/auth';
 	import { canAccessRoute } from '$lib/utils/permissions';
 	import { tooltip } from '$lib/utils/tooltip';
-	import { footerLinks, navGroups } from '$lib/config/navLinks';
+	import { footerLinks, isActive, navGroups, navHref } from '$lib/config/navLinks';
+	import { getRememberedProject } from '$lib/context/rememberedProject.svelte';
 
 	let currentLocale = $derived(getLocale());
+
+	const remembered = getRememberedProject();
+
+	/** The project links point at: the URL's project, or the remembered one on a global page. */
+	const projectId = $derived(page.params.projectId ?? remembered.id);
 
 	/**
 	 * @param locale - Target locale code
@@ -42,13 +48,15 @@
 		navGroups
 			.map((group) => ({
 				...group,
-				links: group.links.filter((link) => canAccessRoute($userStore.permissions, link.href))
+				links: group.links.filter((link) =>
+					canAccessRoute($userStore.permissions, link.permissionKey)
+				)
 			}))
 			.filter((group) => group.links.length > 0)
 	);
 
 	const permittedFooterLinks = $derived(
-		footerLinks.filter((link) => canAccessRoute($userStore.permissions, link.href))
+		footerLinks.filter((link) => canAccessRoute($userStore.permissions, link.permissionKey))
 	);
 
 	/** Groups flagged `pinnedToBar` supply the bottom bar; the rest live in the "More" menu. */
@@ -77,11 +85,12 @@
 >
 	<Navigation layout="bar">
 		<Navigation.Menu class="grid gap-2" style="grid-template-columns: repeat({totalTiles}, 1fr);">
-			{#each barLinks as link (link.href)}
+			{#each barLinks as link (link.id)}
 				{@const Icon = link.icon}
-				{@const isSelected = link.pathMatch(page.url.pathname)}
+				{@const isSelected = isActive(link, page.route.id)}
+				<!-- eslint-disable svelte/no-navigation-without-resolve -- href comes from navHref(), which resolves the typed route id -->
 				<a
-					href={link.href}
+					href={navHref(link, projectId)}
 					class={getAnchorClass(isSelected)}
 					aria-label={link.label()}
 					{@attach tooltip(link.label())}
@@ -89,6 +98,7 @@
 					<Icon size={24} class="text-surface-700-300" />
 					<span class="text-[10px]">{link.label()}</span>
 				</a>
+				<!-- eslint-enable svelte/no-navigation-without-resolve -->
 			{/each}
 
 			{#if hasMoreContent}
@@ -136,16 +146,18 @@
 						{group.label()}
 					</h4>
 					<div class="space-y-1">
-						{#each group.links as link (link.href)}
+						{#each group.links as link (link.id)}
 							{@const Icon = link.icon}
+							<!-- eslint-disable svelte/no-navigation-without-resolve -- href comes from navHref(), which resolves the typed route id -->
 							<a
-								href={link.href}
+								href={navHref(link, projectId)}
 								class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-100-800 transition-colors"
 								onclick={closeMoreMenu}
 							>
 								<Icon size={20} class="text-surface-700-300" />
 								<span class="text-surface-900-100">{link.label()}</span>
 							</a>
+							<!-- eslint-enable svelte/no-navigation-without-resolve -->
 						{/each}
 					</div>
 				</section>
@@ -158,6 +170,7 @@
 					</h4>
 					<div class="space-y-1">
 						{#if env.PUBLIC_DOCUMENTATION_URL}
+							<!-- eslint-disable svelte/no-navigation-without-resolve -- external documentation URL -->
 							<a
 								href={env.PUBLIC_DOCUMENTATION_URL}
 								target="_blank"
@@ -168,17 +181,20 @@
 								<IconBook size={20} class="text-surface-700-300" />
 								<span class="text-surface-900-100">{m.nav_documentation()}</span>
 							</a>
+							<!-- eslint-enable svelte/no-navigation-without-resolve -->
 						{/if}
-						{#each permittedFooterLinks as link (link.href)}
+						{#each permittedFooterLinks as link (link.id)}
 							{@const Icon = link.icon}
+							<!-- eslint-disable svelte/no-navigation-without-resolve -- href comes from navHref(), which resolves the typed route id -->
 							<a
-								href={link.href}
+								href={navHref(link, projectId)}
 								class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-100-800 transition-colors"
 								onclick={closeMoreMenu}
 							>
 								<Icon size={20} class="text-surface-700-300" />
 								<span class="text-surface-900-100">{link.label()}</span>
 							</a>
+							<!-- eslint-enable svelte/no-navigation-without-resolve -->
 						{/each}
 					</div>
 				</section>

@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { loginOrSkip } from './helpers/auth.js';
+import { gotoProjectRoute, projectPath } from './helpers/routes.js';
 
 const INDICATOR = '[data-testid="navigation-progress"]';
 
@@ -30,7 +31,7 @@ test.describe('Navigation feedback', () => {
 	test('a search on the conduit page shows no indicator and keeps the input focused', async ({
 		page
 	}) => {
-		await page.goto('/conduit');
+		await gotoProjectRoute(page, 'conduit');
 		const searchInput = page.locator('[data-testid="search-input"]');
 		await expect(searchInput).toBeVisible();
 		await page.waitForLoadState('networkidle');
@@ -48,19 +49,25 @@ test.describe('Navigation feedback', () => {
 	test('the indicator never intercepts clicks while a route change is pending', async ({
 		page
 	}) => {
-		await page.goto('/dashboard');
+		const id = await gotoProjectRoute(page, 'dashboard');
 		await page.waitForLoadState('networkidle');
 		await page.route('**/__data.json*', async (route) => {
 			await new Promise((resolve) => setTimeout(resolve, 1500));
 			await route.continue();
 		});
 
-		await page.locator('a[href="/network-schema"]').first().click();
+		await page
+			.locator(`a[href="${projectPath(id, 'network-schema')}"]`)
+			.first()
+			.click();
 		const indicator = page.locator(INDICATOR);
 		await expect(indicator).toBeVisible();
 		await expect(indicator).toHaveCSS('pointer-events', 'none');
 
-		await page.locator('a[href="/conduit"]').first().click();
+		await page
+			.locator(`a[href="${projectPath(id, 'conduit')}"]`)
+			.first()
+			.click();
 
 		await expect(page).toHaveURL(/\/conduit/);
 		await expect(indicator).toHaveCount(0);

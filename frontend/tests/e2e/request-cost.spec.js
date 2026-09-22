@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { loginOrSkip } from './helpers/auth.js';
+import { gotoProjectRoute } from './helpers/routes.js';
 
 /**
  * Collects every SvelteKit data request issued from now on, so a test can
@@ -37,7 +38,7 @@ test.describe('Request cost per navigation', () => {
 	});
 
 	test('a search on the conduit page fetches no root layout data', async ({ page }) => {
-		await page.goto('/conduit');
+		await gotoProjectRoute(page, 'conduit');
 		const searchInput = page.locator('[data-testid="search-input"]');
 		await expect(searchInput).toBeVisible();
 		await page.waitForLoadState('networkidle');

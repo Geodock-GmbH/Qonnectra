@@ -12,7 +12,6 @@
 	import { cubicOut } from 'svelte/easing';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { fly, slide } from 'svelte/transition';
-	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import {
 		IconAlertTriangle,
@@ -33,6 +32,7 @@
 		hasGeometries,
 		traceFrom
 	} from '$lib/utils/traceUtils';
+	import { setQuery } from '$lib/utils/urlState';
 
 	interface Props {
 		/** The signal analysis result data */
@@ -73,18 +73,12 @@
 	}
 
 	/**
-	 * Updates the signal source node via URL search params and navigates.
-	 * @param nodeId - The source node UUID, or empty string to remove
+	 * Selects the signal source node through the URL. Another source is another
+	 * analysis, so it is pushed and the back button returns to the previous one.
+	 * @param nodeId - The source node UUID, or empty string for the backend's default
 	 */
 	function changeSignalSource(nodeId: string): void {
-		const url = new URL(page.url);
-		url.searchParams.set('mode', 'signal');
-		if (nodeId) {
-			url.searchParams.set('source', nodeId);
-		} else {
-			url.searchParams.delete('source');
-		}
-		goto(url.toString());
+		setQuery({ mode: 'signal', source: nodeId || null }, { push: true });
 	}
 
 	function handleDownloadGeoJSON(): void {

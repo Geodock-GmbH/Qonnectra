@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { loginOrSkip } from './helpers/auth.js';
+import { gotoProjectRoute } from './helpers/routes.js';
 
 /**
  * Key-behaviour coverage for the routes that are otherwise map/canvas
@@ -59,7 +60,7 @@ test.describe('Admin logs page', () => {
 test.describe('Post-compaction page', () => {
 	test.beforeEach(async ({ page }) => {
 		await loginOrSkip(page, test.skip);
-		await page.goto('/post-compaction');
+		await gotoProjectRoute(page, 'post-compaction');
 		await page.waitForLoadState('networkidle');
 	});
 
@@ -80,8 +81,7 @@ test.describe('Post-compaction page', () => {
 test.describe('Pipe-branch page', () => {
 	test.beforeEach(async ({ page }) => {
 		await loginOrSkip(page, test.skip);
-		await page.goto('/pipe-branch');
-		await page.waitForURL(/\/pipe-branch\/[^/]+$/, { timeout: 10000 });
+		await gotoProjectRoute(page, 'pipe-branch');
 		await page.waitForLoadState('networkidle');
 	});
 
@@ -99,8 +99,7 @@ test.describe('Pipe-branch page', () => {
 test.describe('Valuation page', () => {
 	test.beforeEach(async ({ page }) => {
 		await loginOrSkip(page, test.skip);
-		await page.goto('/valuation');
-		await page.waitForURL(/\/valuation\/[^/]+$/, { timeout: 10000 });
+		await gotoProjectRoute(page, 'valuation');
 		await page.waitForLoadState('networkidle');
 	});
 
@@ -122,8 +121,7 @@ test.describe('Valuation page', () => {
 test.describe('House connections page', () => {
 	test.beforeEach(async ({ page }) => {
 		await loginOrSkip(page, test.skip);
-		await page.goto('/house-connections');
-		await page.waitForURL(/\/house-connections\/[^/]+$/, { timeout: 10000 });
+		await gotoProjectRoute(page, 'house-connections');
 		await page.waitForLoadState('networkidle');
 	});
 

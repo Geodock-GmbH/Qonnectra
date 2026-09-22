@@ -16,7 +16,11 @@ vi.mock('$app/navigation', () => ({
 }));
 
 const appState = vi.hoisted(() => ({
-	page: { url: new URL('http://localhost/dashboard'), params: {} as Record<string, string> }
+	page: {
+		route: { id: '/project/[projectId=integer]/dashboard/[[flagId]]' as string | null },
+		url: new URL('http://localhost/project/7/dashboard'),
+		params: { projectId: '7' } as Record<string, string>
+	}
 }));
 
 vi.mock('$app/state', () => ({
@@ -96,21 +100,21 @@ describe('AppBar', () => {
 	});
 
 	test('should only show the global view toggle on map routes', () => {
-		appState.page.url = new URL('http://localhost/dashboard');
+		appState.page.route.id = '/project/[projectId=integer]/dashboard/[[flagId]]';
 		const { unmount } = render(AppBar, { data: authenticatedData });
 		expect(
 			screen.queryByRole('button', { name: 'tooltip_view_all_projects' })
 		).not.toBeInTheDocument();
 		unmount();
 
-		appState.page.url = new URL('http://localhost/map/7');
+		appState.page.route.id = '/project/[projectId=integer]/map';
 		render(AppBar, { data: authenticatedData });
 		expect(screen.getByRole('button', { name: 'tooltip_view_all_projects' })).toBeInTheDocument();
 	});
 
-	test('should toggle global map view and restore the cookie project when leaving', async () => {
+	test('should toggle global map view and re-adopt the URL project when leaving', async () => {
 		const user = userEvent.setup();
-		appState.page.url = new URL('http://localhost/map/7');
+		appState.page.route.id = '/project/[projectId=integer]/map';
 		render(AppBar, { data: authenticatedData });
 
 		await user.click(screen.getByRole('button', { name: 'tooltip_view_all_projects' }));

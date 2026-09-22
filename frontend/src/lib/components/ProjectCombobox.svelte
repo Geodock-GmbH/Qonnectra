@@ -1,14 +1,16 @@
 <script lang="ts">
-	import { get } from 'svelte/store';
+	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { Combobox, Portal, useListCollection } from '@skeletonlabs/skeleton-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import { selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { findProjectLink, navHref } from '$lib/config/navLinks';
+	import { getRememberedProject } from '$lib/context/rememberedProject.svelte';
 
 	interface ProjectItem {
 		value: string;
@@ -33,6 +35,11 @@
 
 	let isHydrating = $state(!browser);
 
+	const remembered = getRememberedProject();
+
+	/** The project shown: the URL's on a project page, else the remembered one. */
+	const currentProjectId = $derived(page.params.projectId ?? remembered.id ?? '');
+
 	const collection = $derived(
 		useListCollection({
 			items: projects,
@@ -42,10 +49,10 @@
 	);
 
 	let items = $derived(collection.items);
-	let isOpen = $state(false);
 
-	$effect(() => {
-		if (projectsError && browser) {
+	onMount(() => {
+		isHydrating = false;
+		if (projectsError) {
 			globalToaster.error({
 				title: m.title_error_fetching_projects(),
 				description: projectsError
@@ -53,68 +60,32 @@
 		}
 	});
 
-	$effect(() => {
-		if (isOpen) {
-			items = projects;
-		}
-	});
-
-	$effect(() => {
-		if (browser) {
-			isHydrating = false;
-		}
-	});
-
-	/**
-	 * Adopts the project named in the URL. Only a URL change may trigger this: the
-	 * store is read untracked, otherwise picking a project would revert it to the
-	 * previous URL's project until the navigation finishes.
-	 */
-	$effect(() => {
-		const urlProjectId = $page.params.projectId;
-		if (browser && urlProjectId && urlProjectId !== get(selectedProject)) {
-			selectedProject.set(urlProjectId);
-		}
-	});
-
 	/** Skeleton Combobox expects string[] */
-	let comboboxValue = $derived($selectedProject ? [$selectedProject] : []);
+	let comboboxValue = $derived(currentProjectId ? [currentProjectId] : []);
 
 	function handleOpenChange(e: { open: boolean }) {
-		isOpen = e.open;
+		if (e.open) items = projects;
 	}
 
-	const PROJECT_AWARE_ROUTES = [
-		'/address',
-		'/conduit',
-		'/dashboard',
-		'/fault-simulation',
-		'/house-connections',
-		'/map',
-		'/network-schema',
-		'/pipe-branch',
-		'/trench',
-		'/valuation'
-	];
-
+	/**
+	 * Switches project. On a project page this is a place: the same page in
+	 * the new project, keeping a flag (flags are global) but deliberately
+	 * dropping child identifiers (`[uuid]`, `node/[nodeId]`, `?feature=`,
+	 * `?page=`) since they belong to the old project. On a global page nothing
+	 * navigates: the remembered project changes and every consumer on the page
+	 * follows it live.
+	 * @param newProject - The chosen project id.
+	 */
 	function handleProjectChange(newProject: string) {
-		if (!browser) return;
+		if (!browser || newProject === currentProjectId) return;
 
-		document.cookie = `selected-project=${newProject}; path=/; max-age=31536000`;
-
-		$selectedProject = newProject;
-
-		const pathSegments = $page.url.pathname.split('/').filter(Boolean);
-		const baseRoute = pathSegments[0] ? `/${pathSegments[0]}` : '/dashboard';
-
-		// Only navigate with project ID for routes that support it
-		if (PROJECT_AWARE_ROUTES.includes(baseRoute)) {
-			goto(`${baseRoute}/${newProject}`, {
-				keepFocus: true,
-				noScroll: true,
-				replaceState: true,
-				invalidateAll: true
-			});
+		const link = findProjectLink(page.route.id);
+		if (link) {
+			// eslint-disable-next-line svelte/no-navigation-without-resolve -- navHref() resolves the typed route id
+			goto(navHref(link, newProject, { flagId: page.params.flagId }));
+		} else {
+			remembered.set(newProject);
+			selectedProject.set(newProject);
 		}
 
 		onChange({ value: newProject });

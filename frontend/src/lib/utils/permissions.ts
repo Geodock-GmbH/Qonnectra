@@ -59,27 +59,29 @@ export function canDelete(permissions: Permissions | undefined, model: string): 
 }
 
 /**
- * Checks whether a user can access a given route.
- * Supports exact matches, wildcard patterns (e.g., '/admin/*'), and defaults to allow.
- * @param permissions - The user's permissions object.
- * @param route - The route path (e.g., '/admin/logs').
+ * Checks whether a user may open the page behind a permission key (a route
+ * id with the project prefix and parameters stripped, see
+ * `permissionKeyFor`). A pattern matches the key when it is equal, when it
+ * ends in `/*` and the key starts with that prefix, or when the key lies
+ * beneath it (`/valuation` also covers `/valuation/...`). Missing
+ * permissions allow: they mean the permissions request failed, and a Django
+ * hiccup must not lock everyone out.
+ * @param permissions - The user's permissions, or nothing when they could not be loaded.
+ * @param key - The permission key of the page.
+ * @returns Whether the page may be opened; unknown keys are allowed.
  */
-export function canAccessRoute(permissions: Permissions | undefined, route: string): boolean {
-	if (!permissions) return false;
+export function canAccessRoute(permissions: Permissions | null | undefined, key: string): boolean {
+	if (!permissions) return true;
 	if (permissions.is_superuser) return true;
-	if (permissions.routes['*'] === true) return true;
+	const routes = permissions.routes ?? {};
+	if (routes['*'] === true) return true;
+	if (key in routes) return routes[key];
 
-	if (route in permissions.routes) {
-		return permissions.routes[route];
-	}
-
-	for (const [pattern, allowed] of Object.entries(permissions.routes)) {
-		if (pattern.endsWith('/*')) {
-			const prefix = pattern.slice(0, -1);
-			if (route.startsWith(prefix)) {
-				return allowed;
-			}
-		}
+	for (const [pattern, allowed] of Object.entries(routes)) {
+		const covers = pattern.endsWith('/*')
+			? key.startsWith(pattern.slice(0, -1))
+			: key.startsWith(`${pattern}/`);
+		if (covers) return allowed;
 	}
 
 	return true;

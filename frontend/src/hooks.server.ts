@@ -1,14 +1,19 @@
 import type { Handle } from '@sveltejs/kit';
-import type { Permissions } from '$lib/utils/permissions';
-import { redirect } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 
 import { paraglideMiddleware } from '$lib/paraglide/server';
 
+import { canAccessRoute } from '$lib/utils/permissions';
+import { permissionKeyFor } from '$lib/config/routes';
+import { landingPathFor } from '$lib/server/landing';
 import { resolveSession } from '$lib/server/session';
 
 /** Routes accessible without authentication. */
 export const PUBLIC_ROUTES = ['/login'];
+
+/** The cookie that used to carry the project before it moved into the URL. */
+const LEGACY_PROJECT_COOKIE = 'selected-project';
 
 /**
  * SvelteKit handle hook that applies Paraglide i18n middleware and injects the locale into HTML.
@@ -24,61 +29,9 @@ const paraglideHandle: Handle = ({ event, resolve }) =>
 	});
 
 /**
- * Redirects bare project routes (e.g. `/dashboard`) to include the selected project slug.
- */
-export async function handleProjectRedirect({ event, resolve }: Parameters<Handle>[0]) {
-	const url = event.url;
-	const selectedProject = event.cookies.get('selected-project');
-
-	const PROJECT_ROUTES = [
-		'/address',
-		'/conduit',
-		'/dashboard',
-		'/fault-simulation',
-		'/house-connections',
-		'/map',
-		'/network-schema',
-		'/pipe-branch',
-		'/trench',
-		'/valuation'
-	];
-
-	const needsProjectSlug = PROJECT_ROUTES.some((route) => url.pathname === route);
-
-	if (needsProjectSlug && selectedProject) {
-		throw redirect(303, `${url.pathname}/${selectedProject}`);
-	}
-
-	return resolve(event);
-}
-
-/**
- * Checks if a user can access a route based on their permissions.
- * Supports exact matches and wildcard patterns (e.g. `/admin/*`).
- */
-function canAccessRoute(permissions: Permissions | null, route: string): boolean {
-	if (!permissions) return true;
-	if (permissions.is_superuser) return true;
-	if (permissions.routes?.['*'] === true) return true;
-
-	if (permissions.routes && route in permissions.routes) {
-		return permissions.routes[route];
-	}
-
-	for (const [pattern, allowed] of Object.entries(permissions.routes || {})) {
-		if (pattern.endsWith('/*')) {
-			const prefix = pattern.slice(0, -1);
-			if (route.startsWith(prefix)) {
-				return allowed;
-			}
-		}
-	}
-
-	return true;
-}
-
-/**
- * Authenticates the request and enforces route-level access control.
+ * Authenticates the request, authorises the route and redirects landing URLs.
+ * The hook knows nothing about which routes are project-scoped: the project
+ * is a route param, and permission keys come from the route id.
  *
  * Per-request budget: at most one session lookup, answered from the in-memory
  * session cache for 30 s per access token (`resolveSession`), so a burst of
@@ -89,32 +42,38 @@ function canAccessRoute(permissions: Permissions | null, route: string): boolean
  * auth gate; layout loads do not guard again.
  */
 export async function handleAuth({ event, resolve }: Parameters<Handle>[0]) {
-	event.locals.user = await resolveSession(event);
+	const user = await resolveSession(event);
+	event.locals.user = user;
 
-	const isUserAuthenticated = event.locals.user?.isAuthenticated ?? false;
-	const requestedPath = event.url.pathname;
-	const isPublicRoute = PUBLIC_ROUTES.some((route) => requestedPath.startsWith(route));
-
-	if ((isUserAuthenticated && requestedPath.startsWith('/login')) || requestedPath === '/') {
-		throw redirect(303, '/map');
+	if (event.cookies.get(LEGACY_PROJECT_COOKIE)) {
+		event.cookies.delete(LEGACY_PROJECT_COOKIE, { path: '/' });
 	}
 
+	const requestedPath = event.url.pathname;
+	const isPublicRoute = PUBLIC_ROUTES.some((route) => requestedPath.startsWith(route));
 	// Remote functions authenticate against Django themselves; the login form
 	// in particular must reach its endpoint without a session.
 	const isRemoteFunctionRoute = requestedPath.startsWith('/_app/remote/');
 
-	if (!isUserAuthenticated && !isPublicRoute && !isRemoteFunctionRoute) {
+	if (!user.isAuthenticated) {
+		if (isPublicRoute || isRemoteFunctionRoute) return resolve(event);
 		const redirectToUrl = `/login?redirectTo=${encodeURIComponent(requestedPath + event.url.search)}`;
-		throw redirect(303, redirectToUrl);
+		redirect(303, redirectToUrl);
 	}
 
-	if (isUserAuthenticated && event.locals.user?.permissions) {
-		if (!canAccessRoute(event.locals.user.permissions, requestedPath)) {
-			throw redirect(303, '/map');
-		}
+	if (requestedPath === '/' || requestedPath.startsWith('/login')) {
+		redirect(303, await landingPathFor(event.fetch, event.cookies));
+	}
+
+	const permissionKey = permissionKeyFor(event.route.id);
+	if (permissionKey && !canAccessRoute(user.permissions, permissionKey)) {
+		const landing = await landingPathFor(event.fetch, event.cookies);
+		// The landing page itself is denied: a redirect would loop.
+		if (landing === requestedPath) error(403, 'Access denied');
+		redirect(303, landing);
 	}
 
 	return resolve(event);
 }
 
-export const handle = sequence(paraglideHandle, handleAuth, handleProjectRedirect);
+export const handle = sequence(paraglideHandle, handleAuth);

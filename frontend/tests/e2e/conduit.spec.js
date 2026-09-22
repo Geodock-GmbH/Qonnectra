@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import dotenv from 'dotenv';
 
 import { loginOrSkip } from './helpers/auth.js';
+import { gotoProjectRoute } from './helpers/routes.js';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
@@ -314,54 +315,12 @@ async function setupConduitMocks(page, options = {}) {
 	});
 }
 
-const TEST_USERNAME = process.env.E2E_TEST_USERNAME;
-const TEST_PASSWORD = process.env.E2E_TEST_PASSWORD;
-
-/**
- * Performs real login to get valid auth cookies.
- * @param {import('@playwright/test').Page} page
- * @returns {Promise<boolean>} Whether login succeeded.
- */
-async function performLogin(page) {
-	if (!TEST_USERNAME || !TEST_PASSWORD) {
-		console.warn('E2E_TEST_USERNAME and E2E_TEST_PASSWORD must be set in .env');
-		return false;
-	}
-
-	await page.goto('/login');
-	await page.locator('input[name="username"]').fill(TEST_USERNAME);
-	await page.locator('input[name="_password"]').fill(TEST_PASSWORD);
-	await page.locator('button[type="submit"]').click();
-
-	try {
-		await page.waitForFunction(() => !window.location.pathname.includes('/login'), {
-			timeout: 10000
-		});
-		return true;
-	} catch {
-		console.warn('Login failed - test credentials may be invalid');
-		return false;
-	}
-}
-
 test.describe.configure({ mode: 'serial' });
 
 test.describe('Conduit Route Tests', () => {
-	let loginSucceeded = false;
-
 	test.beforeEach(async ({ page }) => {
-		test.skip(
-			!TEST_USERNAME || !TEST_PASSWORD,
-			'E2E_TEST_USERNAME and E2E_TEST_PASSWORD must be set in .env'
-		);
-
-		loginSucceeded = await performLogin(page);
-
-		if (!loginSucceeded) {
-			test.skip(true, 'Login failed - test credentials may be invalid');
-		}
-
-		await page.goto('/conduit/1');
+		await loginOrSkip(page, test.skip);
+		await gotoProjectRoute(page, 'conduit');
 		await page.waitForLoadState('networkidle');
 	});
 
@@ -392,10 +351,11 @@ test.describe('Conduit Route Tests', () => {
 			await expect(page.locator('[data-testid="pagination-count"]')).toBeVisible();
 		});
 
-		test('should handle missing project ID gracefully', async ({ page }) => {
+		test('should answer the legacy bare route with a 404, not a redirect', async ({ page }) => {
 			await page.goto('/conduit');
 
-			await expect(page.locator('[data-testid="conduit-page"]')).toBeVisible();
+			await expect(page.getByRole('heading', { name: '404' })).toBeVisible();
+			await expect(page).toHaveURL(/\/conduit$/);
 		});
 	});
 
@@ -762,7 +722,7 @@ test.describe('Conduit Route Tests', () => {
 test.describe('Conduit list pagination', () => {
 	test.beforeEach(async ({ page }) => {
 		await loginOrSkip(page, test.skip);
-		await page.goto('/conduit/1');
+		await gotoProjectRoute(page, 'conduit');
 		await expect(page.locator('[data-testid="conduit-desktop-view"] table')).toBeVisible();
 		await page.waitForLoadState('networkidle');
 	});

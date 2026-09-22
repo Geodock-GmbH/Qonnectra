@@ -23,13 +23,19 @@
 	import { sidebarExpanded } from '$lib/stores/store';
 	import { canAccessRoute } from '$lib/utils/permissions';
 	import { tooltip } from '$lib/utils/tooltip';
-	import { footerLinks, navGroups } from '$lib/config/navLinks';
+	import { footerLinks, isActive, navGroups, navHref } from '$lib/config/navLinks';
+	import { getRememberedProject } from '$lib/context/rememberedProject.svelte';
 
 	import AppIcon from './AppIcon.svelte';
 	import SideBarLink from './SideBarLink.svelte';
 
 	/** Whether the customize controls (per-route hide toggles, reset) are shown. */
 	let customizing = $state(false);
+
+	const remembered = getRememberedProject();
+
+	/** The project links point at: the URL's project, or the remembered one on a global page. */
+	const projectId = $derived(page.params.projectId ?? remembered.id);
 
 	/**
 	 * Content groups filtered to the routes the current user may access. Hidden
@@ -40,13 +46,15 @@
 		navGroups
 			.map((group) => ({
 				...group,
-				links: group.links.filter((link) => canAccessRoute($userStore.permissions, link.href))
+				links: group.links.filter((link) =>
+					canAccessRoute($userStore.permissions, link.permissionKey)
+				)
 			}))
 			.filter((group) => group.links.length > 0)
 	);
 
 	const permittedFooterLinks = $derived(
-		footerLinks.filter((link) => canAccessRoute($userStore.permissions, link.href))
+		footerLinks.filter((link) => canAccessRoute($userStore.permissions, link.permissionKey))
 	);
 
 	/** Flat list of all permitted content links, used for the collapsed rail layout. */
@@ -149,6 +157,7 @@
 									{#each visibleLinks as link (link.id)}
 										<SideBarLink
 											{link}
+											{projectId}
 											anchorClass={getAnchorClass}
 											{customizing}
 											hidden={isRouteHidden($sidebarPreferences, link.id)}
@@ -166,7 +175,7 @@
 					<Navigation.Menu>
 						{#each railLinks as link (link.id)}
 							{#if !isRouteHidden($sidebarPreferences, link.id)}
-								<SideBarLink {link} anchorClass={getAnchorClass} iconOnly />
+								<SideBarLink {link} {projectId} anchorClass={getAnchorClass} iconOnly />
 							{/if}
 						{/each}
 					</Navigation.Menu>
@@ -183,9 +192,10 @@
 					<Navigation.Menu>
 						{#each permittedFooterLinks as link (link.id)}
 							{@const Icon = link.icon}
-							{@const isSelected = link.pathMatch(page.url.pathname)}
+							{@const isSelected = isActive(link, page.route.id)}
+							<!-- eslint-disable svelte/no-navigation-without-resolve -- href comes from navHref(), which resolves the typed route id -->
 							<a
-								href={link.href}
+								href={navHref(link, projectId)}
 								class={getAnchorClass(isSelected)}
 								aria-label={link.label()}
 								{@attach tooltip(link.label())}
@@ -195,8 +205,10 @@
 									<span>{link.label()}</span>
 								{/if}
 							</a>
+							<!-- eslint-enable svelte/no-navigation-without-resolve -->
 						{/each}
 						{#if env.PUBLIC_DOCUMENTATION_URL}
+							<!-- eslint-disable svelte/no-navigation-without-resolve -- external documentation URL -->
 							<a
 								href={env.PUBLIC_DOCUMENTATION_URL}
 								target="_blank"
@@ -210,6 +222,7 @@
 									<span>{m.nav_documentation()}</span>
 								{/if}
 							</a>
+							<!-- eslint-enable svelte/no-navigation-without-resolve -->
 						{/if}
 					</Navigation.Menu>
 				</Navigation.Group>

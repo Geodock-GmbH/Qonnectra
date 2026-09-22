@@ -96,8 +96,20 @@ describe('canDelete', () => {
 });
 
 describe('canAccessRoute', () => {
-	it('returns false for undefined permissions', () => {
-		expect(canAccessRoute(undefined, '/admin/logs')).toBe(false);
+	it('allows everything when the permissions could not be loaded', () => {
+		expect(canAccessRoute(undefined, '/admin/logs')).toBe(true);
+		expect(canAccessRoute(null, '/admin/logs')).toBe(true);
+	});
+
+	it('lets an exact row cover its sub-routes', () => {
+		const permissions: Permissions = {
+			is_superuser: false,
+			models: {},
+			routes: { '/valuation': false }
+		};
+		expect(canAccessRoute(permissions, '/valuation')).toBe(false);
+		expect(canAccessRoute(permissions, '/valuation/areas')).toBe(false);
+		expect(canAccessRoute(permissions, '/valuations')).toBe(true);
 	});
 
 	it('returns true for superuser', () => {

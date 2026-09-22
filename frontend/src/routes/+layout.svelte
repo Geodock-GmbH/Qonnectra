@@ -13,6 +13,7 @@
 	import { selectedProject, theme } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { startHeartbeat, stopHeartbeat } from '$lib/utils/tokenHeartbeat.svelte';
+	import { setRememberedProject } from '$lib/context/rememberedProject.svelte';
 
 	import '../app.css';
 
@@ -28,6 +29,9 @@
 			return () => stopHeartbeat();
 		}
 	});
+
+	// svelte-ignore state_referenced_locally
+	setRememberedProject(data.rememberedProject);
 
 	$effect(() => updateUserStore(data.user));
 	// svelte-ignore state_referenced_locally

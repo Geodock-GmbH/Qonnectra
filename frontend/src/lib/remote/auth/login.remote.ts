@@ -3,22 +3,20 @@ import { form, getRequestEvent } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';
 
-import {
-	ensureSelectedProjectCookie,
-	forwardSetCookies,
-	loginErrorMessage,
-	safeRedirectTarget
-} from './auth-session';
+import { landingPathFor } from '$lib/server/landing';
+
+import { forwardSetCookies, loginErrorMessage, safeRedirectTarget } from './auth-session';
 
 const LoginSchema = v.object({
 	username: v.pipe(v.string(), v.nonEmpty()),
 	_password: v.pipe(v.string(), v.nonEmpty()),
-	redirectTo: v.optional(v.string(), '/')
+	redirectTo: v.optional(v.string(), '')
 });
 
 /**
  * Authenticates against the backend, forwards the session cookies to the
- * browser and redirects to `redirectTo`. Rejected credentials become a
+ * browser and redirects to `redirectTo`, or to the landing page when no
+ * same-origin deep link was given. Rejected credentials become a
  * form-level issue; backend outages surface as a 500 `HttpError`.
  * The password field is underscored so a failed non-enhanced submission
  * never echoes it back into the page.
@@ -50,7 +48,7 @@ export const login = form(LoginSchema, async ({ username, _password, redirectTo 
 		error(500, 'Authentication response missing required tokens.');
 	}
 	forwardSetCookies(cookies, setCookieHeaders, secure);
-	ensureSelectedProjectCookie(cookies, secure);
 
-	redirect(303, safeRedirectTarget(redirectTo));
+	const target = safeRedirectTarget(redirectTo);
+	redirect(303, target === '/' ? await landingPathFor(fetch, cookies) : target);
 });

@@ -2,6 +2,8 @@ import path from 'path';
 import { expect, test } from '@playwright/test';
 import dotenv from 'dotenv';
 
+import { loginOrSkip } from './helpers/auth.js';
+
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 const TEST_USERNAME = process.env.E2E_TEST_USERNAME;
@@ -33,31 +35,6 @@ async function deleteRecordsMatching(request, marker) {
 	const { results = [] } = await listResponse.json();
 	for (const record of results) {
 		await request.delete(`${API_URL}pipeline-records/${record.uuid}/`);
-	}
-}
-
-/**
- * Performs a real backend login so requests carry valid auth cookies.
- * @param {import('@playwright/test').Page} page
- * @returns {Promise<boolean>} Whether login succeeded.
- */
-async function performLogin(page) {
-	if (!TEST_USERNAME || !TEST_PASSWORD) {
-		return false;
-	}
-
-	await page.goto('/login');
-	await page.locator('input[name="username"]').fill(TEST_USERNAME);
-	await page.locator('input[name="_password"]').fill(TEST_PASSWORD);
-	await page.locator('button[type="submit"]').click();
-
-	try {
-		await page.waitForFunction(() => !window.location.pathname.includes('/login'), {
-			timeout: 10000
-		});
-		return true;
-	} catch {
-		return false;
 	}
 }
 
@@ -95,15 +72,7 @@ test.describe('Pipeline Records CRUD', () => {
 	const CONTACT = 'E2E Contact';
 
 	test.beforeEach(async ({ page }) => {
-		test.skip(
-			!TEST_USERNAME || !TEST_PASSWORD,
-			'E2E_TEST_USERNAME and E2E_TEST_PASSWORD must be set in .env'
-		);
-
-		const loginSucceeded = await performLogin(page);
-		if (!loginSucceeded) {
-			test.skip(true, 'Login failed - test credentials may be invalid');
-		}
+		await loginOrSkip(page, test.skip);
 
 		await page.goto('/pipeline-records');
 		await page.waitForLoadState('networkidle');

@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { loginOrSkip } from './helpers/auth.js';
+import { gotoProjectRoute, projectPath } from './helpers/routes.js';
 
 /**
  * Reads a persisted store value out of localStorage the way the `persisted`
@@ -32,8 +33,7 @@ function switchByName(page, name) {
 test.describe('Network schema page', () => {
 	test.beforeEach(async ({ page }) => {
 		await loginOrSkip(page, test.skip);
-		// Bare /network-schema resolves to the active project's schema.
-		await page.goto('/network-schema');
+		await gotoProjectRoute(page, 'network-schema');
 		await page.waitForLoadState('networkidle');
 	});
 
@@ -92,7 +92,7 @@ test.describe('Network schema page', () => {
 		// Regression: a URL-diffing $effect captured the previous page's URL on
 		// mount and fired window.location.reload() on every client-side arrival,
 		// making the canvas load twice.
-		await page.goto('/dashboard');
+		const id = await gotoProjectRoute(page, 'dashboard');
 		await page.waitForLoadState('networkidle');
 
 		// A hard reload replaces the document and wipes this window marker.
@@ -100,8 +100,11 @@ test.describe('Network schema page', () => {
 			/** @type {any} */ (window).__reloadCanary = 'alive';
 		});
 
-		await page.locator('a[href="/network-schema"]').first().click();
-		await page.waitForURL(/\/network-schema\/\d+/);
+		await page
+			.locator(`a[href="${projectPath(id, 'network-schema')}"]`)
+			.first()
+			.click();
+		await expect(page).toHaveURL(new RegExp(`${projectPath(id, 'network-schema')}$`));
 		await expect(page.locator('.svelte-flow').first()).toBeVisible({ timeout: 15000 });
 
 		const canary = await page.evaluate(() => /** @type {any} */ (window).__reloadCanary ?? null);

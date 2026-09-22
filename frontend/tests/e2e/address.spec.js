@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { loginOrSkip } from './helpers/auth.js';
+import { gotoProjectRoute } from './helpers/routes.js';
 
 /**
  * Desktop address rows (the md:block table body).
@@ -13,9 +14,7 @@ function desktopRows(page) {
 test.describe('Address list page', () => {
 	test.beforeEach(async ({ page }) => {
 		await loginOrSkip(page, test.skip);
-		// Bare /address redirects to /address/<active project id>.
-		await page.goto('/address');
-		await page.waitForURL(/\/address\/[^/]+$/, { timeout: 10000 });
+		await gotoProjectRoute(page, 'address');
 		await page.waitForLoadState('networkidle');
 	});
 
@@ -86,8 +85,8 @@ test.describe('Address list page', () => {
 		test.skip(rowCount < 1, 'No address rows available to open');
 
 		await desktopRows(page).first().click();
-		// Detail route is /address/<projectId>/<uuid>.
-		await page.waitForURL(/\/address\/[^/]+\/[0-9a-f-]{36}/, { timeout: 10000 });
+		// Detail route is /project/<projectId>/address/<uuid>.
+		await page.waitForURL(/\/project\/\d+\/address\/[0-9a-f-]{36}$/, { timeout: 10000 });
 	});
 
 	test('mobile viewport shows the card list with a search box', async ({ page }) => {
