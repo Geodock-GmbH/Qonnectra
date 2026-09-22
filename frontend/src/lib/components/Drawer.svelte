@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import { onMount } from 'svelte';
 	import { cubicOut } from 'svelte/easing';
-	import { innerWidth } from 'svelte/reactivity/window';
+	import { innerHeight, innerWidth } from 'svelte/reactivity/window';
 	import { get } from 'svelte/store';
 	import { fade, fly } from 'svelte/transition';
 
@@ -78,9 +78,13 @@
 	const SNAP_FULL = 95;
 	const SNAP_THRESHOLD = 0.25;
 
-	/** Height in pixels for a given snap vh value */
+	/**
+	 * Height in pixels for a given snap vh value. Reads the reactive window
+	 * size rather than `window` itself, because this runs during SSR too,
+	 * where the mobile sheet is rendered before any viewport is known.
+	 */
 	function snapToPixels(snapVh: number): number {
-		return (snapVh / 100) * window.innerHeight;
+		return (snapVh / 100) * (innerHeight.current ?? 0);
 	}
 
 	/** Current snap height in pixels */
