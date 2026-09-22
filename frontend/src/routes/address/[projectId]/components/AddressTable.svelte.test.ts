@@ -12,7 +12,10 @@ vi.mock('$app/navigation', () => ({
 }));
 
 vi.mock('$app/state', () => ({
-	page: { params: { projectId: 'proj-42' } }
+	page: {
+		params: { projectId: 'proj-42' },
+		url: new URL('http://localhost/address/proj-42?search=haupt')
+	}
 }));
 
 vi.mock('$lib/paraglide/messages', () => ({
@@ -175,6 +178,19 @@ describe('AddressTable', () => {
 		// Numeric sort puts 2 before 10 (lexicographic would put 10 first).
 		expect(ids[0]).toHaveTextContent('H2');
 		expect(ids[1]).toHaveTextContent('H10');
+	});
+
+	test('should paginate as an adjustment: replace, keep focus and scroll', async () => {
+		const user = userEvent.setup();
+		renderTable([makeAddress()], { page: 1, pageSize: 10, totalCount: 100, totalPages: 10 });
+
+		await user.click(screen.getByText('2'));
+
+		expect(gotoMock).toHaveBeenCalledWith('/address/proj-42?search=haupt&page=2', {
+			keepFocus: true,
+			noScroll: true,
+			replaceState: true
+		});
 	});
 
 	test('should render the total result count in the pagination footer', () => {

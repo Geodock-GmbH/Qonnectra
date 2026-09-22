@@ -1,35 +1,28 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import SearchInput from '$lib/components/SearchInput.svelte';
+	import { DEFAULT_PAGE_SIZE, queryInt, queryString, setQuery } from '$lib/utils/urlState';
 	import { getAddressList } from '$lib/remote/address/addresses.remote';
 
 	import AddressTable from './components/AddressTable.svelte';
 
 	const projectId = $derived(page.params.projectId ?? '');
-	const searchTerm = $derived(page.url.searchParams.get('search') ?? '');
-	const currentPage = $derived(Number(page.url.searchParams.get('page')) || 1);
-	const pageSize = $derived(Number(page.url.searchParams.get('page_size')) || 50);
+	const searchTerm = $derived(queryString(page.url, 'search'));
+	const currentPage = $derived(queryInt(page.url, 'page', 1, { min: 1 }));
+	const pageSize = $derived(queryInt(page.url, 'page_size', DEFAULT_PAGE_SIZE, { min: 1 }));
 
 	// Follows the URL (back/forward, reload) but stays editable until submitted.
 	let searchInput = $derived(searchTerm);
 
 	/**
-	 * Navigates to page 1 with the current search input as a query parameter.
+	 * Applies the search input and returns to the first page.
 	 */
 	function performSearch() {
-		const url = new URL(page.url);
-		if (searchInput !== '') {
-			url.searchParams.set('search', searchInput);
-		} else {
-			url.searchParams.delete('search');
-		}
-		url.searchParams.set('page', '1');
-		goto(url, { keepFocus: true, noScroll: true, replaceState: true });
+		setQuery({ search: searchInput, page: 1 });
 	}
 </script>
 

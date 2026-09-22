@@ -37,7 +37,7 @@ test.describe('Address list page', () => {
 		await search.press('Enter');
 
 		await expect(page).toHaveURL(/[?&]search=teststreet-xyz/);
-		await expect(page).toHaveURL(/[?&]page=1/);
+		await expect(page).not.toHaveURL(/[?&]page=/);
 	});
 
 	/**

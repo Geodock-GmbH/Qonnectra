@@ -1,12 +1,10 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
-	import { traceEntryPath } from '$lib/utils/traceUtils';
+	import { setQuery } from '$lib/utils/urlState';
 
 	import TraceOutcome from '../../components/TraceOutcome.svelte';
 	import { traceRequestFromPage, traceRequestKey } from '../../components/traceOptions';
@@ -15,20 +13,15 @@
 
 	/**
 	 * Switches a fiber between the plain trace and the signal analysis. Leaving
-	 * the analysis also drops its signal source.
+	 * the analysis also drops its signal source. A mode is a place, so the
+	 * switch is pushed and the back button returns to the previous mode.
 	 * @param mode - The mode to switch to.
 	 */
 	function switchMode(mode: 'trace' | 'signal') {
 		if (!request) return;
-		const params = new URLSearchParams(page.url.searchParams);
-		if (mode === 'signal') {
-			params.set('mode', 'signal');
-		} else {
-			params.delete('mode');
-			params.delete('source');
-		}
-		const path = traceEntryPath(request.entryType, request.entryId);
-		goto(resolve(params.size > 0 ? `${path}?${params}` : path));
+		setQuery(mode === 'signal' ? { mode: 'signal' } : { mode: null, source: null }, {
+			push: true
+		});
 	}
 </script>
 

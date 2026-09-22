@@ -14,6 +14,8 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { setQuery } from '$lib/utils/urlState';
+
 	let {
 		addresses,
 		pagination
@@ -94,24 +96,19 @@
 	}
 
 	/**
-	 * Navigates to a specific page by updating the URL search params.
-	 * @param newPage - The page number to navigate to.
+	 * Shows another page of the same list.
+	 * @param newPage - The page number to show.
 	 */
 	function goToPage(newPage: number) {
-		const url = new URL(window.location.href);
-		url.searchParams.set('page', String(newPage));
-		goto(url.pathname + url.search);
+		setQuery({ page: newPage });
 	}
 
 	/**
-	 * Changes the page size and resets to page 1.
+	 * Changes the page size and returns to the first page.
 	 * @param newSize - The new page size.
 	 */
 	function changePageSize(newSize: number) {
-		const url = new URL(window.location.href);
-		url.searchParams.set('page_size', String(newSize));
-		url.searchParams.set('page', '1');
-		goto(url.pathname + url.search);
+		setQuery({ page_size: newSize, page: 1 });
 	}
 
 	const filteredAddresses = $derived.by(() => {

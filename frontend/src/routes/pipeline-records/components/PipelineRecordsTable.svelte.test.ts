@@ -191,7 +191,11 @@ describe('PipelineRecordsTable', () => {
 
 		await user.click(screen.getByRole('button', { name: 'next page' }));
 
-		expect(goto).toHaveBeenCalledWith('/pipeline-records?search=acme&page=2');
+		expect(goto).toHaveBeenCalledWith('/pipeline-records?search=acme&page=2', {
+			keepFocus: true,
+			noScroll: true,
+			replaceState: true
+		});
 	});
 
 	test('renders the paginated total count', () => {

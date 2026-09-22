@@ -1,14 +1,17 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import type { LogFilters } from '$lib/remote/admin/logs-data';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
-	import { logFiltersToSearchParams, readLogFilters } from '$lib/remote/admin/logs-data';
+	import { setQuery } from '$lib/utils/urlState';
+	import {
+		DEFAULT_LOG_FILTERS,
+		logFiltersToQuery,
+		readLogFilters
+	} from '$lib/remote/admin/logs-data';
 
 	import LogFilterPanel from './components/LogFilterPanel.svelte';
 	import LogTable from './components/LogTable.svelte';
@@ -16,11 +19,16 @@
 	let { data }: { data: PageData } = $props();
 
 	// The URL is the single source of truth for filters and paging so views are shareable.
-	const filters = $derived(readLogFilters(page.url.searchParams));
+	const filters = $derived(readLogFilters(page.url));
 	const projectOptions = $derived([{ value: '', label: 'All Projects' }, ...data.projects]);
 
+	/**
+	 * Writes the filters to the URL; filters and paging are adjustments, so
+	 * they replace the current history entry.
+	 * @param next - The filters to show.
+	 */
 	function navigate(next: LogFilters) {
-		goto(resolve(`/admin/logs?${logFiltersToSearchParams(next)}`));
+		setQuery(logFiltersToQuery(next));
 	}
 </script>
 
@@ -35,7 +43,7 @@
 		{filters}
 		{projectOptions}
 		onApply={(next) => navigate({ ...next, page: 1 })}
-		onClear={() => goto(resolve('/admin/logs'))}
+		onClear={() => navigate(DEFAULT_LOG_FILTERS)}
 	/>
 
 	<QueryBoundary>

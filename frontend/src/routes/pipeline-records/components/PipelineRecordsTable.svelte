@@ -2,7 +2,6 @@
 	import type { PipelineRecordRow } from '$lib/remote/pipeline-records/record-data';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
 	import {
 		IconArrowLeft,
@@ -14,6 +13,8 @@
 
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
+
+	import { setQuery } from '$lib/utils/urlState';
 
 	interface PaginationInfo {
 		totalCount: number;
@@ -109,10 +110,12 @@
 		filters[columnKey] = value;
 	}
 
+	/**
+	 * Shows another page of the same list.
+	 * @param newPage - The page number to show.
+	 */
 	function goToPage(newPage: number) {
-		const query = new URLSearchParams(page.url.searchParams);
-		query.set('page', String(newPage));
-		goto(resolve(`/pipeline-records?${query}`));
+		setQuery({ page: newPage });
 	}
 
 	/**

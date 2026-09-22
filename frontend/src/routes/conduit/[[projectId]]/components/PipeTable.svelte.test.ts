@@ -18,7 +18,7 @@ vi.mock('$app/navigation', () => ({
 }));
 
 vi.mock('$app/state', () => ({
-	page: { params: { projectId: 'proj-42' } }
+	page: { params: { projectId: 'proj-42' }, url: new URL('http://localhost/conduit/proj-42') }
 }));
 
 vi.mock('$lib/paraglide/messages', () => ({
@@ -158,9 +158,10 @@ describe('PipeTable', () => {
 
 		await user.click(screen.getByText('2'));
 
-		expect(gotoMock).toHaveBeenCalled();
-		const target = gotoMock.mock.calls[0][0] as string;
-		expect(target).toContain('/conduit/proj-42?');
-		expect(target).toContain('page=2');
+		expect(gotoMock).toHaveBeenCalledWith('/conduit/proj-42?page=2', {
+			keepFocus: true,
+			noScroll: true,
+			replaceState: true
+		});
 	});
 });

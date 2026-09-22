@@ -34,7 +34,7 @@ test.describe('Admin logs page', () => {
 			.click();
 
 		await expect(page).toHaveURL(/[?&]search=e2e-marker-xyz/);
-		await expect(page).toHaveURL(/[?&]page=1/);
+		await expect(page).not.toHaveURL(/[?&]page=/);
 	});
 
 	test('clearing filters resets the URL back to the base logs route', async ({ page }) => {

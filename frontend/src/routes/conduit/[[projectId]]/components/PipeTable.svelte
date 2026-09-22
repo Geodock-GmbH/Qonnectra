@@ -1,8 +1,5 @@
 <script lang="ts">
 	import type { ConduitListRow } from '$lib/remote/conduit/conduit-data';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
 	import {
 		IconArrowLeft,
@@ -15,6 +12,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { drawerStore } from '$lib/stores/drawer';
+	import { setQuery } from '$lib/utils/urlState';
 
 	import ConduitDrawerTabs from './drawer/ConduitDrawerTabs.svelte';
 
@@ -93,15 +91,11 @@
 	}
 
 	/**
-	 * Navigates to a specific page by updating the URL search params.
-	 * @param newPage - The page number to navigate to.
+	 * Shows another page of the same list.
+	 * @param newPage - The page number to show.
 	 */
 	function goToPage(newPage: number) {
-		const url = new URL(window.location.href);
-		url.searchParams.set('page', String(newPage));
-		const projectId = page.params.projectId;
-		const query = url.searchParams.toString();
-		goto(resolve(projectId ? `/conduit/${projectId}?${query}` : `/conduit?${query}`));
+		setQuery({ page: newPage });
 	}
 
 	const filteredPipes = $derived.by(() => {

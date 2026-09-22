@@ -2,6 +2,8 @@ import path from 'path';
 import { expect, test } from '@playwright/test';
 import dotenv from 'dotenv';
 
+import { loginOrSkip } from './helpers/auth.js';
+
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 /**
@@ -754,5 +756,28 @@ test.describe('Conduit Route Tests', () => {
 				await expect(page.locator('[data-drawer]')).toBeVisible();
 			}
 		});
+	});
+});
+
+test.describe('Conduit list pagination', () => {
+	test.beforeEach(async ({ page }) => {
+		await loginOrSkip(page, test.skip);
+		await page.goto('/conduit/1');
+		await expect(page.locator('[data-testid="conduit-desktop-view"] table')).toBeVisible();
+		await page.waitForLoadState('networkidle');
+	});
+
+	test('paginating is an adjustment: page 2 replaces the entry, back leaves the list', async ({
+		page
+	}) => {
+		const pageTwo = page.getByLabel('page 2', { exact: true }).first();
+		await expect(pageTwo).toBeVisible();
+
+		await pageTwo.click();
+		await expect(page).toHaveURL(/[?&]page=2/);
+		await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 10000 });
+
+		await page.goBack();
+		await expect(page).not.toHaveURL(/\/conduit/);
 	});
 });
