@@ -16,7 +16,7 @@ test.skip(!USERNAME || !PASSWORD, 'E2E_TEST_USERNAME and E2E_TEST_PASSWORD must 
 async function performLogin(page) {
 	await page.goto('/login');
 	await page.locator('input[name="username"]').fill(/** @type {string} */ (USERNAME));
-	await page.locator('input[name="password"]').fill(/** @type {string} */ (PASSWORD));
+	await page.locator('input[name="_password"]').fill(/** @type {string} */ (PASSWORD));
 	await page.locator('button[type="submit"]').click();
 
 	try {

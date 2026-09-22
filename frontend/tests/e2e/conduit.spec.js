@@ -328,7 +328,7 @@ async function performLogin(page) {
 
 	await page.goto('/login');
 	await page.locator('input[name="username"]').fill(TEST_USERNAME);
-	await page.locator('input[name="password"]').fill(TEST_PASSWORD);
+	await page.locator('input[name="_password"]').fill(TEST_PASSWORD);
 	await page.locator('button[type="submit"]').click();
 
 	try {
