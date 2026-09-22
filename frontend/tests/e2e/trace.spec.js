@@ -1,6 +1,10 @@
 import { expect, test } from '@playwright/test';
 
+/** @typedef {import('./helpers/api.js').ListedCable} ListedCable */
+
+import { cableWithFibers } from './helpers/api.js';
 import { loginOrSkip } from './helpers/auth.js';
+import { getProjectId } from './helpers/routes.js';
 
 test.describe('Fiber trace search page', () => {
 	test.beforeEach(async ({ page }) => {
@@ -20,7 +24,9 @@ test.describe('Fiber trace search page', () => {
 		await expect(page.getByPlaceholder(/street, city|straße, stadt/i).first()).toBeVisible();
 	});
 
-	test('switching to the node tab changes the search placeholder', async ({ page }) => {
+	test('switching to the node tab changes the search placeholder and names the tab in the URL', async ({
+		page
+	}) => {
 		await page
 			.locator('button[title]')
 			.filter({ hasText: /node|netzknoten/i })
@@ -28,6 +34,59 @@ test.describe('Fiber trace search page', () => {
 			.click();
 
 		await expect(page.getByPlaceholder(/node name|netzknotenname/i).first()).toBeVisible();
+		await expect(page).toHaveURL(/\/trace\?type=node$/);
+
+		// Switching tabs adjusts the page: back leaves the landing instead of
+		// stepping through the tabs.
+		await page.goBack();
+		await expect(page).not.toHaveURL(/\/trace/);
+	});
+
+	test('a URL naming the tab opens it', async ({ page }) => {
+		await page.goto('/trace?type=residential-unit');
+
+		await expect(page.getByPlaceholder(/residential unit id|wohneinheit-id/i).first()).toBeVisible({
+			timeout: 15000
+		});
+	});
+
+	test('picking a cable for a fiber trace survives back from the result', async ({ page }) => {
+		test.setTimeout(60000);
+		const projectId = await getProjectId(page);
+		const cable = await cableWithFibers(page, projectId);
+		test.skip(!cable, 'Needs a cable with fibers in the project');
+		const { uuid, name } = /** @type {ListedCable} */ (cable);
+		const pickedUrl = new RegExp(`/trace\\?type=fiber&cable=${uuid}$`);
+		const cableSearch = page.getByPlaceholder(/cable name|kabelname/i).first();
+		const bundle = page.locator('button[aria-expanded]').first();
+
+		await page.goto('/trace?type=fiber');
+		// A full page load: typing before hydration loses the input.
+		await page.waitForLoadState('networkidle');
+		await expect(cableSearch).toBeVisible({ timeout: 15000 });
+		await cableSearch.fill(name);
+		await page.locator('div.max-h-80 button').filter({ hasText: name }).first().click();
+
+		// Picking the cable is a place in the history.
+		await expect(page).toHaveURL(pickedUrl);
+		await expect(bundle).toBeVisible({ timeout: 15000 });
+		if ((await bundle.getAttribute('aria-expanded')) === 'false') await bundle.click();
+		await page
+			.getByRole('button', { name: /^(trace|folgen)$/i })
+			.first()
+			.click();
+		await page.waitForURL(/\/trace\/fiber\/[0-9a-f-]{36}/, { timeout: 15000 });
+
+		// Back returns to the same cable's fibers, not to an empty landing.
+		await page.goBack();
+		await expect(page).toHaveURL(pickedUrl);
+		await expect(page.getByText(name, { exact: true }).first()).toBeVisible({ timeout: 15000 });
+		await expect(bundle).toBeVisible({ timeout: 15000 });
+
+		// Back once more undoes the pick: the cable search of the fiber tab.
+		await page.goBack();
+		await expect(page).toHaveURL(/\/trace\?type=fiber$/);
+		await expect(cableSearch).toBeVisible();
 	});
 
 	test('switching the project in the app bar re-runs the search without a navigation', async ({

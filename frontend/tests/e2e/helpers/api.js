@@ -44,3 +44,32 @@ function firstVertex(geometry) {
 	while (Array.isArray(coordinates) && Array.isArray(coordinates[0])) coordinates = coordinates[0];
 	return Array.isArray(coordinates) && coordinates.length >= 2 ? coordinates.slice(0, 2) : null;
 }
+
+/**
+ * A cable the fiber search can pick: its uuid and the name the search finds it by.
+ * @typedef {{ uuid: string, name: string }} ListedCable
+ */
+
+/**
+ * Finds a cable of the project that has fibers, straight from the API, so a
+ * spec can pick fibers through it. Only the first few cables are checked.
+ * @param {import('@playwright/test').Page} page - A logged-in page.
+ * @param {string} projectId - The project to look in.
+ * @returns {Promise<ListedCable | null>} The cable, or null when none has fibers.
+ */
+export async function cableWithFibers(page, projectId) {
+	const response = await page.request.get(`${API_URL}cable/?project=${projectId}`);
+	if (!response.ok()) return null;
+	const payload = await response.json();
+	const cables = Array.isArray(payload) ? payload : (payload?.results ?? []);
+	for (const cable of cables.slice(0, 10)) {
+		if (!cable?.uuid || !cable?.name) continue;
+		const fibers = await page.request.get(`${API_URL}fiber/by-cable/${cable.uuid}/`);
+		if (!fibers.ok()) continue;
+		const list = await fibers.json();
+		if (Array.isArray(list) && list.length > 0) {
+			return { uuid: String(cable.uuid), name: String(cable.name) };
+		}
+	}
+	return null;
+}

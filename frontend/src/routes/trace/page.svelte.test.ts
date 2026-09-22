@@ -2,8 +2,9 @@ import { error } from '@sveltejs/kit';
 import { goto } from '$app/navigation';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { getCableDetails } from '$lib/remote/network-schema/cables.remote';
 import { getFiberColors, getFibersForCable } from '$lib/remote/network-schema/fibers.remote';
 
 import TracePage from './+page.svelte';
@@ -14,17 +15,28 @@ vi.mock('$lib/remote/trace/trace-search.remote', () => ({
 	searchTraceEntries: (...args: unknown[]) => searchTraceEntries(...args)
 }));
 
-vi.mock('$app/navigation', () => ({
-	goto: vi.fn()
-}));
+// The landing reads its settings from the URL, so the page stub is reactive
+// and the navigation stub moves it: a click on a tab re-renders the page.
+vi.mock('$app/state', async () => {
+	const { reactivePageStub } = await import('$lib/test-utils/reactivePageStub.svelte');
+	return {
+		page: reactivePageStub({
+			url: 'http://localhost/trace',
+			data: { projects: [{ value: '7', label: 'Ausbau Nord' }] }
+		})
+	};
+});
 
-vi.mock('$app/state', () => ({
-	page: {
-		data: { projects: [{ value: '7', label: 'Ausbau Nord' }] },
-		params: {},
-		url: new URL('http://localhost/trace')
-	}
-}));
+vi.mock('$app/navigation', async () => {
+	const { gotoStub } = await import('$lib/test-utils/reactivePageStub.svelte');
+	const { page } = await import('$app/state');
+	return { goto: gotoStub(page) };
+});
+
+const gotoMock = vi.mocked(goto);
+
+const REPLACE = { keepFocus: true, noScroll: true, replaceState: true };
+const PUSH = { keepFocus: true, noScroll: true, replaceState: false };
 
 // The remembered project is the search's default on this global page.
 vi.mock('$lib/context/rememberedProject.svelte', async (importOriginal) => {
@@ -66,9 +78,14 @@ function httpError(status: number, message: string): unknown {
 	return null;
 }
 
+beforeEach(async () => {
+	await goto('/trace');
+	gotoMock.mockClear();
+});
+
 afterEach(() => {
 	searchTraceEntries.mockReset();
-	vi.mocked(goto).mockReset();
+	gotoMock.mockClear();
 });
 
 describe('trace search page', () => {
@@ -96,16 +113,17 @@ describe('trace search page', () => {
 			type: 'address',
 			projectId: '7'
 		});
-		expect(goto).toHaveBeenCalledWith('/trace/address/addr-1');
+		expect(gotoMock).toHaveBeenCalledWith('/trace/address/addr-1');
 	});
 
-	test('should search the tab’s entity type', async () => {
+	test('should switch the tab in the URL and search its entity type', async () => {
 		const user = userEvent.setup();
 		searchTraceEntries.mockResolvedValue([]);
 		render(TracePage);
 
 		await user.click(screen.getByTitle('form_residential_units'));
-		await user.type(screen.getByPlaceholderText('trace_search_ru_placeholder'), 'RU-7');
+		expect(gotoMock).toHaveBeenCalledWith('/trace?type=residential-unit', REPLACE);
+		await user.type(await screen.findByPlaceholderText('trace_search_ru_placeholder'), 'RU-7');
 
 		expect(await screen.findByText('common_no_results')).toBeInTheDocument();
 		expect(searchTraceEntries).toHaveBeenCalledWith({
@@ -115,12 +133,22 @@ describe('trace search page', () => {
 		});
 	});
 
+	test('should open on the tab the URL names', async () => {
+		await goto('/trace?type=node');
+		gotoMock.mockClear();
+		render(TracePage);
+
+		expect(screen.getByPlaceholderText('trace_search_node_placeholder')).toBeInTheDocument();
+		expect(gotoMock).not.toHaveBeenCalled();
+	});
+
 	test('should search every project once the global search is ticked', async () => {
 		const user = userEvent.setup();
 		searchTraceEntries.mockResolvedValue([addressHit]);
 		render(TracePage);
 
 		await user.click(screen.getByLabelText('trace_search_global'));
+		expect(gotoMock).toHaveBeenCalledWith('/trace?global=true', REPLACE);
 		await user.type(screen.getByPlaceholderText('trace_search_address_placeholder'), 'Main');
 		await screen.findByRole('button', { name: /Main St/ });
 
@@ -137,11 +165,29 @@ describe('trace search page', () => {
 		render(TracePage);
 
 		await user.click(screen.getByLabelText('trace_include_geometry'));
+		expect(gotoMock).toHaveBeenCalledWith('/trace?include_geometry=true', REPLACE);
 		await user.type(screen.getByPlaceholderText('trace_search_address_placeholder'), 'Main');
 		await user.click(await screen.findByRole('button', { name: /Main St/ }));
 
-		expect(goto).toHaveBeenCalledWith(
+		expect(gotoMock).toHaveBeenLastCalledWith(
 			'/trace/address/addr-1?include_geometry=true&geometry_mode=segments'
+		);
+	});
+
+	test('should carry the geometry options the URL names into the trace URL', async () => {
+		const user = userEvent.setup();
+		searchTraceEntries.mockResolvedValue([addressHit]);
+		await goto('/trace?include_geometry=true&geometry_mode=merged&orient_geometry=true');
+		render(TracePage);
+
+		expect(screen.getByLabelText('trace_include_geometry')).toBeChecked();
+		expect(screen.getByLabelText('trace_orient_geometry')).toBeChecked();
+
+		await user.type(screen.getByPlaceholderText('trace_search_address_placeholder'), 'Main');
+		await user.click(await screen.findByRole('button', { name: /Main St/ }));
+
+		expect(gotoMock).toHaveBeenLastCalledWith(
+			'/trace/address/addr-1?include_geometry=true&geometry_mode=merged&orient_geometry=true'
 		);
 	});
 
@@ -155,7 +201,8 @@ describe('trace search page', () => {
 		render(TracePage);
 
 		await user.click(screen.getByTitle('form_fiber'));
-		await user.type(screen.getByPlaceholderText('trace_search_cable_placeholder'), 'Cable');
+		expect(gotoMock).toHaveBeenLastCalledWith('/trace?type=fiber', REPLACE);
+		await user.type(await screen.findByPlaceholderText('trace_search_cable_placeholder'), 'Cable');
 		await user.click(await screen.findByRole('button', { name: /Cable 1/ }));
 
 		expect(searchTraceEntries).toHaveBeenCalledWith({
@@ -163,12 +210,41 @@ describe('trace search page', () => {
 			type: 'cable',
 			projectId: '7'
 		});
-		expect(goto).not.toHaveBeenCalled();
+		// Picking the cable is a place: back returns to the cable search.
+		expect(gotoMock).toHaveBeenLastCalledWith('/trace?type=fiber&cable=cable-1', PUSH);
 		expect(getFibersForCable).toHaveBeenCalledWith('cable-1');
 
 		await user.click(await screen.findByRole('button', { name: 'action_trace' }));
 
-		expect(goto).toHaveBeenCalledWith('/trace/fiber/fiber-1');
+		expect(gotoMock).toHaveBeenLastCalledWith('/trace/fiber/fiber-1');
+	});
+
+	test('should offer the fibers of the cable the URL names', async () => {
+		vi.mocked(getCableDetails).mockResolvedValue({
+			name: 'Cable 1',
+			cable_type: { cable_type: '48F' }
+		});
+		vi.mocked(getFibersForCable).mockResolvedValue([
+			{ uuid: 'fiber-1', bundle_number: 1, bundle_color: 'Rot', fiber_number_in_bundle: 1 }
+		]);
+		vi.mocked(getFiberColors).mockResolvedValue([]);
+		await goto('/trace?type=fiber&cable=cable-1');
+		render(TracePage);
+
+		expect(await screen.findByText('Cable 1')).toBeInTheDocument();
+		expect(screen.getByText('48F')).toBeInTheDocument();
+		expect(await screen.findByRole('button', { name: 'action_trace' })).toBeInTheDocument();
+		expect(getCableDetails).toHaveBeenCalledWith('cable-1');
+		expect(getFibersForCable).toHaveBeenCalledWith('cable-1');
+		expect(searchTraceEntries).not.toHaveBeenCalled();
+	});
+
+	test('should ignore a picked cable off the fiber tab', async () => {
+		await goto('/trace?type=cable&cable=cable-1');
+		render(TracePage);
+
+		expect(screen.getByPlaceholderText('trace_search_cable_placeholder')).toBeInTheDocument();
+		expect(getFibersForCable).not.toHaveBeenCalled();
 	});
 
 	test('should return to the cable search when the picked cable is dismissed', async () => {
@@ -178,13 +254,17 @@ describe('trace search page', () => {
 		render(TracePage);
 
 		await user.click(screen.getByTitle('form_fiber'));
-		await user.type(screen.getByPlaceholderText('trace_search_cable_placeholder'), 'Cable');
+		await user.type(await screen.findByPlaceholderText('trace_search_cable_placeholder'), 'Cable');
 		await user.click(await screen.findByRole('button', { name: /Cable 1/ }));
 		expect(await screen.findByText('trace_no_fibers_in_cable')).toBeInTheDocument();
 
 		await user.click(screen.getByTitle('action_change'));
 
-		expect(screen.getByPlaceholderText('trace_search_cable_placeholder')).toBeInTheDocument();
+		// Dismissing rewrites the entry, so back never re-picks the cable.
+		expect(gotoMock).toHaveBeenLastCalledWith('/trace?type=fiber', REPLACE);
+		expect(
+			await screen.findByPlaceholderText('trace_search_cable_placeholder')
+		).toBeInTheDocument();
 	});
 
 	test('should show the backend message when the search fails', async () => {
