@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { SearchFeaturePayload } from '$lib/map/searchUtils';
+	import type { MapView } from '$lib/map/viewHash';
 	import type { AreaType, ConstructionType, NodeType, Surface } from '$lib/types/mapLayers';
 	import type Feature from 'ol/Feature';
 	import type BaseLayer from 'ol/layer/Base';
@@ -11,22 +12,26 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import { browser } from '$app/environment';
+	import { replaceState } from '$app/navigation';
+	import { page } from '$app/state';
 	import { IconSearch, IconX } from '@tabler/icons-svelte';
 	import { env } from '$env/dynamic/public';
 
 	import { MapMeasureManager } from '$lib/classes/MapMeasureManager.svelte.js';
+	import { zoomToExtent } from '$lib/map/searchUtils';
+	import { resolveInitialView, writeStoredView } from '$lib/map/storedView';
 	import { tileLoadingManager } from '$lib/map/tileLoadingManager.js';
+	import { parseViewHash, sameView, withViewHash } from '$lib/map/viewHash';
 	import { getWorkerPool } from '$lib/map/workerPool';
 	import {
 		basemapTheme,
 		layerOpacity,
 		layerVisibilityConfig,
-		mapCenter,
-		mapZoom,
 		tileServerAvailable,
 		wmsSourcesData
 	} from '$lib/stores/store';
 	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
+	import { getLayerExtent } from '$lib/remote/map/layers.remote';
 
 	import LayerVisibilityTree from './LayerVisibilityTree.svelte';
 	import MapContextMenu from './MapContextMenu.svelte';
@@ -93,6 +98,12 @@
 		constructionTypes?: ConstructionType[];
 		areaTypes?: AreaType[];
 		projectId?: string;
+		/**
+		 * Keeps the view in the URL hash (`#map=zoom/x/y`): the hash wins on
+		 * load and follows every move. Off for embedded maps whose view comes
+		 * from their content.
+		 */
+		viewInUrl?: boolean;
 		variant?: MapVariant;
 		onready?: (info: { map: OlMap; usingFallbackOSM: boolean }) => void;
 		onmoveend?: (info: { center: number[] | undefined; zoom: number }) => void;
@@ -121,6 +132,7 @@
 		constructionTypes = [],
 		areaTypes = [],
 		projectId = '',
+		viewInUrl = false,
 		variant = 'fullscreen', // 'fullscreen' | 'compact'
 		onready = () => {},
 		onmoveend = () => {},
@@ -137,8 +149,65 @@
 	let baseLayerGroup = $state();
 	let usingFallbackOSM = $state(false);
 
-	let initialCenter = $state(browser ? $mapCenter : [0, 0]);
-	let initialZoom = $state(browser ? $mapZoom : 2);
+	/** The view a map shows before anything else is known. */
+	const DEFAULT_VIEW: MapView = { zoom: 2, center: [0, 0] };
+
+	/** Delay before a move is written to the URL, so a pan is one write. */
+	const HASH_WRITE_DELAY_MS = 300;
+
+	let hashWriteTimer: ReturnType<typeof setTimeout> | undefined;
+
+	/**
+	 * The current view of the map, rounded like the hash.
+	 * @returns The view, or null while the map has none.
+	 */
+	function currentView(): MapView | null {
+		const view = map?.getView();
+		const center = view?.getCenter();
+		const zoom = view?.getZoom();
+		if (!center || zoom === undefined) return null;
+		return { zoom, center: [center[0], center[1]] };
+	}
+
+	/**
+	 * Writes the current view into the URL hash without a navigation: no
+	 * history entry, no `load`, no progress bar.
+	 */
+	function writeViewHash() {
+		const view = currentView();
+		if (!view) return;
+		const url = new URL(page.url);
+		url.hash = withViewHash(url.hash, view);
+		// eslint-disable-next-line svelte/no-navigation-without-resolve -- the current, already-resolved URL with only its hash changed
+		replaceState(url, page.state);
+	}
+
+	/**
+	 * Moves the map to the view the URL now carries, when the user edited
+	 * the hash or stepped through history. A hash the map wrote itself is
+	 * the current view and moves nothing.
+	 */
+	function followViewHash() {
+		if (!viewInUrl || !map) return;
+		const target = parseViewHash(location.hash);
+		const current = currentView();
+		if (!target || !current || sameView(target, current)) return;
+		map.getView().animate({ center: target.center, zoom: target.zoom, duration: 300 });
+	}
+
+	/**
+	 * Fits the map to the project's trench extent, the view of a project
+	 * never visited in this browser. An empty project keeps the defaults.
+	 * @param mapInstance - The map to fit.
+	 */
+	async function fitProjectExtent(mapInstance: OlMap) {
+		try {
+			const { extent } = await getLayerExtent({ layerType: 'trench', projectId });
+			if (extent && map === mapInstance) zoomToExtent(mapInstance, extent, { duration: 0 });
+		} catch {
+			// No extent to fit; the defaults stay.
+		}
+	}
 
 	let currentLayerOpacity = $state(browser ? $layerOpacity : 1);
 
@@ -282,12 +351,19 @@
 			zoom: false
 		});
 
+		// Precedence: the URL hash, the project's remembered view, the project
+		// extent (fitted once the map exists), the defaults.
+		const initialView = resolveInitialView({
+			hashView: viewInUrl ? parseViewHash(page.url.hash) : null,
+			projectId
+		});
+
 		map = new OlMap({
 			target: container,
 			layers: [...layers],
 			view: new OlView({
-				center: initialCenter,
-				zoom: initialZoom,
+				center: (initialView ?? DEFAULT_VIEW).center,
+				zoom: (initialView ?? DEFAULT_VIEW).zoom,
 				...viewOptions
 			}),
 			controls: controls.extend(Array.isArray(mapOptions.controls) ? mapOptions.controls : []),
@@ -307,20 +383,22 @@
 			measureManager.initialize(map);
 		}
 
+		if (!initialView && projectId && !viewOptions.center) void fitProjectExtent(map);
+
 		onready({ map, usingFallbackOSM });
 
 		map.on('moveend', () => {
 			if (!map) return;
-			const v = map.getView();
-			const newCenter = v.getCenter();
-			const newZoom = v.getZoom() ?? 2;
-
-			if (browser && newCenter) {
-				$mapCenter = newCenter;
-				$mapZoom = newZoom;
+			const view = currentView();
+			if (view) {
+				writeStoredView(projectId, view);
+				if (viewInUrl) {
+					clearTimeout(hashWriteTimer);
+					hashWriteTimer = setTimeout(writeViewHash, HASH_WRITE_DELAY_MS);
+				}
 			}
 
-			onmoveend({ center: newCenter, zoom: newZoom });
+			onmoveend({ center: view?.center, zoom: view?.zoom ?? DEFAULT_VIEW.zoom });
 		});
 		map.getViewport().style.cursor = 'default';
 		map.on('click', (e) => onclick(e as MapBrowserEvent<PointerEvent>));
@@ -334,6 +412,7 @@
 	});
 
 	onDestroy(() => {
+		clearTimeout(hashWriteTimer);
 		tileLoadingManager.cancelAllRequests();
 		getWorkerPool().cancelAllRequests();
 
@@ -460,6 +539,8 @@
 		return measureManager;
 	}
 </script>
+
+<svelte:window onhashchange={followViewHash} onpopstate={followViewHash} />
 
 <!-- Map: Compact variant -->
 {#if variant === 'compact'}

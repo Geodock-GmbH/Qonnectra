@@ -158,6 +158,70 @@ test.describe('Map page', () => {
 		);
 	});
 
+	test('panning writes the view into the hash without a navigation or a history entry', async ({
+		page
+	}) => {
+		const viewport = page.locator('.ol-viewport').first();
+		await expect(viewport).toBeVisible({ timeout: 15000 });
+		await expect(page).toHaveURL(/#map=[\d.]+\/-?\d+\/-?\d+$/, { timeout: 15000 });
+		const before = page.url();
+		const historyLength = await page.evaluate(() => history.length);
+		/** @type {string[]} */
+		const appRequests = [];
+		const origin = new URL(page.url()).origin;
+		page.on('request', (req) => {
+			if (req.url().startsWith(origin)) appRequests.push(req.url());
+		});
+
+		const box = /** @type {{ x: number, y: number, width: number, height: number }} */ (
+			await viewport.boundingBox()
+		);
+		const startX = box.x + box.width / 2;
+		const startY = box.y + box.height / 2;
+		await page.mouse.move(startX, startY);
+		await page.mouse.down();
+		await page.mouse.move(startX + 120, startY + 80, { steps: 8 });
+		await page.mouse.up();
+
+		await expect.poll(() => page.url(), { timeout: 5000 }).not.toBe(before);
+		expect(page.url()).toMatch(/#map=[\d.]+\/-?\d+\/-?\d+$/);
+		expect(await page.evaluate(() => history.length)).toBe(historyLength);
+		expect(appRequests).toHaveLength(0);
+	});
+
+	test('a copied URL opens at the same view, and closing a drawer keeps it', async ({ page }) => {
+		await expect(page).toHaveURL(/#map=/, { timeout: 15000 });
+		const id = /** @type {string} */ (projectIdFromUrl(page.url()));
+		const viewport = page.locator('.ol-viewport').first();
+		const box = /** @type {{ x: number, y: number, width: number, height: number }} */ (
+			await viewport.boundingBox()
+		);
+		await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+		await page.mouse.down();
+		await page.mouse.move(box.x + box.width / 2 - 90, box.y + box.height / 2 - 40, { steps: 6 });
+		await page.mouse.up();
+		await expect.poll(() => page.url(), { timeout: 5000 }).toMatch(/#map=/);
+		const hash = new URL(page.url()).hash;
+
+		// A recipient opening the copied URL lands on the same view.
+		await page.goto(page.url());
+		await expect(page.locator('.ol-viewport').first()).toBeVisible({ timeout: 15000 });
+		await expect.poll(() => new URL(page.url()).hash, { timeout: 15000 }).toBe(hash);
+
+		// Opening and closing a drawer never drops the view.
+		const trench = await firstFeature(page, 'trench', id);
+		test.skip(!trench, 'Needs at least one trench in the project');
+		const uuid = /** @type {ListedFeature} */ (trench).uuid;
+		await page.goto(`${projectPath(id, 'map', { feature: `trench:${uuid}` })}${hash}`);
+		await expect(page.locator('[data-drawer]')).toBeVisible({ timeout: 15000 });
+		await page
+			.locator('[data-drawer]')
+			.getByLabel(/Close drawer|Seitenleiste schließen/i)
+			.click();
+		await expect(page).not.toHaveURL(/feature=/);
+		expect(new URL(page.url()).hash).toBe(hash);
+	});
+
 	test('shows the map hint prompting the user to click a layer', async ({ page }) => {
 		// The hint is visible while the info drawer is closed (initial state).
 		await expect(page.getByText(/click a layer|klicken sie auf einen layer/i).first()).toBeVisible({

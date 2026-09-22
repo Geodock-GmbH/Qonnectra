@@ -12,23 +12,11 @@ import {
 import { persisted } from './persisted';
 import { session } from './session';
 
-/** Default center coordinates */
-const defaultCenter: [number, number] = [0, 0];
-
-/** Default zoom level */
-const defaultZoom = 2;
-
 /** Default flag value */
 const defaultFlagValue = ['1'];
 
 /** Whether the sidebar is expanded */
 export const sidebarExpanded = persisted('isSidebarExpanded', true);
-
-/** Map center */
-export const mapCenter: Writable<number[]> = persisted('mapCenter', defaultCenter);
-
-/** Map zoom */
-export const mapZoom: Writable<number> = persisted('mapZoom', defaultZoom);
 
 /** Default trench color hex code */
 export const trenchColor = persisted('trenchColor', DEFAULT_TRENCH_COLOR);

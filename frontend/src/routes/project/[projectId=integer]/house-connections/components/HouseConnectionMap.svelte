@@ -104,6 +104,7 @@
 		showSearchPanel={true}
 		layers={mapState.getLayers()}
 		projectId={mapState.selectedProject}
+		viewInUrl={true}
 		nodeTypes={attributes.nodeTypes}
 		surfaces={attributes.surfaces}
 		constructionTypes={attributes.constructionTypes}

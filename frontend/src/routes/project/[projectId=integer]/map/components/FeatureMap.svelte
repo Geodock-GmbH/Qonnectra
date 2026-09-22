@@ -113,6 +113,7 @@
 		constructionTypes={attributes.constructionTypes}
 		areaTypes={attributes.areaTypes}
 		projectId={mapState.selectedProject}
+		viewInUrl={true}
 		onready={handleMapReady}
 		searchPanelProps={{ trenchColorSelected: $trenchColorSelected, alias }}
 		bind:this={mapRef}

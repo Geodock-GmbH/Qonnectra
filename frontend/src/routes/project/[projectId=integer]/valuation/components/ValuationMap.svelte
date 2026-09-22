@@ -92,6 +92,7 @@
 		className="rounded-lg overflow-hidden h-full w-full"
 		layers={mapState.getLayers()}
 		projectId={mapState.selectedProject}
+		viewInUrl={true}
 		showLayerVisibilityTree={true}
 		showSearchPanel={true}
 		onready={handleMapReady}
