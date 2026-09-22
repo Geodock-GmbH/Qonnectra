@@ -31,6 +31,7 @@
 	import Tabs from '$lib/components/Tabs.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
+	import { queryEnum, setQuery } from '$lib/utils/urlState';
 	import { isNetworkSchemaChildView } from '$lib/config/routes';
 	import { getSchemaState } from '$lib/context/networkSchemaContext';
 	import { routeProjectId } from '$lib/context/project';
@@ -104,8 +105,6 @@
 		lastUpdated: 0
 	});
 
-	let group = $state('attributes');
-
 	const isChildView = $derived(isNetworkSchemaChildView(page.route.id));
 	const childViewEnabledTypeIds = $derived(attributeOptions?.childViewEnabledNodeTypeIds ?? []);
 	const nodeTypeRef = $derived(
@@ -162,6 +161,17 @@
 		baseTabs.push({ value: 'files', label: m.form_attachments() });
 		return baseTabs;
 	});
+
+	// The tab lives in the URL; a tab this kind does not offer falls back to
+	// the attributes, and the default is never written.
+	const group = $derived(
+		queryEnum(
+			page.url,
+			'tab',
+			tabItems.map((tab) => tab.value),
+			'attributes'
+		)
+	);
 
 	let lastFetchedFeatureId = $state<string | null>(null);
 
@@ -305,7 +315,14 @@
 	}
 </script>
 
-<Tabs tabs={tabItems} bind:value={group} onValueChange={handleTabChange}>
+<Tabs
+	tabs={tabItems}
+	value={group}
+	onValueChange={(tab) => {
+		handleTabChange(tab);
+		setQuery({ tab });
+	}}
+>
 	{#if group === 'attributes'}
 		{#if type === 'edge'}
 			<CableDiagramEdgeAttributeCard

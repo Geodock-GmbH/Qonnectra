@@ -1,10 +1,13 @@
 <script lang="ts">
+	import { page } from '$app/state';
+
 	import { m } from '$lib/paraglide/messages';
 
 	import FileExplorer from '$lib/components/FileExplorer.svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
+	import { queryEnum, setQuery } from '$lib/utils/urlState';
 	import { getConduit } from '$lib/remote/conduit/conduits.remote';
 
 	import ConduitAttributeCard from './ConduitAttributeCard.svelte';
@@ -26,13 +29,16 @@
 	const conduit = await getConduit(uuid);
 	title = conduit.name;
 
-	let group = $state('attributes');
+	const TAB_VALUES = ['attributes', 'status', 'files'] as const;
 
 	const tabItems = [
 		{ value: 'attributes', label: m.common_attributes() },
 		{ value: 'status', label: m.form_status() },
 		{ value: 'files', label: m.form_attachments() }
 	];
+
+	// The tab lives in the URL; the default is never written.
+	const group = $derived(queryEnum(page.url, 'tab', TAB_VALUES, 'attributes'));
 
 	let fileExplorer = $state<ReturnType<typeof FileExplorer> | null>(null);
 
@@ -41,7 +47,7 @@
 	}
 </script>
 
-<Tabs tabs={tabItems} bind:value={group}>
+<Tabs tabs={tabItems} value={group} onValueChange={(tab) => setQuery({ tab })}>
 	{#if group === 'attributes'}
 		<QueryBoundary>
 			<ConduitAttributeCard {uuid} onrename={(name) => (title = name)} />

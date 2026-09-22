@@ -40,7 +40,7 @@ describe('Tabs', () => {
 		expect(screen.getByRole('tab', { name: 'Details' })).toHaveAttribute('aria-selected', 'true');
 	});
 
-	test('should reset to the first tab when the tab list changes', async () => {
+	test('should keep the selected tab when the list changes but still offers it', async () => {
 		const onValueChange = vi.fn();
 		const { rerender } = render(Tabs, { tabs, value: 'details', children: content, onValueChange });
 
@@ -51,6 +51,23 @@ describe('Tabs', () => {
 			]
 		});
 
-		expect(onValueChange).toHaveBeenCalledWith('new-first');
+		expect(screen.getByRole('tab', { name: 'Details' })).toHaveAttribute('aria-selected', 'true');
+		expect(onValueChange).not.toHaveBeenCalled();
+	});
+
+	test('should show the first tab when the selected one is not offered', async () => {
+		const onValueChange = vi.fn();
+		const { rerender } = render(Tabs, { tabs, value: 'details', children: content, onValueChange });
+
+		await rerender({ tabs: [{ value: 'new-first', label: 'Neu' }] });
+
+		expect(screen.getByRole('tab', { name: 'Neu' })).toHaveAttribute('aria-selected', 'true');
+		expect(onValueChange).not.toHaveBeenCalled();
+	});
+
+	test('should show the first tab for a value the list does not offer', () => {
+		render(Tabs, { tabs, value: 'nonsense', children: content });
+
+		expect(screen.getByRole('tab', { name: 'Allgemein' })).toHaveAttribute('aria-selected', 'true');
 	});
 });

@@ -141,6 +141,23 @@ test.describe('Map page', () => {
 		await expect(page.locator('.ol-viewport').first()).toBeVisible();
 	});
 
+	test('a URL naming a trench and a tab opens the drawer on that tab', async ({ page }) => {
+		const id = /** @type {string} */ (projectIdFromUrl(page.url()));
+		const trench = await firstFeature(page, 'trench', id);
+		test.skip(!trench, 'Needs at least one trench in the project');
+		const uuid = /** @type {ListedFeature} */ (trench).uuid;
+
+		await page.goto(projectPath(id, 'map', { feature: `trench:${uuid}`, tab: 'cables' }));
+
+		const drawer = page.locator('[data-drawer]');
+		await expect(drawer).toBeVisible({ timeout: 15000 });
+		await expect(drawer.getByRole('tab', { name: /cable|kabel/i })).toHaveAttribute(
+			'aria-selected',
+			'true',
+			{ timeout: 15000 }
+		);
+	});
+
 	test('shows the map hint prompting the user to click a layer', async ({ page }) => {
 		// The hint is visible while the info drawer is closed (initial state).
 		await expect(page.getByText(/click a layer|klicken sie auf einen layer/i).first()).toBeVisible({

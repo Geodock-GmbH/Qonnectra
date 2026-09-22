@@ -5,6 +5,7 @@
 
 	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
+	import { queryEnum, setQuery } from '$lib/utils/urlState';
 	import { routeProjectId } from '$lib/context/project';
 
 	import AddressStatistics from './components/AddressStatistics.svelte';
@@ -18,7 +19,11 @@
 	const projectId = $derived(routeProjectId());
 	const flagId = $derived(page.params.flagId ?? '');
 
-	let activeTab = $state('stats');
+	const TAB_VALUES = ['stats', 'trench', 'conduit', 'node', 'address', 'area'] as const;
+
+	// The tab lives in the URL; the default is never written and an unknown
+	// value shows the overview.
+	const activeTab = $derived(queryEnum(page.url, 'tab', TAB_VALUES, 'stats'));
 
 	const tabItems = $derived([
 		{ value: 'stats', label: m.common_overview() },
@@ -48,7 +53,12 @@
 	</div>
 {/snippet}
 
-<Tabs tabs={tabItems} bind:value={activeTab} orientation="horizontal">
+<Tabs
+	tabs={tabItems}
+	value={activeTab}
+	onValueChange={(tab) => setQuery({ tab })}
+	orientation="horizontal"
+>
 	<div class="max-w-6xl mx-auto mb-4 flex justify-end">
 		<FlagFilter {projectId} {flagId} />
 	</div>

@@ -4,6 +4,7 @@
 		SlotConfiguration
 	} from '$lib/classes/NodeStructureContext.svelte';
 	import type { MapFeatureKind } from '$lib/map/featureDetails';
+	import { page } from '$app/state';
 	import {
 		IconLayoutGrid,
 		IconLayoutList,
@@ -23,6 +24,7 @@
 	import Tabs from '$lib/components/Tabs.svelte';
 	import { displayProperties, featureTitle } from '$lib/map/featureDetails';
 	import { traceFrom } from '$lib/utils/traceUtils';
+	import { queryEnum, setQuery } from '$lib/utils/urlState';
 	import { getFeatureDetails } from '$lib/remote/map/feature-search.remote';
 	import { getConduitsInTrench } from '$lib/remote/map/trenches.remote';
 
@@ -57,18 +59,18 @@
 	// The page re-keys this component per feature, so the details load once
 	// per drawer. The conduit names come from the tile layer today and are
 	// not part of the detail payload, hence the second query for trenches.
-	/* svelte-ignore state_referenced_locally */
+	// svelte-ignore state_referenced_locally
 	const [feature, conduits] = await Promise.all([
 		getFeatureDetails({ featureType: kind, featureUuid: uuid, projectId: lookupProjectId }),
 		kind === 'trench' ? getConduitsInTrench(uuid) : Promise.resolve([])
 	]);
+	// svelte-ignore state_referenced_locally
 	const featureData = displayProperties(kind, feature.properties, {
 		conduitNames: conduits.flatMap((item) => (item.conduit?.name ? [item.conduit.name] : []))
 	});
+	// svelte-ignore state_referenced_locally
 	title = featureTitle(kind, featureData);
 	const featureName = String(featureData.name ?? '');
-
-	let activeTab = $state('attributes');
 
 	let slotConfigPanelOpen = $state(false);
 	let structurePanelOpen = $state(false);
@@ -93,6 +95,17 @@
 		{ value: 'files', label: m.form_attachments() }
 	];
 
+	// The tab lives in the URL; a tab this kind does not offer falls back to
+	// the attributes, and the default is never written.
+	const activeTab = $derived(
+		queryEnum(
+			page.url,
+			'tab',
+			tabItems.map((tab) => tab.value),
+			'attributes'
+		)
+	);
+
 	let fileExplorer = $state<{ refresh: () => void } | null>(null);
 
 	/** Refreshes the file explorer after a successful upload. */
@@ -112,7 +125,7 @@
 	}
 </script>
 
-<Tabs tabs={tabItems} bind:value={activeTab}>
+<Tabs tabs={tabItems} value={activeTab} onValueChange={(tab) => setQuery({ tab })}>
 	{#if activeTab === 'attributes'}
 		<FeatureAttributeCard properties={featureData} featureType={kind} {alias} {projects} />
 	{/if}
