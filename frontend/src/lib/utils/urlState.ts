@@ -208,19 +208,29 @@ export function closeFeature() {
 }
 
 /**
- * Runs a callback after a navigation that changed the `feature` parameter
- * while the calling component stayed mounted: opening, switching or closing
- * the drawer, including back and forward. For the consumers that mirror the
- * drawer feature into imperative state (a map selection, a canvas
- * selection). Built on `afterNavigate`, so it must be called during
- * component initialisation; the initial page load is not a change.
+ * Runs a callback after a navigation that changed one query parameter while
+ * the calling component stayed mounted, including back and forward. For the
+ * consumers that mirror URL state into something imperative (a map
+ * selection, a canvas selection, a map overlay). Built on `afterNavigate`,
+ * so it must be called during component initialisation; the initial page
+ * load is not a change.
+ * @param key - The parameter to watch.
+ * @param callback - Receives the raw value the URL now carries, or null.
+ */
+export function onQueryChange(key: string, callback: (value: string | null) => void): void {
+	afterNavigate(({ from, to }) => {
+		if (!from || !to) return;
+		const next = to.url.searchParams.get(key);
+		if (from.url.searchParams.get(key) === next) return;
+		callback(next);
+	});
+}
+
+/**
+ * Runs a callback after a navigation that changed the `feature` parameter:
+ * opening, switching or closing the drawer.
  * @param callback - Receives the raw `feature` value the URL now carries, or null.
  */
 export function onFeatureChange(callback: (feature: string | null) => void): void {
-	afterNavigate(({ from, to }) => {
-		if (!from || !to) return;
-		const next = to.url.searchParams.get('feature');
-		if (from.url.searchParams.get('feature') === next) return;
-		callback(next);
-	});
+	onQueryChange('feature', callback);
 }

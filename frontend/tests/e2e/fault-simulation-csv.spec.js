@@ -2,8 +2,11 @@ import path from 'path';
 import { expect, test } from '@playwright/test';
 import dotenv from 'dotenv';
 
+/** @typedef {import('./helpers/api.js').ListedFeature} ListedFeature */
+
+import { firstFeature } from './helpers/api.js';
 import { loginOrSkip } from './helpers/auth.js';
-import { gotoProjectRoute } from './helpers/routes.js';
+import { gotoProjectRoute, projectIdFromUrl, projectPath } from './helpers/routes.js';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
@@ -235,5 +238,56 @@ test.describe('Fault Simulation CSV Export', () => {
 
 		await expect(page.getByText(/affected addresses|betroffene adressen/i)).toBeVisible();
 		await expect(page.getByRole('link', { name: 'ADDR-001' })).toBeVisible();
+	});
+});
+
+test.describe('Fault simulation damage in the URL', () => {
+	test.beforeEach(async ({ page }) => {
+		await loginOrSkip(page, test.skip);
+		await gotoProjectRoute(page, 'fault-simulation');
+		await page.waitForLoadState('networkidle');
+	});
+
+	test('a URL naming a damage location runs the simulation and shows its report', async ({
+		page
+	}) => {
+		const id = /** @type {string} */ (projectIdFromUrl(page.url()));
+		const trench = await firstFeature(page, 'trench', id);
+		test.skip(!trench?.firstCoordinate, 'Needs a trench with a geometry in the project');
+		const [x, y] = /** @type {number[]} */ (trench?.firstCoordinate);
+
+		const simulationRequest = page.waitForRequest(
+			(req) => req.url().includes('/_app/remote/') && req.url().includes('simulateFault'),
+			{ timeout: 15000 }
+		);
+		await page.goto(
+			projectPath(id, 'fault-simulation', { damage: `${Math.round(x)},${Math.round(y)}` })
+		);
+		await simulationRequest;
+
+		// The report names the damaged trench, or the backend refused the point.
+		await expect(
+			page
+				.getByText(/** @type {ListedFeature} */ (trench).label)
+				.first()
+				.or(page.getByRole('alert'))
+		).toBeVisible({ timeout: 20000 });
+	});
+
+	test('a malformed damage value shows the map without a simulation or an error', async ({
+		page
+	}) => {
+		const id = /** @type {string} */ (projectIdFromUrl(page.url()));
+		/** @type {string[]} */
+		const simulationRequests = [];
+		page.on('request', (req) => {
+			if (req.url().includes('simulateFault')) simulationRequests.push(req.url());
+		});
+
+		await page.goto(projectPath(id, 'fault-simulation', { damage: 'abc' }));
+
+		await expect(page.locator('.ol-viewport').first()).toBeVisible({ timeout: 15000 });
+		await expect(page.getByRole('alert')).toHaveCount(0);
+		expect(simulationRequests).toHaveLength(0);
 	});
 });

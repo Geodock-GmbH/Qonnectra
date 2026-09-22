@@ -1,8 +1,9 @@
 import { API_URL } from './auth.js';
 
 /**
- * A feature the backend lists: its uuid and the label the drawer titles it with.
- * @typedef {{ uuid: string, label: string }} ListedFeature
+ * A feature the backend lists: its uuid, the label the drawer titles it with,
+ * and the first vertex of its geometry in the storage projection.
+ * @typedef {{ uuid: string, label: string, firstCoordinate: number[] | null }} ListedFeature
  */
 
 /**
@@ -26,5 +27,20 @@ export async function firstFeature(page, kind, projectId) {
 	const props = first.properties ?? first;
 	const uuid = first.id ?? props.uuid;
 	if (!uuid) return null;
-	return { uuid: String(uuid), label: String(props.id_trench ?? props.name ?? '') };
+	return {
+		uuid: String(uuid),
+		label: String(props.id_trench ?? props.name ?? ''),
+		firstCoordinate: firstVertex(first.geometry)
+	};
+}
+
+/**
+ * The first vertex of a GeoJSON geometry, whatever its nesting.
+ * @param {unknown} geometry - A GeoJSON geometry, or anything else.
+ * @returns {number[] | null} `[x, y]`, or null when there is no vertex.
+ */
+function firstVertex(geometry) {
+	let coordinates = /** @type {any} */ (geometry)?.coordinates;
+	while (Array.isArray(coordinates) && Array.isArray(coordinates[0])) coordinates = coordinates[0];
+	return Array.isArray(coordinates) && coordinates.length >= 2 ? coordinates.slice(0, 2) : null;
 }

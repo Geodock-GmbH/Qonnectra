@@ -24,7 +24,6 @@
 
 		window.__e2eFaultSim = {
 			injectResult(result: FaultSimulationResult) {
-				simulation.selectDamagePoint([0, 0], [0, 0], result.trench ?? null);
 				simulation.showResult(result);
 			},
 			reset() {

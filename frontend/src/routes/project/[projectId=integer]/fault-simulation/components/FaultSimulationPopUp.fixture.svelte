@@ -5,10 +5,9 @@
 	import FaultSimulationPopUp from './FaultSimulationPopUp.svelte';
 	import { setFaultSimulationState } from './FaultSimulationState.svelte';
 
-	let { simulation, ...rest }: { simulation: FaultSimulationState; [key: string]: unknown } =
-		$props();
+	let { simulation }: { simulation: FaultSimulationState } = $props();
 
 	setFaultSimulationState(untrack(() => simulation));
 </script>
 
-<FaultSimulationPopUp {...rest} />
+<FaultSimulationPopUp />

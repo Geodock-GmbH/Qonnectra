@@ -82,42 +82,57 @@ test.describe('Map page', () => {
 		page.on('request', (req) => {
 			if (req.url().includes('.mvt')) tileRequests.push(req.url());
 		});
+		// Tiles are judged from the moment the URL changed: what the old
+		// project still requested before the switch is legitimate loading.
+		let mark = 0;
 		/** @param {string} projectId */
-		const tilesFor = (projectId) =>
-			tileRequests.filter((url) => new URL(url).searchParams.get('project') === projectId);
+		const tilesSince = (projectId) =>
+			tileRequests
+				.slice(mark)
+				.filter((url) => new URL(url).searchParams.get('project') === projectId);
+		/**
+		 * Waits until a project's tiles stop being requested; the tile queue
+		 * loads in waves, so a quiet second means the map is done.
+		 * @param {string} projectId
+		 */
+		const settled = (projectId) =>
+			expect
+				.poll(
+					async () => {
+						const before = tilesSince(projectId).length;
+						await page.waitForTimeout(1000);
+						return before > 0 && tilesSince(projectId).length === before;
+					},
+					{ timeout: 20000 }
+				)
+				.toBe(true);
 
 		await otherProject.click();
 		await page.waitForURL((url) => projectIdFromUrl(url.href) !== firstProjectId);
+		mark = tileRequests.length;
 		const secondProjectId = /** @type {string} */ (projectIdInUrl());
 
-		await expect
-			.poll(() => tilesFor(secondProjectId).length, { timeout: 15000 })
-			.toBeGreaterThan(0);
+		await settled(secondProjectId);
 		// The map must switch once; bouncing back to the old project mid-switch is
 		// what used to abort in-flight tiles and stall the map's tile queue.
-		expect(tilesFor(firstProjectId)).toHaveLength(0);
+		expect(tilesSince(firstProjectId)).toHaveLength(0);
 
-		// Let the second project finish loading its tiles before switching back,
-		// so only tiles requested after the switch count.
-		await page.waitForLoadState('networkidle');
-		tileRequests.length = 0;
 		await trigger.click();
 		await options.filter({ hasText: firstProjectOption }).first().click();
 		await page.waitForURL((url) => projectIdFromUrl(url.href) === firstProjectId);
+		mark = tileRequests.length;
 
-		await expect.poll(() => tilesFor(firstProjectId).length, { timeout: 15000 }).toBeGreaterThan(0);
-		expect(tilesFor(secondProjectId)).toHaveLength(0);
+		await settled(firstProjectId);
+		expect(tilesSince(secondProjectId)).toHaveLength(0);
 
 		// The map follows the URL alone: browser back returns to the second
 		// project and its tiles without anyone touching the picker.
-		tileRequests.length = 0;
 		await page.goBack();
 		await page.waitForURL((url) => projectIdFromUrl(url.href) === secondProjectId);
+		mark = tileRequests.length;
 
-		await expect
-			.poll(() => tilesFor(secondProjectId).length, { timeout: 15000 })
-			.toBeGreaterThan(0);
-		expect(tilesFor(firstProjectId)).toHaveLength(0);
+		await settled(secondProjectId);
+		expect(tilesSince(firstProjectId)).toHaveLength(0);
 	});
 
 	test('a URL naming a trench opens its drawer; reload keeps it and back closes it', async ({

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { Trench } from '$lib/remote/fault-simulation/simulation-data';
 	import type { MapBrowserEvent } from 'ol';
+	import type { Coordinate } from 'ol/coordinate.js';
 	import type OlMap from 'ol/Map.js';
 	import type RenderFeature from 'ol/render/Feature.js';
 	import { onMount } from 'svelte';
@@ -21,8 +21,12 @@
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
 	import { syncMapProject } from '$lib/map/projectScopeSync';
 	import { trenchColorSelected } from '$lib/stores/store';
+	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
+	import { onQueryChange } from '$lib/utils/urlState';
 	import { onProjectChange } from '$lib/context/project';
 	import { getLayerStyleAttributes } from '$lib/remote/map/layers.remote';
+	import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
 
 	import FaultSimulationPopUp from './FaultSimulationPopUp.svelte';
 	import { getFaultSimulationState } from './FaultSimulationState.svelte';
@@ -41,22 +45,80 @@
 	});
 	const layersInitialized = mapState.initializeLayers();
 
-	let olMap: OlMap | null = null;
+	let olMap = $state.raw<OlMap | null>(null);
 	let popupPixel = $state({ x: 0, y: 0 });
+
+	/** The damage location from the URL in the map's view projection, for anchoring the popup. */
+	const damageMapCoordinate: Coordinate | null = $derived.by(() => {
+		const point = simulation.damagePoint;
+		const { srid, proj4Def } = page.data;
+		if (!point || !olMap) return null;
+		if (!srid || !proj4Def) return point;
+		registerStorageProjection(srid, proj4Def);
+		return transform(point, storageProjection(srid), olMap.getView().getProjection());
+	});
 
 	/**
 	 * Moves the popup to the damage location's current position on screen.
 	 */
 	function updatePopupPixel(): void {
-		if (!olMap || !simulation.damageMapCoordinate) return;
-		const pixel = olMap.getPixelFromCoordinate(simulation.damageMapCoordinate);
+		if (!olMap || !damageMapCoordinate) return;
+		const pixel = olMap.getPixelFromCoordinate(damageMapCoordinate);
 		if (pixel) {
 			popupPixel = { x: Math.round(pixel[0]), y: Math.round(pixel[1]) };
 		}
 	}
 
 	/**
-	 * Adds the simulation overlay to the map and keeps the popup anchored while the map moves.
+	 * @param point - A damage location.
+	 * @returns A comparable text form of the location.
+	 */
+	function formatPoint(point: [number, number]): string {
+		return point.join(',');
+	}
+
+	/**
+	 * Mirrors the damage in the URL onto the map overlay: the marker at once,
+	 * the affected features once the simulation of that location resolved.
+	 * A failed simulation is reported and leaves only the marker.
+	 */
+	async function followDamage(): Promise<void> {
+		const point = simulation.damagePoint;
+		simulation.overlay.clear();
+		if (!point || !olMap || !damageMapCoordinate) return;
+
+		simulation.overlay.showDamagePoint(damageMapCoordinate);
+		updatePopupPixel();
+		const query = simulation.query;
+		if (!query) return;
+		try {
+			const result = await query;
+			// The location may have changed while the simulation ran.
+			const current = simulation.damagePoint;
+			if (!current || formatPoint(current) !== formatPoint(point)) return;
+			simulation.overlay.showResult(result);
+		} catch (err) {
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Simulation error',
+				extraData: {
+					from: 'FaultSimulationMap.followDamage',
+					error: remoteErrorMessage(err) ?? String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
+			globalToaster.error({
+				title: m.message_fault_simulation_error(),
+				description: remoteErrorMessage(err) ?? m.message_fault_simulation_error()
+			});
+		}
+	}
+
+	onQueryChange('damage', followDamage);
+
+	/**
+	 * Adds the simulation overlay to the map, applies the damage the URL
+	 * already names and keeps the popup anchored while the map moves.
 	 * @param event - Map ready event containing the OL map instance
 	 */
 	function handleMapReady({ map }: { map: OlMap }): void {
@@ -64,10 +126,12 @@
 		const { srid, proj4Def } = page.data;
 		simulation.overlay.attach(map, srid && proj4Def ? { srid, proj4Def } : null);
 		map.on('postrender', updatePopupPixel);
+		void followDamage();
 	}
 
 	/**
-	 * Handles map clicks to select a trench as the damage location for fault simulation.
+	 * Handles map clicks: the point on the clicked trench nearest the click
+	 * becomes the damage location in the URL, which runs the simulation.
 	 * @param evt - The map browser click event
 	 */
 	function handleMapClick(evt: MapBrowserEvent<PointerEvent>): void {
@@ -102,15 +166,7 @@
 			? transform(snappedCoord, olMap.getView().getProjection(), storageProjection(srid))
 			: snappedCoord;
 
-		const trenchProps = feature.getProperties();
-		const trench: Trench = {
-			id_trench: trenchProps.id_trench ?? trenchProps.label ?? '—',
-			construction_type: trenchProps.construction_type ?? null,
-			uuid: trenchProps.uuid ?? trenchProps.id ?? null
-		};
-
-		simulation.selectDamagePoint([storageCoord[0], storageCoord[1]], snappedCoord, trench);
-		updatePopupPixel();
+		void simulation.selectDamagePoint([storageCoord[0], storageCoord[1]]);
 	}
 
 	onProjectChange((nextProjectId) =>
@@ -155,7 +211,7 @@
 
 		{#if simulation.damagePoint && !simulation.simulationResult}
 			<div class="fault-popup" style:left="{popupPixel.x}px" style:top="{popupPixel.y}px">
-				<FaultSimulationPopUp {projectId} />
+				<FaultSimulationPopUp />
 				<div class="fault-popup-arrow"></div>
 			</div>
 		{/if}

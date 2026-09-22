@@ -11,6 +11,21 @@ vi.mock('./exportCsv', () => ({
 	downloadFaultSimulationCsv: vi.fn()
 }));
 
+const { pageState, gotoMock } = vi.hoisted(() => ({
+	pageState: {
+		url: new URL('http://localhost/project/7/fault-simulation?damage=100,200'),
+		params: { projectId: '7' }
+	},
+	gotoMock: vi.fn()
+}));
+
+vi.mock('$app/state', () => ({ page: pageState }));
+vi.mock('$app/navigation', () => ({ goto: (...args: unknown[]) => gotoMock(...args) }));
+
+vi.mock('$lib/remote/fault-simulation/simulation.remote', () => ({
+	simulateFault: vi.fn(() => ({ current: undefined, loading: false }))
+}));
+
 const result: FaultSimulationResult = {
 	trench: { id_trench: 'T-001', construction_type: 'Offene Bauweise' },
 	conduits: [{ uuid: 'c-1', name: 'DA 50', conduit_type: 'Rohrverband' }],
@@ -50,7 +65,6 @@ const result: FaultSimulationResult = {
 
 function renderReport(simulationResult: FaultSimulationResult = result) {
 	const simulation = new FaultSimulationState();
-	simulation.selectDamagePoint([100, 200], [10, 20], simulationResult.trench);
 	simulation.showResult(simulationResult);
 	render(DamageReportFixture, { props: { simulation, projectId: '7' } });
 	return simulation;
@@ -113,6 +127,12 @@ describe('DamageReport', () => {
 		await userEvent.click(resetButton);
 
 		expect(simulation.simulationResult).toBeNull();
-		expect(simulation.damagePoint).toBeNull();
+		// The damage lives in the URL; resetting removes it there.
+		await vi.waitFor(() =>
+			expect(gotoMock).toHaveBeenCalledWith(
+				'/project/7/fault-simulation',
+				expect.objectContaining({ replaceState: true })
+			)
+		);
 	});
 });
