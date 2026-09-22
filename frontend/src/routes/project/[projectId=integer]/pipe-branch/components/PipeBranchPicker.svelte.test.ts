@@ -9,6 +9,9 @@ import PipeBranchStateFixture from './PipeBranchState.fixture.svelte';
 import { PipeBranchState } from './PipeBranchState.svelte';
 
 const getPipeBranches = vi.fn();
+const gotoMock = vi.fn();
+
+vi.mock('$app/navigation', () => ({ goto: (...args: unknown[]) => gotoMock(...args) }));
 
 vi.mock('$lib/remote/pipe-branch/branches.remote', () => ({
 	getPipeBranches: (...args: unknown[]) => getPipeBranches(...args)
@@ -30,8 +33,8 @@ const branches = [
 
 const user = userEvent.setup();
 
-function renderPicker(projectId = 'proj-1') {
-	const branch = new PipeBranchState(projectId);
+function renderPicker(projectId = 'proj-1', node: { uuid: string; name: string } | null = null) {
+	const branch = new PipeBranchState(projectId, node);
 	render(PipeBranchStateFixture, { props: { component: PipeBranchPicker, branch } });
 	return branch;
 }
@@ -42,6 +45,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	getPipeBranches.mockReset();
+	gotoMock.mockReset();
 });
 
 describe('PipeBranchPicker', () => {
@@ -55,14 +59,24 @@ describe('PipeBranchPicker', () => {
 		expect(screen.getByRole('option', { name: 'Node B' })).toBeInTheDocument();
 	});
 
-	test('should open the trench selection for the picked branch', async () => {
-		const branch = renderPicker();
+	test('should name the picked branch in the URL, which loads its canvas', async () => {
+		renderPicker();
 
 		await user.click(await screen.findByRole('combobox'));
 		await user.click(await screen.findByRole('option', { name: 'Node B' }));
 
-		expect(branch.selectedBranch).toBe('Node B');
-		expect(branch.selecting).toBe(true);
+		expect(gotoMock).toHaveBeenCalledExactlyOnceWith('/project/proj-1/pipe-branch/node/uuid-b');
+	});
+
+	test('should show the node from the URL and not navigate when it is picked again', async () => {
+		renderPicker('proj-1', { uuid: 'uuid-a', name: 'Node A' });
+
+		expect(await screen.findByRole('combobox')).toHaveValue('Node A');
+
+		await user.click(screen.getByRole('combobox'));
+		await user.click(await screen.findByRole('option', { name: 'Node A' }));
+
+		expect(gotoMock).not.toHaveBeenCalled();
 	});
 
 	test('should warn when the project has not configured its pipe-branch nodes', async () => {

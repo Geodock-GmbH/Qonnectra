@@ -1,17 +1,16 @@
+import type { PipeBranchNodeRef } from './savedCanvas';
 import type { TrenchesNearNodeTrench } from '$lib/types';
 import { createContext } from 'svelte';
 
 /**
- * Interaction state of the pipe-branch page: the picked branch, the conduits
- * loaded onto the canvas and the lasso selection used for auto-connecting.
+ * Interaction state of the pipe-branch page for one node: the conduits
+ * loaded onto the canvas, whether the trench selector is open, and the lasso
+ * selection used for auto-connecting. Which node is shown comes from the
+ * URL; the page creates a fresh state per node.
  */
 export class PipeBranchState {
-	/** Name of the pipe-branch node picked in the combobox. */
-	selectedBranch = $state('');
-	/** Whether the trench selector is open for the picked branch. */
+	/** Whether the trench selector is open for the node. */
 	selecting = $state(false);
-	/** The node whose connections the canvas shows, as resolved by the backend. */
-	nodeUuid = $state<string | null>(null);
 	/** The trenches on the canvas, each holding only its selected conduits. */
 	canvasTrenches = $state.raw<TrenchesNearNodeTrench[]>([]);
 
@@ -21,40 +20,40 @@ export class PipeBranchState {
 	lassoSelection = $state.raw<string[]>([]);
 
 	/**
-	 * @param projectId - Project whose pipe branches are shown; empty when none is selected.
+	 * @param projectId - Project whose pipe branches are shown.
+	 * @param node - The node named in the URL, or null on the page without one.
 	 */
-	constructor(readonly projectId: string) {}
+	constructor(
+		readonly projectId: string,
+		readonly node: PipeBranchNodeRef | null = null
+	) {}
 
-	/**
-	 * Switches to another branch: empties the canvas and opens the trench
-	 * selector, or just empties the canvas when the combobox was cleared.
-	 * @param name - Name of the picked node, empty when cleared.
-	 */
-	pickBranch(name: string): void {
-		this.selectedBranch = name;
-		this.clearCanvas();
-		this.selecting = name !== '';
+	/** The node whose connections the canvas shows, or null without one. */
+	get nodeUuid(): string | null {
+		return this.node?.uuid ?? null;
 	}
 
-	/** Reopens the trench selector for the branch on the canvas. */
+	/** Name of the node named in the URL, as the combobox shows it; empty without one. */
+	get selectedBranch(): string {
+		return this.node?.name ?? '';
+	}
+
+	/** Opens the trench selector for the node. */
 	editSelection(): void {
 		this.selecting = true;
 	}
 
-	/** Closes the trench selector and empties the canvas. */
+	/** Closes the trench selector, keeping whatever the canvas shows. */
 	cancelSelection(): void {
 		this.selecting = false;
-		this.clearCanvas();
 	}
 
 	/**
-	 * Closes the trench selector and loads its selection onto the canvas.
-	 * @param nodeUuid - The pipe-branch node the trenches belong to.
+	 * Closes the trench selector and loads a selection onto the canvas.
 	 * @param trenches - The selected trenches, holding only their selected conduits.
 	 */
-	showOnCanvas(nodeUuid: string, trenches: TrenchesNearNodeTrench[]): void {
+	showOnCanvas(trenches: TrenchesNearNodeTrench[]): void {
 		this.selecting = false;
-		this.nodeUuid = nodeUuid;
 		this.canvasTrenches = trenches;
 		this.lassoSelection = [];
 	}
@@ -66,12 +65,6 @@ export class PipeBranchState {
 	setLassoMode(enabled: boolean): void {
 		this.lassoMode = enabled;
 		if (!enabled) this.lassoSelection = [];
-	}
-
-	private clearCanvas(): void {
-		this.nodeUuid = null;
-		this.canvasTrenches = [];
-		this.lassoSelection = [];
 	}
 }
 

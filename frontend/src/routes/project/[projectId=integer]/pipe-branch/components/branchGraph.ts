@@ -270,3 +270,23 @@ export function preselectedKeys(
 		.flatMap((trench) => (trench.conduits ?? []).map((c) => conduitKey(trench.uuid, c.uuid)));
 	return [...new Set([...savedKeys, ...lockedKeys])];
 }
+
+/**
+ * The trenches a selection loads onto the canvas: each selected trench with
+ * only its selected conduits, dropping trenches left without any.
+ * @param trenches - The trenches near the node.
+ * @param selectedKeys - Selected `trenchUuid:conduitUuid` keys.
+ * @returns The selected trenches, holding only their selected conduits.
+ */
+export function selectedTrenches(
+	trenches: TrenchesNearNodeTrench[],
+	selectedKeys: string[]
+): TrenchesNearNodeTrench[] {
+	return trenches
+		.map((trench) => ({
+			...trench,
+			conduits:
+				trench.conduits?.filter((c) => selectedKeys.includes(conduitKey(trench.uuid, c.uuid))) ?? []
+		}))
+		.filter((trench) => trench.conduits.length > 0);
+}

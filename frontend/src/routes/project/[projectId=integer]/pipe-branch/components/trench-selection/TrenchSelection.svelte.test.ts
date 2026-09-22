@@ -64,8 +64,8 @@ const connection: BranchConnection = {
 const user = userEvent.setup();
 
 function renderSelection() {
-	const branch = new PipeBranchState('proj-1');
-	branch.pickBranch('Node A');
+	const branch = new PipeBranchState('proj-1', { uuid: 'node-a', name: 'Node A' });
+	branch.editSelection();
 	render(PipeBranchStateFixture, { props: { component: TrenchSelection, branch } });
 	return branch;
 }
@@ -180,13 +180,13 @@ describe('TrenchSelection', () => {
 		expect(saveTrenchSelections).toHaveBeenCalledOnce();
 	});
 
-	test('should empty the canvas when cancelled', async () => {
+	test('should close without saving when cancelled', async () => {
 		const branch = renderSelection();
 
 		await user.click(await screen.findByRole('button', { name: 'common_cancel' }));
 
 		expect(branch.selecting).toBe(false);
-		expect(branch.nodeUuid).toBeNull();
+		expect(branch.nodeUuid).toBe('node-a');
 		expect(saveTrenchSelections).not.toHaveBeenCalled();
 	});
 

@@ -1,5 +1,7 @@
 <script lang="ts">
 	import type { PipeBranchList } from '$lib/remote/pipe-branch/branch-data';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -13,6 +15,26 @@
 	const NO_BRANCHES: PipeBranchList = { branches: [], configured: false };
 
 	const list = $derived(branch.projectId ? await getPipeBranches(branch.projectId) : NO_BRANCHES);
+
+	/**
+	 * Names the picked node in the URL, which is what loads its canvas; a
+	 * cleared combobox returns to the page without a node.
+	 * @param name - Name of the picked node, empty when cleared.
+	 */
+	function handlePick(name: string) {
+		if (name === branch.selectedBranch) return;
+		const picked = list.branches.find((candidate) => candidate.value === name);
+		if (!picked) {
+			goto(resolve('/project/[projectId=integer]/pipe-branch', { projectId: branch.projectId }));
+			return;
+		}
+		goto(
+			resolve('/project/[projectId=integer]/pipe-branch/node/[nodeUuid]', {
+				projectId: branch.projectId,
+				nodeUuid: picked.uuid
+			})
+		);
+	}
 </script>
 
 {#if !list.configured && list.branches.length > 0}
@@ -25,5 +47,5 @@
 	data={list.branches}
 	value={branch.selectedBranch}
 	placeholder={m.placeholder_select_pipe_branch()}
-	onValueChange={(e) => branch.pickBranch(e.value)}
+	onValueChange={(e) => handlePick(e.value)}
 />

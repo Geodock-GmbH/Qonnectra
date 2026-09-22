@@ -10,6 +10,8 @@
 
 	import '@xyflow/svelte/dist/style.css';
 
+	import type { PipeBranchNodeRef } from './savedCanvas';
+
 	import PipeBranchLasso from './lasso/PipeBranchLasso.svelte';
 	import PipeBranchEdge from './PipeBranchEdge.svelte';
 	import PipeBranchNode from './PipeBranchNode.svelte';
@@ -18,12 +20,29 @@
 	import TrenchSelection from './trench-selection/TrenchSelection.svelte';
 	import { connectionPair, isTargetHandle, toBranchNodes, toConnectionEdges } from './branchGraph';
 	import { connectMicroducts } from './connectMicroducts';
+	import { loadSavedCanvas } from './savedCanvas';
 
-	let { projectId }: { projectId: string } = $props();
+	let {
+		projectId,
+		node = null
+	}: {
+		projectId: string;
+		/** The node named in the URL, or null on the page without one. */
+		node?: PipeBranchNodeRef | null;
+	} = $props();
 
-	// The page re-keys the canvas per project, so the state never outlives its project.
+	// The page re-keys the canvas per project and node, so the state never
+	// outlives what the URL names.
 	// svelte-ignore state_referenced_locally
-	const branch = setPipeBranchState(new PipeBranchState(projectId));
+	const branch = setPipeBranchState(new PipeBranchState(projectId, node));
+
+	// The canvas opens on what was saved for the node; a node without a saved
+	// selection opens the trench selector instead.
+	// svelte-ignore state_referenced_locally
+	const saved = node ? await loadSavedCanvas(projectId, node) : [];
+	if (saved.length > 0) branch.showOnCanvas(saved);
+	// svelte-ignore state_referenced_locally
+	else if (node) branch.editSelection();
 
 	const nodeTypes: NodeTypes = { pipeBranch: PipeBranchNode };
 	const edgeTypes: EdgeTypes = { pipeBranchEdge: PipeBranchEdge };

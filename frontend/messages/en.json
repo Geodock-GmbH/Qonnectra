@@ -607,6 +607,7 @@
 	"message_partial_bundle_connected": "Connected {connected} of {total} fibers",
 	"message_partial_cable_connected": "Connected {connected} of {total} fibers",
 	"message_pipe_branch_not_configured": "Pipe branch settings not configured for this project.",
+	"message_pipe_branch_not_found": "Pipe branch not found",
 	"message_pipeline_record_create_failed": "Failed to create pipeline record",
 	"message_pipeline_record_created": "Pipeline record created successfully",
 	"message_pipeline_record_delete_failed": "Failed to delete pipeline record",

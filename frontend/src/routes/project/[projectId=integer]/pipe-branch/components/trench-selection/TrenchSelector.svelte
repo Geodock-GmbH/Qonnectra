@@ -12,7 +12,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { conduitKey } from '../branchGraph';
+	import { conduitKey, selectedTrenches as trenchesForKeys } from '../branchGraph';
 
 	/**
 	 * Selection key format: "trenchUuid:conduitUuid"
@@ -142,16 +142,7 @@
 	 * Builds the filtered trench list from selected keys and invokes the confirm callback.
 	 */
 	function handleConfirm() {
-		const selectedTrenches = trenches
-			.map((trench) => ({
-				...trench,
-				conduits:
-					trench.conduits?.filter((c) => selectedKeys.includes(conduitKey(trench.uuid, c.uuid))) ||
-					[]
-			}))
-			.filter((trench) => trench.conduits.length > 0);
-
-		onConfirm(selectedTrenches);
+		onConfirm(trenchesForKeys(trenches, selectedKeys));
 	}
 </script>
 

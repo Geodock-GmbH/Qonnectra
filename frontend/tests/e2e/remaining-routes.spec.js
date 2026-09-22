@@ -86,6 +86,31 @@ test.describe('Pipe-branch page', () => {
 		await page.waitForLoadState('networkidle');
 	});
 
+	test('picking a branch names it in the URL; reload keeps it and back returns', async ({
+		page
+	}) => {
+		const picker = page.getByPlaceholder(/select pipe branch|rohrverzweigung auswählen/i).first();
+		await picker.click();
+		const option = page.getByRole('option').first();
+		test.skip((await option.count()) === 0, 'Needs at least one pipe branch in the project');
+
+		await option.click();
+
+		await expect(page).toHaveURL(/\/pipe-branch\/node\/[0-9a-f-]{36}$/);
+		await expect(page.locator('[data-testid="svelte-flow__wrapper"]').first()).toBeVisible({
+			timeout: 15000
+		});
+
+		await page.reload();
+		await expect(page).toHaveURL(/\/pipe-branch\/node\//);
+		await expect(page.locator('[data-testid="svelte-flow__wrapper"]').first()).toBeVisible({
+			timeout: 15000
+		});
+
+		await page.goBack();
+		await expect(page).toHaveURL(/\/pipe-branch$/);
+	});
+
 	test('renders the SvelteFlow canvas and the branch selector', async ({ page }) => {
 		await expect(page.locator('[data-testid="svelte-flow__wrapper"]').first()).toBeVisible({
 			timeout: 15000

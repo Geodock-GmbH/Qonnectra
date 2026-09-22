@@ -4,53 +4,40 @@ import { describe, expect, test } from 'vitest';
 import { PipeBranchState } from './PipeBranchState.svelte';
 
 const trenches: TrenchesNearNodeTrench[] = [{ uuid: 't1', id_trench: 'T-1', conduits: [] }];
+const node = { uuid: 'node-a', name: 'Node A' };
 
 function stateWithCanvas(): PipeBranchState {
-	const state = new PipeBranchState('proj-1');
-	state.pickBranch('Node A');
-	state.showOnCanvas('node-a', trenches);
+	const state = new PipeBranchState('proj-1', node);
+	state.showOnCanvas(trenches);
 	state.lassoSelection = ['trench-t1-conduit-c1'];
 	return state;
 }
 
 describe('PipeBranchState', () => {
-	test('should open the trench selector when a branch is picked', () => {
+	test('should take the node from the URL', () => {
+		const state = new PipeBranchState('proj-1', node);
+
+		expect(state.nodeUuid).toBe('node-a');
+		expect(state.selectedBranch).toBe('Node A');
+		expect(state.selecting).toBe(false);
+	});
+
+	test('should have no node on the page without one', () => {
 		const state = new PipeBranchState('proj-1');
 
-		state.pickBranch('Node A');
-
-		expect(state.selectedBranch).toBe('Node A');
-		expect(state.selecting).toBe(true);
-	});
-
-	test('should empty the canvas of the previous branch when another is picked', () => {
-		const state = stateWithCanvas();
-
-		state.pickBranch('Node B');
-
 		expect(state.nodeUuid).toBeNull();
-		expect(state.canvasTrenches).toEqual([]);
-		expect(state.lassoSelection).toEqual([]);
-	});
-
-	test('should not open the trench selector when the combobox is cleared', () => {
-		const state = stateWithCanvas();
-
-		state.pickBranch('');
-
-		expect(state.selecting).toBe(false);
-		expect(state.canvasTrenches).toEqual([]);
+		expect(state.selectedBranch).toBe('');
 	});
 
 	test('should load the confirmed selection onto the canvas', () => {
-		const state = new PipeBranchState('proj-1');
-		state.pickBranch('Node A');
+		const state = new PipeBranchState('proj-1', node);
+		state.editSelection();
 
-		state.showOnCanvas('node-a', trenches);
+		state.showOnCanvas(trenches);
 
 		expect(state.selecting).toBe(false);
-		expect(state.nodeUuid).toBe('node-a');
 		expect(state.canvasTrenches).toBe(trenches);
+		expect(state.lassoSelection).toEqual([]);
 	});
 
 	test('should keep the canvas while the selection is edited', () => {
@@ -62,16 +49,15 @@ describe('PipeBranchState', () => {
 		expect(state.canvasTrenches).toBe(trenches);
 	});
 
-	test('should empty the canvas but keep the picked branch when the selection is cancelled', () => {
+	test('should keep the canvas and the node when the selection is cancelled', () => {
 		const state = stateWithCanvas();
 		state.editSelection();
 
 		state.cancelSelection();
 
 		expect(state.selecting).toBe(false);
-		expect(state.nodeUuid).toBeNull();
-		expect(state.canvasTrenches).toEqual([]);
-		expect(state.selectedBranch).toBe('Node A');
+		expect(state.nodeUuid).toBe('node-a');
+		expect(state.canvasTrenches).toBe(trenches);
 	});
 
 	test('should drop the lasso selection when the lasso is turned off', () => {

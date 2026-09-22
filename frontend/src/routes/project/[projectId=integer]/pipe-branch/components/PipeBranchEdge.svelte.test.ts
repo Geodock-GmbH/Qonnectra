@@ -64,8 +64,8 @@ const other: BranchConnection = {
 const user = userEvent.setup();
 
 function renderEdge(uuid: string | null) {
-	const branch = new PipeBranchState('proj-1');
-	branch.showOnCanvas('node-a', []);
+	const branch = new PipeBranchState('proj-1', { uuid: 'node-a', name: 'Node A' });
+	branch.showOnCanvas([]);
 	const data: BranchEdgeData = {
 		uuid,
 		sourceHandleData: {

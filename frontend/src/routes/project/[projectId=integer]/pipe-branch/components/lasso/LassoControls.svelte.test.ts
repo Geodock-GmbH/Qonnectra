@@ -51,9 +51,8 @@ const CONDUIT_3 = 'trench-t2-conduit-c3';
 const user = userEvent.setup();
 
 function renderControls(lassoSelection: string[], lassoMode = true) {
-	const branch = new PipeBranchState('proj-1');
-	branch.pickBranch('Node A');
-	branch.showOnCanvas('node-a', trenches);
+	const branch = new PipeBranchState('proj-1', { uuid: 'node-a', name: 'Node A' });
+	branch.showOnCanvas(trenches);
 	branch.setLassoMode(lassoMode);
 	branch.lassoSelection = lassoSelection;
 	render(PipeBranchStateFixture, { props: { component: LassoControls, branch } });

@@ -44,7 +44,7 @@
 		if (confirmed) return;
 		confirmed = true;
 
-		branch.showOnCanvas(nearby.node_uuid, selectedTrenches);
+		branch.showOnCanvas(selectedTrenches);
 
 		try {
 			await saveTrenchSelections({

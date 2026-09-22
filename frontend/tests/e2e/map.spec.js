@@ -97,6 +97,9 @@ test.describe('Map page', () => {
 		// what used to abort in-flight tiles and stall the map's tile queue.
 		expect(tilesFor(firstProjectId)).toHaveLength(0);
 
+		// Let the second project finish loading its tiles before switching back,
+		// so only tiles requested after the switch count.
+		await page.waitForLoadState('networkidle');
 		tileRequests.length = 0;
 		await trigger.click();
 		await options.filter({ hasText: firstProjectOption }).first().click();

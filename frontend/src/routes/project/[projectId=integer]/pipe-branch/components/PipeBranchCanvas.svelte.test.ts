@@ -8,10 +8,12 @@ import BoundaryFixture from '$lib/test-utils/Boundary.fixture.svelte';
 import { commandResult, httpError, queryResult } from '$lib/test-utils/remote-stubs';
 
 import PipeBranchCanvas from './PipeBranchCanvas.svelte';
+import { trenches } from './branchGraph.fixture';
 
 const getConnections = vi.fn();
 const createConnections = vi.fn();
 const getTrenchesNearNode = vi.fn();
+const getTrenchSelections = vi.fn();
 
 vi.mock('$lib/remote/pipe-branch/connections.remote', () => ({
 	getConnections: (...args: unknown[]) => getConnections(...args),
@@ -21,7 +23,7 @@ vi.mock('$lib/remote/pipe-branch/connections.remote', () => ({
 
 vi.mock('$lib/remote/pipe-branch/trench-selections.remote', () => ({
 	getTrenchesNearNode: (...args: unknown[]) => getTrenchesNearNode(...args),
-	getTrenchSelections: vi.fn().mockResolvedValue([]),
+	getTrenchSelections: (...args: unknown[]) => getTrenchSelections(...args),
 	saveTrenchSelections: vi.fn()
 }));
 
@@ -82,9 +84,23 @@ const saved: BranchConnection = {
 
 const user = userEvent.setup();
 
-function renderCanvas() {
+const nodeA = { uuid: 'node-a', name: 'Node A' };
+
+const nearby = {
+	trenches,
+	count: 2,
+	node_uuid: 'node-a',
+	node_name: 'Node A',
+	distance: 5,
+	project_id: 1
+};
+
+/**
+ * @param node - The node the URL names; omitted for the page without one.
+ */
+function renderCanvas(node: { uuid: string; name: string } | null = null) {
 	return render(BoundaryFixture, {
-		props: { component: PipeBranchCanvas, props: { projectId: 'proj-1' } }
+		props: { component: PipeBranchCanvas, props: { projectId: 'proj-1', node } }
 	});
 }
 
@@ -96,18 +112,21 @@ async function loadSelection() {
 beforeEach(() => {
 	getConnections.mockImplementation(() => queryResult<BranchConnection[]>([saved]));
 	createConnections.mockReturnValue(commandResult({ created: 1, errors: [] }));
+	getTrenchesNearNode.mockResolvedValue(nearby);
+	getTrenchSelections.mockResolvedValue([]);
 });
 
 afterEach(() => {
 	getConnections.mockReset();
 	createConnections.mockReset();
 	getTrenchesNearNode.mockReset();
+	getTrenchSelections.mockReset();
 	vi.mocked(globalToaster.success).mockClear();
 	vi.mocked(globalToaster.error).mockClear();
 });
 
 describe('PipeBranchCanvas', () => {
-	test('should start with an empty, locked canvas and the panel of the project', async () => {
+	test('should start with an empty, locked canvas and the panel on the page without a node', async () => {
 		renderCanvas();
 
 		expect(await screen.findByText('panel for proj-1')).toBeInTheDocument();
@@ -118,8 +137,23 @@ describe('PipeBranchCanvas', () => {
 		expect(getConnections).not.toHaveBeenCalled();
 	});
 
+	test('should open on the conduits saved for the node named in the URL', async () => {
+		getTrenchSelections.mockResolvedValue(['t2']);
+		renderCanvas(nodeA);
+
+		const nodes = within(await screen.findByRole('list', { name: 'nodes' }));
+		await nodes.findByText('trench-t2-conduit-c2');
+		expect(nodes.getAllByRole('listitem').map((node) => node.textContent)).toEqual([
+			'trench-t1-conduit-c1',
+			'trench-t2-conduit-c2',
+			'trench-t2-conduit-c3'
+		]);
+		expect(getTrenchesNearNode).toHaveBeenCalledWith({ nodeName: 'Node A', projectId: 'proj-1' });
+		expect(screen.getByText('panel for proj-1')).toBeInTheDocument();
+	});
+
 	test('should draw a node per selected conduit and the saved connections of the node', async () => {
-		renderCanvas();
+		renderCanvas(nodeA);
 
 		await loadSelection();
 
@@ -136,7 +170,7 @@ describe('PipeBranchCanvas', () => {
 	});
 
 	test('should save a connection dragged between two microducts instead of adding its own edge', async () => {
-		renderCanvas();
+		renderCanvas(nodeA);
 		await loadSelection();
 
 		await user.click(screen.getByRole('button', { name: 'drag m2 to m3' }));
@@ -154,7 +188,7 @@ describe('PipeBranchCanvas', () => {
 	});
 
 	test('should refuse a connection that starts at a target handle', async () => {
-		renderCanvas();
+		renderCanvas(nodeA);
 		await loadSelection();
 
 		await user.click(screen.getByRole('button', { name: 'drag from a target handle' }));
@@ -166,7 +200,7 @@ describe('PipeBranchCanvas', () => {
 	});
 
 	test('should refuse to connect a microduct to itself', async () => {
-		renderCanvas();
+		renderCanvas(nodeA);
 		await loadSelection();
 
 		await user.click(screen.getByRole('button', { name: 'drag m2 onto itself' }));
@@ -177,35 +211,21 @@ describe('PipeBranchCanvas', () => {
 		);
 	});
 
-	test('should swap the panel for the trench selection once a branch is picked', async () => {
-		getTrenchesNearNode.mockResolvedValue({
-			trenches: [],
-			count: 0,
-			node_uuid: 'node-a',
-			node_name: 'Node A',
-			distance: 5,
-			project_id: 1
-		});
-		renderCanvas();
-
-		await user.click(await screen.findByRole('button', { name: 'pick Node A' }));
+	test('should open the trench selector for a node without a saved selection', async () => {
+		getTrenchesNearNode.mockResolvedValue({ ...nearby, trenches: [], count: 0 });
+		getConnections.mockImplementation(() => queryResult<BranchConnection[]>([]));
+		renderCanvas(nodeA);
 
 		expect(await screen.findByText('message_no_trenches_near_node')).toBeInTheDocument();
 		expect(screen.queryByText('panel for proj-1')).not.toBeInTheDocument();
 		expect(getTrenchesNearNode).toHaveBeenCalledWith({ nodeName: 'Node A', projectId: 'proj-1' });
 	});
 
-	test('should lead back to the panel when the trenches of a branch cannot be loaded', async () => {
+	test('should fail the boundary when the trenches of the node cannot be loaded', async () => {
 		getTrenchesNearNode.mockRejectedValue(httpError(404, 'Node not found'));
-		renderCanvas();
+		renderCanvas(nodeA);
 
-		await user.click(await screen.findByRole('button', { name: 'pick Node A' }));
-
-		expect(await screen.findByRole('alert')).toHaveTextContent('Node not found');
-
-		await user.click(screen.getByRole('button', { name: 'common_back' }));
-
-		expect(await screen.findByText('panel for proj-1')).toBeInTheDocument();
+		expect(await screen.findByTestId('boundary-failed')).toBeInTheDocument();
 	});
 
 	test('should lay the lasso over the canvas only while lasso mode is on', async () => {
@@ -220,9 +240,7 @@ describe('PipeBranchCanvas', () => {
 
 	test('should replace the canvas with a retry when the connections cannot be loaded', async () => {
 		getConnections.mockImplementation(() => Promise.reject(httpError(502, 'Backend unavailable')));
-		renderCanvas();
-
-		await user.click(await screen.findByRole('button', { name: 'load selection' }));
+		renderCanvas(nodeA);
 
 		expect(await screen.findByTestId('boundary-failed')).toBeInTheDocument();
 	});

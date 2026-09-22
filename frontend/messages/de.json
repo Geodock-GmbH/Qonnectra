@@ -607,6 +607,7 @@
 	"message_partial_bundle_connected": "{connected} von {total} Fasern verbunden",
 	"message_partial_cable_connected": "{connected} von {total} Fasern verbunden",
 	"message_pipe_branch_not_configured": "Rohrabzweig-Einstellungen für dieses Projekt nicht konfiguriert.",
+	"message_pipe_branch_not_found": "Rohrabzweig nicht gefunden",
 	"message_pipeline_record_create_failed": "Leitungsauskunft-Datensatz konnte nicht erstellt werden",
 	"message_pipeline_record_created": "Leitungsauskunft-Datensatz erfolgreich erstellt",
 	"message_pipeline_record_delete_failed": "Leitungsauskunft-Datensatz konnte nicht gelöscht werden",
