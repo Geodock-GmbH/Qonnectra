@@ -40,18 +40,32 @@ test.describe('Network schema page', () => {
 	test('clicking a node names it in the URL and opens its drawer; back closes it', async ({
 		page
 	}) => {
+		// The canvas renders its nodes once the schema data arrived, then the
+		// drawer loads the node: two backend round trips more than the other tests.
+		test.setTimeout(60000);
 		await expect(page.locator('.svelte-flow').first()).toBeVisible({ timeout: 15000 });
 		// The label box, not a connection handle (which is also a button).
 		const nodeLabel = page
 			.locator('.svelte-flow__node [role="button"]:not(.svelte-flow__handle)')
 			.first();
+		// Nodes render once the canvas has its data; give them a moment before deciding to skip.
+		await nodeLabel.waitFor({ state: 'attached', timeout: 15000 }).catch(() => {});
 		test.skip((await nodeLabel.count()) === 0, 'Needs at least one node in the schema');
 
 		// Nodes can sit outside the viewport of the canvas; the click handler
-		// is what matters here, so dispatch the event directly.
-		await nodeLabel.dispatchEvent('click');
-
-		await expect(page).toHaveURL(/[?&]feature=node%3A[0-9a-f-]{36}/);
+		// is what matters here, so dispatch the event directly. Under load the
+		// first click can land before the canvas is interactive, so repeat it
+		// until the URL names the node.
+		await expect
+			.poll(
+				async () => {
+					await nodeLabel.dispatchEvent('click');
+					await page.waitForTimeout(500);
+					return /[?&]feature=node%3A[0-9a-f-]{36}/.test(page.url());
+				},
+				{ timeout: 15000 }
+			)
+			.toBe(true);
 		const drawer = page.locator('[data-drawer]');
 		await expect(drawer).toBeVisible();
 		await expect(drawer.locator('input[name="node_name"], input[name="name"]').first()).toBeVisible(

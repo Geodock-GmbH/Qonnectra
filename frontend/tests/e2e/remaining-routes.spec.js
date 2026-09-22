@@ -77,6 +77,31 @@ test.describe('Post-compaction page', () => {
 		await search.fill('Hauptstraße');
 		await expect(search).toHaveValue('Hauptstraße');
 	});
+
+	test('a URL naming an address opens its workspace; reload keeps it, clearing returns to the search', async ({
+		page
+	}) => {
+		const id = /** @type {string} */ (projectIdFromUrl(page.url()));
+		const address = await firstFeature(page, 'address', id);
+		test.skip(!address, 'Needs at least one address in the project');
+		const uuid = /** @type {import('./helpers/api.js').ListedFeature} */ (address).uuid;
+
+		await page.goto(projectPath(id, 'post-compaction', { address: uuid }));
+
+		const clear = page.getByRole('button', { name: /clear selection|auswahl/i });
+		await expect(clear).toBeVisible({ timeout: 15000 });
+		await expect(page.getByPlaceholder(/address|adresse/i)).toHaveCount(0);
+
+		await page.reload();
+		await expect(page.getByRole('button', { name: /clear selection|auswahl/i })).toBeVisible({
+			timeout: 15000
+		});
+
+		// Clearing rewrites the entry: the search is back and the URL carries no address.
+		await page.getByRole('button', { name: /clear selection|auswahl/i }).click();
+		await expect(page).not.toHaveURL(/address=/);
+		await expect(page.getByPlaceholder(/address|adresse/i).first()).toBeVisible();
+	});
 });
 
 test.describe('Pipe-branch page', () => {
