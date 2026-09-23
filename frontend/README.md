@@ -4,15 +4,16 @@ SvelteKit-based frontend application for the Qonnectra GIS system, providing an 
 
 ### Overview
 
-The frontend is built with **SvelteKit 2** and **Svelte 5 runes**, using:
+The frontend is built with **SvelteKit 2**, **Svelte 5 runes** and **TypeScript**, using:
 
-- **OpenLayers 10.5** for map visualization
-- **Skeleton UI** for components
+- **OpenLayers 10** for map visualization
+- **Skeleton UI 5** for components
 - **TailwindCSS 4** for styling
 - **Svelte Flow** (via `@xyflow/svelte`) for network schema editing
 - **Paraglide** for type-safe internationalization
+- **SvelteKit remote functions** (`query` / `command` / `form`) with **valibot** schemas for talking to the Django API
 
-For a system-wide overview, see the main project README: `../README.md`.
+For a system-wide overview, see the main project README: `../README.md`. The domain vocabulary used below (current project, remembered project, feature, drawer, map view, place vs. adjustment) is defined in `../CONTEXT.md`.
 
 ---
 
@@ -46,19 +47,13 @@ Key variables are documented in the **Environment variables** section below.
 
 ### 3. Development server
 
-Start the dev server (do this from your own terminal, not via AI tools):
+Start the dev server:
 
 ```bash
 npm run dev
 ```
 
 The application is available at `http://localhost:5173`.
-
-Open in browser automatically:
-
-```bash
-npm run dev -- --open
-```
 
 ### 4. Build for production
 
@@ -78,314 +73,163 @@ npm run preview
 
 ```text
 frontend/
-├── messages/                 # Paraglide translation files (i18n)
-│   ├── de.json
-│   └── en.json
+├── messages/                 # Paraglide translation files (de.json, en.json)
 ├── project.inlang/           # Paraglide project configuration
 ├── src/
 │   ├── app.css               # Tailwind/Skeleton/global styles
+│   ├── app.d.ts              # App-wide types (Locals, PageData, ...)
 │   ├── app.html
-│   ├── hooks.js              # Client hooks
-│   ├── hooks.server.js       # Server hooks (auth, public routes, etc.)
+│   ├── hooks.ts              # Universal hooks (Paraglide reroute)
+│   ├── hooks.client.ts       # Client hooks (reports uncaught errors to the backend log)
+│   ├── hooks.server.ts       # Server hooks: i18n, authentication, route permissions
+│   ├── service-worker.ts
+│   ├── params/               # Route param matchers (integer, traceEntryType)
 │   ├── lib/
-│   │   ├── classes/          # Class-based state managers (Svelte 5 friendly)
-│   │   │   ├── AddressState.svelte.js
-│   │   │   ├── ConduitState.svelte.js
-│   │   │   ├── MapState.svelte.js
-│   │   │   ├── MapInteractionManager.svelte.js
-│   │   │   ├── MapSelectionManager.svelte.js
-│   │   │   ├── MapPopupManager.svelte.js
-│   │   │   ├── NetworkSchemaState.svelte.js
-│   │   │   ├── NetworkSchemaSearchManager.svelte.js
-│   │   │   ├── NodeStructureManager.svelte.js
-│   │   │   ├── NodeStructureContext.svelte.js
-│   │   │   ├── FiberSpliceManager.svelte.js
-│   │   │   ├── CableFiberDataManager.svelte.js
-│   │   │   ├── CablePathManager.svelte.js
-│   │   │   └── DragDropManager.svelte.js
+│   │   ├── classes/          # Class-based state managers (*.svelte.ts)
 │   │   ├── components/       # Reusable Svelte components
-│   │   │   ├── AppBar.svelte
-│   │   │   ├── LayerVisibilityTree.svelte
-│   │   │   ├── Map.svelte
-│   │   │   ├── MobileNav.svelte
-│   │   │   ├── Drawer.svelte
-│   │   │   ├── SearchPanel.svelte
-│   │   │   ├── TrenchStatistics.svelte
-│   │   │   └── ...
-│   │   ├── map/              # OpenLayers map utilities
-│   │   │   ├── layers.js
-│   │   │   ├── styles.js
-│   │   │   ├── searchUtils.js
-│   │   │   └── tileSources.js
-│   │   ├── server/           # Server-side utilities (used from +page.server.js, +server.js)
-│   │   │   ├── attributes.js
-│   │   │   ├── conduitData.js
-│   │   │   └── featureSearch.js
-│   │   ├── stores/           # Svelte stores for state management
-│   │   │   ├── auth.js
-│   │   │   ├── drawer.js
-│   │   │   ├── persisted.js
-│   │   │   ├── session.js
-│   │   │   ├── store.js
-│   │   │   └── toaster.js
-│   │   └── utils/            # Shared utilities
-│   │       ├── contentTypes.js
-│   │       ├── edgeGeometry.js
-│   │       ├── featureUtils.js
-│   │       ├── fieldAliases.js
-│   │       ├── getAuthHeaders.js
-│   │       ├── logToBackendClient.js
-│   │       ├── logToBackendServer.js
-│   │       ├── svelteFlowLock.js
-│   │       ├── tooltip.js
-│   │       └── zoomToLayerExtent.js
-│   └── routes/               # SvelteKit file-based routing
-│       ├── +layout.svelte
-│       ├── +layout.server.js
-│       ├── +error.svelte
-│       ├── login/
-│       │   ├── +page.server.js
-│       │   └── +page.svelte
-│       ├── logout/
-│       │   └── +server.js
-│       ├── dashboard/
-│       │   └── [[projectId]]/[[flagId]]/
-│       │       ├── +page.server.js
-│       │       └── +page.svelte
-│       ├── map/
-│       │   └── [[projectId]]/
-│       │       ├── +page.js
-│       │       ├── +page.server.js
-│       │       ├── +page.svelte
-│       │       └── MapDrawerTabs.svelte
-│       ├── trench/
-│       │   └── [[projectId]]/[[flagId]]/
-│       │       ├── +page.server.js
-│       │       ├── +page.svelte
-│       │       └── TrenchTable.svelte
-│       ├── conduit/
-│       │   ├── [[projectId]]/
-│       │   │   ├── +page.server.js
-│       │   │   ├── +page.svelte
-│       │   │   ├── ConduitDrawerTabs.svelte
-│       │   │   └── PipeTable.svelte
-│       │   └── download/
-│       │       └── +server.js
-│       ├── house-connections/
-│       │   └── [[projectId]]/
-│       │       ├── +page.js
-│       │       ├── +page.server.js
-│       │       ├── +page.svelte
-│       │       └── HouseConnectionDrawerTabs.svelte
-│       ├── address/
-│       │   └── [projectId]/
-│       │       ├── +page.server.js
-│       │       ├── +page.svelte
-│       │       └── [uuid]/
-│       │           ├── +page.server.js
-│       │           ├── +page.svelte
-│       │           └── unit/
-│       │               └── [unitUuid]/
-│       │                   ├── +page.server.js
-│       │                   └── +page.svelte
-│       ├── network-schema/
-│       │   └── [[projectId]]/
-│       │       ├── +page.server.js
-│       │       ├── +page.svelte
-│       │       └── (supporting schema components ...)
-│       ├── pipe-branch/
-│       │   └── [[projectId]]/
-│       │       ├── +page.server.js
-│       │       ├── +page.svelte
-│       │       └── (lasso & node components ...)
-│       ├── trace/
-│       │   ├── address/[uuid]/
-│       │   ├── cable/[uuid]/
-│       │   ├── fiber/[uuid]/
-│       │   ├── node/[uuid]/
-│       │   ├── residential-unit/[uuid]/
-│       │   └── components/       # TraceMap, TraceResults, SignalAnalysis, ...
-│       ├── settings/
-│       │   ├── +page.server.js
-│       │   └── +page.svelte
-│       └── admin/
-│           └── logs/
-│               ├── +page.server.js
-│               └── +page.svelte
+│   │   ├── config/           # Navigation links and route-id registry
+│   │   ├── context/          # Typed contexts: current project, remembered project, network schema
+│   │   ├── map/              # OpenLayers layers, styles, tile loading, MVT worker, map-view hash
+│   │   ├── remote/           # Remote functions, one folder per domain
+│   │   ├── server/           # Server-only helpers: session cache, token refresh, reference data
+│   │   ├── stores/           # Svelte stores for persisted UI preferences
+│   │   ├── test-utils/       # Vitest fixtures, stubs and mocks
+│   │   ├── types/            # Shared types, incl. generated api.d.ts
+│   │   └── utils/            # Shared utilities (URL state, auth headers, logging, ...)
+│   └── routes/               # SvelteKit file-based routing (see below)
 ├── static/                   # Static assets (favicon, logo, etc.)
-├── tests/                    # Playwright E2E tests
-│   └── e2e/
-│       ├── login.spec.js
-│       ├── routing.spec.js
-│       └── canvas-sync-*.spec.js
-├── vite.config.js            # Vite + SvelteKit + Paraglide + Tailwind
+├── tests/e2e/                # Playwright E2E tests
+├── vite.config.ts            # Vite + SvelteKit + Paraglide + Tailwind + Vitest
 ├── playwright.config.js      # Playwright configuration
+├── eslint.config.js
 └── package.json
 ```
 
+Route-specific components live next to their route in a `components/` folder (e.g. `routes/project/[projectId=integer]/map/components/`). Only components used by several routes belong in `src/lib/components/`.
+
 ---
 
-## Key concepts and architecture
+## Routing
 
-### Root layout and navigation
+### URLs
 
-- `src/routes/+layout.svelte` defines the main shell:
-  - Persistent **sidebar**, **app bar**, and **mobile navigation**
-  - Global **loading overlay** and **toast** system
-  - Theme handling via a `theme` store and `data-theme` attribute
-- `src/routes/+layout.server.js`:
-  - Enforces authentication for protected routes (redirects unauthenticated users to `/login`)
-  - Loads global data such as **projects**, **flags**, and **app version** (from `package.json`)
+The URL is the source of truth for where the user is and what they are looking at (see `../docs/adr/0001-url-is-source-of-truth-for-current-project.md`):
+
+- **Path**: the project and detail pages (`/project/5/address/<uuid>`)
+- **Query**: the open drawer feature (`?feature=trench:<uuid>`), tab, search, pagination
+- **Hash**: the map view (`#map=<zoom>/<x>/<y>`, EPSG:3857)
+
+Opening a place (a drawer, another feature) pushes a history entry; adjustments (tabs, search, map moves) replace the current one. The helpers for this live in `src/lib/utils/urlState.ts` (`setQuery`, `openFeature`, `closeFeature`, `queryInt`, ...).
+
+Build URLs with the typed `resolve()` from `$app/paths`, never with template literals, and read state from `page.params` / `page.url` / `page.route.id` instead of parsing `pathname`. Route ids are collected in `src/lib/config/routes.ts`.
 
 ### Routes overview
 
-- `login/` – Authentication flow (login form, redirect handling)
-- `dashboard/[[projectId]]/[[flagId]]/` – Project dashboard with:
-  - Statistics cards (`TrenchStatistics.svelte`, project tables, warranty overview)
-  - Tabs for overview, trench data, and project listings
-- `map/[[projectId]]/` – Main GIS map interface:
-  - OpenLayers map (`Map.svelte`)
-  - Layer tree, search panel, selection drawers
-  - Map interaction, popup, and selection managers
-- `trench/[[projectId]]/[[flagId]]/` – Trench management (tables, filters, flags)
-- `conduit/[[projectId]]/` – Conduit and pipe management:
-  - File upload, search, drawers, and attribute cards
-- `house-connections/[[projectId]]/` – House connection management:
-  - Connections, microducts, address linkage
-- `address/[projectId]/...` – Address and residential unit management:
-  - Address table, unit detail pages, and nested unit routes
-- `network-schema/[[projectId]]/` – Network schema editor:
-  - Svelte Flow-based network graph
-  - Node/edge attribute cards, fiber panels, slot configuration
-- `pipe-branch/[[projectId]]/` – Pipe branch visualization and editing (lasso selection, trench selector)
-- `trace/` – Fiber trace and signal analysis:
-  - Trace by address, cable, fiber, node, or residential unit (`/trace/[type]/[uuid]`)
-  - Trace map visualization, fiber paths table, and signal analysis
-- `settings/` – Application and user-level settings
-- `admin/logs/` – Administrative log viewer
+Project-scoped pages live under `/project/[projectId=integer]/`. The project layout validates the id against the user's projects; `/project/<id>` redirects to the project's map.
 
-Route files follow standard SvelteKit conventions:
+| Route                                      | Purpose                                                                         |
+| ------------------------------------------ | ------------------------------------------------------------------------------- |
+| `project/[projectId]/map`                  | Main GIS map: layer tree, search, drawer, measuring, trench profile             |
+| `project/[projectId]/dashboard/[[flagId]]` | Project statistics, charts and tables                                           |
+| `project/[projectId]/trench/[[flagId]]`    | Trench–conduit connections                                                      |
+| `project/[projectId]/conduit`              | Conduit management, Excel import/export                                         |
+| `project/[projectId]/house-connections`    | Microducts and house connections                                                |
+| `project/[projectId]/address/...`          | Addresses and residential units (`[uuid]`, `unit/[unitUuid]`)                   |
+| `project/[projectId]/network-schema`       | Svelte Flow network schema; `node/[nodeId]` for one node's view                 |
+| `project/[projectId]/pipe-branch`          | Pipe branch editing; `node/[nodeUuid]` for one node                             |
+| `project/[projectId]/fault-simulation`     | Fault simulation                                                                |
+| `project/[projectId]/post-compaction`      | Post-compaction                                                                 |
+| `project/[projectId]/valuation`            | Network valuation                                                               |
+| `trace/[entryType]/[uuid]`                 | Fiber trace and signal analysis (address, cable, fiber, node, residential unit) |
+| `pipeline-records/...`                     | Pipeline records and inquiries (global, not project-scoped)                     |
+| `settings`                                 | User settings and map styles                                                    |
+| `admin/logs`                               | Log viewer                                                                      |
+| `login`                                    | Login                                                                           |
 
-- `+page.svelte` – Page UI
-- `+page.server.js` – Server-side data loading
-- `+page.js` – Client-side load when needed
-- `+server.js` – API-like endpoints
+Old URL shapes without the `/project/<id>` prefix (`/map`, `/map/5`) are 404s.
 
-Dynamic routes use:
+### Authentication and permissions
 
-- Required params: `[projectId]`, `[uuid]`, `[unitUuid]`
-- Optional params: `[[projectId]]`, `[[flagId]]`
+`src/hooks.server.ts` is the single auth gate (`handleAuth`):
 
-### Map and GIS components
+- Resolves the session from the JWT cookies, cached per access token for 30 s (`src/lib/server/session.ts`) and refreshed when needed (`src/lib/server/tokenRefresh.ts`)
+- Authorises each route by its **permission key**: the route id with the project prefix and parameters stripped (`permissionKeyFor` in `src/lib/config/routes.ts`)
+- Redirects unauthenticated users to `/login?redirectTo=…`, and sends `/`, `/login` (when logged in) and denied routes to the **landing page**: the map of the remembered project, or of the user's first project
 
-The core map interface is implemented in:
+On the client, `src/lib/utils/sessionKeepAlive.ts` keeps the session fresh while the user is logged in.
 
-- `src/lib/components/Map.svelte`
-- `src/routes/map/[[projectId]]/+page.svelte`
+The **remembered project** is a `last-project` cookie (`src/lib/utils/rememberedProject.ts`). It survives logout and only picks the landing project and the default on global pages; it never decides what a project URL shows.
 
-Key features:
+---
 
-- OpenLayers 10.5 integration with reusable layer definitions from `src/lib/map/`
-- **Layer visibility tree**, **opacity slider**, and base map switching
-- **MVT** (Mapbox Vector Tile) support via `ol-mapbox-style`
-- **Search panel** for address and feature lookup
-- Map state persistence (center, zoom, selected project)
-- Project-aware style configuration (trench colors, node styles, label visibility)
-- Drawer-based feature details (`Drawer.svelte`, map drawer tabs)
+## Data loading and API integration
 
-Map behavior is managed by class-based state managers (in `src/lib/classes/`):
+The frontend talks to the Django REST API through **remote functions** in `src/lib/remote/<domain>/`:
 
-- `MapState` – base map setup, layer configuration, and persistence
-- `MapSelectionManager` – selection logic
-- `MapPopupManager` – feature popups and overlays
-- `MapInteractionManager` – wiring of interactions, drawers, and side panels
+- `*.remote.ts`: `query` / `command` / `form` functions that call the backend server-side, with valibot argument schemas
+- plain `*.ts` siblings: pure helpers (response mapping, fetch orchestration) with their own unit tests
+- `shared/`: auth headers for remote calls, backend error mapping (`failFromResponse`, `remoteErrorMessage`), attribute options
 
-### Network schema editor
+Components call queries directly and render them inside `QueryBoundary.svelte`. Errors must be thrown as SvelteKit `HttpError`s (`error()` / `failFromResponse()`); a plain `Error` reaches the client as "Internal Error".
 
-The network schema editor lives under `src/routes/network-schema/[[projectId]]/` and uses Svelte Flow (`@xyflow/svelte`) to visualize and edit:
+The few remaining load functions:
 
-- **Nodes** and **edges** (`CableDiagramNode.svelte`, `CableDiagramEdge.svelte`)
-- **Fibers** and **ports** (`FiberCell.svelte`, `PortTable.svelte`, `CableFiberSidebar.svelte`)
-- **Node structure** (`NodeStructurePanel.svelte`, `SlotGrid.svelte`, `SlotConfigItem.svelte`)
-- **Containers** and component types (`ContainerItem.svelte`, `ComponentTypeSidebar.svelte`)
+- `src/routes/+layout.server.ts`: user, projects, flags, app version and remembered project (reruns only when `app:reference-data` is invalidated)
+- `src/routes/project/[projectId=integer]/+layout.ts`: validates the project id
+- `network-schema/+page.server.ts`, `admin/logs/+page.server.ts`
+- `conduit/download/+server.ts`: Excel download endpoint
 
-State and orchestration are handled by:
+API types in `src/lib/types/api.d.ts` are generated from the backend's OpenAPI schema:
 
-- `NetworkSchemaState.svelte.js`
-- `NetworkSchemaSearchManager.svelte.js`
-- `NodeStructureManager.svelte.js`
-- `NodeStructureContext.svelte.js`
-- `FiberSpliceManager.svelte.js`
-- `CableFiberDataManager.svelte.js`
-- `CablePathManager.svelte.js`
-
-These classes encapsulate complex behavior and avoid prop drilling by combining with `setContext`/`getContext`.
+```bash
+npm run generate:types   # reads ../backend/schema.yml
+```
 
 ---
 
 ## State management
 
-State is primarily handled via **Svelte stores** and **class-based managers**.
+### Class-based managers (`src/lib/classes/`)
+
+Complex flows are modelled as classes in `*.svelte.ts` files and shared via context instead of prop drilling:
+
+- Map: `MapState`, `MapInteractionManager`, `MapSelectionManager`, `MapPopupManager`, `MapMeasureManager`
+- Network schema and node structure: `NetworkSchemaState`, `NetworkSchemaSearchManager`, `NodeStructureManager`, `NodeStructureContext`
+- Fiber and cable data: `FiberSpliceManager`, `CableFiberDataManager`, `CableMicropipeManager`
+- Other: `AddressState`, `DragDropManager`, `InquiryDrawManager`, `PanelResizeManager`
+
+`NetworkSchemaState` owns all edge, label, path and shift state of the schema; see `src/lib/context/networkSchemaContext.ts` for its typed context.
+
+### Contexts (`src/lib/context/`)
+
+- `project.ts`: `routeProjectId()` and `onProjectChange()` for the current project, derived from the URL
+- `rememberedProject.svelte.ts`: reactive wrapper around the `last-project` cookie
+- `networkSchemaContext.ts`: `getSchemaState` / `setSchemaState`
 
 ### Stores (`src/lib/stores/`)
 
-- `auth.js`
-  - `userStore` – authentication state (isAuthenticated, username, roles)
-  - Helper `updateUserStore()` used from the root layout
-- `store.js`
-  - Layout and map-related stores, e.g.:
-    - `sidebarExpanded` – persisted sidebar state
-    - `selectedProject` – currently active project
-    - `mapCenter`, `mapZoom` – persisted map view
-- `drawer.js`
-  - `drawerStore` – central drawer state (open/close, content)
-- `toaster.js`
-  - `globalToaster` – shared toast manager used with Skeleton’s `<Toast.Group>`
-- `persisted.js`
-  - `persisted(key, initial)` – helper creating a `writable` store synchronized to `localStorage`
-- `session.js`
-  - `session(key, initial)` – helper creating a `writable` store synchronized to `sessionStorage`
+Stores hold personal preferences, not navigation state:
 
-These helpers abstract browser storage access and are safe on the server (they no-op when `browser === false`).
+- `store.ts`: persisted UI preferences (sidebar, theme, drawer size, layer visibility and opacity, map styles, network schema display options, WMS layer state)
+- `sidebarPreferences.ts`: hidden routes and collapsed groups in the sidebar
+- `auth.ts`: `userStore` and `updateUserStore()`
+- `toaster.ts`: `globalToaster` for Skeleton's `<Toast.Group>`
+- `persisted.ts` / `session.ts`: `writable` stores synced to `localStorage` / `sessionStorage` (no-ops on the server)
 
-### Class-based managers (`src/lib/classes/`)
-
-Instead of deeply nested props, complex flows are modeled as classes and passed via Svelte’s context:
-
-- Map-related classes (`MapState`, `MapInteractionManager`, `MapSelectionManager`, `MapPopupManager`)
-- Conduit/pipe classes (`ConduitState`)
-- Address management (`AddressState`)
-- Network schema and node structure (`NetworkSchemaState`, `NetworkSchemaSearchManager`, `NodeStructureManager`, `NodeStructureContext`)
-- Fiber and cable data (`FiberSpliceManager`, `CableFiberDataManager`, `CablePathManager`)
-- Utility managers (`DragDropManager`)
-
-They are typically constructed in `+page.svelte` files and exposed via:
-
-```js
-import { setContext } from 'svelte';
-
-setContext('mapManagers', {
-	mapState,
-	selectionManager,
-	popupManager,
-	interactionManager
-});
-```
-
-Downstream components then use `getContext` instead of prop drilling.
+User settings are also synced to the backend (`src/lib/utils/userSettingsSync.ts`).
 
 ---
 
-## Routing and data loading
+## Map
 
-The app uses standard SvelteKit patterns:
+The map lives in `src/lib/components/Map.svelte` and `src/routes/project/[projectId=integer]/map/`.
 
-- **Server load**: `+page.server.js` files fetch data from the Django REST API and return typed `PageData`.
-- **Client load**: a few routes use `+page.js` for client-side navigation concerns.
-- **API routes**: `+server.js` files (e.g. `conduit/download/+server.js`) provide HTTP endpoints.
-- **Global auth**: `src/routes/+layout.server.js` checks the user from `locals` and redirects unauthenticated access to non-public routes.
-
-Environment-aware behavior (e.g. base URLs) is configured via `.env` and SvelteKit’s env handling.
+- Layer definitions, styles and tile sources in `src/lib/map/`
+- **MVT** vector tiles from the backend, parsed in a web worker pool (`mvtParserWorker.ts`, `workerPool.ts`, `tileLoadingManager.ts`)
+- Base maps from TileServer-GL (`PUBLIC_TILE_SERVER_URL`), falling back to OSM tiles when unset
+- WMS layers configured in the Django admin
+- Map view in the URL hash (`viewHash.ts`) and remembered per project (`storedView.ts`)
+- Open feature in the `feature` query parameter (`urlFeatureSelection.ts`)
 
 ---
 
@@ -400,12 +244,10 @@ Internationalization is powered by **Paraglide**:
 Key characteristics:
 
 - **Type-safe** message access via the `m` helper, e.g. `m.nav_dashboard()`
-- Locale strategy: `localStorage` + `baseLocale` (configured in `vite.config.js`)
-- Locales:
-  - German (`de`)
-  - English (`en`)
+- Locale strategy: `localStorage` + `baseLocale` (configured in `vite.config.ts`), so URLs carry no locale prefix
+- Locales: German (`de`) and English (`en`)
 
-When editing `de.json` and `en.json`, keep keys **alphabetically sorted (ASC)**.
+When editing `de.json` and `en.json`, keep keys **alphabetically sorted (ASC)**. The VS Code task **Sort i18n JSON Files** does this for you.
 
 ---
 
@@ -413,45 +255,34 @@ When editing `de.json` and `en.json`, keep keys **alphabetically sorted (ASC)**.
 
 Styling is handled by:
 
-- **TailwindCSS 4** (`@tailwindcss/vite`, `tailwindcss@^4.0.0`)
-- **Skeleton UI** (`@skeletonlabs/skeleton`, `@skeletonlabs/skeleton-svelte`)
+- **TailwindCSS 4** (`@tailwindcss/vite`)
+- **Skeleton UI 5** (`@skeletonlabs/skeleton`, `@skeletonlabs/skeleton-svelte`)
 - `src/app.css`:
   - Imports Tailwind and Skeleton layers
   - Configures the **legacy** Skeleton theme via `[data-theme='legacy']`
   - Defines toast color variants and global behaviors
 
-Dark mode is controlled via data attributes (e.g. `data-mode="dark"`), and theme selection is stored in a Svelte store so it persists across sessions.
+Dark mode is controlled via data attributes (e.g. `data-mode="dark"`), and the chosen mode is stored in a persisted store.
 
 ---
 
 ## Testing
 
-### Unit and integration tests (Vitest)
+### Unit and component tests (Vitest)
 
-Tests are configured in `vite.config.js` using **Vitest workspaces**:
+Tests are configured in `vite.config.ts` as two **Vitest projects**:
 
-- **Client workspace**:
-  - Environment: `jsdom`
-  - Includes: `src/**/*.svelte.{test,spec}.{js,ts}`
-  - Uses `@testing-library/svelte`, `@testing-library/jest-dom`, and `vitest-setup-client.js`
-- **Server workspace**:
-  - Environment: `node`
-  - Includes: `src/**/*.{test,spec}.{js,ts}`
-  - Excludes Svelte component tests (handled by the client workspace)
-
-Run all unit tests:
+- **client**: `jsdom`, includes `src/**/*.svelte.{test,spec}.{js,ts}`, uses `@testing-library/svelte` and `vitest-setup-client.js`
+- **server**: `node`, includes all other `src/**/*.{test,spec}.{js,ts}`
 
 ```bash
-npm run test:unit
+npm test                  # run all unit tests once
+npm run test:unit         # watch mode
+npm run test:unit -- --run src/lib/utils/urlState.test.ts   # single file
+npm run test:coverage     # with v8 coverage
 ```
 
-Run a specific test file:
-
-```bash
-npm run test:unit -- --run src/routes/network-schema/[[projectId]]/page.svelte.test.js
-```
-
-`npm run test` is a convenience alias that runs `npm run test:unit -- --run`.
+Shared fixtures, stubs and mocks live in `src/lib/test-utils/` (e.g. `Boundary.fixture.svelte` for components that await queries, `remote-stubs.ts` for remote functions).
 
 ### End-to-end tests (Playwright)
 
@@ -459,43 +290,29 @@ Playwright is configured in `playwright.config.js`:
 
 - Test directory: `tests/`
 - Browsers: Chromium, Firefox, WebKit
-- Base URL: `http://localhost:5173`
-- Dev server:
-  - `command: 'npm run dev'`
-  - `reuseExistingServer: !process.env.CI`
-
-Run all E2E tests:
+- Base URL: `http://localhost:5173`; the dev server is started automatically unless one is already running
+- Credentials: set `E2E_TEST_USERNAME` and `E2E_TEST_PASSWORD` in `.env` (without them the authenticated specs skip)
 
 ```bash
-npx playwright test
+npx playwright test                            # all specs
+npx playwright test tests/e2e/login.spec.js    # single spec
+npx playwright show-report                     # latest HTML report
 ```
 
-Run a specific E2E spec:
-
-```bash
-npx playwright test tests/e2e/login.spec.js
-```
-
-Show the latest HTML report:
-
-```bash
-npx playwright show-report
-```
+WebKit drops `Secure` cookies over plain HTTP, so logins fail there against the local HTTP dev server; Chromium and Firefox are unaffected.
 
 ---
 
-## Code quality and formatting
+## Code quality
 
-Formatting and linting are handled via **Prettier**:
+```bash
+npm run check     # Paraglide compile + svelte-kit sync + svelte-check
+npm run lint:ts   # ESLint (TypeScript + Svelte)
+npm run format    # Prettier write
+npm run lint      # Prettier check
+```
 
-- `npm run format` – format all files (`prettier --write .`)
-- `npm run lint` – check formatting (`prettier --check .`)
-
-Relevant dev dependencies:
-
-- `prettier`
-- `prettier-plugin-svelte`
-- `@ianvs/prettier-plugin-sort-imports`
+Prettier uses `prettier-plugin-svelte` and `@ianvs/prettier-plugin-sort-imports`.
 
 ---
 
@@ -503,57 +320,36 @@ Relevant dev dependencies:
 
 See `package.json` for exact versions. Notable libraries:
 
-- **Svelte 5** + **SvelteKit 2** + **Vite**
-- **OpenLayers** (`ol`) – interactive maps
-- **ol-mapbox-style** – Mapbox style integration and MVT support
-- **proj4** – coordinate system transformations (e.g. ETRS89 / UTM)
+- **Svelte 5** + **SvelteKit 2** + **Vite 8**
+- **OpenLayers** (`ol`) and **ol-mapbox-style**: interactive maps and vector tiles
+- **proj4**: coordinate system transformations (ETRS89 / UTM)
 - **Skeleton UI** (`@skeletonlabs/skeleton`, `@skeletonlabs/skeleton-svelte`)
 - **Tabler Icons** (`@tabler/icons-svelte`)
-- **Svelte Flow** (`@xyflow/svelte`) – network diagram visualization
-- **Chart.js** – charts and statistics
-- **Paraglide** (`@inlang/paraglide-js`) – internationalization
-- **Vitest** + **Playwright** – unit and E2E testing
-- **Testing Library** (`@testing-library/svelte`, `@testing-library/jest-dom`)
-
----
-
-## API integration
-
-The frontend communicates with the Django REST API using:
-
-- **Remote functions** in `src/lib/remote/<domain>/`:
-  - `*.remote.ts` – `query` / `command` / `form` functions that call the backend server-side
-  - plain `*.ts` siblings – pure helpers (response mapping, fetch orchestration) shared by the remote functions and the remaining `+page.server.ts` loads
-- **Utility functions** in `src/lib/utils/`:
-  - `getAuthHeaders.js` – constructs authenticated headers from cookies/session
-  - `logToBackendClient.js` / `logToBackendServer.js` – logging helpers
-  - `featureUtils.js`, `fieldAliases.js`, `zoomToLayerExtent.js`, etc.
-- **Route load functions**:
-  - `+page.server.js` files orchestrate calls to the backend and assemble `PageData`
-  - `+server.js` files implement custom endpoints (e.g. conduit downloads)
-
-Authentication is handled by the backend (JWT in HTTP-only cookies). The frontend reads auth state via layout `load` functions and syncs it into the `userStore`.
+- **Svelte Flow** (`@xyflow/svelte`): network diagram visualization
+- **Chart.js**: charts and statistics
+- **valibot**: remote function argument validation
+- **jsPDF**: PDF export
+- **Fuse.js**: fuzzy search
+- **Paraglide** (`@inlang/paraglide-js`): internationalization
+- **Vitest**, **Testing Library** and **Playwright**: unit, component and E2E tests
 
 ---
 
 ## Environment variables
 
-Environment variables are defined in `.env` (see `.env.example` for a reference).
+Environment variables are defined in `.env` (see `.env.example`):
 
-From `.env.example`:
+| Variable                   | Required | Description                                                         | Example                         |
+| -------------------------- | -------- | ------------------------------------------------------------------- | ------------------------------- |
+| `API_URL`                  | Yes      | Backend API URL used server-side                                    | `http://localhost:8000/api/v1/` |
+| `PUBLIC_API_URL`           | Yes      | Backend API URL reachable from the browser                          | `http://localhost:8000/api/v1/` |
+| `PUBLIC_TILE_SERVER_URL`   | No       | Vector tile server; omit to fall back to OSM tiles                  | `https://tiles.localhost`       |
+| `PUBLIC_DOCUMENTATION_URL` | No       | Link to the user manual in the sidebar and app bar                  | `https://qonnectra.de/manual/`  |
+| `ORIGIN`                   | No       | Public origin of the app (needed by the Node adapter in production) | `https://app.localhost`         |
+| `E2E_TEST_USERNAME`        | No       | Playwright login user                                               |                                 |
+| `E2E_TEST_PASSWORD`        | No       | Playwright login password                                           |                                 |
 
-- **`API_URL`**
-  - Example: `http://localhost:8000/api/v1/`
-  - Used server-side as the base URL for API calls.
-- **`PUBLIC_API_URL`**
-  - Example: `http://localhost:8000/api/v1/`
-  - Public (client-side) base URL for API requests.
-- **`PUBLIC_TILE_SERVER_URL`** (optional)
-  - Example for local vector tiles: `http://localhost:8090`
-  - Example for production: `https://tiles.geodock.de`
-  - When omitted or commented out, the frontend falls back to standard OSM tiles for local development.
-
-Alternative commented configurations in `.env.example` show how to target Docker containers (e.g. `http://backend:8000/api/v1/`) or production tile servers.
+In the Docker deployment these variables come from `deployment/.env`.
 
 ---
 
@@ -562,7 +358,8 @@ Alternative commented configurations in `.env.example` show how to target Docker
 - **Main project**: `../README.md`
 - **Backend**: `../backend/README.md`
 - **Deployment**: `../deployment/README.md`
-- **Svelte & SvelteKit docs**: `https://svelte.dev/` and `https://kit.svelte.dev/`
+- **Domain glossary**: `../CONTEXT.md`
+- **Svelte & SvelteKit docs**: `https://svelte.dev/docs`
 - **OpenLayers docs**: `https://openlayers.org/`
 - **Skeleton UI docs**: `https://www.skeleton.dev/`
 - **Svelte Flow docs**: `https://svelteflow.dev/api-reference`

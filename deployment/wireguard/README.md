@@ -1,6 +1,6 @@
 # WireGuard VPN for QGIS Database Access
 
-This WireGuard VPN allows QGIS Desktop users to connect directly to PostgreSQL instead of using WFS.
+This WireGuard VPN allows QGIS Desktop users to connect directly to PostgreSQL instead of using WFS. The `wireguard` service is part of the production compose file only; run the commands below from `deployment/`.
 
 ## Network Configuration
 
@@ -37,13 +37,13 @@ PostUp = DB_IP=$(getent hosts db | awk '{print $1}'); iptables -A FORWARD -i %i 
 PostDown = DB_IP=$(getent hosts db | awk '{print $1}'); iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth+ -j MASQUERADE; iptables -t nat -D PREROUTING -i %i -p tcp --dport 5432 -j DNAT --to-destination $DB_IP:5432
 ```
 
-### 5. Restart WireGuard to apply the rules
+### 4. Restart WireGuard to apply the rules
 
 ```bash
 docker restart qonnectra_wireguard_prod
 ```
 
-### 6. Verify the iptables rule
+### 5. Verify the iptables rule
 
 ```bash
 docker exec qonnectra_wireguard_prod iptables -t nat -L PREROUTING -n
@@ -153,7 +153,7 @@ Once connected via WireGuard, configure QGIS PostgreSQL connection:
 | Password | _(from QGIS_DB_PASSWORD in .env)_ |
 | SSL Mode | `disable`                         |
 
-**Note:** The QGIS_DB_USER has read-only access to the database views, same as WFS.
+**Note:** This is the same limited database user QGIS Server uses for WFS: it can read and write data in all tables but cannot change the schema, and it has no access to the permission tables.
 
 ## Revoking Access
 
