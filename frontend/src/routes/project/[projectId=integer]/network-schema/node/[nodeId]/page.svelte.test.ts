@@ -69,6 +69,13 @@ vi.mock('$app/navigation', () => ({
 }));
 
 vi.mock('$lib/stores/store', () => ({
+	networkSchemaChildViewport: {
+		subscribe: (cb: (value: unknown) => void) => {
+			cb({ x: 0, y: 0, zoom: 1 });
+			return () => {};
+		},
+		set: vi.fn()
+	},
 	edgeSnappingEnabled: {
 		subscribe: (cb: (value: unknown) => void) => {
 			cb(false);
@@ -126,12 +133,6 @@ vi.mock('../../components/NetworkSchemaSearch.svelte', async () => {
 	const { default: MockNetworkSchemaSearch } =
 		await import('$lib/test-utils/mocks/MockNetworkSchemaSearch.svelte');
 	return { default: MockNetworkSchemaSearch };
-});
-
-vi.mock('../../components/ViewportPersistence.svelte', async () => {
-	const { default: MockViewportPersistence } =
-		await import('$lib/test-utils/mocks/MockViewportPersistence.svelte');
-	return { default: MockViewportPersistence };
 });
 
 vi.mock('../../components/MicroductChoiceDialog.svelte', async () => {

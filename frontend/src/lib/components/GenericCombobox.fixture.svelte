@@ -3,9 +3,11 @@
 
 	let {
 		data = [],
+		value = [],
 		onValueChange
 	}: {
 		data?: ComboboxItem[];
+		value?: Array<string | number>;
 		onValueChange?: (e: { value: string[] }) => void;
 	} = $props();
 
@@ -21,7 +23,7 @@
 	}
 </script>
 
-<select data-testid="combobox-stub" onchange={handleChange}>
+<select data-testid="combobox-stub" value={String(value[0] ?? '')} onchange={handleChange}>
 	{#each data as item (item.value)}
 		<option value={String(item.value)}>{item.label}</option>
 	{/each}

@@ -23,6 +23,38 @@ const pageState = vi.hoisted(() => ({
 	}
 }));
 
+const statePage = vi.hoisted(() => ({ current: null as unknown as { url: URL } }));
+
+vi.mock('$app/state', async () => {
+	const { pageStub } = await import('$lib/test-utils/pageStub');
+	statePage.current = pageStub({
+		params: { projectId: '7' },
+		url: 'http://localhost/project/7/network-schema'
+	});
+	return { page: statePage.current };
+});
+
+const fiberRemote = vi.hoisted(() => ({
+	getFibersForCable: vi.fn(),
+	getFiberColors: vi.fn(),
+	getFiberStatusOptions: vi.fn()
+}));
+
+vi.mock('$lib/remote/network-schema/fibers.remote', async () => {
+	const { remoteQueryStub } = await import('$lib/test-utils/remoteQueryStub');
+	const empty = () => remoteQueryStub(vi.fn().mockResolvedValue([]));
+	return {
+		getCablesAtNode: empty(),
+		getFibersForCable: (...a: unknown[]) => fiberRemote.getFibersForCable(...a),
+		getFiberColors: (...a: unknown[]) => fiberRemote.getFiberColors(...a),
+		getFiberUsageInNode: empty(),
+		getAddressesForNode: empty(),
+		getUsedResidentialUnits: empty(),
+		getFiberStatusOptions: (...a: unknown[]) => fiberRemote.getFiberStatusOptions(...a),
+		updateFiberStatus: vi.fn()
+	};
+});
+
 vi.mock('$app/stores', () => ({
 	page: {
 		subscribe(run: (value: unknown) => void) {
@@ -72,12 +104,17 @@ beforeEach(() => {
 		json: () => Promise.resolve([])
 	});
 	vi.spyOn(console, 'error').mockImplementation(() => {});
+	fiberRemote.getFibersForCable.mockResolvedValue([]);
+	fiberRemote.getFiberColors.mockResolvedValue([]);
+	fiberRemote.getFiberStatusOptions.mockResolvedValue([{ id: 1, fiber_status: 'defekt' }]);
 });
 
 afterEach(() => {
 	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
 	fetchMock.mockReset();
+	Object.values(fiberRemote).forEach((fn) => fn.mockReset());
+	statePage.current.url = new URL('http://localhost/project/7/network-schema');
 });
 
 describe('DrawerTabs', () => {
@@ -98,6 +135,21 @@ describe('DrawerTabs', () => {
 		expect(screen.getByRole('tab', { name: 'form_actions' })).toBeInTheDocument();
 		expect(screen.queryByRole('tab', { name: 'form_status' })).not.toBeInTheDocument();
 		expect(screen.queryByRole('tab', { name: 'form_handles' })).not.toBeInTheDocument();
+	});
+
+	test('should load the fibers and their status options when opened on the status tab', async () => {
+		statePage.current.url = new URL(
+			'http://localhost/project/7/network-schema?feature=cable:cable-1&tab=status'
+		);
+
+		render(DrawerTabsFixture, { drawerProps: { kind: 'cable', id: 'cable-1' } });
+
+		expect(await screen.findByRole('tab', { name: 'form_status' })).toHaveAttribute(
+			'aria-selected',
+			'true'
+		);
+		await vi.waitFor(() => expect(fiberRemote.getFiberStatusOptions).toHaveBeenCalled());
+		expect(fiberRemote.getFibersForCable).toHaveBeenCalledWith('cable-1');
 	});
 
 	test('should select the attributes tab by default', async () => {

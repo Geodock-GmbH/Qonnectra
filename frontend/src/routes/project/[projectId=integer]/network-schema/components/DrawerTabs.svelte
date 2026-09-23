@@ -173,21 +173,23 @@
 		)
 	);
 
-	let lastFetchedFeatureId = $state<string | null>(null);
+	/**
+	 * Loads what the status tab shows. Every fetch is cached in the manager, so
+	 * calling this on each visit only hits the server the first time.
+	 */
+	function loadFiberStatus() {
+		if (type !== 'edge') return;
+		fiberDataManager.fetchFibersForCable(featureId);
+		fiberDataManager.fetchFiberColors();
+		fiberDataManager.fetchFiberStatusOptions();
+	}
 
 	/**
-	 * Handles tab change events, lazily loading fiber data when the status tab is first selected.
+	 * Handles tab change events, lazily loading fiber data when the status tab is selected.
 	 * @param newValue - The newly selected tab value.
 	 */
 	function handleTabChange(newValue: string) {
-		if (newValue === 'status' && featureId && type === 'edge') {
-			if (featureId !== lastFetchedFeatureId) {
-				lastFetchedFeatureId = featureId;
-				fiberDataManager.fetchFibersForCable(featureId);
-				fiberDataManager.fetchFiberColors();
-			}
-			fiberDataManager.fetchFiberStatusOptions();
-		}
+		if (newValue === 'status') loadFiberStatus();
 	}
 
 	/**
@@ -212,20 +214,13 @@
 		}
 	}
 
-	onMount(() => {
-		return () => fiberDataManager.cleanup();
-	});
-
 	const featureId = $derived(id);
 
-	$effect(() => {
-		if (group === 'status' && featureId && type === 'edge') {
-			if (featureId !== lastFetchedFeatureId) {
-				lastFetchedFeatureId = featureId;
-				fiberDataManager.fetchFibersForCable(featureId);
-				fiberDataManager.fetchFiberColors();
-			}
-		}
+	// A tab change rewrites the history entry and the page re-keys this component
+	// per feature, so a status tab present at mount is the only one not opened by click.
+	onMount(() => {
+		if (group === 'status') loadFiberStatus();
+		return () => fiberDataManager.cleanup();
 	});
 
 	let recalculating = $state(false);

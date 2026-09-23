@@ -147,6 +147,15 @@ describe('NodeStructurePanel (desktop)', () => {
 		);
 	});
 
+	test('should load the slot configurations once per mount', async () => {
+		mockRoutes();
+
+		render(NodeStructurePanel, { nodeUuid: 'node-1' });
+
+		expect(await screen.findByText(/Rack 1 \/ Shelf 2/)).toBeInTheDocument();
+		expect(remote.getSlotConfigurationsForNode).toHaveBeenCalledTimes(1);
+	});
+
 	test('should render the container path and total slots for the selected config', async () => {
 		mockRoutes();
 
@@ -293,8 +302,38 @@ describe('NodeStructurePanel (mobile)', () => {
 		await user.click(screen.getByText('form_components'));
 
 		const sheet = await screen.findByTestId('bottom-sheet');
-		expect(sheet.getAttribute('data-open')).toBe('components');
+		expect(sheet.getAttribute('data-open')).toBe('true');
 		expect(screen.getByTestId('bottom-sheet-title').textContent).toBe('form_component_types');
+	});
+
+	test('should reopen a bottom sheet after the sheet closed itself', async () => {
+		const user = userEvent.setup();
+		mockRoutes();
+
+		render(NodeStructurePanel, { nodeUuid: 'node-1' });
+
+		await screen.findByTestId('slot-grid');
+		await user.click(screen.getByText('form_components'));
+		await user.click(screen.getByText('close-sheet'));
+		await user.click(screen.getByText('form_components'));
+
+		expect(screen.getByTestId('bottom-sheet').getAttribute('data-open')).toBe('true');
+		expect(screen.getByTestId('bottom-sheet-title').textContent).toBe('form_component_types');
+	});
+
+	test('should switch to the desktop layout when the window grows past the breakpoint', async () => {
+		mockRoutes();
+
+		render(NodeStructurePanel, { nodeUuid: 'node-1' });
+		expect(await screen.findByTestId('slot-grid')).toHaveAttribute('data-mobile', 'true');
+
+		setViewport(1280);
+		window.dispatchEvent(new Event('resize'));
+
+		await vi.waitFor(() =>
+			expect(screen.getByTestId('slot-grid')).toHaveAttribute('data-mobile', 'false')
+		);
+		expect(screen.queryByText('form_components')).not.toBeInTheDocument();
 	});
 
 	test('should hide the mobile action nav in readonly mode', async () => {

@@ -27,14 +27,16 @@
 	// Fires on hydration and after every navigation, once `data` reflects it.
 	afterNavigate(() => syncSessionKeepAlive(data.user?.isAuthenticated ?? false));
 	onMount(() => stopSessionKeepAlive);
+	onMount(() =>
+		theme.subscribe((names) => {
+			document.documentElement.setAttribute('data-theme', names.join(' '));
+		})
+	);
 
 	// svelte-ignore state_referenced_locally
 	setRememberedProject(data.rememberedProject);
 
 	$effect(() => updateUserStore(data.user));
-	$effect(() => {
-		document.documentElement.setAttribute('data-theme', $theme.join(' '));
-	});
 </script>
 
 <div class="flex h-screen">

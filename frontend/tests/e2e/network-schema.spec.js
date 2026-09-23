@@ -120,6 +120,49 @@ test.describe('Network schema page', () => {
 		await expect.poll(() => readPersisted(page, 'cableDirectionAnimationEnabled')).toBe(true);
 	});
 
+	test('the canvas reopens at the remembered pan and zoom and remembers the next one', async ({
+		page
+	}) => {
+		const viewport = page.locator('.svelte-flow__viewport').first();
+		/** @returns {Promise<number[]>} x, y and zoom from the canvas transform */
+		const shownViewport = async () =>
+			((await viewport.evaluate((el) => el.style.transform)).match(/-?[\d.]+/g) ?? []).map(Number);
+
+		await page.evaluate(() =>
+			window.localStorage.setItem(
+				'networkSchemaViewport',
+				JSON.stringify({ x: 137, y: -42, zoom: 0.5 })
+			)
+		);
+		await page.reload();
+		await expect(viewport).toBeVisible({ timeout: 15000 });
+		await expect.poll(shownViewport).toEqual([137, -42, 0.5]);
+
+		const pane = await page.locator('.svelte-flow__pane').first().boundingBox();
+		if (!pane) throw new Error('The schema canvas has no pane');
+		await page.mouse.move(pane.x + pane.width / 2, pane.y + pane.height / 2);
+		await page.mouse.wheel(0, -400);
+
+		await expect
+			.poll(
+				async () =>
+					/** @type {{ zoom: number }} */ (await readPersisted(page, 'networkSchemaViewport')).zoom
+			)
+			.toBeGreaterThan(0.5);
+		// The canvas transform is serialized with rounded numbers; compare at canvas precision.
+		const rounded = (/** @type {number[]} */ values) =>
+			values.map((n) => Math.round(n * 100) / 100);
+		const shown = rounded(await shownViewport());
+		await expect
+			.poll(async () => {
+				const saved = /** @type {{ x: number, y: number, zoom: number }} */ (
+					await readPersisted(page, 'networkSchemaViewport')
+				);
+				return rounded([saved.x, saved.y, saved.zoom]);
+			})
+			.toEqual(shown);
+	});
+
 	test('edge snapping choice survives a reload', async ({ page }) => {
 		await switchByName(page, 'edge-snapping-switch').click();
 		await expect.poll(() => readPersisted(page, 'edgeSnappingEnabled')).toBe(false);

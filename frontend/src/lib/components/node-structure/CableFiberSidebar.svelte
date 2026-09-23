@@ -27,12 +27,10 @@
 
 	let {
 		nodeUuid,
-		refreshTrigger = 0,
 		isMobile = false,
 		readonly = false
 	}: {
 		nodeUuid?: string;
-		refreshTrigger?: number;
 		isMobile?: boolean;
 		readonly?: boolean;
 	} = $props();
@@ -44,7 +42,6 @@
 	const resizer = new PanelResizeManager({ defaultWidth: 240, side: 'right' });
 
 	let collapsed = $state(false);
-	let lastRefreshTrigger = $state(0);
 	const expandedCables = new SvelteSet<string>();
 	/** Expanded bundles, keyed `cableUuid:bundleNumber`. */
 	const expandedBundles = new SvelteSet<string>();
@@ -164,83 +161,50 @@
 		}
 	}
 
-	$effect(() => {
-		if (nodeUuid) {
-			dataManager.setNodeUuid(nodeUuid);
-			expandedCables.clear();
-			expandedBundles.clear();
-			expandedAddresses.clear();
-			dataManager.fetchCables();
-			dataManager.fetchFiberUsage();
-			dataManager.fetchAddresses();
-			dataManager.fetchResidentialUnitUsage();
-		}
-	});
+	/**
+	 * Loads the cables, addresses and their usage for the node. The drawer is
+	 * re-keyed per feature, so `nodeUuid` is fixed for this sidebar's lifetime.
+	 */
+	function loadNode() {
+		if (!nodeUuid) return;
+		dataManager.setNodeUuid(nodeUuid);
+		dataManager.fetchCables();
+		dataManager.fetchFiberUsage();
+		dataManager.fetchAddresses();
+		dataManager.fetchResidentialUnitUsage();
+	}
 
-	$effect(() => {
-		if (refreshTrigger > lastRefreshTrigger && nodeUuid) {
-			lastRefreshTrigger = refreshTrigger;
+	/**
+	 * A cable was created or deleted in the diagram; reload when it touches this node.
+	 */
+	function handleCableConnectionChanged(event: WindowEventMap['cableConnectionChanged']) {
+		if (nodeUuid && event.detail.nodeIds.includes(nodeUuid)) {
 			dataManager.clearFibersCache();
 			dataManager.fetchCables();
 			dataManager.fetchFiberUsage();
-			dataManager.fetchAddresses();
-			dataManager.fetchResidentialUnitUsage();
 		}
-	});
+	}
 
-	// Listen for cable connection changes from the diagram
-	$effect(() => {
-		function handleCableConnectionChanged(event: WindowEventMap['cableConnectionChanged']) {
-			const detail = event.detail;
-			if ('nodeIds' in detail && nodeUuid && detail.nodeIds.includes(nodeUuid)) {
-				dataManager.clearFibersCache();
-				dataManager.fetchCables();
-				dataManager.fetchFiberUsage();
-			}
-		}
+	function handleFiberSpliceChanged() {
+		if (nodeUuid) dataManager.fetchFiberUsage();
+	}
 
-		window.addEventListener('cableConnectionChanged', handleCableConnectionChanged);
-		return () => {
-			window.removeEventListener('cableConnectionChanged', handleCableConnectionChanged);
-		};
-	});
-
-	// Listen for fiber splice changes to refresh usage indicators
-	$effect(() => {
-		function handleFiberSpliceChanged() {
-			if (nodeUuid) {
-				dataManager.fetchFiberUsage();
-			}
-		}
-
-		window.addEventListener('fiberSpliceChanged', handleFiberSpliceChanged);
-		return () => {
-			window.removeEventListener('fiberSpliceChanged', handleFiberSpliceChanged);
-		};
-	});
-
-	// Listen for residential unit splice changes to refresh usage indicators
-	$effect(() => {
-		function handleResidentialUnitSpliceChanged() {
-			if (nodeUuid) {
-				dataManager.fetchResidentialUnitUsage();
-			}
-		}
-
-		window.addEventListener('residentialUnitSpliceChanged', handleResidentialUnitSpliceChanged);
-		return () => {
-			window.removeEventListener(
-				'residentialUnitSpliceChanged',
-				handleResidentialUnitSpliceChanged
-			);
-		};
-	});
+	function handleResidentialUnitSpliceChanged() {
+		if (nodeUuid) dataManager.fetchResidentialUnitUsage();
+	}
 
 	onMount(() => {
+		loadNode();
 		dataManager.fetchFiberColors();
 		return resizer.listen();
 	});
 </script>
+
+<svelte:window
+	oncableConnectionChanged={handleCableConnectionChanged}
+	onfiberSpliceChanged={handleFiberSpliceChanged}
+	onresidentialUnitSpliceChanged={handleResidentialUnitSpliceChanged}
+/>
 
 {#if isMobile}
 	<div class="space-y-2">

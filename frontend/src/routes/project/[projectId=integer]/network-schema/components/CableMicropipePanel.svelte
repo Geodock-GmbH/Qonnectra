@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Micropipe } from '$lib/classes/CableMicropipeManager.svelte';
-	import { onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
 	import {
@@ -19,17 +19,9 @@
 	import { CableMicropipeManager } from '$lib/classes/CableMicropipeManager.svelte';
 	import { MapState } from '$lib/classes/MapState.svelte';
 	import Map from '$lib/components/Map.svelte';
+	import { syncLayerStyles } from '$lib/map/layerStyleSync';
 	import { createLinkedTrenchStyle, createSelectedStyle } from '$lib/map/styles';
-	import {
-		areaTypeStyles,
-		labelVisibilityConfig,
-		nodeTypeStyles,
-		showCableRoute,
-		trenchColor,
-		trenchConstructionTypeStyles,
-		trenchStyleMode,
-		trenchSurfaceStyles
-	} from '$lib/stores/store';
+	import { showCableRoute } from '$lib/stores/store';
 	import { tooltip } from '$lib/utils/tooltip';
 	import { routeProjectId } from '$lib/context/project';
 
@@ -47,107 +39,28 @@
 		onLinkageChange?: () => void;
 	} = $props();
 
-	const manager = new CableMicropipeManager();
+	const manager = new CableMicropipeManager({
+		onLinkedTrenchesChange: () => cableRouteLayer?.changed()
+	});
 
-	let olMap = $state<import('ol/Map').default | undefined>();
-	let dragBoxInteraction = $state<import('ol/interaction/DragBox').default | undefined>();
-	let selectionLayer = $state<VectorTileLayer | undefined>();
+	let olMap: import('ol/Map').default | undefined;
+	let dragBoxInteraction: import('ol/interaction/DragBox').default | undefined;
+	let selectionLayer: VectorTileLayer | undefined;
 	const selectedFeatureIds = new SvelteSet<string>();
-	let cableRouteLayer = $state<VectorTileLayer | undefined>();
+	let cableRouteLayer: VectorTileLayer | undefined;
 
 	const projectId = routeProjectId();
 	const mapState = new MapState(projectId);
 	const layersInitialized = mapState.initializeLayers();
 
-	let previousCableId = $state<string | null>(null);
+	// DrawerTabs is re-keyed per feature, so `cableId` is fixed for this panel's lifetime.
+	// svelte-ignore state_referenced_locally
+	manager.initialize(cableId, cableName);
 
-	$effect(() => {
-		if (cableId && cableId !== previousCableId) {
-			previousCableId = cableId;
-			manager.initialize(cableId, cableName);
-			selectedFeatureIds.clear();
-			if (selectionLayer) {
-				selectionLayer.changed();
-			}
-			if (cableRouteLayer) {
-				cableRouteLayer.changed();
-			}
-		}
-	});
-
-	$effect(() => {
-		if (cableRouteLayer) {
-			cableRouteLayer.setVisible($showCableRoute);
-		}
-	});
-
-	$effect(() => {
-		const _ = manager.linkedTrenchIds.size;
-		if (cableRouteLayer) {
-			cableRouteLayer.changed();
-		}
-	});
+	onMount(() => syncLayerStyles(mapState));
 
 	onDestroy(() => {
 		cleanup();
-	});
-
-	$effect(() => {
-		const styles = $nodeTypeStyles;
-		if (Object.keys(styles).length > 0) {
-			mapState.updateNodeLayerStyle(styles);
-		}
-	});
-
-	$effect(() => {
-		const mode = $trenchStyleMode;
-		const surfaceStyles = $trenchSurfaceStyles;
-		const constructionTypeStyles = $trenchConstructionTypeStyles;
-		const color = $trenchColor;
-		mapState.updateTrenchLayerStyle(mode, surfaceStyles, constructionTypeStyles, color);
-	});
-
-	$effect(() => {
-		const styles = $areaTypeStyles;
-		if (Object.keys(styles).length > 0) {
-			mapState.updateAreaLayerStyle(styles);
-		}
-	});
-
-	$effect(() => {
-		const config = $labelVisibilityConfig;
-		const mode = $trenchStyleMode;
-		const surfaceStyles = $trenchSurfaceStyles;
-		const constructionTypeStyles = $trenchConstructionTypeStyles;
-		const color = $trenchColor;
-		const nodeStyles = $nodeTypeStyles;
-		const areaStyles = $areaTypeStyles;
-
-		if (config.trench !== undefined) {
-			mapState.updateLabelVisibility('trench', config.trench, {
-				mode,
-				surfaceStyles,
-				constructionTypeStyles,
-				color
-			});
-		}
-		if (config.conduit !== undefined) {
-			mapState.updateLabelVisibility('conduit', config.conduit, {
-				mode,
-				surfaceStyles,
-				constructionTypeStyles,
-				color
-			});
-		}
-		if (config.address !== undefined) {
-			mapState.updateLabelVisibility('address', config.address, {});
-		}
-		if (config.node !== undefined) {
-			mapState.updateLabelVisibility('node', config.node, { nodeTypeStyles: nodeStyles });
-		}
-		if (config.area !== undefined) {
-			mapState.updateLabelVisibility('area', config.area, { areaTypeStyles: areaStyles });
-		}
 	});
 
 	async function handleMapReady({ map }: { map: import('ol/Map').default }) {
@@ -266,6 +179,15 @@
 		map.addInteraction(dragBoxInteraction);
 	}
 
+	/**
+	 * Shows or hides the cable route highlight and remembers the choice.
+	 * @param visible - Whether the linked trenches are highlighted.
+	 */
+	function setCableRouteVisible(visible: boolean) {
+		$showCableRoute = visible;
+		cableRouteLayer?.setVisible(visible);
+	}
+
 	function syncSelectionToManager() {
 		const ids = Array.from(selectedFeatureIds);
 		manager.handleTrenchSelection(ids);
@@ -343,7 +265,7 @@
 						<Switch
 							name="showCableRoute"
 							checked={$showCableRoute}
-							onCheckedChange={(e) => ($showCableRoute = e.checked)}
+							onCheckedChange={(e) => setCableRouteVisible(e.checked)}
 						>
 							<Switch.Control>
 								<Switch.Thumb />

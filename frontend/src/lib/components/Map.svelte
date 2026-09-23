@@ -146,6 +146,7 @@
 	let map = $state<OlMap | undefined>();
 	let osmLayer = $state<TileLayer | undefined>();
 	let usingFallbackOSM = $state(false);
+	let stopBasemapSync = () => {};
 
 	/** The view a map shows before anything else is known. */
 	const DEFAULT_VIEW: MapView = { zoom: 2, center: [0, 0] };
@@ -362,8 +363,14 @@
 		const tileServerIsAvailable = TILE_SERVER_URL ? await checkTileServerHealth() : false;
 
 		if (tileServerIsAvailable) {
-			const theme = browser ? $basemapTheme : 'light';
-			await applyVectorTileStyle(map, theme);
+			let appliedTheme = get(basemapTheme);
+			await applyVectorTileStyle(map, appliedTheme);
+			// A theme switch restyles the basemap, unless styling failed and OSM took over.
+			stopBasemapSync = basemapTheme.subscribe((theme) => {
+				if (!map || usingFallbackOSM || theme === appliedTheme) return;
+				appliedTheme = theme;
+				void applyVectorTileStyle(map, theme);
+			});
 		} else {
 			await setupFallbackOSM(map);
 		}
@@ -393,14 +400,8 @@
 		map.on('click', (e) => onclick(e as MapBrowserEvent<PointerEvent>));
 	});
 
-	$effect(() => {
-		if (map && browser && !usingFallbackOSM && TILE_SERVER_URL) {
-			const theme = $basemapTheme;
-			applyVectorTileStyle(map, theme);
-		}
-	});
-
 	onDestroy(() => {
+		stopBasemapSync();
 		clearTimeout(hashWriteTimer);
 		tileLoadingManager.cancelAllRequests();
 		getWorkerPool().cancelAllRequests();

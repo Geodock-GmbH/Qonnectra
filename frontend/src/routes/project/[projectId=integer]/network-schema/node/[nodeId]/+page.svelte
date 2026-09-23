@@ -18,6 +18,7 @@
 	import {
 		cableDirectionAnimationEnabled,
 		edgeSnappingEnabled,
+		networkSchemaChildViewport,
 		networkSchemaDisplayOptionsExpanded,
 		networkSchemaPanelExpanded
 	} from '$lib/stores/store';
@@ -37,7 +38,6 @@
 	import NetworkSchemaControls from '../../components/NetworkSchemaControls.svelte';
 	import NetworkSchemaEditModeBadge from '../../components/NetworkSchemaEditModeBadge.svelte';
 	import NetworkSchemaSearch from '../../components/NetworkSchemaSearch.svelte';
-	import ViewportPersistence from '../../components/ViewportPersistence.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -185,8 +185,9 @@
 			elevateEdgesOnSelect={true}
 			onnodedragstop={(e) => schemaState.handleNodeDragStop(e)}
 			onconnect={(conn) => schemaState.handleConnect(conn, routeProjectId())}
+			initialViewport={$networkSchemaChildViewport}
+			onmoveend={(_event, viewport) => ($networkSchemaChildViewport = viewport)}
 		>
-			<ViewportPersistence isChildView={true} />
 			<Background class="z-0" bgColor="var(--color-surface-100-900)" />
 			<NetworkSchemaControls />
 			<NetworkSchemaEditModeBadge />

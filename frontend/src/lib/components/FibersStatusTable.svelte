@@ -34,19 +34,15 @@
 
 	const HEALTHY_VALUE = 'healthy';
 
-	let statusValues = $state<Record<string, Array<string | number>>>({});
-
 	/** Expanded bundle numbers */
 	const expandedBundles = new SvelteSet<number>();
 
-	$effect(() => {
-		const newValues: Record<string, Array<string | number>> = {};
-		for (const fiber of fibers) {
-			newValues[fiber.uuid] =
-				fiber.fiber_status?.id != null ? [fiber.fiber_status.id] : [HEALTHY_VALUE];
-		}
-		statusValues = newValues;
-	});
+	/**
+	 * The combobox selection for a fiber: its status id, or the healthy option.
+	 */
+	function statusValue(fiber: Fiber): Array<string | number> {
+		return fiber.fiber_status?.id != null ? [fiber.fiber_status.id] : [HEALTHY_VALUE];
+	}
 
 	/**
 	 * Group fibers by bundle number
@@ -173,7 +169,7 @@
 										<td>
 											<GenericCombobox
 												data={statusComboboxData}
-												bind:value={statusValues[fiber.uuid]}
+												value={statusValue(fiber)}
 												onValueChange={(e: { value: Array<string | number> }) =>
 													handleComboboxChange(fiber, e)}
 												placeholder={m.form_status()}

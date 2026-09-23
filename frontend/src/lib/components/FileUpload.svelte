@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { FileUpload } from '@skeletonlabs/skeleton-svelte';
 	import { IconFile, IconUpload } from '@tabler/icons-svelte';
 	import { PUBLIC_API_URL } from '$env/static/public';
@@ -21,12 +22,17 @@
 	let { featureType, featureId, onUploadComplete }: FileUploadProps = $props();
 
 	let isUploading = $state(false);
-	let contentTypeError = $state<string | null>(null);
+	let loadError = $state<string | null>(null);
 
 	let contentTypesLoaded = $state(false);
 	let maxFileSize = $state(50 * 1024 * 1024);
 
 	const contentTypeId = $derived(contentTypesLoaded ? getContentTypeId(featureType) : null);
+
+	const contentTypeError = $derived(
+		loadError ??
+			(contentTypesLoaded && !contentTypeId ? `Invalid feature type: ${featureType}` : null)
+	);
 
 	/**
 	 * Load content types from the API
@@ -46,24 +52,12 @@
 					stack: error instanceof Error ? error.stack : undefined
 				}
 			});
-			contentTypeError = 'Failed to load content types';
+			loadError = 'Failed to load content types';
 		}
 	}
 
-	/**
-	 * Validate contentTypeId whenever it changes
-	 */
-	$effect(() => {
-		if (contentTypesLoaded && !contentTypeId) {
-			console.warn(`No ContentType ID found for feature type: ${featureType}`);
-			contentTypeError = `Invalid feature type: ${featureType}`;
-		} else if (contentTypesLoaded && contentTypeId) {
-			contentTypeError = null;
-		}
-	});
-
 	function retryLoadContentTypes() {
-		contentTypeError = null;
+		loadError = null;
 		contentTypesLoaded = false;
 		loadContentTypes();
 	}
@@ -145,11 +139,7 @@
 		}
 	}
 
-	$effect(() => {
-		if (featureId && featureType && !contentTypesLoaded) {
-			loadContentTypes();
-		}
-	});
+	onMount(loadContentTypes);
 </script>
 
 <div class="flex flex-col gap-4 p-4">

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { IFuseOptions } from 'fuse.js';
+	import { on } from 'svelte/events';
 	import Fuse from 'fuse.js';
 
 	interface ComboboxItem {
@@ -119,22 +120,25 @@
 		});
 	}
 
-	/** Attach/detach scroll and resize listeners when dropdown is open in fixed mode. */
-	$effect(() => {
-		if (isOpen && !renderInPlace) {
-			updateFixedPosition();
-			window.addEventListener('scroll', throttledUpdateFixedPosition, true);
-			window.addEventListener('resize', throttledUpdateFixedPosition);
-			return () => {
-				window.removeEventListener('scroll', throttledUpdateFixedPosition, true);
-				window.removeEventListener('resize', throttledUpdateFixedPosition);
-				if (rafId) {
-					cancelAnimationFrame(rafId);
-					rafId = 0;
-				}
-			};
-		}
-	});
+	/**
+	 * Keeps the fixed-position dropdown under the input while the page scrolls or
+	 * resizes; an in-place dropdown scrolls with the page on its own. Attached to
+	 * the dropdown, so it lives exactly as long as it is open.
+	 * @returns Removes the listeners and drops a pending frame; nothing for an in-place dropdown.
+	 */
+	function followInput(): (() => void) | undefined {
+		if (renderInPlace) return;
+		const stopScroll = on(window, 'scroll', throttledUpdateFixedPosition, { capture: true });
+		const stopResize = on(window, 'resize', throttledUpdateFixedPosition);
+		return () => {
+			stopScroll();
+			stopResize();
+			if (rafId) {
+				cancelAnimationFrame(rafId);
+				rafId = 0;
+			}
+		};
+	}
 
 	/* ── Open / close / selection ── */
 
@@ -331,6 +335,7 @@
 		{#if isOpen}
 			<div
 				class="z-50 mt-1 rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg"
+				{@attach followInput}
 				style={!renderInPlace
 					? `position: fixed; top: ${fixedPosition.top}px; left: ${fixedPosition.left}px; width: ${fixedPosition.width}px;`
 					: 'position: absolute; left: 0; right: 0;'}

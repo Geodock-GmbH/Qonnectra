@@ -98,6 +98,17 @@ describe('initialize', () => {
 
 		expect(manager.linkedTrenchIds.size).toBe(0);
 	});
+
+	test('should report every change of the linked trenches so the map can redraw', async () => {
+		getLinkedTrenchesForCable.mockResolvedValue(['t1']);
+		const seen: string[][] = [];
+		const manager = new CableMicropipeManager({
+			onLinkedTrenchesChange: () => seen.push([...manager.linkedTrenchIds])
+		});
+
+		manager.initialize('cable-1', 'K-Nord');
+		await vi.waitFor(() => expect(seen).toEqual([[], ['t1']]));
+	});
 });
 
 describe('handleTrenchSelection', () => {

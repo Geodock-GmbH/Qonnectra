@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 
 import { render, screen } from '@testing-library/svelte';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, test, vi } from 'vitest';
 
 import GenericCombobox from './GenericCombobox.svelte';
@@ -37,5 +38,23 @@ describe('GenericCombobox preselection', () => {
 	test('leaves the input empty when nothing is preselected', async () => {
 		render(GenericCombobox, { props: { data, value: [] } });
 		expect(await inputValue()).toBe('');
+	});
+});
+
+describe('GenericCombobox search', () => {
+	test('shows every option again when reopened after a search', async () => {
+		const user = userEvent.setup();
+		render(GenericCombobox, { props: { data, value: [] } });
+		const input = (await screen.findAllByRole('combobox'))[0];
+		const toggle = screen.getByRole('button', { name: 'Toggle suggestions' });
+
+		await user.click(toggle);
+		await user.type(input, '32');
+		await vi.waitFor(() => expect(screen.getAllByRole('option')).toHaveLength(1));
+
+		await user.click(toggle);
+		await user.click(toggle);
+
+		await vi.waitFor(() => expect(screen.getAllByRole('option')).toHaveLength(2));
 	});
 });

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { ContainerNode, Hierarchy, SlotConfig } from './containerItemTypes';
 	import type { SharedSlotState } from '$lib/classes/NodeStructureContext.svelte.js';
+	import { onMount } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import { IconCheck, IconDownload, IconFolder, IconPlus, IconX } from '@tabler/icons-svelte';
 
@@ -147,7 +148,8 @@
 		return configs;
 	}
 
-	$effect(() => {
+	// The drawer is re-keyed per feature, so `nodeUuid` is fixed for this panel's lifetime.
+	onMount(() => {
 		fetchContainerTypes();
 		fetchHierarchy();
 	});

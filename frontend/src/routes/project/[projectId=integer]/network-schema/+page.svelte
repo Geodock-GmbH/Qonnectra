@@ -19,7 +19,8 @@
 		cableDirectionAnimationEnabled,
 		edgeSnappingEnabled,
 		networkSchemaDisplayOptionsExpanded,
-		networkSchemaPanelExpanded
+		networkSchemaPanelExpanded,
+		networkSchemaViewport
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { closeFeature, onFeatureChange, queryFeature } from '$lib/utils/urlState';
@@ -37,7 +38,6 @@
 	import NetworkSchemaControls from './components/NetworkSchemaControls.svelte';
 	import NetworkSchemaEditModeBadge from './components/NetworkSchemaEditModeBadge.svelte';
 	import NetworkSchemaSearch from './components/NetworkSchemaSearch.svelte';
-	import ViewportPersistence from './components/ViewportPersistence.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -58,7 +58,8 @@
 	const schemaState = new NetworkSchemaState();
 	const searchManager = new NetworkSchemaSearchManager(schemaState);
 
-	$effect(() => {
+	// `data` only changes with the project, and a project change reloads the page (see below).
+	onMount(() => {
 		schemaState.isChildView = false;
 		schemaState.initialize(data as unknown as NetworkSchemaInitData);
 	});
@@ -212,8 +213,9 @@
 			elevateEdgesOnSelect={true}
 			onnodedragstop={(e) => schemaState.handleNodeDragStop(e)}
 			onconnect={(conn) => schemaState.handleConnect(conn, routeProjectId())}
+			initialViewport={$networkSchemaViewport}
+			onmoveend={(_event, viewport) => ($networkSchemaViewport = viewport)}
 		>
-			<ViewportPersistence />
 			<Background class="z-0" bgColor="var(--color-surface-100-900) " />
 			<NetworkSchemaControls />
 			<NetworkSchemaEditModeBadge />
