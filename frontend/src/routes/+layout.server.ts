@@ -22,7 +22,6 @@ export const load: LayoutServerLoad = async ({ locals, fetch, cookies, depends }
 		? await loadReferenceData(fetch, getAuthHeaders(cookies))
 		: EMPTY_REFERENCE_DATA;
 
-	// A preference for landing and global-page defaults, never navigation state.
 	const rememberedProject =
 		validRememberedProject(cookies.get(LAST_PROJECT_COOKIE), reference.projects) ??
 		reference.projects[0]?.value ??

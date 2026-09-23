@@ -32,11 +32,8 @@ const paraglideHandle: Handle = ({ event, resolve }) =>
  *
  * Per-request budget: at most one session lookup, answered from the in-memory
  * session cache for 30 s per access token (`resolveSession`), so a burst of
- * remote-function calls costs Django nothing after the first. The root layout
- * load reads nothing from the URL, so a same-route query change (`?page=`,
- * `?feature=`, `?tab=`) triggers zero layout fetches and, on a page without
- * a server `load`, no `__data.json` request at all. This hook is the single
- * auth gate; layout loads do not guard again.
+ * remote-function calls costs Django nothing after the first. This hook is
+ * the single auth gate; layout loads do not guard again.
  */
 export async function handleAuth({ event, resolve }: Parameters<Handle>[0]) {
 	const user = await resolveSession(event);

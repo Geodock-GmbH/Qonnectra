@@ -25,9 +25,9 @@
 	const remembered = getRememberedProject();
 
 	/**
-	 * The project the record is created in: the remembered project as a form
-	 * default on this global page, never navigation state. Live, so picking
-	 * another project in the app bar changes it without a navigation.
+	 * The project the record is created in, defaulting to the remembered one.
+	 * Live, so picking another project in the app bar changes it without a
+	 * navigation.
 	 */
 	const activeProject = $derived(defaultProject(remembered.id, projects));
 

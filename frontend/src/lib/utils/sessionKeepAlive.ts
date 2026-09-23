@@ -41,7 +41,7 @@ function cadenceFor(expiresInMs: number | undefined): number {
 /**
  * Tells the user the session is over and sends them to the login page with the
  * current URL as the return target, so logging back in lands on the same
- * project, feature and tab. The map view is not carried across: ticket 11's
+ * project, feature and tab. The map view is not carried across: the
  * per-project stored view restores it.
  */
 async function handleSessionExpired(): Promise<void> {

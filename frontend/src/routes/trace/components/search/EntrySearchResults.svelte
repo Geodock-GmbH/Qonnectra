@@ -25,9 +25,9 @@
 	const remembered = getRememberedProject();
 
 	/**
-	 * The project searched on this global page: the remembered project as a
-	 * default, never navigation state. Live, so picking another project in the
-	 * app bar re-runs the search without a navigation.
+	 * The project searched on this global page, defaulting to the remembered
+	 * one. Live, so picking another project in the app bar re-runs the search
+	 * without a navigation.
 	 */
 	const projectId = $derived(defaultProject(remembered.id, page.data.projects ?? [])?.value ?? '');
 

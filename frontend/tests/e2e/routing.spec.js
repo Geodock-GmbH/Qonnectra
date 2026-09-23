@@ -3,9 +3,9 @@ import { expect, test } from '@playwright/test';
 import { loginOrSkip, submitLoginForm } from './helpers/auth.js';
 import { getProjectId, gotoProjectRoute, projectIdFromUrl, projectPath } from './helpers/routes.js';
 
-/**
- * The contract of the URL-first epic: the URL alone says where you are, no
- * server redirect fills in a project, and legacy shapes are gone.
+/*
+ * The URL alone says where you are: no server redirect fills in a project,
+ * and a project page outside `/project/{id}/` is a 404.
  */
 
 /**

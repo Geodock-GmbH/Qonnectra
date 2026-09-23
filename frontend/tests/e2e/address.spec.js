@@ -85,7 +85,6 @@ test.describe('Address list page', () => {
 		test.skip(rowCount < 1, 'No address rows available to open');
 
 		await desktopRows(page).first().click();
-		// Detail route is /project/<projectId>/address/<uuid>.
 		await page.waitForURL(/\/project\/\d+\/address\/[0-9a-f-]{36}$/, { timeout: 10000 });
 	});
 

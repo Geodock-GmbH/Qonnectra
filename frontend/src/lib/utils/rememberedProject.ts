@@ -47,7 +47,7 @@ export function lastProjectCookie(id: string, secure: boolean): string {
 /**
  * The project a global page uses as a default for a form or a map: the
  * remembered project when it is one of the user's projects, else their first
- * project. A default, never navigation state.
+ * project.
  * @param id - The remembered project id, or null when none is remembered.
  * @param projects - The projects the user may see.
  * @returns The project option, or null when the user has no projects.

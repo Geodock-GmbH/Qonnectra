@@ -19,12 +19,12 @@ vi.mock('$lib/paraglide/messages', () => ({
 /**
  * Renders on the server, where there is no `window`. This runs in the node
  * test project, so a component reaching for `window` throws here exactly as
- * it does during SSR -- which is the only place this class of bug shows up.
+ * it does during SSR.
  */
 describe('Drawer on the server', () => {
 	// `innerWidth` is unknown server-side, so the component takes its mobile
-	// branch and renders the bottom sheet. That branch used to read
-	// `window.innerHeight`, which 500ed every deep link that opens a drawer.
+	// branch and renders the bottom sheet; any `window` access there 500s
+	// every deep link that opens a drawer.
 	test('should render the drawer markup so a deep link is not an empty page', () => {
 		const { body } = render(Drawer, {
 			props: { open: true, title: 'Grabendetails', onclose: () => {} }

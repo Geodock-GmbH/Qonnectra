@@ -26,6 +26,8 @@
 	}
 
 	/**
+	 * Reads the cable type's label, which the backend sends either as a nested
+	 * type record or as the bare label.
 	 * @param cable - The cable record.
 	 * @returns The cable type's label, or undefined when it has none.
 	 */

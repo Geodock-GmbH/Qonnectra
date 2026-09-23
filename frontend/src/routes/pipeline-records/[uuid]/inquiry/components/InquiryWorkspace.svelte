@@ -35,8 +35,7 @@
 
 	let { recordUuid }: { recordUuid: string } = $props();
 
-	// A global page: the map shows the remembered project as a default, never
-	// as navigation state.
+	// A global page: the map defaults to the remembered project.
 	const remembered = getRememberedProject();
 	// svelte-ignore state_referenced_locally
 	const mapProject = defaultProject(remembered.id, page.data.projects ?? [])?.value ?? '';
