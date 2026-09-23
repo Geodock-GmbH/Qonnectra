@@ -31,7 +31,9 @@
 
 	const contentTypeError = $derived(
 		loadError ??
-			(contentTypesLoaded && !contentTypeId ? `Invalid feature type: ${featureType}` : null)
+			(contentTypesLoaded && !contentTypeId
+				? m.message_error_invalid_feature_type({ featureType })
+				: null)
 	);
 
 	/**
@@ -52,7 +54,7 @@
 					stack: error instanceof Error ? error.stack : undefined
 				}
 			});
-			loadError = 'Failed to load content types';
+			loadError = m.message_error_loading_content_types();
 		}
 	}
 
@@ -74,7 +76,7 @@
 		if (selectedFiles.length === 0) {
 			globalToaster.warning({
 				title: m.common_error(),
-				description: 'Please select files to upload'
+				description: m.message_error_no_files_selected()
 			});
 			return;
 		}
@@ -82,7 +84,7 @@
 		if (!contentTypeId) {
 			globalToaster.error({
 				title: m.common_error(),
-				description: 'Invalid feature type'
+				description: m.message_error_invalid_feature_type({ featureType })
 			});
 			return;
 		}
@@ -105,7 +107,9 @@
 
 				if (!response.ok) {
 					const errorData = await response.json().catch(() => ({}));
-					throw new Error(errorData.detail || `Failed to upload ${file.name}`);
+					throw new Error(
+						errorData.detail || m.message_error_uploading_file({ fileName: file.name })
+					);
 				}
 			}
 
@@ -132,7 +136,7 @@
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: error instanceof Error ? error.message : 'Failed to upload files'
+				description: error instanceof Error ? error.message : m.message_error_uploading_files()
 			});
 		} finally {
 			isUploading = false;
@@ -146,13 +150,13 @@
 	<!-- Loading State -->
 	{#if !contentTypesLoaded && !contentTypeError}
 		<div class="text-center py-8 text-surface-500">
-			<p>Loading...</p>
+			<p>{m.common_loading()}</p>
 		</div>
 	{:else if contentTypeError}
 		<div class="text-center py-8 text-error-500 space-y-2">
-			<p>Unable to load file upload. {contentTypeError}</p>
+			<p>{m.message_error_file_upload_unavailable({ error: contentTypeError })}</p>
 			<button type="button" onclick={retryLoadContentTypes} class="btn preset-filled-primary-500">
-				Retry
+				{m.common_retry()}
 			</button>
 		</div>
 	{:else}
@@ -198,12 +202,13 @@
 									class="btn preset-filled-primary-500 w-full"
 								>
 									{#if isUploading}
-										<span>Uploading...</span>
+										<span>{m.common_uploading()}</span>
 									{:else}
 										<IconUpload size={16} />
 										<span
-											>Upload {fileUpload().acceptedFiles.length}x
-											{m.form_files({ count: fileUpload().acceptedFiles.length })}</span
+											>{m.action_upload_file_count({
+												count: fileUpload().acceptedFiles.length
+											})}</span
 										>
 									{/if}
 								</button>

@@ -15,7 +15,8 @@ vi.mock('$lib/paraglide/messages', () => ({
 	m: new Proxy(
 		{},
 		{
-			get: (_target, prop: string) => () => `${prop}`
+			get: (_target, prop: string) => (args?: Record<string, unknown>) =>
+				args ? `${prop} ${JSON.stringify(args)}` : prop
 		}
 	)
 }));
@@ -66,17 +67,19 @@ describe('FileUpload', () => {
 	test('should show an error with retry for unsupported feature types', async () => {
 		render(FileUpload, { featureType: 'spaceship', featureId: 'x-1' });
 
-		expect(await screen.findByText(/Invalid feature type: spaceship/)).toBeInTheDocument();
-		expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+		expect(
+			await screen.findByText(/message_error_invalid_feature_type.*spaceship/)
+		).toBeInTheDocument();
+		expect(screen.getByRole('button', { name: 'common_retry' })).toBeInTheDocument();
 	});
 
 	test('should retry loading content types on click', async () => {
 		const user = userEvent.setup();
 		render(FileUpload, { featureType: 'spaceship', featureId: 'x-1' });
-		await screen.findByRole('button', { name: 'Retry' });
+		await screen.findByRole('button', { name: 'common_retry' });
 		const callsBefore = vi.mocked(fetchContentTypes).mock.calls.length;
 
-		await user.click(screen.getByRole('button', { name: 'Retry' }));
+		await user.click(screen.getByRole('button', { name: 'common_retry' }));
 
 		expect(vi.mocked(fetchContentTypes).mock.calls.length).toBeGreaterThan(callsBefore);
 	});

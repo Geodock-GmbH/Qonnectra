@@ -70,6 +70,16 @@
 	"action_trace": "Trace",
 	"action_unassign": "Unassign",
 	"action_unmerge": "Unmerge",
+	"action_upload_file_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Upload {count} file",
+				"countPlural=other": "Upload {count} files"
+			}
+		}
+	],
 	"action_upload_files": "Upload",
 	"action_view_slot_configuration": "View Slot Configuration",
 	"action_view_structure": "View Structure",
@@ -137,6 +147,7 @@
 	"common_searching": "Searching...",
 	"common_selected": "Selected",
 	"common_unknown": "Unknown",
+	"common_uploading": "Uploading...",
 	"common_warning": "Warning",
 	"common_will_be_deleted": "will be deleted",
 	"common_yes": "Yes",
@@ -273,16 +284,6 @@
 	"form_fiber_connections": "fiber connections",
 	"form_fiber_splices": "Fiber splices",
 	"form_fibers": "Fibers",
-	"form_files": [
-		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
-			"match": {
-				"countPlural=one": "File",
-				"countPlural=other": "Files"
-			}
-		}
-	],
 	"form_flag": "Flag",
 	"form_floor": "Floor",
 	"form_free_slots": "Free",
@@ -504,6 +505,7 @@
 	"message_error_deleting_conduit": "Error deleting conduit",
 	"message_error_deleting_container": "Failed to delete container",
 	"message_error_deleting_divider": "Failed to delete divider",
+	"message_error_deleting_file": "Failed to delete file",
 	"message_error_deleting_node": "Failed to delete node",
 	"message_error_deleting_residential_unit": "Failed to delete residential unit",
 	"message_error_deleting_slot_configuration": "Error deleting slot configuration",
@@ -512,6 +514,7 @@
 	"message_error_deleting_trench_connection": "Error deleting trench connection",
 	"message_error_downloading_pdf": "Error generating PDF",
 	"message_error_duplicate_conduit": "A conduit with that name already exists",
+	"message_error_empty_file_name": "File name cannot be empty",
 	"message_error_exporting_excel": "Failed to export Excel file",
 	"message_error_fetching_conduit": "Error fetching conduit details",
 	"message_error_fetching_flags_no_flags": "No flags available",
@@ -522,18 +525,24 @@
 	"message_error_fetching_slot_configurations": "Error fetching slot configurations",
 	"message_error_fetching_structures": "Error fetching structures",
 	"message_error_fetching_trenches": "Error fetching trenches",
+	"message_error_file_upload_unavailable": "Unable to load file upload. {error}",
 	"message_error_go_back_home": "Go back home",
 	"message_error_highlighting_trenches": "Error highlighting trenches",
+	"message_error_invalid_feature_type": "Invalid feature type: {featureType}",
+	"message_error_loading_content_types": "Failed to load content types",
 	"message_error_loading_data": "Error loading data",
+	"message_error_loading_files": "Failed to load files",
 	"message_error_loading_node_details": "Could not load node details",
 	"message_error_moving_item": "Failed to move item",
 	"message_error_no_cable_type_selected": "No cable type selected",
 	"message_error_no_cables_found": "No cable types available",
+	"message_error_no_files_selected": "Please select files to upload",
 	"message_error_no_matching_microducts": "No matching microducts available for connection",
 	"message_error_not_enough_slots": "Not enough slots available",
 	"message_error_placing_component": "Failed to place component",
 	"message_error_regenerating_id": "Error regenerating the address ID.",
 	"message_error_regenerating_residential_unit_id": "Failed to regenerate residential unit ID.",
+	"message_error_renaming_file": "Failed to rename file",
 	"message_error_saving_cable_label": "Failed to save cable label",
 	"message_error_saving_clip_number": "Failed to save clip number",
 	"message_error_saving_data": "Error saving data",
@@ -548,6 +557,8 @@
 	"message_error_updating_node": "Error updating node",
 	"message_error_updating_residential_unit": "Failed to update residential unit",
 	"message_error_updating_slot_configuration": "Error updating slot configuration",
+	"message_error_uploading_file": "Failed to upload {fileName}",
+	"message_error_uploading_files": "Failed to upload files",
 	"message_failed_to_create_connections": "Failed to create connections",
 	"message_fault_select_trench": "Click on a trench on the map to set a damage point",
 	"message_fault_simulation_error": "Simulation error",
@@ -643,6 +654,7 @@
 	"message_success_deleting_cable": "Cable deleted successfully",
 	"message_success_deleting_conduit": "Conduit deleted successfully",
 	"message_success_deleting_container": "Container deleted successfully",
+	"message_success_deleting_file": "File deleted successfully",
 	"message_success_deleting_node": "Node deleted successfully",
 	"message_success_deleting_residential_unit": "Residential unit deleted successfully",
 	"message_success_deleting_slot_configuration": "Slot configuration deleted successfully",
@@ -655,6 +667,7 @@
 	"message_success_placing_components": "Successfully placed {count} components",
 	"message_success_regenerating_id": "Address ID successfully regenerated.",
 	"message_success_regenerating_residential_unit_id": "Residential unit ID successfully regenerated.",
+	"message_success_renaming_file": "File renamed successfully",
 	"message_success_saving_cable_label": "Cable label saved successfully",
 	"message_success_saving_trench_selections": "Trench selections saved successfully",
 	"message_success_unassigned_node": "Node unassigned successfully",
