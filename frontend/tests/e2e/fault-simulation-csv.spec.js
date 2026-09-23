@@ -256,16 +256,12 @@ test.describe('Fault simulation damage in the URL', () => {
 		test.skip(!trench?.firstCoordinate, 'Needs a trench with a geometry in the project');
 		const [x, y] = /** @type {number[]} */ (trench?.firstCoordinate);
 
-		const simulationRequest = page.waitForRequest(
-			(req) => req.url().includes('/_app/remote/') && req.url().includes('simulateFault'),
-			{ timeout: 15000 }
-		);
 		await page.goto(
 			projectPath(id, 'fault-simulation', { damage: `${Math.round(x)},${Math.round(y)}` })
 		);
-		await simulationRequest;
 
-		// The report names the damaged trench, or the backend refused the point.
+		// The simulation may run during SSR or in the browser; either way the
+		// report names the damaged trench, or the backend refused the point.
 		await expect(
 			page
 				.getByText(/** @type {ListedFeature} */ (trench).label)

@@ -181,8 +181,15 @@ describe('Valuation page', () => {
 		);
 	});
 
+	test('should keep the selection in the URL when the page loads', async () => {
+		await renderCalculatedPage();
+
+		expect(goto).not.toHaveBeenCalled();
+	});
+
 	test('should drop the selection from the URL when the global view is toggled', async () => {
 		await renderCalculatedPage();
+		expect(goto).not.toHaveBeenCalled();
 
 		globalMapView.set(true);
 

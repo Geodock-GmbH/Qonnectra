@@ -13,9 +13,16 @@
 
 	const valuation = setValuationState(new ValuationState());
 
-	// Another project or scope starts from a clean valuation.
+	// Another project or scope starts from a clean valuation. A store subscription
+	// reports the current value at once; only a later toggle is a change of scope.
 	onProjectChange(() => valuation.reset());
-	onMount(() => globalMapView.subscribe(() => valuation.reset()));
+	onMount(() => {
+		let initial = true;
+		return globalMapView.subscribe(() => {
+			if (initial) initial = false;
+			else void valuation.reset();
+		});
+	});
 </script>
 
 <svelte:head>
