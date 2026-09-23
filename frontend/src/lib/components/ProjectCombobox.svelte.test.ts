@@ -139,6 +139,5 @@ describe('ProjectCombobox', () => {
 
 		expect(goto).not.toHaveBeenCalled();
 		expect(document.cookie).toContain('last-project=9');
-		expect(document.cookie).not.toContain('selected-project');
 	});
 });

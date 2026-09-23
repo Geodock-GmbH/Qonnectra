@@ -12,9 +12,6 @@ import { resolveSession } from '$lib/server/session';
 /** Routes accessible without authentication. */
 export const PUBLIC_ROUTES = ['/login'];
 
-/** The cookie that used to carry the project before it moved into the URL. */
-const LEGACY_PROJECT_COOKIE = 'selected-project';
-
 /**
  * SvelteKit handle hook that applies Paraglide i18n middleware and injects the locale into HTML.
  */
@@ -44,10 +41,6 @@ const paraglideHandle: Handle = ({ event, resolve }) =>
 export async function handleAuth({ event, resolve }: Parameters<Handle>[0]) {
 	const user = await resolveSession(event);
 	event.locals.user = user;
-
-	if (event.cookies.get(LEGACY_PROJECT_COOKIE)) {
-		event.cookies.delete(LEGACY_PROJECT_COOKIE, { path: '/' });
-	}
 
 	// A remote call carries the URL of the page that made it, so it would be
 	// redirected like that page. Remote functions authenticate against Django

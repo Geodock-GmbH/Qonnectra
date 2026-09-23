@@ -271,17 +271,6 @@ describe('handleAuth: session', () => {
 		expect(event.fetch).not.toHaveBeenCalled();
 		expect((event.locals.user as unknown as Record<string, unknown>).isAuthenticated).toBe(false);
 	});
-
-	test('expires the legacy selected-project cookie once', async () => {
-		const { event } = makeEvent({
-			cookies: { 'api-access-token': 'good', 'selected-project': '3' }
-		});
-		mockDjango(event, {});
-
-		await handleAuth({ event, resolve });
-
-		expect(event.cookies.delete).toHaveBeenCalledWith('selected-project', { path: '/' });
-	});
 });
 
 describe('handleAuth: unauthenticated', () => {
