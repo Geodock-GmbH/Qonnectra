@@ -3,6 +3,7 @@ import { command } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';
 
+import { failFromResponse } from '$lib/remote/shared/backend-error';
 import { djangoHeaders } from '$lib/remote/shared/remote-auth';
 
 const WaypointSchema = v.object({
@@ -31,10 +32,7 @@ export const saveCableGeometry = command(SaveGeometrySchema, async ({ cableId, d
 		body: JSON.stringify({ diagram_path: diagramPath })
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to update cable path`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to update cable path');
 
 	return (await response.json()) as CableData;
 });

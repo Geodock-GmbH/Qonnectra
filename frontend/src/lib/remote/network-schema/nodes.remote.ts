@@ -2,6 +2,7 @@ import { command, query } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';
 
+import { failFromResponse } from '$lib/remote/shared/backend-error';
 import { djangoHeaders } from '$lib/remote/shared/remote-auth';
 
 import { fetchNodeDependencies } from './node-dependencies';
@@ -47,9 +48,7 @@ export const getNodeDetails = query(v.pipe(v.string(), v.nonEmpty()), async (uui
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		throw new Error(`HTTP ${response.status}: Failed to load node details`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to load node details');
 
 	return (await response.json()) as Record<string, unknown>;
 });
@@ -78,12 +77,7 @@ export const saveNodeGeometry = command(
 			body: JSON.stringify(updatePayload)
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(
-				errorData.detail || `HTTP ${response.status}: Failed to update node position`
-			);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to update node position');
 
 		return (await response.json()) as Record<string, unknown>;
 	}
@@ -129,10 +123,7 @@ export const updateNode = command(UpdateNodeSchema, async (input) => {
 		body: JSON.stringify(requestBody)
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to update node`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to update node');
 
 	return (await response.json()) as Record<string, unknown>;
 });
@@ -148,8 +139,5 @@ export const deleteNode = command(v.pipe(v.string(), v.nonEmpty()), async (nodeI
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to delete node`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to delete node');
 });

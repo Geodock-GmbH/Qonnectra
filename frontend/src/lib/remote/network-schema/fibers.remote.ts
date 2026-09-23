@@ -4,6 +4,7 @@ import { command, query } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';
 
+import { failFromResponse } from '$lib/remote/shared/backend-error';
 import { djangoHeaders } from '$lib/remote/shared/remote-auth';
 
 interface FiberStatusOption {
@@ -29,10 +30,7 @@ export const getCablesAtNode = query(v.pipe(v.string(), v.nonEmpty()), async (no
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to fetch cables`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to fetch cables');
 
 	return (await response.json()) as Cable[];
 });
@@ -49,10 +47,7 @@ export const getFibersForCable = query(v.pipe(v.string(), v.nonEmpty()), async (
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to fetch fibers`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to fetch fibers');
 
 	return (await response.json()) as Fiber[];
 });
@@ -68,9 +63,7 @@ export const getFiberColors = query(async (): Promise<FiberColor[]> => {
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		throw new Error(`HTTP ${response.status}: Failed to fetch fiber colors`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to fetch fiber colors');
 
 	return (await response.json()) as FiberColor[];
 });
@@ -87,10 +80,7 @@ export const getFiberUsageInNode = query(v.pipe(v.string(), v.nonEmpty()), async
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to fetch fiber usage`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to fetch fiber usage');
 
 	const data = (await response.json()) as {
 		used_uuids?: string[];
@@ -115,10 +105,7 @@ export const getAddressesForNode = query(v.pipe(v.string(), v.nonEmpty()), async
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to fetch addresses`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to fetch addresses');
 
 	const data = (await response.json()) as { addresses?: NodeAddress[] };
 	return (data.addresses ?? []) as NodeAddress[];
@@ -136,12 +123,7 @@ export const getUsedResidentialUnits = query(v.pipe(v.string(), v.nonEmpty()), a
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(
-			errorData.detail || `HTTP ${response.status}: Failed to fetch used residential units`
-		);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to fetch used residential units');
 
 	const data = (await response.json()) as {
 		used_uuids?: string[];
@@ -168,9 +150,7 @@ export const getFiberStatusOptions = query(async (): Promise<FiberStatusOption[]
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		throw new Error(`HTTP ${response.status}: Failed to fetch fiber status options`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to fetch fiber status options');
 
 	return (await response.json()) as FiberStatusOption[];
 });
@@ -191,10 +171,7 @@ export const updateFiberStatus = command(
 			body: JSON.stringify({ fiber_status_id: statusId })
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(errorData.detail || `HTTP ${response.status}: Failed to update fiber status`);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to update fiber status');
 
 		return (await response.json()) as Fiber;
 	}

@@ -516,6 +516,7 @@
 	"message_error_fetching_conduit": "Error fetching conduit details",
 	"message_error_fetching_flags_no_flags": "No flags available",
 	"message_error_fetching_hierarchy": "Failed to fetch hierarchy",
+	"message_error_fetching_micropipes": "Error fetching micropipes",
 	"message_error_fetching_projects_no_projects": "No projects available",
 	"message_error_fetching_select_options": "Error fetching select options",
 	"message_error_fetching_slot_configurations": "Error fetching slot configurations",

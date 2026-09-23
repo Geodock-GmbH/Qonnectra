@@ -13,6 +13,7 @@
 		getCableSplices,
 		getConduitsForCable
 	} from '$lib/remote/network-schema/cables.remote';
+	import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
 
 	import CableAttributeForm from './CableAttributeForm.svelte';
 
@@ -97,8 +98,7 @@
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description:
-					(error instanceof Error ? error.message : null) || m.message_error_deleting_cable()
+				description: remoteErrorMessage(error) || m.message_error_deleting_cable()
 			});
 		}
 	}

@@ -3,6 +3,7 @@ import { command, query } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';
 
+import { failFromResponse } from '$lib/remote/shared/backend-error';
 import { djangoHeaders } from '$lib/remote/shared/remote-auth';
 
 import { fetchCableSplices } from './cable-splices';
@@ -50,9 +51,7 @@ export const getCableDetails = query(v.pipe(v.string(), v.nonEmpty()), async (uu
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		throw new Error(`HTTP ${response.status}: Failed to load cable details`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to load cable details');
 
 	return (await response.json()) as Record<string, unknown>;
 });
@@ -95,12 +94,7 @@ export const createCable = command(CreateCableSchema, async (input): Promise<Cab
 		body: JSON.stringify(requestBody)
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(
-			errorData.detail || errorData.error || `HTTP ${response.status}: Failed to create cable`
-		);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to create cable');
 
 	return (await response.json()) as CableData;
 });
@@ -138,10 +132,7 @@ export const updateCable = command(UpdateCableSchema, async (input): Promise<Cab
 		body: JSON.stringify(requestBody)
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to update cable`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to update cable');
 
 	return (await response.json()) as CableData;
 });
@@ -157,10 +148,7 @@ export const deleteCable = command(v.pipe(v.string(), v.nonEmpty()), async (cabl
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to delete cable`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to delete cable');
 });
 
 /**
@@ -175,10 +163,7 @@ export const getConduitsForCable = query(v.pipe(v.string(), v.nonEmpty()), async
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to fetch conduits`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to fetch conduits');
 
 	const data = (await response.json()) as { conduit_names?: string[] };
 	return (data.conduit_names ?? []) as string[];
@@ -208,12 +193,7 @@ export const recalculateCableLength = command(
 			headers: djangoHeaders()
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(
-				errorData.detail || `HTTP ${response.status}: Failed to recalculate cable length`
-			);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to recalculate cable length');
 
 		const data = (await response.json()) as { length: number; length_total: number };
 		return { length: data.length, length_total: data.length_total };

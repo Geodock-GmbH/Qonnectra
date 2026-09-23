@@ -2,6 +2,7 @@ import type { ComponentType } from '$lib/classes/DragDropManager.svelte';
 import { query } from '$app/server';
 import { API_URL } from '$env/static/private';
 
+import { failFromResponse } from '$lib/remote/shared/backend-error';
 import { djangoHeaders } from '$lib/remote/shared/remote-auth';
 
 /**
@@ -15,9 +16,7 @@ export const getComponentTypes = query(async (): Promise<ComponentType[]> => {
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		throw new Error(`HTTP ${response.status}: Failed to load component types`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to load component types');
 
 	return (await response.json()) as ComponentType[];
 });

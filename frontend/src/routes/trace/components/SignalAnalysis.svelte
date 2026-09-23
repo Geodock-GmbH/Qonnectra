@@ -2,12 +2,10 @@
 	import type {
 		AddressInfo,
 		BreakPoint,
-		FiberInfo,
 		FiberPathNode,
 		FiberWaypoint,
 		ResidentialUnitInfo,
-		SignalAnalysisResult,
-		SpliceInfo
+		SignalAnalysisResult
 	} from '$lib/types/trace';
 	import { cubicOut } from 'svelte/easing';
 	import { SvelteSet } from 'svelte/reactivity';
@@ -15,7 +13,6 @@
 	import { page } from '$app/state';
 	import {
 		IconAlertTriangle,
-		IconArrowsSplit,
 		IconBolt,
 		IconBoltOff,
 		IconChevronDown,
@@ -33,6 +30,9 @@
 		traceFrom
 	} from '$lib/utils/traceUtils';
 	import { setQuery } from '$lib/utils/urlState';
+
+	import TraceFiberDetails from './TraceFiberDetails.svelte';
+	import TraceSpliceDetails from './TraceSpliceDetails.svelte';
 
 	interface Props {
 		/** The signal analysis result data */
@@ -258,7 +258,6 @@
 
 {#snippet signalTraceNode(node: FiberWaypoint, depth: number, isLastChild: boolean)}
 	{@const signalState = node.signal_state || 'lit'}
-	{@const isLit = signalState === 'lit'}
 	{@const isDark = signalState === 'dark'}
 	{@const isBreak = signalState === 'break_point'}
 	{@const hasDetails =
@@ -431,10 +430,10 @@
 			<!-- Expandable details drawer -->
 			{#if hasDetails && isExpanded}
 				<div class="mt-2 space-y-2 pl-0.5" transition:slide={{ duration: 150 }}>
-					{@render fiberDetails(node.fiber)}
+					<TraceFiberDetails fiber={node.fiber} />
 
 					{#if node.splice}
-						{@render spliceDetails(node.splice)}
+						<TraceSpliceDetails splice={node.splice} />
 					{/if}
 
 					{#if node.cable_endpoints && (node.cable_endpoints.start_node || node.cable_endpoints.end_node)}
@@ -460,78 +459,6 @@
 			{#each children as child, i (`${child.fiber?.id}-${i}`)}
 				{@render signalTraceNode(child as FiberWaypoint, depth + 1, i === children.length - 1)}
 			{/each}
-		{/if}
-	</div>
-{/snippet}
-
-{#snippet fiberDetails(fiber: FiberInfo)}
-	<div class="flex flex-wrap items-center gap-2 text-xs">
-		{#if fiber.bundle_number !== null && fiber.bundle_number !== undefined}
-			<span class="text-surface-900-100"
-				>{m.form_bundle()}: <code class="text-surface-700-300">{fiber.bundle_number}</code></span
-			>
-		{/if}
-		{#if fiber.fiber_number_in_bundle}
-			<span class="text-surface-900-100"
-				>{m.trace_in_bundle()}:
-				<code class="text-surface-700-300">{fiber.fiber_number_in_bundle}</code></span
-			>
-		{/if}
-		{#if fiber.fiber_color}
-			<span
-				class="rounded px-1.5 py-0.5 font-medium text-white"
-				style="background: {fiber.fiber_color_hex || '#64748b'}"
-			>
-				{fiber.fiber_color}
-			</span>
-		{/if}
-		{#if fiber.bundle_color}
-			<span
-				class="rounded px-1.5 py-0.5 font-medium text-white opacity-80"
-				style="background: {fiber.bundle_color_hex || '#64748b'}"
-			>
-				B: {fiber.bundle_color}
-			</span>
-		{/if}
-		{#if fiber.layer}
-			<span class="text-surface-900-100"
-				>{m.form_layer()}: <code class="text-surface-700-300">{fiber.layer}</code></span
-			>
-		{/if}
-		{#if fiber.status}
-			<span class="rounded bg-surface-100-900 px-1.5 py-0.5 text-surface-900-100"
-				>{fiber.status}</span
-			>
-		{/if}
-	</div>
-{/snippet}
-
-{#snippet spliceDetails(splice: SpliceInfo)}
-	<div class="rounded-lg border border-secondary-500/30 bg-secondary-500/5 px-3 py-1.5 text-xs">
-		<div class="mb-1 flex items-center gap-2 text-secondary-500">
-			<IconArrowsSplit size={14} />
-			<span class="font-semibold">{m.trace_splice()}</span>
-			<code class="text-surface-600-400">{m.form_port()} {splice.port_number}</code>
-		</div>
-		{#if splice.component}
-			<div class="flex flex-wrap gap-1.5">
-				{#if splice.component.type}
-					<span class="rounded bg-surface-200-800 px-1.5 py-0.5 text-xs text-surface-600-400">
-						{splice.component.type}
-					</span>
-				{/if}
-				{#if splice.component.slot_start !== null && splice.component.slot_end !== null}
-					<span class="rounded bg-surface-200-800 px-1.5 py-0.5 text-xs text-surface-600-400">
-						{m.form_slot({ count: 2 })}
-						{splice.component.slot_start}-{splice.component.slot_end}
-					</span>
-				{/if}
-				{#if splice.component.slot_side}
-					<span class="rounded bg-surface-200-800 px-1.5 py-0.5 text-xs text-surface-600-400">
-						{m.form_side()}: {splice.component.slot_side}
-					</span>
-				{/if}
-			</div>
 		{/if}
 	</div>
 {/snippet}

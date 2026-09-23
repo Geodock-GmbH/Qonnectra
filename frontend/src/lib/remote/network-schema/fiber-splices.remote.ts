@@ -1,8 +1,10 @@
 import type { ComponentPort, FiberSplice } from '$lib/classes/FiberSpliceManager.svelte';
+import { error } from '@sveltejs/kit';
 import { command, query } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';
 
+import { failFromResponse } from '$lib/remote/shared/backend-error';
 import { djangoHeaders } from '$lib/remote/shared/remote-auth';
 
 const UpsertSpliceSchema = v.object({
@@ -51,12 +53,7 @@ export const getComponentPorts = query(
 			{ method: 'GET', headers: djangoHeaders() }
 		);
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(
-				errorData.detail || `HTTP ${response.status}: Failed to fetch component ports`
-			);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to fetch component ports');
 
 		return (await response.json()) as ComponentPort[];
 	}
@@ -76,10 +73,7 @@ export const getFiberSplices = query(
 			headers: djangoHeaders()
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(errorData.detail || `HTTP ${response.status}: Failed to fetch fiber splices`);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to fetch fiber splices');
 
 		return (await response.json()) as FiberSplice[];
 	}
@@ -101,7 +95,7 @@ export const upsertFiberSplice = command(
 	async (input): Promise<FiberSplice> => {
 		const hasFiber = Boolean(input.fiberUuid && input.cableUuid);
 		if (!hasFiber && !input.residentialUnitUuid) {
-			throw new Error('Either fiberUuid/cableUuid or residentialUnitUuid is required');
+			error(400, 'Either fiberUuid/cableUuid or residentialUnitUuid is required');
 		}
 
 		const requestBody: Record<string, unknown> = {
@@ -122,14 +116,7 @@ export const upsertFiberSplice = command(
 			body: JSON.stringify(requestBody)
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(
-				errorData.detail ||
-					errorData.error ||
-					`HTTP ${response.status}: Failed to save fiber splice`
-			);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to save fiber splice');
 
 		return (await response.json()) as FiberSplice;
 	}
@@ -150,12 +137,7 @@ export const bulkUpsertFiberSplices = command(
 			body: JSON.stringify({ splices })
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(
-				errorData.detail || errorData.error || `HTTP ${response.status}: Failed to create splices`
-			);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to create splices');
 
 		const result = (await response.json()) as { created: FiberSplice[]; failed: unknown[] };
 		return { created: result.created, failed: result.failed };
@@ -183,14 +165,7 @@ export const clearFiberSplice = command(
 			})
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(
-				errorData.detail ||
-					errorData.error ||
-					`HTTP ${response.status}: Failed to clear fiber splice`
-			);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to clear fiber splice');
 
 		const result = (await response.json()) as { deleted: number };
 		return { deleted: result.deleted };
@@ -218,12 +193,7 @@ export const mergePorts = command(
 			})
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(
-				errorData.detail || errorData.error || `HTTP ${response.status}: Failed to merge ports`
-			);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to merge ports');
 
 		return (await response.json()) as Record<string, unknown>;
 	}
@@ -248,12 +218,7 @@ export const unmergePorts = command(
 			})
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(
-				errorData.detail || errorData.error || `HTTP ${response.status}: Failed to unmerge ports`
-			);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to unmerge ports');
 
 		return (await response.json()) as Record<string, unknown>;
 	}
@@ -280,14 +245,7 @@ export const upsertMergedSplice = command(
 			})
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(
-				errorData.detail ||
-					errorData.error ||
-					`HTTP ${response.status}: Failed to connect fibers to merged ports`
-			);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to connect fibers to merged ports');
 
 		return (await response.json()) as Record<string, unknown>;
 	}

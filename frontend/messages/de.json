@@ -516,6 +516,7 @@
 	"message_error_fetching_conduit": "Fehler beim Laden der Rohr-Details",
 	"message_error_fetching_flags_no_flags": "Keine Flags verfügbar",
 	"message_error_fetching_hierarchy": "Fehler beim Laden der Hierarchie",
+	"message_error_fetching_micropipes": "Fehler beim Laden der Mikrorohre",
 	"message_error_fetching_projects_no_projects": "Keine Projekte verfügbar",
 	"message_error_fetching_select_options": "Fehler beim Laden der Auswahlfelder",
 	"message_error_fetching_slot_configurations": "Fehler beim Laden der Slot-Konfigurationen",

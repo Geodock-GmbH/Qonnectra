@@ -11,6 +11,7 @@ import {
 	getLinkedTrenchesForCable,
 	getMicropipesByConduits
 } from '$lib/remote/network-schema/micropipes.remote';
+import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
 
 export interface Conduit {
 	uuid: string;
@@ -159,7 +160,7 @@ export class CableMicropipeManager {
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: (error as Error).message
+				description: remoteErrorMessage(error) ?? m.message_error_fetching_conduit()
 			});
 		} finally {
 			this.loading = false;
@@ -217,7 +218,7 @@ export class CableMicropipeManager {
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: (error as Error).message
+				description: remoteErrorMessage(error) ?? m.message_error_fetching_micropipes()
 			});
 		} finally {
 			this.loading = false;
@@ -289,7 +290,7 @@ export class CableMicropipeManager {
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: (error as Error).message
+				description: remoteErrorMessage(error) ?? m.message_error_creating_connection()
 			});
 		} finally {
 			this.saving = false;
@@ -330,7 +331,7 @@ export class CableMicropipeManager {
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: (error as Error).message
+				description: remoteErrorMessage(error) ?? m.message_error_connection_deleted()
 			});
 		} finally {
 			this.saving = false;

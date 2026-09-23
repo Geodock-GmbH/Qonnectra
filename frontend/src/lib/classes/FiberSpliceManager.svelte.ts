@@ -15,6 +15,7 @@ import {
 	upsertMergedSplice
 } from '$lib/remote/network-schema/fiber-splices.remote';
 import { getFiberColors, getFibersForCable } from '$lib/remote/network-schema/fibers.remote';
+import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
 
 export interface FiberDetails {
 	uuid: string;
@@ -636,7 +637,7 @@ export class FiberSpliceManager {
 			globalToaster.error({
 				title: m.common_error(),
 				description:
-					(err as Error).message ||
+					remoteErrorMessage(err) ||
 					m.message_error_connecting_fiber?.() ||
 					'Failed to connect fiber'
 			});
@@ -788,7 +789,7 @@ export class FiberSpliceManager {
 			globalToaster.error({
 				title: m.common_error(),
 				description:
-					(err as Error).message ||
+					remoteErrorMessage(err) ||
 					m.message_error_connecting_fiber?.() ||
 					'Failed to connect fibers'
 			});
@@ -1109,7 +1110,7 @@ export class FiberSpliceManager {
 			this.fiberSplices = previousSplices;
 			globalToaster.error({
 				title: m.common_error(),
-				description: (err as Error).message || 'Failed to connect residential unit'
+				description: remoteErrorMessage(err) || 'Failed to connect residential unit'
 			});
 			return false;
 		}
@@ -1221,7 +1222,7 @@ export class FiberSpliceManager {
 			this.bulkOperationInProgress = false;
 			globalToaster.error({
 				title: m.common_error(),
-				description: (err as Error).message || 'Failed to connect residential units'
+				description: remoteErrorMessage(err) || 'Failed to connect residential units'
 			});
 			return false;
 		}
@@ -1370,7 +1371,7 @@ export class FiberSpliceManager {
 			this.fiberSplices = previousSplices;
 			globalToaster.error({
 				title: m.common_error(),
-				description: (err as Error).message || 'Failed to clear fiber'
+				description: remoteErrorMessage(err) || 'Failed to clear fiber'
 			});
 		}
 	}
@@ -1507,7 +1508,7 @@ export class FiberSpliceManager {
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: (err as Error).message || 'Failed to merge ports'
+				description: remoteErrorMessage(err) || 'Failed to merge ports'
 			});
 			return false;
 		}
@@ -1558,7 +1559,7 @@ export class FiberSpliceManager {
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: (err as Error).message || 'Failed to unmerge ports'
+				description: remoteErrorMessage(err) || 'Failed to unmerge ports'
 			});
 			return false;
 		}
@@ -1643,7 +1644,7 @@ export class FiberSpliceManager {
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: (err as Error).message || 'Failed to connect fibers'
+				description: remoteErrorMessage(err) || 'Failed to connect fibers'
 			});
 			return false;
 		}

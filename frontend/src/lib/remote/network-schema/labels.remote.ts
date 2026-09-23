@@ -3,6 +3,7 @@ import { command } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';
 
+import { failFromResponse } from '$lib/remote/shared/backend-error';
 import { djangoHeaders } from '$lib/remote/shared/remote-auth';
 
 import { withCableLock } from './cable-lock';
@@ -37,10 +38,7 @@ async function patchLabel(
 		headers,
 		body: JSON.stringify(body)
 	});
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to update cable label`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to update cable label');
 	return (await response.json()) as EdgeLabelData;
 }
 
@@ -93,12 +91,8 @@ export const upsertCableLabel = command(
 				})
 			});
 
-			if (!createResponse.ok) {
-				const errorData = await createResponse.json().catch(() => ({}));
-				throw new Error(
-					errorData.detail || `HTTP ${createResponse.status}: Failed to create cable label`
-				);
-			}
+			if (!createResponse.ok)
+				await failFromResponse(createResponse, 'Failed to create cable label');
 
 			return (await createResponse.json()) as EdgeLabelData;
 		});
@@ -116,8 +110,5 @@ export const deleteCableLabel = command(DeleteLabelSchema, async ({ labelId }) =
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to delete cable label`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to delete cable label');
 });

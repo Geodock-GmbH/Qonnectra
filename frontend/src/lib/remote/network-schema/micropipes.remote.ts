@@ -4,6 +4,7 @@ import { command, query } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';
 
+import { failFromResponse } from '$lib/remote/shared/backend-error';
 import { djangoHeaders } from '$lib/remote/shared/remote-auth';
 
 import { transformMicropipeConnections } from './micropipe-connections';
@@ -56,14 +57,7 @@ export const autoLinkMicropipe = command(
 			body: JSON.stringify(microductUuid ? { microduct_uuid: microductUuid } : {})
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(
-				errorData.detail ||
-					errorData.error ||
-					`HTTP ${response.status}: Failed to auto-link micropipe`
-			);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to auto-link micropipe');
 
 		return (await response.json()) as AutoLinkResponse;
 	}
@@ -87,12 +81,7 @@ export const getMicropipeConnectionsForCable = command(
 			}
 		);
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(
-				errorData.detail || `HTTP ${response.status}: Failed to fetch micropipe connections`
-			);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to fetch micropipe connections');
 
 		const connections = (await response.json()) as Record<string, unknown>[];
 
@@ -114,12 +103,7 @@ export const getLinkedTrenchesForCable = query(
 			headers: djangoHeaders()
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(
-				errorData.detail || `HTTP ${response.status}: Failed to fetch linked trenches`
-			);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to fetch linked trenches');
 
 		const data = (await response.json()) as { trench_uuids?: string[] };
 		return data.trench_uuids ?? [];
@@ -145,10 +129,7 @@ export const getConduitsByTrenches = query(
 
 		const response = await fetch(url, { method: 'GET', headers });
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(errorData.detail || `HTTP ${response.status}: Failed to fetch conduits`);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to fetch conduits');
 
 		return (await response.json()) as Conduit[];
 	}
@@ -173,10 +154,7 @@ export const getMicropipesByConduits = query(
 
 		const response = await fetch(url, { method: 'GET', headers });
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(errorData.detail || `HTTP ${response.status}: Failed to fetch micropipes`);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to fetch micropipes');
 
 		return (await response.json()) as Micropipe[];
 	}
@@ -201,12 +179,7 @@ export const createMicropipeConnections = command(CreateConnectionsSchema, async
 		})
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(
-			errorData.detail || errorData.error || `HTTP ${response.status}: Failed to create connections`
-		);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to create connections');
 });
 
 /**
@@ -226,10 +199,5 @@ export const deleteMicropipeConnections = command(DeleteConnectionsSchema, async
 		})
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(
-			errorData.detail || errorData.error || `HTTP ${response.status}: Failed to delete connections`
-		);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to delete connections');
 });

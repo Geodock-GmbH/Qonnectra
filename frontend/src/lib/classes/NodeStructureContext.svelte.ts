@@ -3,6 +3,7 @@ import { m } from '$lib/paraglide/messages';
 import { globalToaster } from '$lib/stores/toaster';
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
 import { getFiberSplices } from '$lib/remote/network-schema/fiber-splices.remote';
+import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
 
 import { DRAG_DROP_CONTEXT_KEY, DragDropManager } from './DragDropManager.svelte';
 import { FiberSpliceManager } from './FiberSpliceManager.svelte';
@@ -465,7 +466,7 @@ export class NodeStructureContext {
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: (err as Error)?.message || m.message_error_placing_component()
+				description: remoteErrorMessage(err) ?? m.message_error_placing_component()
 			});
 		}
 
@@ -500,7 +501,7 @@ export class NodeStructureContext {
 		} catch (err: unknown) {
 			globalToaster.error({
 				title: m.common_error(),
-				description: (err as Error)?.message || m.message_error_placing_component()
+				description: remoteErrorMessage(err) ?? m.message_error_placing_component()
 			});
 		}
 

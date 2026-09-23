@@ -16,6 +16,7 @@ import {
 } from '$lib/remote/network-schema/micropipes.remote';
 import { getNodeDetails, saveNodeGeometry } from '$lib/remote/network-schema/nodes.remote';
 import { saveCableGeometry as saveCableGeometryCommand } from '$lib/remote/network-schema/paths.remote';
+import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
 
 export interface NodeProperties {
 	uuid: string;
@@ -512,7 +513,7 @@ export class NetworkSchemaState {
 
 			globalToaster.error({
 				title: m.common_error(),
-				description: `${(error as Error).message}`
+				description: remoteErrorMessage(error) ?? m.message_error_updating_node()
 			});
 		}
 	}
