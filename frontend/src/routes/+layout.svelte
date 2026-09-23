@@ -10,7 +10,6 @@
 	import NavigationProgress from '$lib/components/NavigationProgress.svelte';
 	import Sidebar from '$lib/components/SideBar.svelte';
 	import { setupNavigationCancellation } from '$lib/map/navigationCancellation.js';
-	import { updateUserStore } from '$lib/stores/auth';
 	import { theme } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { stopSessionKeepAlive, syncSessionKeepAlive } from '$lib/utils/sessionKeepAlive';
@@ -35,8 +34,6 @@
 
 	// svelte-ignore state_referenced_locally
 	setRememberedProject(data.rememberedProject);
-
-	$effect(() => updateUserStore(data.user));
 </script>
 
 <div class="flex h-screen">

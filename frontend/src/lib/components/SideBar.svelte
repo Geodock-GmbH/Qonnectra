@@ -12,7 +12,6 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { userStore } from '$lib/stores/auth';
 	import {
 		isGroupCollapsed,
 		isRouteHidden,
@@ -47,14 +46,14 @@
 			.map((group) => ({
 				...group,
 				links: group.links.filter((link) =>
-					canAccessRoute($userStore.permissions, link.permissionKey)
+					canAccessRoute(page.data.user?.permissions, link.permissionKey)
 				)
 			}))
 			.filter((group) => group.links.length > 0)
 	);
 
 	const permittedFooterLinks = $derived(
-		footerLinks.filter((link) => canAccessRoute($userStore.permissions, link.permissionKey))
+		footerLinks.filter((link) => canAccessRoute(page.data.user?.permissions, link.permissionKey))
 	);
 
 	/** Flat list of all permitted content links, used for the collapsed rail layout. */

@@ -9,7 +9,6 @@
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale, setLocale } from '$lib/paraglide/runtime';
 
-	import { userStore } from '$lib/stores/auth';
 	import { canAccessRoute } from '$lib/utils/permissions';
 	import { tooltip } from '$lib/utils/tooltip';
 	import { footerLinks, isActive, navGroups, navHref } from '$lib/config/navLinks';
@@ -49,14 +48,14 @@
 			.map((group) => ({
 				...group,
 				links: group.links.filter((link) =>
-					canAccessRoute($userStore.permissions, link.permissionKey)
+					canAccessRoute(page.data.user?.permissions, link.permissionKey)
 				)
 			}))
 			.filter((group) => group.links.length > 0)
 	);
 
 	const permittedFooterLinks = $derived(
-		footerLinks.filter((link) => canAccessRoute($userStore.permissions, link.permissionKey))
+		footerLinks.filter((link) => canAccessRoute(page.data.user?.permissions, link.permissionKey))
 	);
 
 	/** Groups flagged `pinnedToBar` supply the bottom bar; the rest live in the "More" menu. */

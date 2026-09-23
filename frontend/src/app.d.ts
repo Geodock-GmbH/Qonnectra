@@ -1,7 +1,12 @@
 declare global {
 	namespace App {
 		interface Locals {
-			user: import('$lib/stores/auth').UserData;
+			user: import('$lib/types/user').UserData;
+		}
+
+		interface PageData {
+			/** Loaded by the root layout; absent only when that load failed. */
+			user?: import('$lib/types/user').UserData;
 		}
 
 		interface PageState {

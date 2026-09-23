@@ -1,11 +1,11 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { Slider, Switch } from '@skeletonlabs/skeleton-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import { DEFAULT_SELECTED_COLOR, DEFAULT_TRENCH_COLOR } from '$lib/map/styles';
-	import { userStore } from '$lib/stores/auth';
 	import {
 		cableEdgeColorMode,
 		routingTolerance,
@@ -43,7 +43,7 @@
 							{m.auth_username()}
 						</dt>
 						<dd class="mt-1 flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
-							<div>{$userStore.username}</div>
+							<div>{page.data.user?.username}</div>
 						</dd>
 					</div>
 					<div class="py-6 sm:flex">
@@ -51,7 +51,7 @@
 							{m.settings_user_email()}
 						</dt>
 						<dd class="mt-1 flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
-							<div>{$userStore.email}</div>
+							<div>{page.data.user?.email}</div>
 						</dd>
 					</div>
 					<div class="py-6 sm:flex">

@@ -4,16 +4,14 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { setLocale } from '$lib/paraglide/runtime';
 
-import { updateUserStore } from '$lib/stores/auth';
+import { pageStub } from '$lib/test-utils/pageStub';
 
 import MobileNav from './MobileNav.svelte';
 
+const appState = vi.hoisted(() => ({ page: {} as Record<string, unknown> }));
+
 vi.mock('$app/state', () => ({
-	page: {
-		route: { id: '/project/[projectId=integer]/dashboard/[[flagId]]' },
-		params: { projectId: '7' },
-		url: new URL('http://localhost/project/7/dashboard')
-	}
+	page: appState.page
 }));
 
 vi.mock('$env/dynamic/public', () => ({
@@ -51,8 +49,24 @@ Element.prototype.animate = function () {
 
 const fullAccess = { is_superuser: true, routes: {} } as never;
 
+/**
+ * Puts the mocked page on the project dashboard with the given user in its data.
+ * @param user - The user the root layout would have loaded.
+ */
+function setUser(user: Record<string, unknown>) {
+	Object.assign(
+		appState.page,
+		pageStub({
+			routeId: '/project/[projectId=integer]/dashboard/[[flagId]]',
+			params: { projectId: '7' },
+			url: 'http://localhost/project/7/dashboard',
+			data: { user }
+		})
+	);
+}
+
 beforeEach(() => {
-	updateUserStore({ isAuthenticated: true, permissions: fullAccess });
+	setUser({ isAuthenticated: true, permissions: fullAccess });
 	vi.mocked(setLocale).mockClear();
 });
 
@@ -79,12 +93,12 @@ describe('MobileNav', () => {
 
 	test('should hide links the user has no permission for', async () => {
 		const user = userEvent.setup();
-		updateUserStore({
+		setUser({
 			isAuthenticated: true,
 			permissions: {
 				is_superuser: false,
 				routes: { '/fault-simulation': false, '/valuation': false }
-			} as never
+			}
 		});
 		render(MobileNav);
 
@@ -96,7 +110,7 @@ describe('MobileNav', () => {
 	});
 
 	test('should show everything when the permissions could not be loaded', () => {
-		updateUserStore({ isAuthenticated: true, permissions: undefined });
+		setUser({ isAuthenticated: true, permissions: undefined });
 		render(MobileNav);
 
 		expect(screen.getByText('common_more')).toBeInTheDocument();

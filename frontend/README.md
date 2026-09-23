@@ -200,7 +200,6 @@ Stores hold personal preferences, not navigation state:
 
 - `store.ts`: persisted UI preferences (sidebar, theme, drawer size, layer visibility and opacity, map styles, network schema display options, WMS layer state)
 - `sidebarPreferences.ts`: hidden routes and collapsed groups in the sidebar
-- `auth.ts`: `userStore` and `updateUserStore()`
 - `toaster.ts`: `globalToaster` for Skeleton's `<Toast.Group>`
 - `persisted.ts` / `session.ts`: `writable` stores synced to `localStorage` / `sessionStorage` (no-ops on the server)
 

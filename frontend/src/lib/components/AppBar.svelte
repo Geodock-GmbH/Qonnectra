@@ -25,9 +25,8 @@
 	}
 
 	/**
-	 * Read from the layout data instead of `userStore`: the store is only filled by
-	 * an effect after hydration, so gating on it renders the signed-in toolbar late
-	 * and in a separate batch, where `isMapRoute` could stick to a stale `false`.
+	 * Read from the layout data so the signed-in toolbar is in the server render
+	 * and in the same batch as `isMapRoute`, instead of one render late.
 	 */
 	let isAuthenticated = $derived(data.user?.isAuthenticated ?? false);
 

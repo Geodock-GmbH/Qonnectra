@@ -1,5 +1,5 @@
 import type { RequestEvent } from '@sveltejs/kit';
-import type { UserData } from '$lib/stores/auth';
+import type { UserData } from '$lib/types/user';
 import type { Permissions } from '$lib/utils/permissions';
 import { API_URL } from '$env/static/private';
 

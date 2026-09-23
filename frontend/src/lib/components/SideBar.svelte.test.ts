@@ -2,9 +2,9 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { updateUserStore } from '$lib/stores/auth';
 import { sidebarPreferences } from '$lib/stores/sidebarPreferences';
 import { sidebarExpanded } from '$lib/stores/store';
+import { pageStub } from '$lib/test-utils/pageStub';
 
 import SideBar from './SideBar.svelte';
 
@@ -12,12 +12,10 @@ vi.mock('$app/environment', () => ({
 	browser: true
 }));
 
+const appState = vi.hoisted(() => ({ page: {} as Record<string, unknown> }));
+
 vi.mock('$app/state', () => ({
-	page: {
-		route: { id: '/project/[projectId=integer]/dashboard/[[flagId]]' },
-		params: { projectId: '7' },
-		url: new URL('http://localhost/project/7/dashboard')
-	}
+	page: appState.page
 }));
 
 vi.mock('$env/dynamic/public', () => ({
@@ -35,8 +33,24 @@ vi.mock('$lib/paraglide/messages', () => ({
 
 const fullAccess = { is_superuser: true, routes: {} } as never;
 
+/**
+ * Puts the mocked page on the project dashboard with the given user in its data.
+ * @param user - The user the root layout would have loaded.
+ */
+function setUser(user: Record<string, unknown>) {
+	Object.assign(
+		appState.page,
+		pageStub({
+			routeId: '/project/[projectId=integer]/dashboard/[[flagId]]',
+			params: { projectId: '7' },
+			url: 'http://localhost/project/7/dashboard',
+			data: { user }
+		})
+	);
+}
+
 beforeEach(() => {
-	updateUserStore({ isAuthenticated: true, permissions: fullAccess });
+	setUser({ isAuthenticated: true, permissions: fullAccess });
 	sidebarExpanded.set(true);
 	sidebarPreferences.set({ hiddenRoutes: [], collapsedGroups: [] });
 	localStorage.clear();
@@ -54,12 +68,12 @@ describe('SideBar', () => {
 	});
 
 	test('should hide links the user has no permission for', () => {
-		updateUserStore({
+		setUser({
 			isAuthenticated: true,
 			permissions: {
 				is_superuser: false,
 				routes: { '/valuation': false, '/admin/logs': false }
-			} as never
+			}
 		});
 
 		render(SideBar);
@@ -70,7 +84,7 @@ describe('SideBar', () => {
 	});
 
 	test('should show everything when the permissions could not be loaded', () => {
-		updateUserStore({ isAuthenticated: true, permissions: undefined });
+		setUser({ isAuthenticated: true, permissions: undefined });
 
 		render(SideBar);
 
