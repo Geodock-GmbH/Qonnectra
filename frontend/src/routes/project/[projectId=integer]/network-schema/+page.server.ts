@@ -5,16 +5,36 @@ import { API_URL } from '$env/static/private';
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 import { mapNodesToOptions } from '$lib/remote/network-schema/node-options';
 
+type SyncStatus = Record<string, unknown> & { sync_in_progress: boolean };
+type AuthHeaders = Record<string, string> | Headers;
+
+/**
+ * Fetches the canvas-coordinate sync status of a project.
+ * Returns null when the backend answers with an error status; network errors propagate.
+ */
+async function fetchSyncStatus(
+	fetch: typeof globalThis.fetch,
+	headers: AuthHeaders,
+	projectId: string
+): Promise<SyncStatus | null> {
+	const response = await fetch(`${API_URL}canvas-coordinates/?project_id=${projectId}`, {
+		credentials: 'include',
+		headers
+	});
+	if (!response.ok) return null;
+	return response.json();
+}
+
 /**
  * Poll for sync completion with timeout and progress updates
  */
 export async function _waitForSyncCompletion(
 	fetch: typeof globalThis.fetch,
-	headers: Record<string, string> | Headers,
-	initialStatus: Record<string, unknown> & { sync_in_progress: boolean },
+	headers: AuthHeaders,
+	initialStatus: SyncStatus,
 	maxWaitTimeMs: number = 30000,
 	projectId: string
-): Promise<Record<string, unknown> & { sync_in_progress: boolean }> {
+): Promise<SyncStatus> {
 	const startTime = Date.now();
 	const pollInterval = 2000;
 	let currentStatus = initialStatus;
@@ -22,25 +42,19 @@ export async function _waitForSyncCompletion(
 	while (currentStatus.sync_in_progress && Date.now() - startTime < maxWaitTimeMs) {
 		await new Promise((resolve) => setTimeout(resolve, pollInterval));
 
+		let polledStatus: SyncStatus | null;
 		try {
-			const response = await fetch(`${API_URL}canvas-coordinates/?project_id=${projectId}`, {
-				credentials: 'include',
-				headers: headers
-			});
-
-			if (response.ok) {
-				currentStatus = await response.json();
-				if (!currentStatus.sync_in_progress) {
-					break;
-				}
-			} else {
-				console.warn('Failed to check sync status during polling');
-				break;
-			}
+			polledStatus = await fetchSyncStatus(fetch, headers, projectId);
 		} catch (error) {
 			console.error('Error polling sync status:', error);
 			break;
 		}
+
+		if (!polledStatus) {
+			console.warn('Failed to check sync status during polling');
+			break;
+		}
+		currentStatus = polledStatus;
 	}
 
 	if (currentStatus.sync_in_progress && Date.now() - startTime >= maxWaitTimeMs) {
@@ -51,10 +65,55 @@ export async function _waitForSyncCompletion(
 }
 
 /**
+ * Asks the backend to compute the missing canvas coordinates of a project.
+ * A 409 means another sync is already running, which is fine.
+ */
+async function startCanvasSync(
+	fetch: typeof globalThis.fetch,
+	headers: AuthHeaders,
+	projectId: string
+): Promise<void> {
+	const response = await fetch(`${API_URL}canvas-coordinates/`, {
+		method: 'POST',
+		credentials: 'include',
+		headers: { ...headers, 'Content-Type': 'application/json' },
+		body: JSON.stringify({ project_id: projectId, scale: 0.5 })
+	});
+	if (!response.ok && response.status !== 409) {
+		console.error('Failed to sync canvas coordinates');
+	}
+}
+
+/**
+ * Brings the project's canvas coordinates up to date before the page renders:
+ * waits for a running sync, or starts one when nodes lack coordinates.
+ * Returns the sync status, or null when it could not be checked.
+ */
+async function syncCanvasCoordinates(
+	fetch: typeof globalThis.fetch,
+	headers: AuthHeaders,
+	projectId: string
+): Promise<SyncStatus | null> {
+	const status = await fetchSyncStatus(fetch, headers, projectId);
+	if (!status) {
+		console.warn('Failed to check canvas sync status');
+		return null;
+	}
+
+	if (status.sync_in_progress) {
+		return _waitForSyncCompletion(fetch, headers, status, 30000, projectId);
+	}
+	if (status.sync_needed) {
+		await startCanvasSync(fetch, headers, projectId);
+	}
+	return status;
+}
+
+/**
  * Loads network schema page data including nodes, cables, attribute options, and sync status.
  * Triggers canvas coordinate sync if needed and waits for completion before returning.
  */
-export const load: PageServerLoad = async ({ fetch, cookies, url, params }) => {
+export const load: PageServerLoad = async ({ fetch, cookies, params }) => {
 	const headers = getAuthHeaders(cookies);
 	const projectId = params.projectId;
 
@@ -86,46 +145,7 @@ export const load: PageServerLoad = async ({ fetch, cookies, url, params }) => {
 			})
 		]);
 
-		let syncStatus: (Record<string, unknown> & { sync_in_progress: boolean }) | null = null;
-
-		const syncStatusResponse = await fetch(
-			`${API_URL}canvas-coordinates/?project_id=${projectId}`,
-			{
-				credentials: 'include',
-				headers: headers
-			}
-		);
-
-		if (!syncStatusResponse.ok) {
-			console.warn('Failed to check canvas sync status');
-		} else {
-			syncStatus = await syncStatusResponse.json();
-
-			if (syncStatus && syncStatus.sync_in_progress) {
-				syncStatus = await _waitForSyncCompletion(fetch, headers, syncStatus, 30000, projectId);
-			} else if ((syncStatus as Record<string, unknown>).sync_needed) {
-				const syncResponse = await fetch(`${API_URL}canvas-coordinates/`, {
-					method: 'POST',
-					credentials: 'include',
-					headers: {
-						...headers,
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({
-						project_id: projectId,
-						scale: 0.5
-					})
-				});
-
-				if (syncResponse.status === 409) {
-					const conflictData = await syncResponse.json();
-				} else if (!syncResponse.ok) {
-					console.error('Failed to sync canvas coordinates');
-				} else {
-					const syncResult = await syncResponse.json();
-				}
-			}
-		}
+		const syncStatus = await syncCanvasCoordinates(fetch, headers, projectId);
 
 		const [
 			[
@@ -287,7 +307,7 @@ export const load: PageServerLoad = async ({ fetch, cookies, url, params }) => {
 			networkLevels: networkLevelData,
 			companies: companyData,
 			flags: flagsData,
-			syncStatus: syncStatus || null,
+			syncStatus,
 			networkSchemaSettingsConfigured,
 			excludedNodeTypeIds,
 			childViewEnabledNodeTypeIds,
