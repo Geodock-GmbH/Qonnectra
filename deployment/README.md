@@ -1,14 +1,14 @@
 # qonnectra Deployment
 
-This guide covers deployment scenarios for qonnectra: local development with manual setup, Docker Compose development with local HTTPS, and production deployment.
+This guide covers three ways to run qonnectra.
 
-## Deployment Options
+## Deployment options
 
-1. **Local Development** - Manual PostgreSQL setup with VS Code tasks for backend/frontend
-2. **Docker Compose (Development)** - Full stack with Caddy local HTTPS (self-signed certificates)
-3. **Production Deployment** - Full stack with Caddy reverse proxy and Let's Encrypt HTTPS
+1. Local development: manual PostgreSQL setup, with VS Code tasks for the backend and frontend
+2. Docker Compose (development): the full stack, with local HTTPS from Caddy (self-signed certificates)
+3. Production deployment: the full stack, with Caddy as reverse proxy and Let's Encrypt HTTPS
 
-## Docker Compose Files
+## Docker Compose files
 
 | File                                   | Purpose                            |
 | -------------------------------------- | ---------------------------------- |
@@ -17,15 +17,13 @@ This guide covers deployment scenarios for qonnectra: local development with man
 | `docker-compose.override.yml.template` | Template for local customizations  |
 | `.env.production.template`             | Template for `deployment/.env`     |
 
-**Note:** Copy `docker-compose.override.yml.template` to `docker-compose.override.yml` for local customizations. The override file is gitignored.
+For local customizations, copy `docker-compose.override.yml.template` to `docker-compose.override.yml`. The override file is gitignored.
 
 The development stack runs a subset of the production services: it has no `backend-wms` and no `wireguard` container, keeps the database in `postgres/data/` (bind mount) and publishes it on `localhost:5440`.
 
----
+## 1. Local development
 
-## 1. Local Development
-
-This setup is ideal for active development with hot reloading, debugging, and direct database access.
+Use this setup for day-to-day development with hot reloading, debugging and direct database access.
 
 ### Prerequisites
 
@@ -35,9 +33,9 @@ This setup is ideal for active development with hot reloading, debugging, and di
 - PostgreSQL 17 with PostGIS extension
 - VS Code (for tasks) or your preferred IDE
 
-### Setup Steps
+### Setup steps
 
-#### 1.1 Backend Environment Configuration
+#### 1.1 Backend environment configuration
 
 Create a `.env` file in the `deployment/` directory:
 
@@ -70,7 +68,7 @@ DJANGO_SUPERUSER_PASSWORD=your-admin-password
 USE_COOKIE_DOMAIN_MIDDLEWARE=False
 ```
 
-#### 1.2 Frontend Environment Configuration
+#### 1.2 Frontend environment configuration
 
 Create a `.env` file in the `frontend/` directory:
 
@@ -90,9 +88,9 @@ PUBLIC_API_URL=http://localhost:8000/api/v1/
 PUBLIC_DOCUMENTATION_URL=https://qonnectra.de/manual/
 ```
 
-**Note:** SvelteKit uses `$env/static/private` for server-side variables and `$env/static/public` for public variables (prefixed with `PUBLIC_`). For local development, ensure `API_URL` is set correctly.
+SvelteKit reads server-side variables from `$env/static/private` and public variables (prefixed with `PUBLIC_`) from `$env/static/public`. For local development, make sure `API_URL` is set correctly.
 
-#### 1.3 Database Setup
+#### 1.3 Database setup
 
 Install and configure PostgreSQL with PostGIS:
 
@@ -114,7 +112,7 @@ CREATE EXTENSION postgis;
 \q
 ```
 
-#### 1.4 Backend Setup
+#### 1.4 Backend setup
 
 ```bash
 cd backend
@@ -136,7 +134,7 @@ python manage.py load_initial_data
 python manage.py createsuperuser
 ```
 
-#### 1.5 Frontend Setup
+#### 1.5 Frontend setup
 
 ```bash
 cd frontend
@@ -145,13 +143,13 @@ cd frontend
 npm install
 ```
 
-#### 1.6 VS Code Tasks
+#### 1.6 VS Code tasks
 
-The workspace includes VS Code tasks for running services. Open the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) and select:
+The workspace includes VS Code tasks for running the services. Open the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) and select one of:
 
-- **Django Runserver** - Starts Django development server on `http://localhost:8000`
-- **Frontend Dev Server** - Starts SvelteKit dev server on `http://localhost:5173`
-- **Django Migrate** - Runs database migrations
+- Django Runserver: starts the Django development server on `http://localhost:8000`
+- Frontend Dev Server: starts the SvelteKit dev server on `http://localhost:5173`
+- Django Migrate: runs the database migrations
 
 Or use the terminal:
 
@@ -165,29 +163,27 @@ cd frontend
 npm run dev
 ```
 
-### Accessing Services
+### Accessing services
 
-- **Frontend**: `http://localhost:5173`
-- **API**: `http://localhost:8000`
-- **Django Admin**: `http://localhost:8000/admin` (local dev only, no subdomain separation)
-- **Database**: `localhost:5432`
+- Frontend: `http://localhost:5173`
+- API: `http://localhost:8000`
+- Django admin: `http://localhost:8000/admin` (local dev only, no subdomain separation)
+- Database: `localhost:5432`
 
----
+## 2. Docker Compose (development with local HTTPS)
 
-## 2. Docker Compose (Development with Local HTTPS)
-
-This setup uses Docker Compose for all services with Caddy providing local HTTPS using self-signed certificates. Caddy automatically installs its CA certificate on first run.
+This setup runs all services in Docker Compose, with Caddy providing local HTTPS through self-signed certificates. Caddy tries to install its CA certificate on first run.
 
 ### Prerequisites
 
 - Docker Engine 20.10+
 - Docker Compose 2.0+
-- Minimum 8 CPU cores and 16GB RAM (the compose file is tuned for this baseline)
-- Ports 80, 443 available
+- At least 8 CPU cores and 16GB RAM (the compose file is tuned for this baseline)
+- Ports 80 and 443 available
 
-### Setup Steps
+### Setup steps
 
-#### 2.1 Environment Configuration
+#### 2.1 Environment configuration
 
 Create a `.env` file in the `deployment/` directory:
 
@@ -227,14 +223,14 @@ COOKIE_DOMAIN=.localhost
 
 The dev compose file has defaults for the frontend URLs (`https://api.localhost/api/v1/`, `https://tiles.localhost`) and most Django settings, so the values above are the minimum.
 
-#### 2.2 Start Services
+#### 2.2 Start services
 
 ```bash
 cd deployment
 docker compose -f docker-compose.dev.yml up -d --build
 ```
 
-On first run, Caddy will attempt to install its CA certificate. You may be prompted for your password to trust the certificate. After that, all `*.localhost` domains will work with valid HTTPS.
+On first run, Caddy tries to install its CA certificate and may ask for your password to trust it. After that, all `*.localhost` domains work with valid HTTPS.
 
 If Caddy fails to install the certificate automatically, run:
 
@@ -242,7 +238,7 @@ If Caddy fails to install the certificate automatically, run:
 docker compose -f docker-compose.dev.yml exec caddy caddy trust
 ```
 
-#### 2.3 Local Customizations (Optional)
+#### 2.3 Local customizations (optional)
 
 For local customizations that shouldn't be committed:
 
@@ -251,50 +247,48 @@ cp docker-compose.override.yml.template docker-compose.override.yml
 # Edit docker-compose.override.yml as needed
 ```
 
-### Accessing Services
+### Accessing services
 
-- **Frontend**: `https://app.localhost`
-- **API**: `https://api.localhost`
-- **Django Admin**: `https://admin.localhost/admin`
-- **QGIS Server**: `https://qgis.localhost`
-- **TileServer**: `https://tiles.localhost`
-- **Files (WebDAV)**: `https://files.localhost`
-- **Database**: `localhost:5440` (external port, configurable via `DB_EXTERNAL_PORT`)
+- Frontend: `https://app.localhost`
+- API: `https://api.localhost`
+- Django admin: `https://admin.localhost/admin`
+- QGIS Server: `https://qgis.localhost`
+- TileServer: `https://tiles.localhost`
+- Files (WebDAV): `https://files.localhost`
+- Database: `localhost:5440` (external port, configurable via `DB_EXTERNAL_PORT`)
 
----
+## 3. Production deployment
 
-## 3. Production Deployment
-
-Full production stack with Caddy reverse proxy, HTTPS, and all services containerized.
+The full stack in containers, behind Caddy with HTTPS.
 
 ### Prerequisites
 
 - Docker Engine 20.10+
 - Docker Compose 2.0+
-- Server with minimum 8 CPU cores and 16GB RAM (the compose file is tuned for this baseline)
-- Ports 80, 443 available
-- Domain names configured (or use localhost with certificates)
+- A server with at least 8 CPU cores and 16GB RAM (the compose file is tuned for this baseline)
+- Ports 80 and 443 available
+- Domain names configured (or localhost with certificates)
 
-### Setup Steps
+### Setup steps
 
-#### 3.1 Environment Configuration
+#### 3.1 Environment configuration
 
-Copy the template and fill in every `CHANGE_THIS` value and your domains:
+Copy the template, then fill in every `CHANGE_THIS` value and your domains:
 
 ```bash
 cd deployment
 cp .env.production.template .env
 ```
 
-The template documents each variable. The most important groups:
+The template documents each variable. The main groups are:
 
-- **Domains**: `DOMAIN_NAME`, `API_DOMAIN`, `APP_DOMAIN`, `ADMIN_DOMAIN`, `FILES_DOMAIN`, `QGIS_DOMAIN`, `TILE_SERVER_DOMAIN` (Caddy requests a Let's Encrypt certificate for each)
-- **Database**: `DB_NAME`, `DB_USER`, `DB_PASSWORD`, plus `QGIS_DB_USER` / `QGIS_DB_PASSWORD` for QGIS Server
-- **Django**: `DJANGO_SECRET_KEY`, `FIELD_ENCRYPTION_KEY`, `DEBUG=False`, `DJANGO_ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, `USE_COOKIE_DOMAIN_MIDDLEWARE=True`, `COOKIE_DOMAIN=.your-domain.com`
-- **Superuser**: `DJANGO_SUPERUSER_USERNAME`, `DJANGO_SUPERUSER_EMAIL`, `DJANGO_SUPERUSER_PASSWORD`
-- **Frontend**: `API_URL` (internal, e.g. `http://backend:8000/api/v1/`), `PUBLIC_API_URL` (`https://api.your-domain.com/api/v1/`), `PUBLIC_TILE_SERVER_URL`, `PUBLIC_DOCUMENTATION_URL`
-- **QGIS**: `QGIS_PG_SERVICE_NAME`, `QGIS_SERVER_VERSION` (keep in sync with the `qgis/qgis-server` image tag)
-- **WireGuard** (optional): `WIREGUARD_SERVERURL`, `WIREGUARD_PORT`, `WIREGUARD_PEERS`
+- Domains: `DOMAIN_NAME`, `API_DOMAIN`, `APP_DOMAIN`, `ADMIN_DOMAIN`, `FILES_DOMAIN`, `QGIS_DOMAIN`, `TILE_SERVER_DOMAIN` (Caddy requests a Let's Encrypt certificate for each)
+- Database: `DB_NAME`, `DB_USER`, `DB_PASSWORD`, plus `QGIS_DB_USER` / `QGIS_DB_PASSWORD` for QGIS Server
+- Django: `DJANGO_SECRET_KEY`, `FIELD_ENCRYPTION_KEY`, `DEBUG=False`, `DJANGO_ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, `USE_COOKIE_DOMAIN_MIDDLEWARE=True`, `COOKIE_DOMAIN=.your-domain.com`
+- Superuser: `DJANGO_SUPERUSER_USERNAME`, `DJANGO_SUPERUSER_EMAIL`, `DJANGO_SUPERUSER_PASSWORD`
+- Frontend: `API_URL` (internal, e.g. `http://backend:8000/api/v1/`), `PUBLIC_API_URL` (`https://api.your-domain.com/api/v1/`), `PUBLIC_TILE_SERVER_URL`, `PUBLIC_DOCUMENTATION_URL`
+- QGIS: `QGIS_PG_SERVICE_NAME`, `QGIS_SERVER_VERSION` (keep in sync with the `qgis/qgis-server` image tag)
+- WireGuard (optional): `WIREGUARD_SERVERURL`, `WIREGUARD_PORT`, `WIREGUARD_PEERS`
 
 Generate the secrets with:
 
@@ -303,18 +297,18 @@ python -c 'from django.core.management.utils import get_random_secret_key; print
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"                     # FIELD_ENCRYPTION_KEY
 ```
 
-#### 3.2 Frontend Configuration
+#### 3.2 Frontend configuration
 
-The frontend container reads its variables from `deployment/.env` (`env_file` and build args in `docker-compose.yml`); no `frontend/.env` is needed. `ORIGIN` is set to `https://${APP_DOMAIN}` by the compose file.
+The frontend container reads its variables from `deployment/.env` (`env_file` and build args in `docker-compose.yml`), so you don't need a `frontend/.env`. The compose file sets `ORIGIN` to `https://${APP_DOMAIN}`.
 
-#### 3.3 Start Services
+#### 3.3 Start services
 
 ```bash
 cd deployment
 docker compose up -d --build
 ```
 
-#### 3.4 Verify Services
+#### 3.4 Verify services
 
 Check service status:
 
@@ -328,131 +322,124 @@ View logs:
 docker-compose logs [service_name]
 ```
 
-### Accessing Services
+### Accessing services
 
-- **Frontend**: `https://<APP_DOMAIN>`
-- **API**: `https://<API_DOMAIN>` (the `/admin/` path is blocked here)
-- **Django Admin**: `https://<ADMIN_DOMAIN>/admin`
-- **QGIS Server**: `https://<QGIS_DOMAIN>/ows/?MAP=/projects/<project>.qgs`
-- **TileServer**: `https://<TILE_SERVER_DOMAIN>`
-- **Files (WebDAV)**: `https://<FILES_DOMAIN>`
-- **Database**: Not exposed externally (internal network only; use WireGuard for QGIS Desktop access)
+- Frontend: `https://<APP_DOMAIN>`
+- API: `https://<API_DOMAIN>` (the `/admin/` path is blocked here)
+- Django admin: `https://<ADMIN_DOMAIN>/admin`
+- QGIS Server: `https://<QGIS_DOMAIN>/ows/?MAP=/projects/<project>.qgs`
+- TileServer: `https://<TILE_SERVER_DOMAIN>`
+- Files (WebDAV): `https://<FILES_DOMAIN>`
+- Database: not exposed (internal network only; use WireGuard for QGIS Desktop access)
 
-### Services Overview
+### Services overview
 
 #### Database (PostgreSQL 17)
 
-- **Port**: 5432 (internal only, not exposed in production; 5440 external in development via `DB_EXTERNAL_PORT`)
-- **Volume**: `postgres_data` for data persistence
-- **Health Check**: PostgreSQL readiness check
-- **Initialization**: `postgres/init.sh` sets up extensions and users
-- **Extensions**: PostGIS, pgRouting, dblink, pgcrypto
-- **Users**:
-  - Main user (`DB_USER`) - full privileges for Django backend
-  - QGIS user (`QGIS_DB_USER`) - limited read-write access for WFS/WMS
+- Port: 5432 (internal only in production; published as 5440 in development via `DB_EXTERNAL_PORT`)
+- Volume: `postgres_data` for data persistence
+- Health check: PostgreSQL readiness check
+- Initialization: `postgres/init.sh` sets up extensions and users
+- Extensions: PostGIS, pgRouting, dblink, pgcrypto
+- Users:
+  - Main user (`DB_USER`): full privileges, used by the Django backend
+  - QGIS user (`QGIS_DB_USER`): limited read-write access for WFS/WMS
 
 #### Backend (Django 5.2)
 
-- **Port**: 8000 (internal, exposed via nginx/caddy)
-- **Volumes**:
+- Port: 8000 (internal, exposed via nginx/caddy)
+- Volumes:
   - `static_volume` for static files
   - `media_volume` for user uploads
-- **Commands**:
+- Startup steps:
   - Compiles translation messages (`compilemessages`)
   - Collects static files
   - Runs migrations
-  - Creates superuser (if not exists)
+  - Creates the superuser (if it doesn't exist)
   - Loads fixtures via `load_initial_data` (idempotent)
   - Starts Gunicorn
-- **Depends on**: Database service
-- **Special Features**:
+- Depends on: database service
+- Also serves:
   - GeoPackage schema export endpoint
   - Vector tile endpoints (MVT)
   - Excel import/export for conduits
 
 #### Frontend (SvelteKit 2)
 
-- **Port**: 3000 (internal, exposed via caddy)
-- **Environment**: Production build with Node.js adapter
-- **Depends on**: Backend service
-- **Configuration**: Variables from `deployment/.env` (see 3.2)
+- Port: 3000 (internal, exposed via caddy)
+- Environment: production build with the Node.js adapter
+- Depends on: backend service
+- Configuration: variables from `deployment/.env` (see 3.2)
 
 #### QGIS Server
 
-- **Image**: `qgis/qgis-server:3.44.7-noble` (keep `QGIS_SERVER_VERSION` in sync)
-- **Port**: 80 (internal, exposed via caddy)
-- **Setup Required**:
+- Image: `qgis/qgis-server:3.44.7-noble` (keep `QGIS_SERVER_VERSION` in sync)
+- Port: 80 (internal, exposed via caddy)
+- Setup:
   1. Set `QGIS_DB_USER`, `QGIS_DB_PASSWORD` and `QGIS_PG_SERVICE_NAME` in `.env`
   2. Upload QGIS projects in the Django admin, or copy them to `qgis/projects/`
-- **Database connection**: `pg_service.conf` is generated at container start from `.env`; there is nothing to copy
-- **Volumes**:
+- Database connection: `pg_service.conf` is generated at container start from `.env`; there is nothing to copy
+- Volumes:
   - `qgis/projects/` for QGIS project files (.qgs/.qgz), read-only
   - `qgis/data/` for additional data files, read-only
   - `qgis/nginx.conf` for the FastCGI front end
-- **Render processes**: 3 in production (`spawn-fcgi -F 3`), 2 in development
-- **Services**: WMS, WFS (with ?MAP=/projects/<project>.qgs parameter), WMTS, WCS, OGC API Features
-- **Authentication**: Django forward_auth integration (JWT cookie or HTTP Basic)
-- See [QGIS Server Setup](qgis/README.md) for detailed configuration
+- Render processes: 3 in production (`spawn-fcgi -F 3`), 2 in development
+- Services: WMS, WFS (with the `?MAP=/projects/<project>.qgs` parameter), WMTS, WCS, OGC API Features
+- Authentication: Django forward_auth (JWT cookie or HTTP Basic)
+- [QGIS Server Setup](qgis/README.md) has the detailed configuration
 
 #### TileServer-GL
 
-- **Image**: `maptiler/tileserver-gl:v5.6.0`
-- **Port**: 8080 (internal, exposed via caddy as tiles subdomain)
-- **Function**: Vector tile server for base map rendering
-- **Setup Required**: Generate mbtiles using Planetiler (see [Generating Map Tiles](#generating-map-tiles-with-planetiler) below)
-- **Volumes**:
-  - `tiles/*.mbtiles` - Vector tile data (user-generated, not included in repo)
-  - `tiles/config.json` - TileServer configuration
-  - `tiles/styles/light.json` - Light theme style
-  - `tiles/styles/dark.json` - Dark theme style
-- **Features**:
-  - High-performance vector tile serving
-  - Dynamic light/dark theme switching
-  - Font serving for map labels
-- **Data Source**: Mbtiles generated from Planetiler (OSM data)
+- Image: `maptiler/tileserver-gl:v5.6.0`
+- Port: 8080 (internal, exposed via caddy as the tiles subdomain)
+- Function: vector tile server for the base map
+- Setup: generate mbtiles with Planetiler (see [Generating Map Tiles](#generating-map-tiles-with-planetiler) below)
+- Volumes:
+  - `tiles/*.mbtiles`: vector tile data (you generate it; not included in the repo)
+  - `tiles/config.json`: TileServer configuration
+  - `tiles/styles/light.json`: light theme style
+  - `tiles/styles/dark.json`: dark theme style
+- Serves vector tiles, the light and dark styles, and fonts for map labels
+- Data source: mbtiles generated by Planetiler from OSM data
 
 #### Backend WMS (Django)
 
-- **Port**: 8000 (internal, proxied via nginx)
-- **Function**: Dedicated Django instance for the WMS proxy, whose responses nginx caches in `wms_cache` (production only)
-- **Memory**: 1.5GB limit, 512MB reserved
-- **Features**:
-  - Separate Gunicorn worker pool for tile requests
-  - Isolates tile rendering load from main API
-  - Shares static and media volumes with main backend
+- Port: 8000 (internal, proxied via nginx)
+- Function: a separate Django instance for the WMS proxy; nginx caches its responses in `wms_cache` (production only)
+- Memory: 1.5GB limit, 512MB reserved
+- Details:
+  - Has its own Gunicorn worker pool for tile requests, so tile load doesn't slow down the main API
+  - Shares the static and media volumes with the main backend
   - Must use the same `DJANGO_SECRET_KEY` as `backend`, or WMS proxy tokens are rejected with 403
 
-#### PG Error Parser
+#### PG error parser
 
-- **Function**: Monitors PostgreSQL container logs for errors
-- **Memory**: 256MB limit, 128MB reserved
-- **Features**:
-  - Parses PostgreSQL logs via Docker socket
-  - Detects and reports database errors
-  - Runs as a Django management command
+- Function: watches the PostgreSQL container logs for errors
+- Memory: 256MB limit, 128MB reserved
+- Reads the PostgreSQL logs through the Docker socket and records the database errors it finds. It runs as a Django management command.
 
-#### WireGuard (Optional)
+#### WireGuard (optional)
 
-- **Image**: `lscr.io/linuxserver/wireguard:latest`
-- **Port**: 51820/udp (configurable via `WIREGUARD_PORT`)
-- **Function**: VPN access to the database for QGIS Desktop (production only); see [WireGuard README](wireguard/README.md)
-- **Memory**: 128MB limit, 64MB reserved
-- **Configuration**:
-  - `WIREGUARD_SERVERURL` - Server URL (default: auto-detect)
-  - `WIREGUARD_PORT` - UDP port (default: 51820)
-  - `WIREGUARD_PEERS` - Peer configurations
+- Image: `lscr.io/linuxserver/wireguard:latest`
+- Port: 51820/udp (configurable via `WIREGUARD_PORT`)
+- Function: VPN access to the database for QGIS Desktop (production only); see the [WireGuard README](wireguard/README.md)
+- Memory: 128MB limit, 64MB reserved
+- Configuration:
+  - `WIREGUARD_SERVERURL`: server URL (default: auto-detect)
+  - `WIREGUARD_PORT`: UDP port (default: 51820)
+  - `WIREGUARD_PEERS`: peer configurations
 
-#### Generating Map Tiles with Planetiler
+#### Generating map tiles with Planetiler
 
-[Planetiler](https://github.com/onthegomap/planetiler) is a fast tool for generating vector tiles from OpenStreetMap data. You need to generate mbtiles before starting the TileServer.
+[Planetiler](https://github.com/onthegomap/planetiler) generates vector tiles from OpenStreetMap data. Generate the mbtiles before starting the TileServer.
 
 **Prerequisites:**
 
 - Java 21 or later (`java --version`)
 - 8GB+ RAM recommended
-- Disk space: ~2x the size of your OSM data file
+- Disk space: about twice the size of your OSM data file
 
-**Quick Start:**
+**Quick start:**
 
 ```bash
 cd deployment/tiles
@@ -467,7 +454,7 @@ java -Xmx8g -jar planetiler.jar --download --area=germany --output=germany.mbtil
 java -Xmx4g -jar planetiler.jar --download --area=berlin --output=berlin.mbtiles
 ```
 
-**Using a Local OSM File:**
+**Using a local OSM file:**
 
 Download PBF files from [Geofabrik](https://download.geofabrik.de/):
 
@@ -479,7 +466,7 @@ wget https://download.geofabrik.de/europe/germany-latest.osm.pbf
 java -Xmx8g -jar planetiler.jar --osm-path=germany-latest.osm.pbf --output=tiles/germany.mbtiles
 ```
 
-**Memory Recommendations:**
+**Memory recommendations:**
 
 | Region                  | RAM    | Approximate Output Size |
 | ----------------------- | ------ | ----------------------- |
@@ -490,7 +477,7 @@ java -Xmx8g -jar planetiler.jar --osm-path=germany-latest.osm.pbf --output=tiles
 
 **Updating config.json:**
 
-After generating your mbtiles, update `tiles/config.json` to reference your file:
+After generating your mbtiles, point `tiles/config.json` at your file:
 
 ```json
 {
@@ -502,43 +489,43 @@ After generating your mbtiles, update `tiles/config.json` to reference your file
 }
 ```
 
-**Common Issues:**
+**Common issues:**
 
-- **OutOfMemoryError**: Increase `-Xmx` value or use a smaller region
-- **Slow generation**: Use SSD storage, increase RAM
-- **Missing tiles at high zoom**: Planetiler may skip sparse areas; this is normal
+- `OutOfMemoryError`: increase the `-Xmx` value or use a smaller region
+- Slow generation: use SSD storage and more RAM
+- Missing tiles at high zoom: Planetiler may skip sparse areas; this is normal
 
 #### Caddy
 
-- **Ports**: 80, 443
-- **Function**: Reverse proxy with automatic HTTPS
-- **Volumes**:
+- Ports: 80, 443
+- Function: reverse proxy with automatic HTTPS
+- Volumes:
   - `caddy_data` for certificates and data
   - `caddy_config` for configuration
   - `Caddyfile.production` for routing rules
   - `caddy/extra/` for site-specific snippets (see below)
   - `media_volume` (read-only) for WebDAV
-- **Features**:
+- Handles:
   - Automatic HTTPS with Let's Encrypt
   - Subdomain routing (app, api, admin, qgis, tiles, files)
   - Forward authentication for QGIS Server
-  - CORS headers for tile server
+  - CORS headers for the tile server
   - Security headers (HSTS, X-Frame-Options, etc.)
   - Request body limits (10GB for WebDAV, 100MB for WFS)
 
-**Site-specific Caddy snippets:** `Caddyfile.production` imports `caddy/extra/<site>/*.caddy` inside each site block (`api`, `admin`, `app`, `files`, `qgis`, `tileserver`) and `caddy/extra/sites/*.caddy` at top level. Put server-specific rules there (IP allow lists, extra sites) instead of editing the Caddyfile. The directory is not part of the repository; empty or missing folders are ignored.
+Site-specific Caddy snippets: `Caddyfile.production` imports `caddy/extra/<site>/*.caddy` inside each site block (`api`, `admin`, `app`, `files`, `qgis`, `tileserver`) and `caddy/extra/sites/*.caddy` at top level. Put server-specific rules there (IP allow lists, extra sites) instead of editing the Caddyfile. The directory is not part of the repository; empty or missing folders are ignored.
 
 #### Nginx
 
-- **Port**: 80 (internal)
-- **Function**: Reverse proxy, static file serving
-- **Volumes**:
+- Port: 80 (internal)
+- Function: reverse proxy, static file serving
+- Volumes:
   - `nginx/nginx.conf` for configuration
   - `static_volume` for Django static files
   - `media_volume` for media files
-- **Features**: Static file caching and gzip compression
+- Also does static file caching and gzip compression
 
-#### Resource Limits (Production)
+#### Resource limits (production)
 
 The production compose file is sized for the minimum supported host of 8 CPU cores and 16GB RAM.
 
@@ -556,11 +543,9 @@ The production compose file is sized for the minimum supported host of 8 CPU cor
 | WireGuard             | 128MB        | 64MB               |                                             |
 | **Total**             | **~14.9GB**  | **~5.7GB**         |                                             |
 
----
+## Environment variables reference
 
-## Environment Variables Reference
-
-### Backend Variables (`deployment/.env`)
+### Backend variables (`deployment/.env`)
 
 | Variable                       | Required | Description                                              | Example                 |
 | ------------------------------ | -------- | -------------------------------------------------------- | ----------------------- |
@@ -587,7 +572,7 @@ The production compose file is sized for the minimum supported host of 8 CPU cor
 | `CSRF_TRUSTED_ORIGINS`         | Yes      | Comma-separated trusted origins                          | `https://app.localhost` |
 | `DB_EXTERNAL_PORT`             | No       | Published database port (dev compose only)               | `5440`                  |
 
-### Deployment Variables (`deployment/.env`, Docker only)
+### Deployment variables (`deployment/.env`, Docker only)
 
 | Variable                                                                                                       | Description                                                   |
 | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
@@ -595,7 +580,7 @@ The production compose file is sized for the minimum supported host of 8 CPU cor
 | `API_URL`, `PUBLIC_API_URL`, `PUBLIC_TILE_SERVER_URL`, `PUBLIC_DOCUMENTATION_URL`                              | Frontend variables, passed to the frontend container          |
 | `WIREGUARD_SERVERURL`, `WIREGUARD_PORT`, `WIREGUARD_PEERS`                                                     | WireGuard VPN (see [WireGuard README](wireguard/README.md))   |
 
-### Frontend Variables (`frontend/.env`)
+### Frontend variables (`frontend/.env`)
 
 | Variable                   | Required | Description                                    | Example                         |
 | -------------------------- | -------- | ---------------------------------------------- | ------------------------------- |
@@ -607,31 +592,29 @@ The production compose file is sized for the minimum supported host of 8 CPU cor
 | `E2E_TEST_USERNAME`        | No       | Playwright login user                          |                                 |
 | `E2E_TEST_PASSWORD`        | No       | Playwright login password                      |                                 |
 
-**Note:** In SvelteKit, private environment variables (server-side only) are accessed via `$env/static/private`, and public variables (client-side accessible) must be prefixed with `PUBLIC_` and accessed via `$env/static/public`.
+In SvelteKit, private (server-side only) variables are read from `$env/static/private`. Public variables, which the client can read, must start with `PUBLIC_` and are read from `$env/static/public`.
 
----
+## Service management
 
-## Service Management
-
-### Start Services
+### Start services
 
 ```bash
 docker-compose up -d
 ```
 
-### Stop Services
+### Stop services
 
 ```bash
 docker-compose down
 ```
 
-### Restart a Service
+### Restart a service
 
 ```bash
 docker-compose restart [service_name]
 ```
 
-### View Logs
+### View logs
 
 ```bash
 # All services
@@ -644,7 +627,7 @@ docker-compose logs [service_name]
 docker-compose logs -f [service_name]
 ```
 
-### Execute Commands in Container
+### Execute commands in a container
 
 ```bash
 # Backend shell
@@ -660,15 +643,15 @@ docker-compose exec frontend npm [command]
 docker-compose exec backend python manage.py migrate
 ```
 
-### Rebuild Services
+### Rebuild services
 
 ```bash
 docker-compose up -d --build [service_name]
 ```
 
-### Enable BuildKit (Required)
+### Enable BuildKit (required)
 
-The Dockerfiles use BuildKit features for faster builds (npm cache persistence). Add these environment variables system-wide:
+The Dockerfiles use BuildKit features for faster builds (npm cache persistence). Set these environment variables system-wide:
 
 ```bash
 sudo nano /etc/environment
@@ -683,117 +666,100 @@ COMPOSE_DOCKER_CLI_BUILD=1
 
 Save and reboot (or log out and back in).
 
-**Why?** BuildKit enables:
+BuildKit keeps the npm and pip caches between builds, builds layers in parallel and gives clearer build output. Without these variables, builds fail with `unknown flag: mount`.
 
-- Persistent npm/pip caches between builds
-- Parallel layer building
-- Better build output
+## Health checks
 
-Without these variables, builds will fail with: `unknown flag: mount`
+These services have health checks:
 
----
-
-## Health Checks
-
-Services include health checks:
-
-- **Database**: PostgreSQL readiness (`pg_isready`)
-- **QGIS Server**: HTTP endpoint check (verifies server is running)
-- **Backend**: Django application (implicit via dependencies)
-
----
+- Database: PostgreSQL readiness (`pg_isready`)
+- QGIS Server: HTTP endpoint check (verifies the server is running)
+- Backend: Django application (implicit via dependencies)
 
 ## Volumes
 
-Persistent data is stored in Docker volumes:
+Docker volumes hold the persistent data:
 
-- `postgres_data`: Database files (production; development uses the `postgres/data/` bind mount)
+- `postgres_data`: database files (production; development uses the `postgres/data/` bind mount)
 - `static_volume`: Django static files
-- `media_volume`: User uploads and media
+- `media_volume`: user uploads and media
 - `wms_cache`: Nginx WMS proxy cache (production)
 - `caddy_data`: Caddy certificates and data
 - `caddy_config`: Caddy configuration
 
----
-
 ## Troubleshooting
 
-### Services Not Starting
+### Services not starting
 
 1. Check logs: `docker-compose logs [service]`
-2. Verify environment variables in `.env` files
-3. Ensure ports are not in use
+2. Verify the environment variables in the `.env` files
+3. Make sure the ports are not in use
 4. Check Docker resources (memory, disk)
 
-### Database Connection Issues
+### Database connection issues
 
-1. Verify database service is healthy: `docker-compose ps db`
-2. Check database logs: `docker-compose logs db`
-3. Verify credentials in `.env` match database settings
-4. For local development, ensure PostgreSQL is running: `brew services list` or `systemctl status postgresql`
+1. Verify the database service is healthy: `docker-compose ps db`
+2. Check the database logs: `docker-compose logs db`
+3. Verify the credentials in `.env` match the database settings
+4. For local development, make sure PostgreSQL is running: `brew services list` or `systemctl status postgresql`
 
-### Static Files Not Loading
+### Static files not loading
 
-1. Verify static files collection: `docker-compose logs backend | grep collectstatic`
-2. Check nginx configuration
-3. Verify static volume is mounted
+1. Verify static files were collected: `docker-compose logs backend | grep collectstatic`
+2. Check the nginx configuration
+3. Verify the static volume is mounted
 
-### QGIS Server Issues
+### QGIS Server issues
 
-1. **Setup checklist**:
+1. Setup checklist:
    - Verify `QGIS_DB_USER`, `QGIS_DB_PASSWORD` and `QGIS_PG_SERVICE_NAME` in `.env` (the QGIS user is only created on the database's first start)
    - Confirm your QGIS project uses the same PostgreSQL service name
    - Confirm your QGIS project is in `qgis/projects/`
-2. Check QGIS Server logs: `docker-compose logs qgis-server`
-3. Remember to include the MAP parameter in requests: `?MAP=/projects/<project>.qgs`
-4. See [QGIS Server Setup](qgis/README.md) for detailed configuration
+2. Check the QGIS Server logs: `docker-compose logs qgis-server`
+3. Include the MAP parameter in requests: `?MAP=/projects/<project>.qgs`
+4. See [QGIS Server Setup](qgis/README.md) for the detailed configuration
 
-### TileServer Issues
+### TileServer issues
 
-1. **Setup checklist**:
-   - Ensure mbtiles file exists (generate with Planetiler - see [Generating Map Tiles](#generating-map-tiles-with-planetiler))
+1. Setup checklist:
+   - Make sure the mbtiles file exists (generate it with Planetiler, see [Generating Map Tiles](#generating-map-tiles-with-planetiler))
    - Verify `tiles/config.json` references the correct mbtiles file
-2. Check TileServer logs: `docker-compose logs tileserver`
-3. Verify mbtiles file exists: `ls -lh deployment/tiles/*.mbtiles`
-4. Test tile endpoint directly: `curl http://localhost:8080/styles/light.json`
-5. Check CORS headers for tile requests
-6. Verify frontend is using correct tile server URL (`PUBLIC_TILE_SERVER_URL`)
-7. For missing or outdated tiles: Regenerate mbtiles from Planetiler with updated OSM data
+2. Check the TileServer logs: `docker-compose logs tileserver`
+3. Verify the mbtiles file exists: `ls -lh deployment/tiles/*.mbtiles`
+4. Test the tile endpoint directly: `curl http://localhost:8080/styles/light.json`
+5. Check the CORS headers on tile requests
+6. Verify the frontend uses the correct tile server URL (`PUBLIC_TILE_SERVER_URL`)
+7. For missing or outdated tiles, regenerate the mbtiles with Planetiler from current OSM data
 
-### Certificate Issues (Caddy)
+### Certificate issues (Caddy)
 
-1. Check Caddy logs: `docker-compose logs caddy`
-2. Verify domain configuration in `.env`
-3. Check certificate directory permissions
-4. For localhost development, Caddy will use self-signed certificates
+1. Check the Caddy logs: `docker-compose logs caddy`
+2. Verify the domain configuration in `.env`
+3. Check the certificate directory permissions
+4. For localhost development, Caddy uses self-signed certificates
 
-### Frontend API Connection Issues
+### Frontend API connection issues
 
-1. Verify `API_URL` in `frontend/.env` matches backend URL
-2. Check CORS settings in backend `.env` (`CORS_ALLOWED_ORIGINS`)
-3. For production, ensure HTTPS URLs are used consistently
-4. Check browser console for CORS or connection errors
+1. Verify `API_URL` in `frontend/.env` matches the backend URL
+2. Check the CORS settings in the backend `.env` (`CORS_ALLOWED_ORIGINS`)
+3. In production, use HTTPS URLs everywhere
+4. Check the browser console for CORS or connection errors
 
----
+## Production deployment considerations
 
-## Production Deployment Considerations
-
-1. **Secrets Management**: Use Docker secrets or external secret management services
-2. **Resource Limits**: Configure appropriate CPU/memory limits (already configured in compose file)
-3. **Backup Strategy**: `backup/backup.sh` dumps the database and mirrors the media volume, `backup/restore.sh <YYYY-MM-DD>` restores it (`--db-only`, `--media-only`, `--list`). Both read server-specific paths and the rclone remote from `backup/backup.conf`, which is gitignored and must be created per server
-4. **Monitoring**: Set up logging and monitoring solutions (e.g., Prometheus, Grafana)
-5. **Security**:
+1. Secrets: keep sensitive variables in Docker secrets or an external secret manager
+2. Resource limits: the compose file already sets CPU and memory limits; adjust them to your host
+3. Backups: `backup/backup.sh` dumps the database and mirrors the media volume, `backup/restore.sh <YYYY-MM-DD>` restores it (`--db-only`, `--media-only`, `--list`). Both read server-specific paths and the rclone remote from `backup/backup.conf`, which is gitignored and must be created per server
+4. Monitoring: set up logging and monitoring (e.g., Prometheus, Grafana)
+5. Security:
    - Use strong passwords and secrets
    - Enable HTTPS (automatic with Caddy)
    - Restrict database access (not exposed externally)
-   - Regular security updates
+   - Apply security updates regularly
    - Configure firewall rules
-6. **Scaling**: Consider using Docker Swarm or Kubernetes for production scaling
-7. **Environment Variables**: Use secret management for sensitive variables in production
+6. Scaling: for scaling beyond one host, consider Docker Swarm or Kubernetes
 
----
-
-## Additional Resources
+## Additional resources
 
 - [Main README](../README.md)
 - [Backend README](../backend/README.md)

@@ -2,15 +2,15 @@
 
 This WireGuard VPN allows QGIS Desktop users to connect directly to PostgreSQL instead of using WFS. The `wireguard` service is part of the production compose file only; run the commands below from `deployment/`.
 
-## Network Configuration
+## Network configuration
 
-- **VPN Subnet:** 10.13.13.0/24
-- **Server IP (inside VPN):** 10.13.13.1
-- **PostgreSQL (via VPN):** 10.13.13.1:5432 (routed to db container)
+- VPN subnet: 10.13.13.0/24
+- Server IP (inside the VPN): 10.13.13.1
+- PostgreSQL (via VPN): 10.13.13.1:5432 (routed to the db container)
 
-## Initial Setup
+## Initial setup
 
-Before adding peers, you must configure port forwarding to route PostgreSQL traffic to the database container.
+Before adding peers, set up port forwarding so PostgreSQL traffic reaches the database container.
 
 ### 1. Set WIREGUARD_PEERS in your .env file
 
@@ -26,7 +26,7 @@ docker-compose up -d wireguard
 
 ### 3. Add port forwarding to wg0.conf
 
-Edit `./wireguard/wg_confs/wg0.conf` and modify the PostUp/PostDown lines to include the DNAT rule. The DB IP is resolved dynamically at startup using `getent`, so it stays correct even if containers are recreated:
+Edit `./wireguard/wg_confs/wg0.conf` and modify the PostUp/PostDown lines to include the DNAT rule. The DB IP is resolved with `getent` at startup, so it stays correct when containers are recreated:
 
 ```ini
 [Interface]
@@ -51,7 +51,7 @@ docker exec qonnectra_wireguard_prod iptables -t nat -L PREROUTING -n
 
 You should see a DNAT rule pointing to the database IP.
 
-## Adding a New Peer
+## Adding a new peer
 
 ### Option 1: Auto-generate via environment variable
 
@@ -68,8 +68,8 @@ You should see a DNAT rule pointing to the database IP.
    ```
 
 3. Find generated configs in `./wireguard/peer_<name>/`:
-   - `peer_<name>.conf` - Client config file
-   - `peer_<name>.png` - QR code for mobile
+   - `peer_<name>.conf`: client config file
+   - `peer_<name>.png`: QR code for mobile
 
 ### Option 2: Manual peer management
 
@@ -90,7 +90,7 @@ You should see a DNAT rule pointing to the database IP.
 
    This prints the private key first (stderr), then the public key (stdout).
 
-2. Add peer to server config (`./wireguard/wg_confs/wg0.conf`):
+2. Add the peer to the server config (`./wireguard/wg_confs/wg0.conf`):
 
    ```ini
    [Peer]
@@ -116,7 +116,7 @@ You should see a DNAT rule pointing to the database IP.
    echo "<server-private-key>" | docker exec -i qonnectra_wireguard_prod wg pubkey
    ```
 
-   Or if you saved it separately, check `./wireguard/server/publickey`.
+   If you saved it separately, it is in `./wireguard/server/publickey`.
 
 5. Create a client config file (e.g., `peer_manual.conf`) for the user:
 
@@ -133,16 +133,16 @@ You should see a DNAT rule pointing to the database IP.
    ```
 
    Replace:
-   - `<peer-private-key>` - The private key generated in step 1
-   - `10.13.13.X` - Same IP used in step 2
-   - `<server-public-key>` - From step 4
-   - `<your-server-ip-or-domain>` - Your server's public IP or domain
+   - `<peer-private-key>`: the private key generated in step 1
+   - `10.13.13.X`: the IP used in step 2
+   - `<server-public-key>`: the key from step 4
+   - `<your-server-ip-or-domain>`: your server's public IP or domain
 
 6. Send the `.conf` file to the user. They import it into their WireGuard client (available for Windows, macOS, Linux, iOS, Android).
 
-## QGIS Connection Settings
+## QGIS connection settings
 
-Once connected via WireGuard, configure QGIS PostgreSQL connection:
+Once connected via WireGuard, set up the PostgreSQL connection in QGIS:
 
 | Setting  | Value                             |
 | -------- | --------------------------------- |
@@ -153,9 +153,9 @@ Once connected via WireGuard, configure QGIS PostgreSQL connection:
 | Password | _(from QGIS_DB_PASSWORD in .env)_ |
 | SSL Mode | `disable`                         |
 
-**Note:** This is the same limited database user QGIS Server uses for WFS: it can read and write data in all tables but cannot change the schema, and it has no access to the permission tables.
+This is the same limited database user QGIS Server uses for WFS: it can read and write data in all tables but cannot change the schema, and it has no access to the permission tables.
 
-## Revoking Access
+## Revoking access
 
 1. Remove the peer section from `./wireguard/wg_confs/wg0.conf`
 2. Delete the peer folder from `./wireguard/peer_<name>/`
@@ -199,7 +199,7 @@ psql -h 10.13.13.1 -p 5432 -U qgis_user -d qonnectra_production
 
 ### PostgreSQL connection refused
 
-If ping works but PostgreSQL doesn't connect:
+If ping works but PostgreSQL does not connect:
 
 1. Check if the DNAT rule exists and points to the right IP:
    ```bash
@@ -209,7 +209,7 @@ If ping works but PostgreSQL doesn't connect:
    ```bash
    docker exec qonnectra_wireguard_prod getent hosts db
    ```
-3. If the DNAT rule is missing or wrong, restart the WireGuard container — it will re-resolve `db` automatically:
+3. If the DNAT rule is missing or wrong, restart the WireGuard container. It re-resolves `db` on startup:
    ```bash
    docker restart qonnectra_wireguard_prod
    ```

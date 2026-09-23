@@ -4,11 +4,11 @@ This directory contains the QGIS Server configuration for the qonnectra project.
 
 ## Structure
 
-- `projects/` - QGIS project files (.qgs/.qgz), mounted read-only at `/projects` in the container
-- `data/` - Additional data files referenced by projects, mounted read-only at `/data`
-- `nginx.conf` - nginx front end that passes requests to the QGIS FastCGI processes
-- `pg_service.conf.template` - Reference only: `pg_service.conf` is generated at container start (see [Database Integration](#database-integration))
-- `environment-variables.md` - Variables and database user in detail
+- `projects/`: QGIS project files (.qgs/.qgz), mounted read-only at `/projects` in the container
+- `data/`: additional data files referenced by projects, mounted read-only at `/data`
+- `nginx.conf`: nginx front end that passes requests to the QGIS FastCGI processes
+- `pg_service.conf.template`: reference only; `pg_service.conf` is generated at container start (see [Database Integration](#database-integration))
+- `environment-variables.md`: the variables and the database user in detail
 
 ## Usage
 
@@ -21,7 +21,7 @@ QGIS Server has no published port. It is reachable only through Caddy:
 
 Every request is authenticated through Django first (see [Authentication Flow](#authentication-flow)).
 
-### Testing the Setup
+### Testing the setup
 
 Test the WMS capabilities of a project (replace `<project>` with a file in `projects/`):
 
@@ -33,23 +33,23 @@ curl -k -u <username> "https://qgis.localhost/ows/?SERVICE=WMS&VERSION=1.3.0&REQ
 curl -k -u <username> "https://qgis.localhost/ows/?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetCapabilities&MAP=/projects/<project>.qgs"
 ```
 
-All requests should return valid XML with service capabilities information.
+Both requests should return XML with the service capabilities.
 
-**Important**: The `MAP` parameter is required and must point to a project file in the `/projects/` directory (e.g., `MAP=/projects/myproject.qgs`).
+The `MAP` parameter is required and must point to a project file in the `/projects/` directory (e.g., `MAP=/projects/myproject.qgs`).
 
-### Available Services
+### Available services
 
-QGIS Server provides the following OGC services:
+QGIS Server provides these OGC services:
 
-- **WMS** (Web Map Service) - For map rendering
-- **WFS** (Web Feature Service) - For vector data access and editing (requires MAP parameter)
-- **WMTS** (Web Map Tile Service) - For cached map tiles
-- **WCS** (Web Coverage Service) - For raster data
-- **OGC API Features** (WFS3) - Modern RESTful API for vector data; the backend also proxies it at `/api/v1/wfs3/<project>/`
+- WMS (Web Map Service): map rendering
+- WFS (Web Feature Service): vector data access and editing (requires the MAP parameter)
+- WMTS (Web Map Tile Service): cached map tiles
+- WCS (Web Coverage Service): raster data
+- OGC API Features (WFS3): REST API for vector data; the backend also proxies it at `/api/v1/wfs3/<project>/`
 
-### WFS with MAP Parameter
+### WFS with MAP parameter
 
-All WFS requests **must** include the `MAP` parameter pointing to a QGIS project file:
+Every WFS request must include the `MAP` parameter pointing to a QGIS project file:
 
 ```bash
 # Example WFS GetFeature request with HTTP Basic authentication
@@ -57,18 +57,18 @@ curl -k -u <username> \
   "https://qgis.localhost/ows/?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&MAP=/projects/myproject.qgs&TYPENAME=layer_name"
 ```
 
-### Adding QGIS Projects
+### Adding QGIS projects
 
-Either:
+There are two ways to add a project:
 
-1. **Django admin (recommended)**: Upload the project in the admin under QGIS projects. The file is stored as `projects/<name>.qgs` (or `.qgz`) and data files uploaded alongside it go to `data/<name>/`. The upload is validated, including a warning when the project was saved with a different QGIS version than `QGIS_SERVER_VERSION`.
-2. **Manually**: Copy the `.qgs`/`.qgz` file to `projects/` on the host.
+1. Django admin (recommended): upload the project in the admin under QGIS projects. The file is stored as `projects/<name>.qgs` (or `.qgz`), and data files uploaded with it go to `data/<name>/`. The admin validates the upload and warns when the project was saved with a different QGIS version than `QGIS_SERVER_VERSION`.
+2. Manually: copy the `.qgs`/`.qgz` file to `projects/` on the host.
 
-No restart is needed; the project is loaded on the next request that names it in `MAP`.
+No restart is needed; QGIS Server loads the project on the next request that names it in `MAP`.
 
 ### Database Integration
 
-QGIS projects connect to PostgreSQL through a PostgreSQL **service** name. At container start the compose command writes `/etc/postgresql-common/pg_service.conf` from `.env`:
+QGIS projects connect to PostgreSQL through a PostgreSQL service name. At container start the compose command writes `/etc/postgresql-common/pg_service.conf` from `.env`:
 
 ```ini
 [${QGIS_PG_SERVICE_NAME}]
@@ -80,14 +80,14 @@ password=${QGIS_DB_PASSWORD}
 sslmode=disable
 ```
 
-So QGIS Server connects as the limited QGIS user, not the main `DB_USER`. The service name must match the one used in your project's layers.
+QGIS Server therefore connects as the limited QGIS user instead of the main `DB_USER`. The service name must match the one used in your project's layers.
 
-### Django Integration
+### Django integration
 
-1. **Forward Authentication**: Caddy forwards authentication requests to Django's `/api/v1/auth/qgis-auth/` endpoint
-2. **Project Management**: Upload QGIS project and data files through the Django admin into `deployment/qgis/projects/` and `deployment/qgis/data/`
-3. **WFS Error Logging**: Backend logs WFS errors and validation failures
-4. **Triggers**: PostgreSQL triggers fill values such as `id_trench` so that WFS inserts don't fail
+1. Forward authentication: Caddy forwards authentication requests to Django's `/api/v1/auth/qgis-auth/` endpoint
+2. Project management: QGIS project and data files uploaded in the Django admin go to `deployment/qgis/projects/` and `deployment/qgis/data/`
+3. WFS error logging: the backend logs WFS errors and validation failures
+4. Triggers: PostgreSQL triggers fill values such as `id_trench` so that WFS inserts don't fail
 
 ### Authentication Flow
 
@@ -97,7 +97,7 @@ So QGIS Server connects as the limited QGIS user, not the main `DB_USER`. The se
 4. If authenticated, Caddy forwards the request to QGIS Server
 5. QGIS Server processes the request with the QGIS database user
 
-### Environment Variables
+### Environment variables
 
 Set in `deployment/.env`:
 
@@ -118,7 +118,7 @@ QGIS_SERVER_VERSION=3.44.7
 
 The log level is set in the compose files (`QGIS_SERVER_LOG_LEVEL=1` in production, `2` in development).
 
-### Custom Project Files
+### Custom project files
 
 To use your own project:
 
@@ -128,36 +128,36 @@ To use your own project:
 
 ### Troubleshooting
 
-#### Common Issues
+#### Common issues
 
-1. **Missing MAP parameter error**
+1. Missing MAP parameter error
    - Always include `MAP=/projects/<project>.qgs` in WMS/WFS requests
 
-2. **Authentication failures**
-   - Check Caddy logs for forward_auth errors: `docker compose logs caddy`
+2. Authentication failures
+   - Check the Caddy logs for forward_auth errors: `docker compose logs caddy`
    - For QGIS Desktop, use the username and password of a Django user (HTTP Basic)
    - For browsers, check that the JWT cookie is present and set on the right `COOKIE_DOMAIN`
 
-3. **Database connection issues / "Service not found"**
+3. Database connection issues / "Service not found"
    - Check `QGIS_DB_USER`, `QGIS_DB_PASSWORD` and `QGIS_PG_SERVICE_NAME` in `.env`
    - The QGIS user is created only on the database's first start (`postgres/init.sh`); if you set the variables later, create the role and grants manually as in that script
    - Inspect the generated file: `docker exec <qgis_container> cat /etc/postgresql-common/pg_service.conf`
-   - Check PostgreSQL logs for connection errors
+   - Check the PostgreSQL logs for connection errors
 
-4. **WFS NULL id_trench errors**
+4. WFS NULL id_trench errors
    - Check that the PostgreSQL triggers exist
-   - Review WFS error logs in Django
+   - Review the WFS error logs in Django
 
-5. **Project file not found**
-   - Ensure the file exists in `deployment/qgis/projects/`
-   - Check file permissions (must be readable by QGIS Server)
+5. Project file not found
+   - Make sure the file exists in `deployment/qgis/projects/`
+   - Check the file permissions (QGIS Server must be able to read it)
    - Verify the MAP path is the container path (`/projects/...`)
 
-6. **Performance issues**
-   - The number of render processes is set by `spawn-fcgi -F` in the compose command (3 in production, 2 in development); raise it in `docker-compose.override.yml` on larger hosts
+6. Performance issues
+   - `spawn-fcgi -F` in the compose command sets the number of render processes (3 in production, 2 in development); raise it in `docker-compose.override.yml` on larger hosts
    - Monitor PostgreSQL query performance
 
-#### Debug Commands
+#### Debug commands
 
 ```bash
 # Container logs
