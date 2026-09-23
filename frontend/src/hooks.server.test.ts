@@ -46,13 +46,15 @@ function makeEvent({
 	routeId = '/project/[projectId=integer]/map',
 	search = '',
 	cookies = {},
-	protocol = 'http:'
+	protocol = 'http:',
+	isRemoteRequest = false
 }: {
 	pathname?: string;
 	routeId?: string | null;
 	search?: string;
 	cookies?: Record<string, string>;
 	protocol?: string;
+	isRemoteRequest?: boolean;
 } = {}) {
 	const store: Record<string, string> = { ...cookies };
 	const deleteCalls: string[] = [];
@@ -60,6 +62,7 @@ function makeEvent({
 	const event = {
 		url: new URL(`${protocol === 'https:' ? 'https' : 'http'}://localhost${pathname}${search}`),
 		route: { id: routeId },
+		isRemoteRequest,
 		locals: {} as Record<string, unknown>,
 		fetch: vi.fn(),
 		cookies: {
@@ -304,11 +307,17 @@ describe('handleAuth: unauthenticated', () => {
 		mockDjango(login.event, {});
 		expect(await handleAuth({ event: login.event, resolve })).toBe('resolved:/login');
 
-		const remote = makeEvent({ pathname: '/_app/remote/abc123/login', routeId: null, cookies: {} });
+		// SvelteKit hands a remote call the URL of the page that made it, not
+		// the internal `/_app/remote/…` path.
+		const remote = makeEvent({
+			pathname: '/project/7/map',
+			search: '?feature=trench%3Aabc',
+			routeId: null,
+			cookies: {},
+			isRemoteRequest: true
+		});
 		mockDjango(remote.event, {});
-		expect(await handleAuth({ event: remote.event, resolve })).toBe(
-			'resolved:/_app/remote/abc123/login'
-		);
+		expect(await handleAuth({ event: remote.event, resolve })).toBe('resolved:/project/7/map');
 	});
 });
 

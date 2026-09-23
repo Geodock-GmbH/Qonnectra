@@ -4,8 +4,14 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalMapView } from '$lib/stores/store';
+import { stopSessionKeepAlive } from '$lib/utils/sessionKeepAlive';
+import { logout } from '$lib/remote/auth/logout.remote';
 
 import AppBar from './AppBar.svelte';
+
+vi.mock('$lib/utils/sessionKeepAlive', () => ({
+	stopSessionKeepAlive: vi.fn()
+}));
 
 vi.mock('$app/environment', () => ({
 	browser: true
@@ -85,6 +91,21 @@ describe('AppBar', () => {
 
 		expect(screen.getByRole('button', { name: 'tooltip_logout' })).toBeInTheDocument();
 		expect(screen.getByPlaceholderText('form_project')).toBeInTheDocument();
+	});
+
+	test('should stop the session keep-alive before logging out', async () => {
+		render(AppBar, { data: authenticatedData });
+		const [[submitLogout]] = vi.mocked(logout.enhance).mock.calls;
+		const order: string[] = [];
+		vi.mocked(stopSessionKeepAlive).mockImplementation(() => order.push('stop'));
+		const submit = vi.fn(async () => {
+			order.push('submit');
+			return true;
+		});
+
+		await submitLogout({ submit } as unknown as Parameters<typeof submitLogout>[0]);
+
+		expect(order).toEqual(['stop', 'submit']);
 	});
 
 	test('should display the app version and documentation link', () => {

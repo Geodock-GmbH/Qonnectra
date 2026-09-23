@@ -1,14 +1,14 @@
-import { invalidateAll } from '$app/navigation';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { ensureFreshSession } from './sessionKeepAlive';
 import { fetchWMSAccessToken, fetchWMSSources, getWMSProxyUrl, refreshWMSLayers } from './wmsApi';
 
 vi.mock('$env/static/public', () => ({
 	PUBLIC_API_URL: 'http://mock-api.test/'
 }));
 
-vi.mock('$app/navigation', () => ({
-	invalidateAll: vi.fn(() => Promise.resolve())
+vi.mock('./sessionKeepAlive', () => ({
+	ensureFreshSession: vi.fn(() => Promise.resolve(true))
 }));
 
 const fetchMock = vi.fn();
@@ -20,7 +20,7 @@ beforeEach(() => {
 afterEach(() => {
 	vi.unstubAllGlobals();
 	fetchMock.mockReset();
-	vi.mocked(invalidateAll).mockClear();
+	vi.mocked(ensureFreshSession).mockClear();
 });
 
 describe('fetchWMSSources', () => {
@@ -44,7 +44,7 @@ describe('fetchWMSSources', () => {
 
 		const result = await fetchWMSSources('proj-1');
 
-		expect(invalidateAll).toHaveBeenCalledTimes(1);
+		expect(ensureFreshSession).toHaveBeenCalledTimes(1);
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 		expect(result).toEqual(sources);
 	});
@@ -137,7 +137,7 @@ describe('fetchWMSAccessToken', () => {
 		});
 
 		await expect(fetchWMSAccessToken()).resolves.toBe('fresh-tok');
-		expect(invalidateAll).toHaveBeenCalledTimes(1);
+		expect(ensureFreshSession).toHaveBeenCalledTimes(1);
 	});
 
 	test('should throw with the response status attached when the retry fails', async () => {

@@ -622,6 +622,8 @@
 	"message_residential_units_description": "Track and manage residential units associated with this address.",
 	"message_select_at_least_two_ports": "Select at least 2 ports to merge",
 	"message_select_trenches": "Select trenches on the map",
+	"message_session_expired_description": "Your session has expired. Please sign in again.",
+	"message_session_expired_title": "Session expired",
 	"message_shared_fiber_connected": "Shared fiber connected successfully",
 	"message_shift_drag_select": "Shift + drag to select multiple",
 	"message_status_update_failed": "Failed to update status",

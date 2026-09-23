@@ -3,11 +3,12 @@ import type { FeatureLike } from 'ol/Feature';
 import type Projection from 'ol/proj/Projection';
 import type { LoadFunction } from 'ol/Tile';
 import type VectorTile from 'ol/VectorTile';
-import { invalidateAll } from '$app/navigation';
 import { PUBLIC_API_URL } from '$env/static/public';
 import MVT from 'ol/format/MVT.js';
 import VectorTileSource from 'ol/source/VectorTile.js';
 import TileState from 'ol/TileState.js';
+
+import { ensureFreshSession } from '$lib/utils/sessionKeepAlive';
 
 import { reconstructFeatures } from './featureReconstructor';
 import { tileLoadingManager } from './tileLoadingManager';
@@ -64,7 +65,8 @@ function createTileLoadFunction(
 			})
 				.then(async (response) => {
 					if (response.status === 401) {
-						await invalidateAll();
+						// Deduped: a burst of expired tiles costs one refresh request.
+						await ensureFreshSession();
 						const retry = await fetch(url, {
 							credentials: 'include',
 							signal: controller.signal

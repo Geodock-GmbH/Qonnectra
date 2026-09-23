@@ -2,6 +2,7 @@
 	import type { LayoutData } from './$types';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
+	import { afterNavigate } from '$app/navigation';
 	import { Toast } from '@skeletonlabs/skeleton-svelte';
 
 	import AppBar from '$lib/components/AppBar.svelte';
@@ -12,7 +13,7 @@
 	import { updateUserStore } from '$lib/stores/auth';
 	import { theme } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { startHeartbeat, stopHeartbeat } from '$lib/utils/tokenHeartbeat.svelte';
+	import { stopSessionKeepAlive, syncSessionKeepAlive } from '$lib/utils/sessionKeepAlive';
 	import { setRememberedProject } from '$lib/context/rememberedProject.svelte';
 
 	import '../app.css';
@@ -23,12 +24,9 @@
 		setupNavigationCancellation();
 	}
 
-	onMount(() => {
-		if (data.user?.isAuthenticated) {
-			startHeartbeat();
-			return () => stopHeartbeat();
-		}
-	});
+	// Fires on hydration and after every navigation, once `data` reflects it.
+	afterNavigate(() => syncSessionKeepAlive(data.user?.isAuthenticated ?? false));
+	onMount(() => stopSessionKeepAlive);
 
 	// svelte-ignore state_referenced_locally
 	setRememberedProject(data.rememberedProject);

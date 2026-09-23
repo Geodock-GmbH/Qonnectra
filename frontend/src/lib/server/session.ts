@@ -3,8 +3,9 @@ import type { UserData } from '$lib/stores/auth';
 import type { Permissions } from '$lib/utils/permissions';
 import { API_URL } from '$env/static/private';
 
-import { getAuthHeaders, getRefreshTokenHeaders } from '$lib/utils/getAuthHeaders';
-import { clearAuthCookies, forwardSetCookies } from '$lib/remote/auth/auth-session';
+import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
+import { clearAuthCookies } from '$lib/remote/auth/auth-session';
+import { refreshAccessToken } from '$lib/server/tokenRefresh';
 
 /** How long a resolved session is reused for the same access token, in ms. */
 export const SESSION_CACHE_TTL_MS = 30_000;
@@ -138,36 +139,6 @@ async function fetchSession(event: RequestEvent): Promise<SessionOutcome> {
 }
 
 /**
- * Trades the refresh token for a new access token and forwards Django's
- * cookies onto the response, so the retry in this request and the browser
- * both see the new token.
- * @param event - The request whose cookies may carry a refresh token.
- * @returns True when new tokens were set.
- */
-async function refreshAccessToken(event: RequestEvent): Promise<boolean> {
-	const refreshHeaders = getRefreshTokenHeaders(event.cookies);
-	if (!('Cookie' in refreshHeaders)) return false;
-
-	try {
-		const response = await event.fetch(`${API_URL}auth/token/refresh/`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json', ...refreshHeaders }
-		});
-		if (!response.ok) return false;
-
-		forwardSetCookies(
-			event.cookies,
-			response.headers.getSetCookie?.() ?? [],
-			event.url.protocol === 'https:'
-		);
-		return true;
-	} catch (error) {
-		console.error('Token refresh failed:', error);
-		return false;
-	}
-}
-
-/**
  * Resolves the user behind a request: from the cache for a token seen within
  * the last 30 s, otherwise from Django (user and permissions in parallel),
  * with one token refresh when the access token was rejected. Without any
@@ -186,7 +157,7 @@ export async function resolveSession(event: RequestEvent): Promise<UserData> {
 	let outcome: SessionOutcome = accessToken ? await fetchSession(event) : { status: 'rejected' };
 	if (outcome.status === 'rejected') {
 		evictSession(accessToken);
-		if (await refreshAccessToken(event)) {
+		if ((await refreshAccessToken(event)).ok) {
 			outcome = await fetchSession(event);
 		}
 	}

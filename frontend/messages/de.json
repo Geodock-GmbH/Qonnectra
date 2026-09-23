@@ -622,6 +622,8 @@
 	"message_residential_units_description": "Wohneinheiten dieser Adresse verwalten und nachverfolgen.",
 	"message_select_at_least_two_ports": "Wählen Sie mindestens 2 Ports zum Zusammenführen aus",
 	"message_select_trenches": "Wählen Sie Gräben auf der Karte aus",
+	"message_session_expired_description": "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
+	"message_session_expired_title": "Sitzung abgelaufen",
 	"message_shared_fiber_connected": "Geteilte Faser erfolgreich verbunden",
 	"message_shift_drag_select": "Shift + Ziehen für Mehrfachauswahl",
 	"message_status_update_failed": "Status konnte nicht aktualisiert werden",

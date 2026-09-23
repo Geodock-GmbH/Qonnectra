@@ -8,6 +8,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { globalMapView } from '$lib/stores/store';
+	import { stopSessionKeepAlive } from '$lib/utils/sessionKeepAlive';
 	import { tooltip } from '$lib/utils/tooltip';
 	import { MAP_ROUTE_ID, VALUATION_ROUTE_ID } from '$lib/config/routes';
 	import { logout } from '$lib/remote/auth/logout.remote';
@@ -31,6 +32,16 @@
 	let isAuthenticated = $derived(data.user?.isAuthenticated ?? false);
 
 	let isMapRoute = $derived(page.route.id === MAP_ROUTE_ID || page.route.id === VALUATION_ROUTE_ID);
+
+	/**
+	 * Stops the keep-alive before the session ends: the root layout only notices
+	 * the logout once the login page has settled, and a tick in between would
+	 * report the logout as an expired session.
+	 */
+	const logoutForm = logout.enhance(async ({ submit }) => {
+		stopSessionKeepAlive();
+		await submit();
+	});
 </script>
 
 <div>
@@ -126,7 +137,7 @@
 
 					<!-- Login/Logout -->
 					{#if isAuthenticated}
-						<form {...logout}>
+						<form {...logoutForm}>
 							<button
 								type="submit"
 								class="btn-icon hover:preset-tonal"

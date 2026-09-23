@@ -49,14 +49,17 @@ export async function handleAuth({ event, resolve }: Parameters<Handle>[0]) {
 		event.cookies.delete(LEGACY_PROJECT_COOKIE, { path: '/' });
 	}
 
+	// A remote call carries the URL of the page that made it, so it would be
+	// redirected like that page. Remote functions authenticate against Django
+	// themselves; the login form and the session keep-alive in particular must
+	// reach their endpoints without a session.
+	if (event.isRemoteRequest) return resolve(event);
+
 	const requestedPath = event.url.pathname;
 	const isPublicRoute = PUBLIC_ROUTES.some((route) => requestedPath.startsWith(route));
-	// Remote functions authenticate against Django themselves; the login form
-	// in particular must reach its endpoint without a session.
-	const isRemoteFunctionRoute = requestedPath.startsWith('/_app/remote/');
 
 	if (!user.isAuthenticated) {
-		if (isPublicRoute || isRemoteFunctionRoute) return resolve(event);
+		if (isPublicRoute) return resolve(event);
 		const redirectToUrl = `/login?redirectTo=${encodeURIComponent(requestedPath + event.url.search)}`;
 		redirect(303, redirectToUrl);
 	}
