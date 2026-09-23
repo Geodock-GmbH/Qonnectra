@@ -3,6 +3,7 @@ import logging
 import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
+from dataclasses import dataclass, field
 from io import BytesIO
 from pathlib import PureWindowsPath
 from typing import cast
@@ -1835,6 +1836,49 @@ def _get_entry_point_info(
     return result
 
 
+@dataclass
+class _FiberWalk:
+    """One fiber's path through its splices, without cable infrastructure.
+
+    The infrastructure of a cable does not depend on the fiber that reaches
+    it, so traces spanning many fibers build it once for all their walks.
+    An empty walk stands for a fiber that does not exist.
+
+    Attributes:
+        rows (list[dict]): Flat rows of the recursive trace query.
+        trace_tree (dict | None): Nested path from the walked fiber.
+        has_branches (bool): Whether the path splits at any depth.
+        cable_endpoints (dict): Start and end node details per cable UUID on
+            the path.
+        fibers (set): Fiber UUIDs on the path.
+        nodes (set): Node UUIDs on the path, including cable end nodes.
+        splices (set): Splice UUIDs on the path.
+        addresses (set): Address UUIDs on the path.
+        residential_units (set): Residential unit UUIDs on the path.
+    """
+
+    rows: list = field(default_factory=list)
+    trace_tree: dict | None = None
+    has_branches: bool = False
+    cable_endpoints: dict = field(default_factory=dict)
+    fibers: set = field(default_factory=set)
+    nodes: set = field(default_factory=set)
+    splices: set = field(default_factory=set)
+    addresses: set = field(default_factory=set)
+    residential_units: set = field(default_factory=set)
+
+    @property
+    def counts(self) -> dict:
+        """Distinct entities on the path, keyed like the trace statistics."""
+        return {
+            "total_fibers": len(self.fibers),
+            "total_nodes": len(self.nodes),
+            "total_splices": len(self.splices),
+            "total_addresses": len(self.addresses),
+            "total_residential_units": len(self.residential_units),
+        }
+
+
 def trace_fiber(
     fiber_id,
     include_geometry: bool = False,
@@ -1843,15 +1887,12 @@ def trace_fiber(
 ) -> dict:
     """Trace a single fiber through all splice connections bidirectionally.
 
-    Use a PostgreSQL recursive CTE (scalable to 1 M+ splices) to walk
-    the splice graph, then assemble the result into a tree structure with
-    address, residential-unit, and cable-endpoint details.
-
     Args:
         fiber_id: UUID of the :model:`api.Fiber` to trace.
         include_geometry (bool): If ``True``, include trench geometry as GeoJSON.
         geometry_mode (str): ``"segments"`` for individual trenches,
-            ``"merged"`` for a single combined geometry.
+            ``"merged"`` for a single combined geometry, ``"routed"`` for
+            the trenches on the path between the cable's end nodes.
         orient_geometry (bool): If ``True``, orient geometries from cable
             start node to end node.
 
@@ -1859,6 +1900,47 @@ def trace_fiber(
         dict: Contains ``'entry_point'``, ``'trace_tree'``,
             ``'cable_infrastructure'``, ``'statistics'``, and
             ``'_raw_segments'`` (internal, removed before external return).
+    """
+    walk = _walk_fibers([fiber_id], include_geometry)[str(fiber_id)]
+    entry_point = _get_entry_point_info("fiber", fiber_id, include_geometry)
+
+    if walk.trace_tree is None:
+        return {
+            "entry_point": entry_point,
+            "trace_tree": None,
+            "statistics": {**walk.counts, "has_branches": False},
+            "_raw_segments": [],
+        }
+
+    infrastructure = _cable_infrastructure_for_walks(
+        [walk], include_geometry, geometry_mode, orient_geometry
+    )
+    return {
+        "entry_point": entry_point,
+        "trace_tree": walk.trace_tree,
+        "cable_infrastructure": infrastructure,
+        "statistics": _walk_statistics(walk, infrastructure),
+        "_raw_segments": walk.rows,
+    }
+
+
+def _walk_fibers(fiber_ids, include_geometry: bool = False) -> dict:
+    """Walk fibers through all splice connections bidirectionally.
+
+    Use one PostgreSQL recursive CTE (scalable to 1 M+ splices) for all
+    fibers, then assemble each fiber's rows into a tree structure with
+    address, residential-unit, and cable-endpoint details. The query is
+    planned once per call: planning it takes longer than running it, so a
+    query per fiber made large traces slow.
+
+    Args:
+        fiber_ids: UUIDs of the :model:`api.Fiber` rows to walk.
+        include_geometry (bool): If ``True``, include node and address
+            point geometry in the tree.
+
+    Returns:
+        dict[str, _FiberWalk]: Walk per requested fiber UUID string; an
+            empty walk for a fiber that does not exist.
     """
     sql = """
     WITH RECURSIVE container_hierarchy AS (
@@ -1919,14 +2001,15 @@ def trace_fiber(
             NULL::text as direction,
             NULL::uuid as prev_fiber_id,
             0 as depth,
-            ARRAY[f.uuid] as visited
+            ARRAY[f.uuid] as visited,
+            f.uuid as root_fiber_id
         FROM fiber f
         JOIN cable c ON c.uuid = f.uuid_cable
         LEFT JOIN attributes_fiber_status fs_status ON fs_status.id = f.fiber_status
         LEFT JOIN attributes_cable_type ct ON ct.id = c.cable_type
         LEFT JOIN attributes_fiber_color afc_fiber ON LOWER(afc_fiber.name_de) = LOWER(f.fiber_color)
         LEFT JOIN attributes_fiber_color afc_bundle ON LOWER(afc_bundle.name_de) = LOWER(f.bundle_color)
-        WHERE f.uuid = %(fiber_id)s
+        WHERE f.uuid = ANY(%(fiber_ids)s::uuid[])
 
         UNION ALL
 
@@ -1954,7 +2037,8 @@ def trace_fiber(
             END as direction,
             ft.fiber_id as prev_fiber_id,
             ft.depth + 1,
-            ft.visited || next_fiber.uuid
+            ft.visited || next_fiber.uuid,
+            ft.root_fiber_id
         FROM fiber_trace ft
         JOIN fiber_splice fs ON (
             fs.fiber_a = ft.fiber_id OR
@@ -1982,6 +2066,7 @@ def trace_fiber(
           AND ft.depth < 100
     )
     SELECT
+        ft.root_fiber_id,
         ft.fiber_id,
         ft.cable_id,
         ft.fiber_number_absolute,
@@ -2116,17 +2201,27 @@ def trace_fiber(
     LEFT JOIN attributes_component_structure comp_struct ON comp_struct.id = ns.component_structure
     LEFT JOIN node_slot_configuration nsc ON nsc.uuid = ns.slot_configuration
     LEFT JOIN container_hierarchy ch ON ch.container_id = nsc.container
-    ORDER BY ft.depth;
+    ORDER BY ft.root_fiber_id, ft.depth, ft.cable_name, ft.fiber_number_absolute,
+        ft.visited;
     """
 
     with connection.cursor() as cursor:
-        cursor.execute(sql, {"fiber_id": str(fiber_id)})
+        cursor.execute(sql, {"fiber_ids": [str(fid) for fid in fiber_ids]})
         columns = [col[0] for col in cursor.description] if cursor.description else []
-        rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        rows_by_root = {}
+        for values in cursor.fetchall():
+            row = dict(zip(columns, values))
+            rows_by_root.setdefault(str(row.pop("root_fiber_id")), []).append(row)
 
-    return _build_trace_result(
-        rows, "fiber", fiber_id, include_geometry, geometry_mode, orient_geometry
-    )
+    endpoint_splices = _get_starting_fiber_splices(list(rows_by_root))
+    return {
+        str(fid): _build_fiber_walk(
+            rows_by_root.get(str(fid), []),
+            include_geometry,
+            endpoint_splices.get(str(fid), []),
+        )
+        for fid in fiber_ids
+    }
 
 
 def _sort_trace_trees(trace_trees: list) -> list:
@@ -2147,6 +2242,163 @@ def _sort_trace_trees(trace_trees: list) -> list:
     )
 
 
+def _trace_fiber_set(
+    entry_point: dict,
+    fiber_ids: list,
+    include_geometry: bool,
+    geometry_mode: str,
+    orient_geometry: bool,
+    skip_covered: bool,
+) -> dict:
+    """Trace a set of fibers and combine them into one result.
+
+    The cable infrastructure is built once for every cable on any of the
+    paths. The statistics stay per-fiber sums, so a node or cable shared by
+    two paths counts twice.
+
+    Args:
+        entry_point (dict): Entry point info of the traced entity.
+        fiber_ids (list): UUIDs of the fibers to trace.
+        include_geometry (bool): If ``True``, include trench geometry.
+        geometry_mode (str): ``"segments"``, ``"merged"`` or ``"routed"``.
+        orient_geometry (bool): If ``True``, orient geometries start→end.
+        skip_covered (bool): If ``True``, skip fibers already on the path of
+            an earlier fiber in ``fiber_ids``.
+
+    Returns:
+        dict: Contains ``'entry_point'``, ``'trace_trees'``,
+            ``'cable_infrastructure'``, and ``'statistics'``.
+    """
+    walked = _walk_fibers(fiber_ids, include_geometry)
+    walks = []
+    covered = set()
+    for fiber_id in fiber_ids:
+        if str(fiber_id) in covered:
+            continue
+        walk = walked[str(fiber_id)]
+        if skip_covered:
+            covered.update(str(row["fiber_id"]) for row in walk.rows)
+        walks.append(walk)
+
+    infrastructure = _cable_infrastructure_for_walks(
+        walks, include_geometry, geometry_mode, orient_geometry
+    )
+    per_walk = [_walk_statistics(walk, infrastructure) for walk in walks]
+    statistics = {
+        key: sum(stats[key] for stats in per_walk)
+        for key in (
+            "total_fibers",
+            "total_nodes",
+            "total_splices",
+            "total_addresses",
+            "total_residential_units",
+            "total_cables",
+            "total_trenches",
+        )
+    }
+    statistics["has_branches"] = any(stats["has_branches"] for stats in per_walk)
+
+    return {
+        "entry_point": entry_point,
+        "trace_trees": _sort_trace_trees(
+            [walk.trace_tree for walk in walks if walk.trace_tree]
+        ),
+        "cable_infrastructure": infrastructure,
+        "statistics": statistics,
+    }
+
+
+def _walk_statistics(walk: _FiberWalk, infrastructure: dict) -> dict:
+    """Build the statistics of one fiber's trace.
+
+    Args:
+        walk (_FiberWalk): The walked fiber.
+        infrastructure (dict): Cable infrastructure covering at least the
+            cables on the walk, keyed by cable UUID string.
+
+    Returns:
+        dict: The walk's counts plus ``'total_cables'``, ``'total_trenches'``
+            and ``'has_branches'``.
+    """
+    cable_ids = [str(cable_id) for cable_id in walk.cable_endpoints]
+    return {
+        **walk.counts,
+        "total_cables": len(cable_ids),
+        "total_trenches": sum(
+            len(infrastructure[cable_id]["trenches"])
+            for cable_id in cable_ids
+            if cable_id in infrastructure
+        ),
+        "has_branches": walk.has_branches,
+    }
+
+
+def _cable_infrastructure_for_walks(
+    walks: list,
+    include_geometry: bool,
+    geometry_mode: str,
+    orient_geometry: bool,
+) -> dict:
+    """Build the cable infrastructure for every cable on a set of walks.
+
+    Args:
+        walks (list[_FiberWalk]): The walked fibers.
+        include_geometry (bool): If ``True``, include trench geometry.
+        geometry_mode (str): ``"segments"``, ``"merged"`` or ``"routed"``.
+        orient_geometry (bool): If ``True``, orient geometries start→end.
+
+    Returns:
+        dict: Infrastructure per cable UUID string, see
+            :func:`_get_cable_infrastructure`.
+    """
+    cable_endpoints = {}
+    for walk in walks:
+        for cable_id, endpoints in walk.cable_endpoints.items():
+            cable_endpoints.setdefault(cable_id, endpoints)
+
+    endpoint_geometries = {}
+    if include_geometry and (orient_geometry or geometry_mode == "routed"):
+        cable_node_ids = set()
+        for endpoints in cable_endpoints.values():
+            if endpoints.get("start_node") and endpoints["start_node"].get("id"):
+                cable_node_ids.add(endpoints["start_node"]["id"])
+            if endpoints.get("end_node") and endpoints["end_node"].get("id"):
+                cable_node_ids.add(endpoints["end_node"]["id"])
+
+        node_geoms = {}
+        if cable_node_ids:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT uuid, ST_X(geom) as x, ST_Y(geom) as y
+                    FROM node
+                    WHERE uuid = ANY(%(node_ids)s)
+                    """,
+                    {"node_ids": [str(nid) for nid in cable_node_ids]},
+                )
+                for row in cursor.fetchall():
+                    if row[1] is not None and row[2] is not None:
+                        node_geoms[str(row[0])] = Point(row[1], row[2])
+
+        for cable_id, endpoints in cable_endpoints.items():
+            endpoint_geometries[str(cable_id)] = {
+                "start_geom": node_geoms.get(endpoints["start_node"]["id"])
+                if endpoints.get("start_node")
+                else None,
+                "end_geom": node_geoms.get(endpoints["end_node"]["id"])
+                if endpoints.get("end_node")
+                else None,
+            }
+
+    return _get_cable_infrastructure(
+        list(cable_endpoints),
+        include_geometry,
+        geometry_mode,
+        orient_geometry,
+        endpoint_geometries,
+    )
+
+
 def trace_cable(
     cable_id,
     include_geometry: bool = False,
@@ -2158,7 +2410,7 @@ def trace_cable(
     Args:
         cable_id: UUID of the cable to trace.
         include_geometry (bool): If ``True``, include trench geometry.
-        geometry_mode (str): ``"segments"`` or ``"merged"``.
+        geometry_mode (str): ``"segments"``, ``"merged"`` or ``"routed"``.
         orient_geometry (bool): If ``True``, orient geometries start→end.
 
     Returns:
@@ -2175,60 +2427,14 @@ def trace_cable(
         cursor.execute(sql, {"cable_id": str(cable_id)})
         fiber_ids = [row[0] for row in cursor.fetchall()]
 
-    if not fiber_ids:
-        return {
-            "entry_point": entry_point,
-            "trace_trees": [],
-            "cable_infrastructure": {},
-            "statistics": {
-                "total_fibers": 0,
-                "total_nodes": 0,
-                "total_splices": 0,
-                "total_addresses": 0,
-                "total_residential_units": 0,
-                "total_cables": 0,
-                "total_trenches": 0,
-                "has_branches": False,
-            },
-        }
-
-    all_traces = []
-    for fiber_id in fiber_ids:
-        trace = trace_fiber(fiber_id, include_geometry, geometry_mode, orient_geometry)
-        all_traces.append(trace)
-
-    total_fibers = sum(t["statistics"]["total_fibers"] for t in all_traces)
-    total_nodes = sum(t["statistics"]["total_nodes"] for t in all_traces)
-    total_splices = sum(t["statistics"]["total_splices"] for t in all_traces)
-    total_addresses = sum(t["statistics"]["total_addresses"] for t in all_traces)
-    total_rus = sum(t["statistics"]["total_residential_units"] for t in all_traces)
-    total_cables = sum(t["statistics"]["total_cables"] for t in all_traces)
-    total_trenches = sum(t["statistics"]["total_trenches"] for t in all_traces)
-    has_branches = any(t["statistics"]["has_branches"] for t in all_traces)
-
-    merged_infrastructure = {}
-    for trace in all_traces:
-        for cable_id_str, infra in trace.get("cable_infrastructure", {}).items():
-            if cable_id_str not in merged_infrastructure:
-                merged_infrastructure[cable_id_str] = infra
-
-    trace_trees = [t["trace_tree"] for t in all_traces if t["trace_tree"]]
-
-    return {
-        "entry_point": entry_point,
-        "trace_trees": _sort_trace_trees(trace_trees),
-        "cable_infrastructure": merged_infrastructure,
-        "statistics": {
-            "total_fibers": total_fibers,
-            "total_nodes": total_nodes,
-            "total_splices": total_splices,
-            "total_addresses": total_addresses,
-            "total_residential_units": total_rus,
-            "total_cables": total_cables,
-            "total_trenches": total_trenches,
-            "has_branches": has_branches,
-        },
-    }
+    return _trace_fiber_set(
+        entry_point,
+        fiber_ids,
+        include_geometry,
+        geometry_mode,
+        orient_geometry,
+        skip_covered=False,
+    )
 
 
 def trace_node(
@@ -2245,7 +2451,7 @@ def trace_node(
     Args:
         node_id: UUID of the node.
         include_geometry (bool): If ``True``, include trench geometry.
-        geometry_mode (str): ``"segments"`` or ``"merged"``.
+        geometry_mode (str): ``"segments"``, ``"merged"`` or ``"routed"``.
         orient_geometry (bool): If ``True``, orient geometries start→end.
 
     Returns:
@@ -2288,66 +2494,14 @@ def trace_node(
         cursor.execute(sql, {"node_id": str(node_id)})
         fiber_ids = [row[0] for row in cursor.fetchall() if row[0]]
 
-    if not fiber_ids:
-        return {
-            "entry_point": entry_point,
-            "trace_trees": [],
-            "cable_infrastructure": {},
-            "statistics": {
-                "total_fibers": 0,
-                "total_nodes": 0,
-                "total_splices": 0,
-                "total_addresses": 0,
-                "total_residential_units": 0,
-                "total_cables": 0,
-                "total_trenches": 0,
-                "has_branches": False,
-            },
-        }
-
-    all_traces = []
-    seen_fibers = set()
-
-    for fiber_id in fiber_ids:
-        if fiber_id in seen_fibers:
-            continue
-        trace = trace_fiber(fiber_id, include_geometry, geometry_mode, orient_geometry)
-        for segment in trace.get("_raw_segments", []):
-            seen_fibers.add(segment["fiber_id"])
-        all_traces.append(trace)
-
-    total_fibers = sum(t["statistics"]["total_fibers"] for t in all_traces)
-    total_nodes = sum(t["statistics"]["total_nodes"] for t in all_traces)
-    total_splices = sum(t["statistics"]["total_splices"] for t in all_traces)
-    total_addresses = sum(t["statistics"]["total_addresses"] for t in all_traces)
-    total_rus = sum(t["statistics"]["total_residential_units"] for t in all_traces)
-    total_cables = sum(t["statistics"]["total_cables"] for t in all_traces)
-    total_trenches = sum(t["statistics"]["total_trenches"] for t in all_traces)
-    has_branches = any(t["statistics"]["has_branches"] for t in all_traces)
-
-    merged_infrastructure = {}
-    for trace in all_traces:
-        for cable_id_str, infra in trace.get("cable_infrastructure", {}).items():
-            if cable_id_str not in merged_infrastructure:
-                merged_infrastructure[cable_id_str] = infra
-
-    trace_trees = [t["trace_tree"] for t in all_traces if t["trace_tree"]]
-
-    return {
-        "entry_point": entry_point,
-        "trace_trees": _sort_trace_trees(trace_trees),
-        "cable_infrastructure": merged_infrastructure,
-        "statistics": {
-            "total_fibers": total_fibers,
-            "total_nodes": total_nodes,
-            "total_splices": total_splices,
-            "total_addresses": total_addresses,
-            "total_residential_units": total_rus,
-            "total_cables": total_cables,
-            "total_trenches": total_trenches,
-            "has_branches": has_branches,
-        },
-    }
+    return _trace_fiber_set(
+        entry_point,
+        fiber_ids,
+        include_geometry,
+        geometry_mode,
+        orient_geometry,
+        skip_covered=True,
+    )
 
 
 def trace_address(
@@ -2364,7 +2518,7 @@ def trace_address(
     Args:
         address_id: UUID of the address.
         include_geometry (bool): If ``True``, include trench geometry.
-        geometry_mode (str): ``"segments"`` or ``"merged"``.
+        geometry_mode (str): ``"segments"``, ``"merged"`` or ``"routed"``.
         orient_geometry (bool): If ``True``, orient geometries start→end.
 
     Returns:
@@ -2405,66 +2559,14 @@ def trace_address(
         cursor.execute(sql, {"address_id": str(address_id)})
         fiber_ids = [row[0] for row in cursor.fetchall()]
 
-    if not fiber_ids:
-        return {
-            "entry_point": entry_point,
-            "trace_trees": [],
-            "cable_infrastructure": {},
-            "statistics": {
-                "total_fibers": 0,
-                "total_nodes": 0,
-                "total_splices": 0,
-                "total_addresses": 0,
-                "total_residential_units": 0,
-                "total_cables": 0,
-                "total_trenches": 0,
-                "has_branches": False,
-            },
-        }
-
-    all_traces = []
-    seen_fibers = set()
-
-    for fiber_id in fiber_ids:
-        if fiber_id in seen_fibers:
-            continue
-        trace = trace_fiber(fiber_id, include_geometry, geometry_mode, orient_geometry)
-        for segment in trace.get("_raw_segments", []):
-            seen_fibers.add(segment["fiber_id"])
-        all_traces.append(trace)
-
-    total_fibers = sum(t["statistics"]["total_fibers"] for t in all_traces)
-    total_nodes = sum(t["statistics"]["total_nodes"] for t in all_traces)
-    total_splices = sum(t["statistics"]["total_splices"] for t in all_traces)
-    total_addresses = sum(t["statistics"]["total_addresses"] for t in all_traces)
-    total_rus = sum(t["statistics"]["total_residential_units"] for t in all_traces)
-    total_cables = sum(t["statistics"]["total_cables"] for t in all_traces)
-    total_trenches = sum(t["statistics"]["total_trenches"] for t in all_traces)
-    has_branches = any(t["statistics"]["has_branches"] for t in all_traces)
-
-    merged_infrastructure = {}
-    for trace in all_traces:
-        for cable_id_str, infra in trace.get("cable_infrastructure", {}).items():
-            if cable_id_str not in merged_infrastructure:
-                merged_infrastructure[cable_id_str] = infra
-
-    trace_trees = [t["trace_tree"] for t in all_traces if t["trace_tree"]]
-
-    return {
-        "entry_point": entry_point,
-        "trace_trees": _sort_trace_trees(trace_trees),
-        "cable_infrastructure": merged_infrastructure,
-        "statistics": {
-            "total_fibers": total_fibers,
-            "total_nodes": total_nodes,
-            "total_splices": total_splices,
-            "total_addresses": total_addresses,
-            "total_residential_units": total_rus,
-            "total_cables": total_cables,
-            "total_trenches": total_trenches,
-            "has_branches": has_branches,
-        },
-    }
+    return _trace_fiber_set(
+        entry_point,
+        fiber_ids,
+        include_geometry,
+        geometry_mode,
+        orient_geometry,
+        skip_covered=True,
+    )
 
 
 def trace_residential_unit(
@@ -2478,7 +2580,7 @@ def trace_residential_unit(
     Args:
         residential_unit_id: UUID of the residential unit.
         include_geometry (bool): If ``True``, include trench geometry.
-        geometry_mode (str): ``"segments"`` or ``"merged"``.
+        geometry_mode (str): ``"segments"``, ``"merged"`` or ``"routed"``.
         orient_geometry (bool): If ``True``, orient geometries start→end.
 
     Returns:
@@ -2502,78 +2604,29 @@ def trace_residential_unit(
         cursor.execute(sql, {"ru_id": str(residential_unit_id)})
         fiber_ids = [row[0] for row in cursor.fetchall() if row[0]]
 
-    if not fiber_ids:
-        return {
-            "entry_point": entry_point,
-            "trace_trees": [],
-            "cable_infrastructure": {},
-            "statistics": {
-                "total_fibers": 0,
-                "total_nodes": 0,
-                "total_splices": 0,
-                "total_addresses": 0,
-                "total_residential_units": 0,
-                "total_cables": 0,
-                "total_trenches": 0,
-                "has_branches": False,
-            },
-        }
-
-    all_traces = []
-    seen_fibers = set()
-
-    for fiber_id in fiber_ids:
-        if fiber_id in seen_fibers:
-            continue
-        trace = trace_fiber(fiber_id, include_geometry, geometry_mode, orient_geometry)
-        for segment in trace.get("_raw_segments", []):
-            seen_fibers.add(segment["fiber_id"])
-        all_traces.append(trace)
-
-    total_fibers = sum(t["statistics"]["total_fibers"] for t in all_traces)
-    total_nodes = sum(t["statistics"]["total_nodes"] for t in all_traces)
-    total_splices = sum(t["statistics"]["total_splices"] for t in all_traces)
-    total_addresses = sum(t["statistics"]["total_addresses"] for t in all_traces)
-    total_rus = sum(t["statistics"]["total_residential_units"] for t in all_traces)
-    total_cables = sum(t["statistics"]["total_cables"] for t in all_traces)
-    total_trenches = sum(t["statistics"]["total_trenches"] for t in all_traces)
-    has_branches = any(t["statistics"]["has_branches"] for t in all_traces)
-
-    merged_infrastructure = {}
-    for trace in all_traces:
-        for cable_id_str, infra in trace.get("cable_infrastructure", {}).items():
-            if cable_id_str not in merged_infrastructure:
-                merged_infrastructure[cable_id_str] = infra
-
-    trace_trees = [t["trace_tree"] for t in all_traces if t["trace_tree"]]
-
-    return {
-        "entry_point": entry_point,
-        "trace_trees": _sort_trace_trees(trace_trees),
-        "cable_infrastructure": merged_infrastructure,
-        "statistics": {
-            "total_fibers": total_fibers,
-            "total_nodes": total_nodes,
-            "total_splices": total_splices,
-            "total_addresses": total_addresses,
-            "total_residential_units": total_rus,
-            "total_cables": total_cables,
-            "total_trenches": total_trenches,
-            "has_branches": has_branches,
-        },
-    }
+    return _trace_fiber_set(
+        entry_point,
+        fiber_ids,
+        include_geometry,
+        geometry_mode,
+        orient_geometry,
+        skip_covered=True,
+    )
 
 
-def _get_starting_fiber_splices(fiber_id) -> list[dict]:
-    """
-    Get splice info for a fiber where it sits in a splice (as fiber_a or fiber_b)
-    without necessarily having a connected fiber on the other side.
+def _get_starting_fiber_splices(fiber_ids) -> dict:
+    """Return the splices where fibers sit without a fiber on the other side.
 
-    This captures endpoints where a fiber is placed in a slot but not yet connected
-    to another fiber.
+    This captures endpoints where a fiber is placed in a slot but not yet
+    connected to another fiber.
+
+    Args:
+        fiber_ids: UUIDs of the :model:`api.Fiber` rows to look up.
 
     Returns:
-        List of splice info dicts with component and container path data.
+        dict[str, list[dict]]: Splice info with node, component and container
+            path data per fiber UUID string. Fibers without such a splice
+            are left out.
     """
     sql = """
     WITH RECURSIVE container_hierarchy AS (
@@ -2609,6 +2662,7 @@ def _get_starting_fiber_splices(fiber_id) -> list[dict]:
         WHERE ch.depth < 10
     )
     SELECT
+        target.fiber_id as target_fiber_id,
         fs.uuid as splice_id,
         fs.port_number,
         n.uuid as node_id,
@@ -2623,28 +2677,31 @@ def _get_starting_fiber_splices(fiber_id) -> list[dict]:
         nsc.container as component_container_id,
         ch.path as container_path,
         CASE
-            WHEN fs.fiber_a = %(fiber_id)s AND fs.fiber_b IS NULL THEN true
-            WHEN fs.fiber_b = %(fiber_id)s AND fs.fiber_a IS NULL THEN true
+            WHEN fs.fiber_a = target.fiber_id AND fs.fiber_b IS NULL THEN true
+            WHEN fs.fiber_b = target.fiber_id AND fs.fiber_a IS NULL THEN true
             ELSE false
         END as is_endpoint
-    FROM fiber_splice fs
+    FROM unnest(%(fiber_ids)s::uuid[]) AS target(fiber_id)
+    JOIN fiber_splice fs ON (
+        fs.fiber_a = target.fiber_id OR fs.fiber_b = target.fiber_id
+        OR fs.shared_fiber_a = target.fiber_id OR fs.shared_fiber_b = target.fiber_id
+    )
     JOIN node_structure ns ON ns.uuid = fs.node_structure
     JOIN node n ON n.uuid = ns.uuid_node
     LEFT JOIN attributes_component_type comp_type ON comp_type.id = ns.component_type
     LEFT JOIN attributes_component_structure comp_struct ON comp_struct.id = ns.component_structure
     LEFT JOIN node_slot_configuration nsc ON nsc.uuid = ns.slot_configuration
     LEFT JOIN container_hierarchy ch ON ch.container_id = nsc.container
-    WHERE (fs.fiber_a = %(fiber_id)s OR fs.fiber_b = %(fiber_id)s
-           OR fs.shared_fiber_a = %(fiber_id)s OR fs.shared_fiber_b = %(fiber_id)s)
-      AND (
-          (fs.fiber_a = %(fiber_id)s AND fs.fiber_b IS NULL)
-          OR (fs.fiber_b = %(fiber_id)s AND fs.fiber_a IS NULL)
-      )
+    WHERE (fs.fiber_a = target.fiber_id AND fs.fiber_b IS NULL)
+       OR (fs.fiber_b = target.fiber_id AND fs.fiber_a IS NULL)
+    ORDER BY target.fiber_id, n.name, ns.slot_start, fs.port_number, fs.uuid
     """
 
-    result = []
+    result = {}
+    if not fiber_ids:
+        return result
     with connection.cursor() as cursor:
-        cursor.execute(sql, {"fiber_id": str(fiber_id)})
+        cursor.execute(sql, {"fiber_ids": [str(fid) for fid in fiber_ids]})
         columns = [col[0] for col in cursor.description] if cursor.description else []
         for row in cursor.fetchall():
             row_dict = dict(zip(columns, row))
@@ -2678,50 +2735,30 @@ def _get_starting_fiber_splices(fiber_id) -> list[dict]:
                 "container_path": parsed_path,
                 "is_endpoint": row_dict.get("is_endpoint", False),
             }
-            result.append(splice_info)
+            result.setdefault(str(row_dict["target_fiber_id"]), []).append(splice_info)
 
     return result
 
 
-def _build_trace_result(
-    rows: list,
-    entry_type: str,
-    entry_id,
-    include_geometry: bool = False,
-    geometry_mode: str = "segments",
-    orient_geometry: bool = False,
-) -> dict:
-    """Assemble the trace result tree from flat database rows.
+def _build_fiber_walk(
+    rows: list, include_geometry: bool, endpoint_splices: list
+) -> _FiberWalk:
+    """Assemble a fiber walk from the flat rows of the trace query.
 
     Args:
-        rows (list[dict]): Flat rows returned by the recursive CTE trace query.
-        entry_type (str): Entry point type (``'fiber'``, ``'cable'``, etc.).
-        entry_id: UUID of the entry point.
-        include_geometry (bool): If ``True``, include trench geometry as GeoJSON.
-        geometry_mode (str): ``"segments"`` or ``"merged"``.
-        orient_geometry (bool): If ``True``, orient geometries start→end.
+        rows (list[dict]): One fiber's rows of the recursive CTE trace query,
+            ordered by depth.
+        include_geometry (bool): If ``True``, include node and address
+            point geometry in the tree.
+        endpoint_splices (list[dict]): Splices where the walked fiber sits
+            without a fiber on the other side, see
+            :func:`_get_starting_fiber_splices`.
 
     Returns:
-        dict: Contains ``'entry_point'``, ``'trace_tree'``,
-            ``'cable_infrastructure'``, ``'statistics'``, and
-            ``'_raw_segments'``.
+        _FiberWalk: The path as a tree, with its counts and cable endpoints.
     """
-    entry_point = _get_entry_point_info(entry_type, entry_id, include_geometry)
-
     if not rows:
-        return {
-            "entry_point": entry_point,
-            "trace_tree": None,
-            "statistics": {
-                "total_fibers": 0,
-                "total_nodes": 0,
-                "total_splices": 0,
-                "total_addresses": 0,
-                "total_residential_units": 0,
-                "has_branches": False,
-            },
-            "_raw_segments": [],
-        }
+        return _FiberWalk()
 
     nodes_seen = set()
     splices_seen = set()
@@ -2935,9 +2972,6 @@ def _build_trace_result(
 
     root = rows[0]
 
-    starting_fiber_id = root["fiber_id"]
-    endpoint_splices = _get_starting_fiber_splices(starting_fiber_id)
-
     trace_tree = {
         "fiber": {
             "id": str(root["fiber_id"]),
@@ -3007,70 +3041,17 @@ def _build_trace_result(
 
     has_branches = any(len(nodes_by_depth.get(d, [])) > 1 for d in nodes_by_depth)
 
-    cables_seen = set()
-    for row in rows:
-        cables_seen.add(row["cable_id"])
-
-    cable_endpoints_for_geometry = {}
-    if include_geometry and (orient_geometry or geometry_mode == "routed"):
-        cable_node_ids = set()
-        for cable_id, endpoints in cable_endpoints_seen.items():
-            if endpoints.get("start_node") and endpoints["start_node"].get("id"):
-                cable_node_ids.add(endpoints["start_node"]["id"])
-            if endpoints.get("end_node") and endpoints["end_node"].get("id"):
-                cable_node_ids.add(endpoints["end_node"]["id"])
-
-        node_geoms = {}
-        if cable_node_ids:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    """
-                    SELECT uuid, ST_X(geom) as x, ST_Y(geom) as y
-                    FROM node
-                    WHERE uuid = ANY(%(node_ids)s)
-                    """,
-                    {"node_ids": [str(nid) for nid in cable_node_ids]},
-                )
-                for row in cursor.fetchall():
-                    if row[1] is not None and row[2] is not None:
-                        node_geoms[str(row[0])] = Point(row[1], row[2])
-
-        for cable_id, endpoints in cable_endpoints_seen.items():
-            cable_endpoints_for_geometry[str(cable_id)] = {
-                "start_geom": node_geoms.get(endpoints["start_node"]["id"])
-                if endpoints.get("start_node")
-                else None,
-                "end_geom": node_geoms.get(endpoints["end_node"]["id"])
-                if endpoints.get("end_node")
-                else None,
-            }
-
-    cable_infrastructure = _get_cable_infrastructure(
-        list(cables_seen),
-        include_geometry,
-        geometry_mode,
-        orient_geometry,
-        cable_endpoints_for_geometry,
+    return _FiberWalk(
+        rows=rows,
+        trace_tree=trace_tree,
+        has_branches=has_branches,
+        cable_endpoints=cable_endpoints_seen,
+        fibers=fibers_seen,
+        nodes=nodes_seen,
+        splices=splices_seen,
+        addresses=addresses_seen,
+        residential_units=residential_units_seen,
     )
-
-    return {
-        "entry_point": entry_point,
-        "trace_tree": trace_tree,
-        "cable_infrastructure": cable_infrastructure,
-        "statistics": {
-            "total_fibers": len(fibers_seen),
-            "total_nodes": len(nodes_seen),
-            "total_splices": len(splices_seen),
-            "total_addresses": len(addresses_seen),
-            "total_residential_units": len(residential_units_seen),
-            "total_cables": len(cables_seen),
-            "total_trenches": sum(
-                len(inf["trenches"]) for inf in cable_infrastructure.values()
-            ),
-            "has_branches": has_branches,
-        },
-        "_raw_segments": rows,
-    }
 
 
 # =============================================================================
@@ -4237,25 +4218,33 @@ def simulate_fault(
     affected_node_features = []
     seen_trench_ids = set()
     seen_node_ids = set()
+    walks = []
 
-    for cable_row in cable_rows:
+    fibers_per_cable = [
+        list(Fiber.objects.filter(uuid_cable=str(cable_row["uuid"])))
+        for cable_row in cable_rows
+    ]
+    try:
+        walked = _walk_fibers(
+            [fiber.uuid for fibers in fibers_per_cable for fiber in fibers],
+            include_geometry=True,
+        )
+    except Exception:
+        walked = {}
+
+    for cable_row, cable_fibers in zip(cable_rows, fibers_per_cable):
         cable_uuid = str(cable_row["uuid"])
-        cable_fibers = Fiber.objects.filter(uuid_cable=cable_uuid)
 
         cable_dark = 0
         cable_affected_addresses = set()
         cable_affected_rus = set()
 
         for fiber in cable_fibers:
-            fiber_id_str = str(fiber.uuid)
-            try:
-                trace_result = trace_fiber(fiber_id_str, include_geometry=True)
-            except Exception:
+            walk = walked.get(str(fiber.uuid))
+            if walk is None or not walk.trace_tree:
                 continue
-
-            trace_tree = trace_result.get("trace_tree")
-            if not trace_tree:
-                continue
+            trace_tree = walk.trace_tree
+            walks.append(walk)
 
             break_points = []
             _propagate_signal_state_with_virtual_breaks(
@@ -4277,24 +4266,6 @@ def simulate_fault(
                 trace_tree, all_address_details, all_ru_ids_seen
             )
 
-            infra = trace_result.get("cable_infrastructure", {})
-            for cid, cdata in infra.items():
-                for trench_info in cdata.get("trenches", []):
-                    tid = trench_info.get("id")
-                    geom = trench_info.get("geometry")
-                    if tid and tid not in seen_trench_ids and geom:
-                        seen_trench_ids.add(tid)
-                        affected_trench_features.append(
-                            {
-                                "type": "Feature",
-                                "properties": {
-                                    "id": tid,
-                                    "id_trench": trench_info.get("id_trench"),
-                                },
-                                "geometry": geom,
-                            }
-                        )
-
             _collect_node_geometries(trace_tree, seen_node_ids, affected_node_features)
 
         all_affected_addresses.update(cable_affected_addresses)
@@ -4306,7 +4277,7 @@ def simulate_fault(
                 "uuid": cable_uuid,
                 "name": cable_row["name"],
                 "cable_type": cable_row.get("cable_type_name"),
-                "fiber_count": cable_fibers.count(),
+                "fiber_count": len(cable_fibers),
                 "dark_fibers": cable_dark,
                 "node_start": {
                     "id": str(cable_row["node_start_id"])
@@ -4324,6 +4295,28 @@ def simulate_fault(
                 "affected_residential_units": list(cable_affected_rus),
             }
         )
+
+    infrastructure = _cable_infrastructure_for_walks(
+        walks, include_geometry=True, geometry_mode="segments", orient_geometry=False
+    )
+    for walk in walks:
+        for cable_id in sorted(walk.cable_endpoints):
+            cable_infra = infrastructure.get(str(cable_id), {})
+            for trench_info in cable_infra.get("trenches", []):
+                tid = trench_info.get("id")
+                geom = trench_info.get("geometry")
+                if tid and tid not in seen_trench_ids and geom:
+                    seen_trench_ids.add(tid)
+                    affected_trench_features.append(
+                        {
+                            "type": "Feature",
+                            "properties": {
+                                "id": tid,
+                                "id_trench": trench_info.get("id_trench"),
+                            },
+                            "geometry": geom,
+                        }
+                    )
 
     affected_address_features = _build_affected_address_features(all_address_details)
 

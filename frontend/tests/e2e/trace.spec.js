@@ -89,6 +89,22 @@ test.describe('Fiber trace search page', () => {
 		await expect(cableSearch).toBeVisible();
 	});
 
+	test('a cable trace with geometry is drawn on the map', async ({ page }) => {
+		test.setTimeout(60000);
+		const projectId = await getProjectId(page);
+		const cable = await cableWithFibers(page, projectId);
+		test.skip(!cable, 'Needs a cable with fibers in the project');
+		const { uuid, name } = /** @type {ListedCable} */ (cable);
+
+		await page.goto(`/trace/cable/${uuid}?include_geometry=true&geometry_mode=routed`);
+
+		await expect(page.getByText(name).first()).toBeVisible({ timeout: 30000 });
+		// OpenLayers renders into a canvas once the map holds the trace.
+		await expect(page.getByTestId('trace-map').locator('canvas').first()).toBeVisible({
+			timeout: 30000
+		});
+	});
+
 	test('switching the project in the app bar re-runs the search without a navigation', async ({
 		page
 	}) => {

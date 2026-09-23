@@ -8,16 +8,14 @@
 
 	import TraceMapPanel from './components/TraceMapPanel.svelte';
 	import { setTraceSelection, TraceSelection } from './components/TraceSelection.svelte';
-	import { traceRequestFromPage, traceRequestKey } from './components/traceOptions';
+	import { traceRequestFromPage, traceRequestKey, traceShowsMap } from './components/traceOptions';
 
 	let { children }: { children: Snippet } = $props();
 
 	setTraceSelection(new TraceSelection());
 
 	const request = $derived(traceRequestFromPage(page.params, page.url));
-	const mapRequest = $derived(
-		request?.entryType === 'fiber' && request.options.includeGeometry ? request : null
-	);
+	const mapRequest = $derived(request && traceShowsMap(request) ? request : null);
 </script>
 
 {#snippet resultHeader()}

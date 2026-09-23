@@ -69,6 +69,16 @@ export function traceRequestFromPage(
 }
 
 /**
+ * Whether a trace page draws its result on a map beside the result panel.
+ * The signal analysis always includes geometry, so it always has a map.
+ * @param request - The requested trace.
+ * @returns `true` when the trace carries geometry.
+ */
+export function traceShowsMap(request: TraceRequest): boolean {
+	return request.options.includeGeometry;
+}
+
+/**
  * Picks the query a trace page renders. The result panel and the map both
  * call it with the same request, so they share one backend call.
  * @param request - The requested trace.

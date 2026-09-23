@@ -133,13 +133,27 @@ describe('TraceOutcome', () => {
 		expect(selection.featureId).toBe('cable:cable-1');
 	});
 
-	test('should not highlight anything on a trace that has no map', async () => {
+	test('should highlight a clicked cable on the map of a cable trace', async () => {
 		const user = userEvent.setup();
 		vi.mocked(getFiberTrace).mockResolvedValue(traceResult);
 		const selection = renderOutcome({
 			entryType: 'cable',
 			entryId: 'cable-1',
 			options: traceOptions
+		});
+
+		await user.click(await screen.findByRole('button', { name: 'K-Nord' }));
+
+		expect(selection.featureId).toBe('cable:cable-1');
+	});
+
+	test('should not highlight anything on a trace that has no map', async () => {
+		const user = userEvent.setup();
+		vi.mocked(getFiberTrace).mockResolvedValue(traceResult);
+		const selection = renderOutcome({
+			entryType: 'fiber',
+			entryId: 'fiber-1',
+			options: { ...traceOptions, includeGeometry: false }
 		});
 
 		await user.click(await screen.findByRole('button', { name: 'K-Nord' }));
