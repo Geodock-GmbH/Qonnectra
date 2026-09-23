@@ -21,13 +21,11 @@
 
 	let {
 		nodeUuid,
-		nodeName = '',
 		readonly = false,
 		initialSlotConfigUuid = null,
 		sharedSlotState = $bindable(null)
 	}: {
 		nodeUuid: string;
-		nodeName?: string;
 		readonly?: boolean;
 		initialSlotConfigUuid?: string | null;
 		sharedSlotState?: (SharedSlotState & { lastUpdated?: number }) | null;

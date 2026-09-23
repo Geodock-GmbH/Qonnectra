@@ -127,7 +127,7 @@
 
 <Tabs tabs={tabItems} value={activeTab} onValueChange={(tab) => setQuery({ tab })}>
 	{#if activeTab === 'attributes'}
-		<FeatureAttributeCard properties={featureData} featureType={kind} {alias} {projects} />
+		<FeatureAttributeCard properties={featureData} {alias} {projects} />
 	{/if}
 
 	{#if activeTab === 'conduits' && kind === 'trench'}
@@ -256,7 +256,6 @@
 	>
 		<NodeStructurePanel
 			nodeUuid={uuid}
-			nodeName={featureName}
 			readonly={true}
 			initialSlotConfigUuid={structurePanelSlotConfigUuid}
 			bind:sharedSlotState

@@ -462,7 +462,6 @@
 	>
 		<NodeStructurePanel
 			nodeUuid={featureId}
-			nodeName={String(data.name ?? '')}
 			initialSlotConfigUuid={structurePanelSlotConfigUuid}
 			bind:sharedSlotState
 		/>
