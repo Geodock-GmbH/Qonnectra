@@ -1,4 +1,5 @@
 import type { FiberColor } from '$lib/types/nodeData';
+import { SvelteSet } from 'svelte/reactivity';
 
 import { m } from '$lib/paraglide/messages';
 
@@ -181,7 +182,7 @@ export class FiberSpliceManager {
 	bulkOperationInProgress: boolean = $state(false);
 
 	/** Currently selected port keys for merging (format: "portNumber-side") */
-	selectedForMerge: Set<string> = $state(new Set());
+	readonly selectedForMerge = new SvelteSet<string>();
 
 	/** Whether merge selection mode is active */
 	mergeSelectionMode: boolean = $state(false);
@@ -237,7 +238,9 @@ export class FiberSpliceManager {
 		const baseRows = this.portRows;
 		if (baseRows.length === 0) return [];
 
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local grouping, not state
 		const mergeGroupsA = new Map<string, number[]>();
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local grouping, not state
 		const mergeGroupsB = new Map<string, number[]>();
 
 		for (const splice of this.fiberSplices) {
@@ -319,13 +322,9 @@ export class FiberSpliceManager {
 	 * Selects a structure and loads its ports and splices, or deselects if already selected.
 	 * Blocks switching while a bulk operation is in progress.
 	 * @param structure
-	 * @param isMobile - Whether mobile mode is active
 	 * @returns True if structure was selected, false if deselected or blocked
 	 */
-	async selectStructure(
-		structure: NodeStructure | null,
-		isMobile: boolean = false
-	): Promise<boolean> {
+	async selectStructure(structure: NodeStructure | null): Promise<boolean> {
 		if (this.bulkOperationInProgress) {
 			globalToaster.warning({
 				title: m.common_warning?.() || 'Warning',
@@ -926,6 +925,7 @@ export class FiberSpliceManager {
 				fiber_uuid: string;
 				cable_uuid: string;
 			}[] = [];
+			// eslint-disable-next-line svelte/prefer-svelte-reactivity -- loop bookkeeping, not state
 			const processedMergeGroups = new Set<string>();
 
 			for (const portNumber of availablePorts) {
@@ -1400,7 +1400,7 @@ export class FiberSpliceManager {
 	toggleMergeSelectionMode(): void {
 		this.mergeSelectionMode = !this.mergeSelectionMode;
 		if (!this.mergeSelectionMode) {
-			this.selectedForMerge = new Set();
+			this.selectedForMerge.clear();
 		}
 	}
 
@@ -1410,7 +1410,7 @@ export class FiberSpliceManager {
 	setMergeSide(side: Side): void {
 		if (side !== this.mergeSide) {
 			this.mergeSide = side;
-			this.selectedForMerge = new Set();
+			this.selectedForMerge.clear();
 		}
 	}
 
@@ -1419,20 +1419,18 @@ export class FiberSpliceManager {
 	 */
 	togglePortSelection(portNumber: number, side: Side): void {
 		const key = `${portNumber}-${side}`;
-		const newSet = new Set(this.selectedForMerge);
-		if (newSet.has(key)) {
-			newSet.delete(key);
+		if (this.selectedForMerge.has(key)) {
+			this.selectedForMerge.delete(key);
 		} else {
-			newSet.add(key);
+			this.selectedForMerge.add(key);
 		}
-		this.selectedForMerge = newSet;
 	}
 
 	/**
 	 * Clears all port selections for the merge operation.
 	 */
 	clearMergeSelection(): void {
-		this.selectedForMerge = new Set();
+		this.selectedForMerge.clear();
 	}
 
 	/**
@@ -1484,7 +1482,7 @@ export class FiberSpliceManager {
 			});
 
 			await this.fetchFiberSplices(this.selectedStructure!.uuid);
-			this.selectedForMerge = new Set();
+			this.selectedForMerge.clear();
 			this.mergeSelectionMode = false;
 
 			globalToaster.success({
@@ -1659,7 +1657,7 @@ export class FiberSpliceManager {
 		this.fiberSplices = [];
 		this.fiberColors = [];
 		this.loadingPorts = false;
-		this.selectedForMerge = new Set();
+		this.selectedForMerge.clear();
 		this.mergeSelectionMode = false;
 	}
 

@@ -46,7 +46,7 @@
 	 */
 	const propertyEntries = $derived(
 		Object.entries(properties)
-			.filter(([key, value]) => {
+			.filter(([, value]) => {
 				return value !== null && value !== undefined;
 			})
 			.sort(([keyA], [keyB]) => {

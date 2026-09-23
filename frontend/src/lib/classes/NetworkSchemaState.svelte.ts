@@ -224,6 +224,7 @@ export class NetworkSchemaState {
 	 * The drag end saves from this buffer instead of `edge.data.cable.diagram_path`,
 	 * which may not have round-tripped through state yet when the drag finishes.
 	 */
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity -- deliberately non-reactive drag buffer
 	#dragWaypoints: Map<string, Waypoint[]> = new Map();
 
 	constructor(initialData: NetworkSchemaInitData | null = null) {

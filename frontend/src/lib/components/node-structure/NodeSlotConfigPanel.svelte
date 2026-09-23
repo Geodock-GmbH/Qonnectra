@@ -148,7 +148,6 @@
 	}
 
 	$effect(() => {
-		const currentNodeUuid = nodeUuid;
 		fetchContainerTypes();
 		fetchHierarchy();
 	});

@@ -37,7 +37,7 @@
 		<table class="table table-card caption-bottom w-full overflow-scroll">
 			<thead>
 				<tr>
-					{#each { length: 5 } as _, i (i)}
+					{#each { length: 5 }, i (i)}
 						<td>
 							<div class="h-4 bg-surface-500 rounded animate-pulse w-3/4"></div>
 						</td>

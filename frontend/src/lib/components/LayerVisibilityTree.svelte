@@ -2,6 +2,7 @@
 	import type { AreaType, ConstructionType, NodeType, Surface } from '$lib/types/mapLayers';
 	import type { WMSLayer, WMSSource } from '$lib/utils/wmsApi';
 	import type BaseLayer from 'ol/layer/Base';
+	import { SvelteMap } from 'svelte/reactivity';
 	import {
 		IconChevronDown,
 		IconChevronRight,
@@ -113,7 +114,7 @@
 		name: string;
 	}
 
-	let layerVisibility = $state<Map<string, LayerVisibilityInfo>>(new Map());
+	const layerVisibility = new SvelteMap<string, LayerVisibilityInfo>();
 	let isNodeSubtypesExpanded = $state(false);
 	let isTrenchSubtypesExpanded = $state(false);
 	let isAreaSubtypesExpanded = $state(false);
@@ -184,7 +185,7 @@
 	});
 
 	$effect(() => {
-		const newVisibility = new Map<string, LayerVisibilityInfo>();
+		layerVisibility.clear();
 
 		const sortedLayers = [...layers].sort((a, b) => {
 			const aId = a.get('layerId');
@@ -208,7 +209,7 @@
 				const persistedVisible = $layerVisibilityConfig[layerId] ?? true;
 				layer.setVisible(persistedVisible);
 
-				newVisibility.set(layerId, {
+				layerVisibility.set(layerId, {
 					layer: layer,
 					visible: persistedVisible,
 					name: layerName
@@ -219,20 +220,18 @@
 		const osmVisible = $layerVisibilityConfig['osm-base-layer'] ?? true;
 		if (osmLayer) {
 			osmLayer.setVisible(osmVisible);
-			newVisibility.set('osm-base-layer', {
+			layerVisibility.set('osm-base-layer', {
 				layer: osmLayer,
 				visible: osmVisible,
 				name: m.common_osm()
 			});
 		} else {
-			newVisibility.set('osm-base-layer', {
+			layerVisibility.set('osm-base-layer', {
 				layer: null,
 				visible: osmVisible,
 				name: m.common_osm()
 			});
 		}
-
-		layerVisibility = newVisibility;
 	});
 
 	/**
@@ -252,8 +251,6 @@
 				...layerInfo,
 				visible: newVisible
 			});
-
-			layerVisibility = new Map(layerVisibility);
 
 			$layerVisibilityConfig = {
 				...$layerVisibilityConfig,
@@ -736,7 +733,7 @@
 
 			<!-- Layer List -->
 			<div class="flex-1 overflow-y-auto overscroll-contain px-4 pt-3 pb-20 space-y-2">
-				{#each Array.from(layerVisibility.entries()) as [layerId, layerInfo]}
+				{#each Array.from(layerVisibility.entries()) as [layerId, layerInfo] (layerId)}
 					<div class="bg-surface-100-900 rounded-xl overflow-hidden">
 						<!-- Layer Row -->
 						<div class="flex items-center justify-between p-3">
@@ -872,7 +869,7 @@
 						<!-- Subtypes -->
 						{#if layerId === 'node-layer' && isNodeSubtypesExpanded && nodeTypes.length > 0}
 							<div class="px-3 pb-3 space-y-1">
-								{#each nodeTypes as nodeType}
+								{#each nodeTypes as nodeType (nodeType.id)}
 									{@const visible = isNodeTypeVisible(nodeType.node_type)}
 									{@const color = getNodeTypeColor(nodeType.node_type)}
 									<div
@@ -1113,7 +1110,7 @@
 		<div
 			class="space-y-1.5 overflow-y-auto flex-1 min-h-0 mt-3 pt-2 border-t border-surface-200-800"
 		>
-			{#each Array.from(layerVisibility.entries()) as [layerId, layerInfo]}
+			{#each Array.from(layerVisibility.entries()) as [layerId, layerInfo] (layerId)}
 				<div>
 					<div
 						class="flex items-center gap-1.5 py-1 rounded hover:bg-surface-100-800 transition-colors"
@@ -1249,7 +1246,7 @@
 					<!-- Node type subtypes -->
 					{#if layerId === 'node-layer' && isNodeSubtypesExpanded && nodeTypes.length > 0}
 						<div class="ml-6 mt-1 space-y-1 border-l-2 border-surface-200-700 pl-2">
-							{#each nodeTypes as nodeType}
+							{#each nodeTypes as nodeType (nodeType.id)}
 								{@const visible = isNodeTypeVisible(nodeType.node_type)}
 								{@const color = getNodeTypeColor(nodeType.node_type)}
 								<div

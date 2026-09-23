@@ -2,11 +2,12 @@
 	import type {
 		Cable,
 		Fiber,
-		FiberBundle,
 		NodeAddress,
 		ResidentialUnit
 	} from '$lib/classes/CableFiberDataManager.svelte';
+	import type { FiberBundle } from '$lib/utils/fiberBundles';
 	import { getContext, onMount } from 'svelte';
+	import { SvelteSet } from 'svelte/reactivity';
 	import {
 		IconArrowLeft,
 		IconArrowRight,
@@ -21,6 +22,7 @@
 	import { CableFiberDataManager } from '$lib/classes/CableFiberDataManager.svelte';
 	import { DRAG_DROP_CONTEXT_KEY, DragDropManager } from '$lib/classes/DragDropManager.svelte';
 	import { PanelResizeManager } from '$lib/classes/PanelResizeManager.svelte.js';
+	import { groupFibersByBundle } from '$lib/utils/fiberBundles';
 	import { tooltip } from '$lib/utils/tooltip';
 
 	let {
@@ -43,9 +45,10 @@
 
 	let collapsed = $state(false);
 	let lastRefreshTrigger = $state(0);
-	let expandedCables = $state(new Set<string>());
-	let expandedBundles = $state(new Map<string, Set<number>>());
-	let expandedAddresses = $state(new Set<string>());
+	const expandedCables = new SvelteSet<string>();
+	/** Expanded bundles, keyed `cableUuid:bundleNumber`. */
+	const expandedBundles = new SvelteSet<string>();
+	const expandedAddresses = new SvelteSet<string>();
 
 	/**
 	 * Toggle cable accordion
@@ -57,30 +60,32 @@
 			expandedCables.add(cableUuid);
 			dataManager.fetchFibersForCable(cableUuid);
 		}
-		expandedCables = new Set(expandedCables);
+	}
+
+	/**
+	 * Key of a bundle in the expanded set; bundle numbers repeat across cables.
+	 */
+	function bundleKey(cableUuid: string, bundleNumber: number) {
+		return `${cableUuid}:${bundleNumber}`;
 	}
 
 	/**
 	 * Toggle bundle accordion
 	 */
 	function toggleBundle(cableUuid: string, bundleNumber: number) {
-		if (!expandedBundles.has(cableUuid)) {
-			expandedBundles.set(cableUuid, new Set());
-		}
-		const bundleSet = expandedBundles.get(cableUuid)!;
-		if (bundleSet.has(bundleNumber)) {
-			bundleSet.delete(bundleNumber);
+		const key = bundleKey(cableUuid, bundleNumber);
+		if (expandedBundles.has(key)) {
+			expandedBundles.delete(key);
 		} else {
-			bundleSet.add(bundleNumber);
+			expandedBundles.add(key);
 		}
-		expandedBundles = new Map(expandedBundles);
 	}
 
 	/**
 	 * Check if bundle is expanded
 	 */
 	function isBundleExpanded(cableUuid: string, bundleNumber: number) {
-		return expandedBundles.get(cableUuid)?.has(bundleNumber) ?? false;
+		return expandedBundles.has(bundleKey(cableUuid, bundleNumber));
 	}
 
 	function handleCableDragStart(e: DragEvent, cable: Cable) {
@@ -130,7 +135,6 @@
 		} else {
 			expandedAddresses.add(addressUuid);
 		}
-		expandedAddresses = new Set(expandedAddresses);
 	}
 
 	function handleAddressDragStart(e: DragEvent, address: NodeAddress) {
@@ -163,9 +167,9 @@
 	$effect(() => {
 		if (nodeUuid) {
 			dataManager.setNodeUuid(nodeUuid);
-			expandedCables = new Set();
-			expandedBundles = new Map();
-			expandedAddresses = new Set();
+			expandedCables.clear();
+			expandedBundles.clear();
+			expandedAddresses.clear();
 			dataManager.fetchCables();
 			dataManager.fetchFiberUsage();
 			dataManager.fetchAddresses();
@@ -248,7 +252,7 @@
 			{#each dataManager.cables as cable (cable.uuid)}
 				{@const isExpanded = expandedCables.has(cable.uuid)}
 				{@const fibers = dataManager.getFibersForCable(cable.uuid)}
-				{@const bundles = dataManager.groupFibersByBundle(fibers)}
+				{@const bundles = groupFibersByBundle(fibers)}
 				{@const isLoadingFibers = dataManager.isLoadingFibers(cable.uuid)}
 
 				<div class="rounded-lg border border-surface-300-700 bg-surface-200-800 overflow-hidden">
@@ -469,7 +473,7 @@
 						{#each dataManager.cables as cable (cable.uuid)}
 							{@const isExpanded = expandedCables.has(cable.uuid)}
 							{@const fibers = dataManager.getFibersForCable(cable.uuid)}
-							{@const bundles = dataManager.groupFibersByBundle(fibers)}
+							{@const bundles = groupFibersByBundle(fibers)}
 							{@const isLoadingFibers = dataManager.isLoadingFibers(cable.uuid)}
 
 							<div

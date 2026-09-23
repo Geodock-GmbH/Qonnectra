@@ -1,10 +1,4 @@
-import type {
-	AreaTypeStyles,
-	AttributeStyles,
-	LabelOptions,
-	NodeShape,
-	NodeTypeStyles
-} from '$lib/map/styles';
+import type { NodeShape } from '$lib/map/styles';
 import type { Map } from 'ol';
 import type BaseLayer from 'ol/layer/Base';
 import type TileLayer from 'ol/layer/Tile';
@@ -35,12 +29,7 @@ import {
 	createTrenchTileSource
 } from '$lib/map/tileSources';
 import { getWorkerPool } from '$lib/map/workerPool';
-import {
-	getWMSLayerVisibility,
-	setWMSLayerVisibility,
-	wmsLayerVisibilityConfig,
-	wmsSourcesData
-} from '$lib/stores/store';
+import { getWMSLayerVisibility, wmsLayerVisibilityConfig, wmsSourcesData } from '$lib/stores/store';
 import { globalToaster } from '$lib/stores/toaster';
 import { fetchWMSAccessToken, fetchWMSSources, getWMSProxyUrl } from '$lib/utils/wmsApi';
 import {
@@ -276,6 +265,7 @@ export class MapState {
 			wmsSourcesData.set({ sources, loaded: true });
 
 			const newWmsLayers: TileLayer<TileWMS>[] = [];
+			// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local bookkeeping, not state
 			const validLayerIds = new Set<string>();
 
 			for (const source of sources) {

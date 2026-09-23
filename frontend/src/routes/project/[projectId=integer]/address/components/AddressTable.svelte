@@ -2,7 +2,6 @@
 	import type { AddressListRow } from '$lib/remote/address/address-data';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
 	import {
 		IconArrowLeft,
@@ -103,14 +102,6 @@
 	 */
 	function goToPage(newPage: number) {
 		setQuery({ page: newPage });
-	}
-
-	/**
-	 * Changes the page size and returns to the first page.
-	 * @param newSize - The new page size.
-	 */
-	function changePageSize(newSize: number) {
-		setQuery({ page_size: newSize, page: 1 });
 	}
 
 	const filteredAddresses = $derived.by(() => {

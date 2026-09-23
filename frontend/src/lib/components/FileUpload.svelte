@@ -20,9 +20,7 @@
 
 	let { featureType, featureId, onUploadComplete }: FileUploadProps = $props();
 
-	let uploadedFiles = $state<Array<Record<string, unknown>>>([]);
 	let isUploading = $state(false);
-	let isLoadingFiles = $state(false);
 	let contentTypeError = $state<string | null>(null);
 
 	let contentTypesLoaded = $state(false);
@@ -63,43 +61,6 @@
 			contentTypeError = null;
 		}
 	});
-
-	/**
-	 * Load existing files for this feature
-	 */
-	async function loadFiles() {
-		if (!featureId) return;
-
-		isLoadingFiles = true;
-		try {
-			const response = await fetch(`${PUBLIC_API_URL}feature-files/?object_id=${featureId}`, {
-				credentials: 'include'
-			});
-
-			if (!response.ok) {
-				throw new Error(`Failed to load files: ${response.status}`);
-			}
-
-			uploadedFiles = await response.json();
-		} catch (error) {
-			console.error('Error loading files:', error);
-			void logToBackendClient({
-				level: 'ERROR',
-				message: 'Error loading files',
-				extraData: {
-					from: 'FileUpload.loadFiles',
-					error: error instanceof Error ? error.message : String(error),
-					stack: error instanceof Error ? error.stack : undefined
-				}
-			});
-			globalToaster.error({
-				title: m.common_error(),
-				description: 'Failed to load files'
-			});
-		} finally {
-			isLoadingFiles = false;
-		}
-	}
 
 	function retryLoadContentTypes() {
 		contentTypeError = null;
@@ -160,7 +121,6 @@
 			});
 
 			fileUploadApi.clearFiles();
-			await loadFiles();
 
 			if (onUploadComplete) {
 				onUploadComplete();
@@ -188,12 +148,6 @@
 	$effect(() => {
 		if (featureId && featureType && !contentTypesLoaded) {
 			loadContentTypes();
-		}
-	});
-
-	$effect(() => {
-		if (featureId && featureType && contentTypesLoaded) {
-			loadFiles();
 		}
 	});
 </script>

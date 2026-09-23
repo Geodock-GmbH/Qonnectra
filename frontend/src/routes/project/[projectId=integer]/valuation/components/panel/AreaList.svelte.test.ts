@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 
 import type { ValuationArea } from '$lib/remote/valuation/valuation-data';
+import type { ReactivePage } from '$lib/test-utils/reactivePageStub.svelte';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -16,13 +17,22 @@ vi.mock('$lib/remote/valuation/valuation.remote', () => ({
 	calculateValuation: vi.fn(() => ({ current: undefined, loading: false }))
 }));
 
-const { pageState, gotoMock } = vi.hoisted(() => ({
-	pageState: { url: new URL('http://localhost/project/7/valuation'), params: { projectId: '7' } },
-	gotoMock: vi.fn()
-}));
+const { gotoMock } = vi.hoisted(() => ({ gotoMock: vi.fn() }));
 
-vi.mock('$app/state', () => ({ page: pageState }));
-vi.mock('$app/navigation', () => ({ goto: (...args: unknown[]) => gotoMock(...args) }));
+vi.mock('$app/state', async () => {
+	const { reactivePageStub } = await import('$lib/test-utils/reactivePageStub.svelte');
+	return {
+		page: reactivePageStub({
+			url: 'http://localhost/project/7/valuation',
+			params: { projectId: '7' }
+		})
+	};
+});
+vi.mock('$app/navigation', async () => {
+	const { replaceStateStub } = await import('$lib/test-utils/reactivePageStub.svelte');
+	const { page } = await import('$app/state');
+	return { goto: (...args: unknown[]) => gotoMock(...args), replaceState: replaceStateStub(page) };
+});
 
 vi.mock('$lib/stores/store', async () => {
 	const { writable } = await import('svelte/store');
@@ -34,6 +44,8 @@ vi.mock('$lib/paraglide/messages', () => ({
 }));
 
 const { globalMapView } = await import('$lib/stores/store');
+/** The mocked `page`, typed as the stub so tests can move its URL. */
+const pageState = (await import('$app/state')).page as ReactivePage;
 
 const user = userEvent.setup();
 
@@ -56,6 +68,7 @@ function renderList() {
 
 beforeEach(() => {
 	pageState.url = new URL('http://localhost/project/7/valuation');
+	pageState.state = {};
 	gotoMock.mockReset();
 	globalMapView.set(false);
 	getValuationAreas.mockResolvedValue(areas);

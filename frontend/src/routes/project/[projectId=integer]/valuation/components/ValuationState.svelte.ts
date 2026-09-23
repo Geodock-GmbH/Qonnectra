@@ -3,6 +3,7 @@ import type { ValuationRequest } from './valuationRequest';
 import type { ValuationResult } from '$lib/remote/valuation/valuation-data';
 import { createContext } from 'svelte';
 import { fromStore } from 'svelte/store';
+import { replaceState } from '$app/navigation';
 import { page } from '$app/state';
 
 import { globalMapView } from '$lib/stores/store';
@@ -23,8 +24,12 @@ import {
  * State of the valuation page. What is valued and projected lives in the
  * URL (`?areas=…&baseYear=…&correction=…`); the valuation is the remote
  * query of those inputs, so a reload or a shared link shows the same
- * totals. Only two transient things stay here: picking areas before the
- * first one is chosen, and a selection too long for a link.
+ * totals. Only two transient things live in `page.state` instead: picking
+ * areas before the first one is chosen, and a selection too long for a
+ * link. They are history state rather than component state so that a click
+ * changes them in the same navigation as the URL; under async rendering, a
+ * `$state` write and a navigation become separate batches that can leave the
+ * checkboxes out of sync with the results.
  */
 export class ValuationState {
 	readonly highlight = new AreaHighlight();
@@ -32,10 +37,14 @@ export class ValuationState {
 	readonly #globalView = fromStore(globalMapView);
 
 	/** Areas mode entered without a pick yet; transient, so not in the URL. */
-	#pickingAreas = $state(false);
+	get #pickingAreas(): boolean {
+		return page.state.valuation?.pickingAreas ?? false;
+	}
 
 	/** A selection too long for the URL, kept on the page with a hint. */
-	#localAreas = $state.raw<string[] | null>(null);
+	get #localAreas(): string[] | null {
+		return page.state.valuation?.localAreas ?? null;
+	}
 
 	/** The project that is valued, from the URL. Cost rates belong to one project, also in the global view. */
 	get projectId(): string {
@@ -53,9 +62,10 @@ export class ValuationState {
 	}
 
 	/** The selected areas: the URL's, or the page-only selection when it is too long for a link. */
-	get selectedAreaUuids(): ReadonlySet<string> {
-		return new Set(this.#localAreas ?? this.request.areaUuids);
-	}
+	readonly selectedAreaUuids: ReadonlySet<string> = $derived(
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- derived snapshot, never mutated
+		new Set(this.#localAreas ?? this.request.areaUuids)
+	);
 
 	/** Whether the selection is too long for the URL and therefore not shareable. */
 	get selectionBeyondUrl(): boolean {
@@ -112,12 +122,10 @@ export class ValuationState {
 	/** Switches between the whole project and picking areas. */
 	toggleWholeProject(): void {
 		if (this.wholeProject) {
-			this.#pickingAreas = true;
+			this.#setPageState({ pickingAreas: true });
 			return;
 		}
-		this.#pickingAreas = false;
-		this.#localAreas = null;
-		void setQuery({ areas: null });
+		void this.reset();
 	}
 
 	/**
@@ -131,12 +139,10 @@ export class ValuationState {
 		const next = current.includes(uuid)
 			? current.filter((candidate) => candidate !== uuid)
 			: [...current, uuid];
-		this.#pickingAreas = false;
 		if (next.length > MAX_URL_AREAS) {
-			this.#localAreas = next;
+			this.#setPageState({ localAreas: next });
 			return;
 		}
-		this.#localAreas = null;
 		void setQuery({ areas: next.join(',') || null });
 	}
 
@@ -146,7 +152,10 @@ export class ValuationState {
 	 */
 	setBaseYear(year: number | undefined): void {
 		const value = year !== undefined && Number.isFinite(year) ? year : undefined;
-		void setQuery({ baseYear: value === undefined || value === defaultBaseYear() ? null : value });
+		void setQuery(
+			{ baseYear: value === undefined || value === defaultBaseYear() ? null : value },
+			{ state: page.state }
+		);
 	}
 
 	/**
@@ -155,20 +164,31 @@ export class ValuationState {
 	 */
 	setAnnualCorrection(percent: number | undefined): void {
 		const value = percent !== undefined && Number.isFinite(percent) ? percent : undefined;
-		void setQuery({
-			correction: value === undefined || value === DEFAULT_CORRECTION_PERCENT ? null : value
-		});
+		void setQuery(
+			{ correction: value === undefined || value === DEFAULT_CORRECTION_PERCENT ? null : value },
+			{ state: page.state }
+		);
 	}
 
 	/**
 	 * Returns to valuing the whole project, dropping the selection from the
-	 * URL; the projection inputs stay.
+	 * URL and the page-only selection; the projection inputs stay.
 	 * @returns Resolves once the navigation has completed.
 	 */
 	async reset(): Promise<void> {
-		this.#pickingAreas = false;
-		this.#localAreas = null;
-		if (this.request.areaUuids.length > 0) await setQuery({ areas: null });
+		if (this.request.areaUuids.length > 0) {
+			await setQuery({ areas: null });
+		} else if (page.state.valuation) {
+			this.#setPageState(undefined);
+		}
+	}
+
+	/**
+	 * Replaces the page-only selection without a navigation or a URL change.
+	 * @param valuation - The new page-only selection; undefined clears it.
+	 */
+	#setPageState(valuation: App.PageState['valuation']): void {
+		replaceState('', { ...page.state, valuation });
 	}
 }
 

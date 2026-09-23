@@ -100,6 +100,7 @@
 		ctx.fill(path);
 		ctx.stroke(path);
 
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- per-stroke accumulator, not state
 		const nodesToSelect = new Set<string>();
 
 		for (const [nodeId, nodeData] of Object.entries(nodePoints)) {

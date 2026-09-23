@@ -9,11 +9,11 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { groupFibersByBundle } from '$lib/utils/fiberBundles';
 	import { fiberColorHex } from '$lib/utils/fiberColors';
 	import { getFiberColors, getFibersForCable } from '$lib/remote/network-schema/fibers.remote';
 
 	import { getTraceSearchState } from './TraceSearchState.svelte';
-	import { groupFibersByBundle } from './fiberBundles';
 
 	let { cableUuid }: { cableUuid: string } = $props();
 

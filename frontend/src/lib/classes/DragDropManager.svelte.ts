@@ -346,7 +346,7 @@ export class DragDropManager {
 	updateDropPreview(
 		slotNumber: number,
 		totalSlots: number,
-		occupiedSlots: Map<number, string>
+		occupiedSlots: ReadonlyMap<number, string>
 	): { preview: number[]; canDrop: boolean; componentRanges: SlotRange[] } {
 		const isMulti = this.draggedItem?.type === 'multi_component_type';
 		const singleOccupied = this.draggedItem?.occupied_slots || 1;
@@ -405,7 +405,7 @@ export class DragDropManager {
 	 * @param slotNumber
 	 * @param occupiedSlots - Map of slot number to occupying structure UUID
 	 */
-	validateDropTarget(slotNumber: number, occupiedSlots: Map<number, string>): boolean {
+	validateDropTarget(slotNumber: number, occupiedSlots: ReadonlyMap<number, string>): boolean {
 		const occupyingUuid = occupiedSlots.get(slotNumber);
 		if (!occupyingUuid) return true;
 		if (
@@ -439,14 +439,6 @@ export class DragDropManager {
 		} catch {
 			return null;
 		}
-	}
-
-	/**
-	 * Selects an item for mobile tap-to-place mode.
-	 * @param item
-	 */
-	selectMobileItem(item: DragItem): void {
-		this.mobileSelectedItem = item;
 	}
 
 	/**

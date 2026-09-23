@@ -7,6 +7,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { NODE_STRUCTURE_CONTEXT_KEY } from '$lib/classes/NodeStructureContext.svelte.js';
+	import { fiberColorHex } from '$lib/utils/fiberColors';
 	import { tooltip } from '$lib/utils/tooltip';
 
 	import FiberCell from './FiberCell.svelte';
@@ -30,22 +31,12 @@
 	const selectedForMerge = $derived(context?.selectedForMerge ?? new Set());
 	const mergeSide = $derived(context?.mergeSide ?? 'a');
 
-	const colorMap = $derived.by(() => {
-		const map = new Map();
-		for (const color of fiberColors) {
-			map.set(color.name_de, color.hex_code);
-			map.set(color.name_en, color.hex_code);
-		}
-		return map;
-	});
-
 	const gridCols = $derived(
 		mergeSelectionMode ? 'grid-cols-[40px_60px_1fr_1fr]' : 'grid-cols-[60px_1fr_1fr]'
 	);
 
 	function getColorHex(fiberColorName: string | null | undefined) {
-		if (!fiberColorName) return '#999999';
-		return colorMap.get(fiberColorName) || '#999999';
+		return fiberColorHex(fiberColors, fiberColorName ?? '');
 	}
 
 	function handlePortDrop(portNumber: number, side: 'a' | 'b', fiberData: DropData) {

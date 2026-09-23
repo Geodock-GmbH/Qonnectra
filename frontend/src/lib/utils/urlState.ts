@@ -61,15 +61,21 @@ export function withParams(url: URL, changes: QueryChanges): string {
  * Reads `page` at call time, which is fine in event handlers but not at
  * module scope.
  * @param changes - Parameters to set or delete.
- * @param options - `push` adds a history entry instead of replacing it.
+ * @param options - `push` adds a history entry instead of replacing it;
+ *   `state` becomes `page.state` in the same navigation (a navigation
+ *   without it clears `page.state`).
  * @returns Resolves once the navigation has completed.
  */
-export function setQuery(changes: QueryChanges, { push = false }: { push?: boolean } = {}) {
+export function setQuery(
+	changes: QueryChanges,
+	{ push = false, state }: { push?: boolean; state?: App.PageState } = {}
+) {
 	// eslint-disable-next-line svelte/no-navigation-without-resolve -- same-page navigation: the path is the already-resolved current path
 	return goto(withParams(page.url, changes), {
 		keepFocus: true,
 		noScroll: true,
-		replaceState: !push
+		replaceState: !push,
+		...(state && { state })
 	});
 }
 

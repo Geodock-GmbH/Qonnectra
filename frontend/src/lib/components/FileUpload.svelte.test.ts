@@ -63,16 +63,6 @@ describe('FileUpload', () => {
 		expect(screen.getByText(/50 MB/)).toBeInTheDocument();
 	});
 
-	test('should load existing files for the feature', async () => {
-		render(FileUpload, { featureType: 'cable', featureId: 'cable-1' });
-		await screen.findByText('form_upload_files');
-
-		expect(fetchMock).toHaveBeenCalledWith(
-			'http://mock-api.test/feature-files/?object_id=cable-1',
-			expect.objectContaining({ credentials: 'include' })
-		);
-	});
-
 	test('should show an error with retry for unsupported feature types', async () => {
 		render(FileUpload, { featureType: 'spaceship', featureId: 'x-1' });
 
@@ -89,14 +79,5 @@ describe('FileUpload', () => {
 		await user.click(screen.getByRole('button', { name: 'Retry' }));
 
 		expect(vi.mocked(fetchContentTypes).mock.calls.length).toBeGreaterThan(callsBefore);
-	});
-
-	test('should toast an error when loading files fails', async () => {
-		fetchMock.mockResolvedValue({ ok: false, status: 500 });
-
-		render(FileUpload, { featureType: 'cable', featureId: 'cable-1' });
-		await screen.findByText('form_upload_files');
-
-		await vi.waitFor(() => expect(globalToaster.error).toHaveBeenCalled());
 	});
 });

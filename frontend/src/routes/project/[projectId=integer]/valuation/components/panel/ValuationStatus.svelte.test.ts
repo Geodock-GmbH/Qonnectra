@@ -16,10 +16,20 @@ vi.mock('$lib/remote/valuation/valuation.remote', () => ({
 	calculateValuation: (...args: unknown[]) => calculateValuation(...args)
 }));
 
-vi.mock('$app/state', () => ({
-	page: { url: new URL('http://localhost/project/7/valuation'), params: { projectId: '7' } }
-}));
-vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
+vi.mock('$app/state', async () => {
+	const { reactivePageStub } = await import('$lib/test-utils/reactivePageStub.svelte');
+	return {
+		page: reactivePageStub({
+			url: 'http://localhost/project/7/valuation',
+			params: { projectId: '7' }
+		})
+	};
+});
+vi.mock('$app/navigation', async () => {
+	const { replaceStateStub } = await import('$lib/test-utils/reactivePageStub.svelte');
+	const { page } = await import('$app/state');
+	return { goto: vi.fn(), replaceState: replaceStateStub(page) };
+});
 
 vi.mock('$lib/stores/store', async () => {
 	const { writable } = await import('svelte/store');

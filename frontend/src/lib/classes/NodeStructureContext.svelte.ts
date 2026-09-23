@@ -319,10 +319,7 @@ export class NodeStructureContext {
 	 */
 	get mobileActions() {
 		return {
-			onClearSelection: () => this.#dragDropManager.clearMobileSelection(),
-			onFiberSelect: (fiberData: DropData) => {
-				this.#dragDropManager.selectMobileItem(fiberData);
-			}
+			onClearSelection: () => this.#dragDropManager.clearMobileSelection()
 		};
 	}
 
@@ -512,11 +509,7 @@ export class NodeStructureContext {
 	 * Handle structure selection (opens port table)
 	 */
 	async #handleStructureSelect(structure: NodeStructure): Promise<boolean> {
-		const wasSelected = await this.#spliceManager.selectStructure(
-			structure as never,
-			this.isMobile
-		);
-		return wasSelected;
+		return this.#spliceManager.selectStructure(structure as never);
 	}
 
 	/**

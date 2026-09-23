@@ -95,7 +95,7 @@
 	<svg viewBox="0 0 100 100" class="pipe-cross-section">
 		<defs>
 			<!-- Gradient definitions for two-layer microducts -->
-			{#each microductPositions as pos}
+			{#each microductPositions as pos (pos.mic.uuid)}
 				{#if pos.mic.is_two_layer}
 					<linearGradient id="gradient-{pos.mic.uuid}" x1="0%" y1="0%" x2="100%" y2="0%">
 						<stop offset="50%" stop-color={pos.mic.hex_code} />
@@ -119,7 +119,7 @@
 		<circle cx="50" cy="50" r="38" fill="var(--color-surface-100)" />
 
 		<!-- Microducts inside the pipe -->
-		{#each microductPositions as pos}
+		{#each microductPositions as pos (pos.mic.uuid)}
 			<circle
 				cx={pos.x}
 				cy={pos.y}

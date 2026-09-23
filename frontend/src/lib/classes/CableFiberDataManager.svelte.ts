@@ -1,5 +1,7 @@
 import type { ComponentPlacement, FiberColor } from '$lib/types/nodeData';
+import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 
+import { fiberColorHex } from '$lib/utils/fiberColors';
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
 import {
 	getAddressesForNode,
@@ -32,12 +34,6 @@ export interface Fiber {
 	fiber_status?: FiberStatusOption | null;
 }
 
-export interface FiberBundle {
-	bundleNumber: number;
-	bundleColor: string;
-	fibers: Fiber[];
-}
-
 export interface ResidentialUnit {
 	uuid: string;
 	id_residential_unit?: string;
@@ -62,6 +58,26 @@ interface FiberStatusOption {
 }
 
 /**
+ * Replaces a reactive set's contents with a fresh snapshot.
+ * @param set - The set to refill
+ * @param values - The new contents
+ */
+function replaceSet<T>(set: SvelteSet<T>, values: Iterable<T>): void {
+	set.clear();
+	for (const value of values) set.add(value);
+}
+
+/**
+ * Replaces a reactive map's contents with a fresh snapshot.
+ * @param map - The map to refill
+ * @param entries - The new entries
+ */
+function replaceMap<K, V>(map: SvelteMap<K, V>, entries: Iterable<[K, V]>): void {
+	map.clear();
+	for (const [key, value] of entries) map.set(key, value);
+}
+
+/**
  * Manager for cable and fiber data fetching and caching.
  * Handles lazy loading of fibers per cable and fiber color lookup.
  */
@@ -72,15 +88,15 @@ export class CableFiberDataManager {
 
 	fiberColors: FiberColor[] = $state([]);
 
-	fibersCache: Map<string, Fiber[]> = $state(new Map());
+	readonly fibersCache = new SvelteMap<string, Fiber[]>();
 
-	loadingFibers: Set<string> = $state(new Set());
+	readonly loadingFibers = new SvelteSet<string>();
 
 	loading: boolean = $state(true);
 
-	usedFiberUuids: Set<string> = $state(new Set());
+	readonly usedFiberUuids = new SvelteSet<string>();
 
-	fiberComponentMap: Map<string, ComponentPlacement> = $state.raw(new Map());
+	readonly fiberComponentMap = new SvelteMap<string, ComponentPlacement>();
 
 	loadingFiberUsage: boolean = $state(false);
 
@@ -88,9 +104,9 @@ export class CableFiberDataManager {
 
 	loadingAddresses: boolean = $state(false);
 
-	usedResidentialUnitUuids: Set<string> = $state(new Set());
+	readonly usedResidentialUnitUuids = new SvelteSet<string>();
 
-	residentialUnitComponentMap: Map<string, ComponentPlacement> = $state.raw(new Map());
+	readonly residentialUnitComponentMap = new SvelteMap<string, ComponentPlacement>();
 
 	loadingResidentialUnitUsage: boolean = $state(false);
 
@@ -106,30 +122,18 @@ export class CableFiberDataManager {
 	}
 
 	/**
-	 * Color lookup map derived from fiberColors
-	 */
-	get colorMap(): Map<string, string> {
-		const map = new Map<string, string>();
-		for (const color of this.fiberColors) {
-			map.set(color.name_de, color.hex_code);
-			map.set(color.name_en, color.hex_code);
-		}
-		return map;
-	}
-
-	/**
 	 * Set the node UUID and reset state
 	 * @param uuid
 	 */
 	setNodeUuid(uuid: string): void {
 		this.nodeUuid = uuid;
 		this.cables = [];
-		this.fibersCache = new Map();
-		this.usedFiberUuids = new Set();
-		this.fiberComponentMap = new Map();
+		this.fibersCache.clear();
+		this.usedFiberUuids.clear();
+		this.fiberComponentMap.clear();
 		this.addresses = [];
-		this.usedResidentialUnitUuids = new Set();
-		this.residentialUnitComponentMap = new Map();
+		this.usedResidentialUnitUuids.clear();
+		this.residentialUnitComponentMap.clear();
 	}
 
 	/**
@@ -175,8 +179,8 @@ export class CableFiberDataManager {
 			const usageQuery = getFiberUsageInNode(this.nodeUuid);
 			await usageQuery.refresh();
 			const data = usageQuery.current ?? { usedFiberUuids: [], fiberComponentMap: {} };
-			this.usedFiberUuids = new Set(data.usedFiberUuids);
-			this.fiberComponentMap = new Map(Object.entries(data.fiberComponentMap));
+			replaceSet(this.usedFiberUuids, data.usedFiberUuids);
+			replaceMap(this.fiberComponentMap, Object.entries(data.fiberComponentMap));
 		} catch (err) {
 			console.error('Error fetching fiber usage:', err);
 			void logToBackendClient({
@@ -259,8 +263,11 @@ export class CableFiberDataManager {
 				usedResidentialUnitUuids: [],
 				residentialUnitComponentMap: {}
 			};
-			this.usedResidentialUnitUuids = new Set(data.usedResidentialUnitUuids);
-			this.residentialUnitComponentMap = new Map(Object.entries(data.residentialUnitComponentMap));
+			replaceSet(this.usedResidentialUnitUuids, data.usedResidentialUnitUuids);
+			replaceMap(
+				this.residentialUnitComponentMap,
+				Object.entries(data.residentialUnitComponentMap)
+			);
 		} catch (err) {
 			console.error('Error fetching residential unit usage:', err);
 			void logToBackendClient({
@@ -372,12 +379,10 @@ export class CableFiberDataManager {
 		if (this.fibersCache.has(cableUuid) || this.loadingFibers.has(cableUuid)) return;
 
 		this.loadingFibers.add(cableUuid);
-		this.loadingFibers = new Set(this.loadingFibers);
 
 		try {
 			const fibers = await getFibersForCableQuery(cableUuid);
 			this.fibersCache.set(cableUuid, fibers);
-			this.fibersCache = new Map(this.fibersCache);
 		} catch (err) {
 			console.error('Error fetching fibers:', err);
 			void logToBackendClient({
@@ -391,7 +396,6 @@ export class CableFiberDataManager {
 			});
 		} finally {
 			this.loadingFibers.delete(cableUuid);
-			this.loadingFibers = new Set(this.loadingFibers);
 		}
 	}
 
@@ -421,38 +425,18 @@ export class CableFiberDataManager {
 	}
 
 	/**
-	 * Group fibers by bundle number
-	 * @param fibers
-	 */
-	groupFibersByBundle(fibers: Fiber[]): FiberBundle[] {
-		const groups = new Map<number, FiberBundle>();
-		for (const fiber of fibers) {
-			const bundleKey = fiber.bundle_number;
-			if (!groups.has(bundleKey)) {
-				groups.set(bundleKey, {
-					bundleNumber: fiber.bundle_number,
-					bundleColor: fiber.bundle_color,
-					fibers: []
-				});
-			}
-			groups.get(bundleKey)!.fibers.push(fiber);
-		}
-		return Array.from(groups.values()).sort((a, b) => a.bundleNumber - b.bundleNumber);
-	}
-
-	/**
 	 * Get color hex code from color name
 	 * @param colorName
 	 */
 	getColorHex(colorName?: string): string {
-		return (colorName && this.colorMap.get(colorName)) || '#999999';
+		return fiberColorHex(this.fiberColors, colorName ?? '');
 	}
 
 	/**
 	 * Clear the fibers cache (for refresh)
 	 */
 	clearFibersCache(): void {
-		this.fibersCache = new Map();
+		this.fibersCache.clear();
 	}
 
 	/**
@@ -529,9 +513,7 @@ export class CableFiberDataManager {
 		if (index !== -1) {
 			const newFibers = [...fibers];
 			newFibers[index] = updatedFiber;
-			const newCache = new Map(this.fibersCache);
-			newCache.set(cableUuid, newFibers);
-			this.fibersCache = newCache;
+			this.fibersCache.set(cableUuid, newFibers);
 		}
 	}
 
@@ -542,16 +524,16 @@ export class CableFiberDataManager {
 		this.nodeUuid = null;
 		this.cables = [];
 		this.fiberColors = [];
-		this.fibersCache = new Map();
-		this.loadingFibers = new Set();
+		this.fibersCache.clear();
+		this.loadingFibers.clear();
 		this.loading = false;
-		this.usedFiberUuids = new Set();
-		this.fiberComponentMap = new Map();
+		this.usedFiberUuids.clear();
+		this.fiberComponentMap.clear();
 		this.loadingFiberUsage = false;
 		this.addresses = [];
 		this.loadingAddresses = false;
-		this.usedResidentialUnitUuids = new Set();
-		this.residentialUnitComponentMap = new Map();
+		this.usedResidentialUnitUuids.clear();
+		this.residentialUnitComponentMap.clear();
 		this.loadingResidentialUnitUsage = false;
 		this.fiberStatusOptions = [];
 		this.loadingFiberStatusOptions = false;

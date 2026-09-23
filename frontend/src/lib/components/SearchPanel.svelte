@@ -1,11 +1,9 @@
 <script lang="ts">
-	import type { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte';
 	import type { SearchFeaturePayload } from '$lib/map/searchUtils';
 	import type { SearchResult } from '$lib/remote/map/feature-search-data';
 	import type VectorLayer from 'ol/layer/Vector';
 	import type OlMap from 'ol/Map';
 	import type VectorSource from 'ol/source/Vector';
-	import { getContext } from 'svelte';
 	import { cubicOut } from 'svelte/easing';
 	import { fade, fly } from 'svelte/transition';
 	import { page } from '$app/state';
@@ -50,11 +48,6 @@
 		onFeatureSelect = () => {},
 		onSearchError = () => {}
 	}: Props = $props();
-
-	const mapManagers = getContext<{ selectionManager?: MapSelectionManager } | undefined>(
-		'mapManagers'
-	);
-	const selectionManager = mapManagers?.selectionManager;
 
 	let searchQuery = $state('');
 	let searchResults = $state<SearchResult[]>([]);

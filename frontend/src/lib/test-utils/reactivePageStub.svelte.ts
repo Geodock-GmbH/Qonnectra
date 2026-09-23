@@ -14,16 +14,35 @@ export function reactivePageStub(options: Parameters<typeof pageStub>[0] = {}) {
 	return page;
 }
 
+/** The shape of a `reactivePageStub`, for tests that move the mocked `page`. */
+export type ReactivePage = ReturnType<typeof reactivePageStub>;
+
 /**
  * A `goto` stand-in that moves a page stub to the target, so a component
  * that navigates through the URL re-renders as it would in the browser.
- * The tests assert on its calls and can navigate through it themselves.
+ * Like SvelteKit, the navigation sets `page.state` to its `state` option,
+ * or clears it. The tests assert on its calls and can navigate through it
+ * themselves.
  * @param page - The page stub to move, normally a `reactivePageStub`.
  * @returns A mock resolving once the URL has been replaced.
  */
-export function gotoStub(page: { url: URL }) {
-	return vi.fn((href: string) => {
+export function gotoStub(page: { url: URL; state: App.PageState }) {
+	return vi.fn((href: string, options: { state?: App.PageState } = {}) => {
 		page.url = new URL(href, page.url);
+		page.state = options.state ?? {};
 		return Promise.resolve();
+	});
+}
+
+/**
+ * A `replaceState` stand-in that sets a page stub's history state, and its
+ * URL unless the target is `''` (the current URL), as shallow routing does.
+ * @param page - The page stub to update, normally a `reactivePageStub`.
+ * @returns A mock of `replaceState`.
+ */
+export function replaceStateStub(page: { url: URL; state: App.PageState }) {
+	return vi.fn((href: string | URL, state: App.PageState) => {
+		if (href !== '') page.url = new URL(href, page.url);
+		page.state = state;
 	});
 }

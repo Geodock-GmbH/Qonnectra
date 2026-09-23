@@ -215,6 +215,65 @@ test.describe('Valuation page', () => {
 			.toBe(totalText);
 	});
 
+	test('the whole-project checkbox follows repeated toggles', async ({ page }) => {
+		const wholeProject = page.getByRole('checkbox', {
+			name: /total \(whole project\)|gesamt \(ganzes projekt\)/i
+		});
+		const results = page.locator('tfoot').first();
+		await expect(wholeProject).toBeChecked();
+		await expect(results).toBeVisible({ timeout: 20000 });
+
+		await wholeProject.click();
+		await expect(wholeProject).not.toBeChecked();
+		await expect(results).toBeHidden();
+
+		await wholeProject.click();
+		await expect(results).toBeVisible({ timeout: 20000 });
+		await expect(wholeProject).toBeChecked();
+
+		await wholeProject.click();
+		await expect(results).toBeHidden();
+		await expect(wholeProject).not.toBeChecked();
+	});
+
+	test('an area checkbox follows repeated toggles', async ({ page }) => {
+		const areaBox = page.locator('.max-h-60 input[type="checkbox"]').first();
+		await expect(
+			page.getByRole('heading', { name: /select area|gebiet auswählen/i })
+		).toBeVisible();
+		await page.waitForLoadState('networkidle');
+		test.skip((await areaBox.count()) === 0, 'Needs at least one area in the project');
+		const wholeProject = page.getByRole('checkbox', {
+			name: /total \(whole project\)|gesamt \(ganzes projekt\)/i
+		});
+
+		// Start from picking areas, the state the first area click leaves.
+		await wholeProject.click();
+		await expect(wholeProject).not.toBeChecked();
+
+		await areaBox.click();
+		await expect(page).toHaveURL(/[?&]areas=[0-9a-f-]{36}/);
+		await expect(areaBox).toBeChecked();
+		await expect(wholeProject).not.toBeChecked();
+
+		await areaBox.click();
+		await expect(page).not.toHaveURL(/[?&]areas=/);
+		await expect(areaBox).not.toBeChecked();
+		await expect(wholeProject).toBeChecked();
+
+		await areaBox.click();
+		await expect(page).toHaveURL(/[?&]areas=[0-9a-f-]{36}/);
+		await expect(areaBox).toBeChecked();
+
+		await areaBox.click();
+		await expect(page).not.toHaveURL(/[?&]areas=/);
+		await expect(areaBox).not.toBeChecked();
+
+		await areaBox.click();
+		await expect(page).toHaveURL(/[?&]areas=[0-9a-f-]{36}/);
+		await expect(areaBox).toBeChecked();
+	});
+
 	test('exposes the area search input', async ({ page }) => {
 		await expect(page.locator('[data-testid="search-input"]').first()).toBeVisible({
 			timeout: 15000

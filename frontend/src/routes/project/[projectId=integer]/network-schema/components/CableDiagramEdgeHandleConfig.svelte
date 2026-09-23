@@ -276,7 +276,7 @@
 				>{m.form_handle_position?.() || 'Handle Position'}</label
 			>
 			<div class="space-y-2">
-				{#each handleOptions as option}
+				{#each handleOptions as option (option.value)}
 					<label class="flex items-center space-x-2">
 						<input
 							class="radio"
@@ -325,7 +325,7 @@
 				>{m.form_handle_position?.() || 'Handle Position'}</label
 			>
 			<div class="space-y-2">
-				{#each handleOptions as option}
+				{#each handleOptions as option (option.value)}
 					<label class="flex items-center space-x-2">
 						<input
 							class="radio"

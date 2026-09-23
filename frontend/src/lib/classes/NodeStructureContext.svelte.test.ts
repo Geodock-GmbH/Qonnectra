@@ -399,7 +399,9 @@ describe('lifecycle', () => {
 
 	test('should propagate responsive changes to the drag drop manager', () => {
 		const { context } = newContext();
-		context.getDragDropManager().selectMobileItem({ type: 'component_type' });
+		context
+			.getDragDropManager()
+			.selectMobileComponent({ id: 1, component_type: 'Kassette', occupied_slots: 2 });
 
 		context.handleResponsiveChange(false);
 

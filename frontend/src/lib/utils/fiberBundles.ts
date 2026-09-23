@@ -1,4 +1,11 @@
-import type { Fiber, FiberBundle } from '$lib/classes/CableFiberDataManager.svelte';
+import type { Fiber } from '$lib/classes/CableFiberDataManager.svelte';
+
+/** A cable's fibers that share one bundle. */
+export interface FiberBundle {
+	bundleNumber: number;
+	bundleColor: string;
+	fibers: Fiber[];
+}
 
 /**
  * Groups a cable's fibers by their bundle.

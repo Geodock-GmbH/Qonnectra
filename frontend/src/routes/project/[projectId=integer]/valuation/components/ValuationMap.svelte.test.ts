@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 
 import type { AfterNavigate } from '@sveltejs/kit';
+import type { ReactivePage } from '$lib/test-utils/reactivePageStub.svelte';
 import { goto } from '$app/navigation';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -12,12 +13,7 @@ import ValuationContextFixture from './ValuationContext.fixture.svelte';
 import ValuationMap from './ValuationMap.svelte';
 import { ValuationState } from './ValuationState.svelte';
 
-const { mapStates, remote, toastError, pageState } = vi.hoisted(() => ({
-	pageState: {
-		url: new URL('http://localhost/project/7/valuation'),
-		params: { projectId: '7' },
-		data: { srid: 25832, proj4Def: '+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs' }
-	},
+const { mapStates, remote, toastError } = vi.hoisted(() => ({
 	mapStates: [] as {
 		olMap: unknown;
 		areaLayer: object;
@@ -41,7 +37,16 @@ vi.mock('$lib/remote/valuation/valuation.remote', () => ({
 
 vi.mock('$lib/stores/toaster', () => ({ globalToaster: { error: toastError } }));
 
-vi.mock('$app/state', () => ({ page: pageState }));
+vi.mock('$app/state', async () => {
+	const { reactivePageStub } = await import('$lib/test-utils/reactivePageStub.svelte');
+	return {
+		page: reactivePageStub({
+			url: 'http://localhost/project/7/valuation',
+			params: { projectId: '7' },
+			data: { srid: 25832, proj4Def: '+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs' }
+		})
+	};
+});
 
 const nav = vi.hoisted(() => ({
 	callbacks: [] as Array<(navigation: AfterNavigate) => void>
@@ -49,10 +54,19 @@ const nav = vi.hoisted(() => ({
 
 vi.mock('$app/navigation', async () => {
 	const { afterNavigateStub } = await import('$lib/test-utils/afterNavigateStub');
-	return { goto: vi.fn(), afterNavigate: afterNavigateStub(nav.callbacks) };
+	const { replaceStateStub } = await import('$lib/test-utils/reactivePageStub.svelte');
+	const { page } = await import('$app/state');
+	return {
+		goto: vi.fn(),
+		replaceState: replaceStateStub(page),
+		afterNavigate: afterNavigateStub(nav.callbacks)
+	};
 });
 
 vi.mock('ol/ol.css', () => ({}));
+
+/** The mocked `page`, typed as the stub so tests can move its URL. */
+const pageState = (await import('$app/state')).page as ReactivePage;
 
 vi.mock('$lib/paraglide/messages', () => ({
 	m: new Proxy({}, { get: (_target, prop: string) => () => `${prop}` })

@@ -102,7 +102,7 @@
 		/>
 
 		<!-- Surface vegetation (subtle tick marks) -->
-		{#each Array(Math.floor(width / 12)) as _, i}
+		{#each { length: Math.floor(width / 12) }, i (i)}
 			<line
 				x1={6 + i * 12}
 				y1={GROUND_TOP}

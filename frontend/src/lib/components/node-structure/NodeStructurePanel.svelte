@@ -102,10 +102,6 @@
 		}
 	});
 
-	function handleSideChange(e: Event) {
-		context.selectSlotConfig((e.target as HTMLSelectElement).value);
-	}
-
 	async function handleStructureSelect(
 		structure: Parameters<typeof context.structureActions.onSelect>[0] | undefined
 	) {
@@ -151,13 +147,6 @@
 	) {
 		context.sidebarActions.onMobileSelect(componentType);
 		activeSheet = null;
-	}
-
-	function handleMobileFiberSelect(
-		fiberData: Parameters<typeof context.mobileActions.onFiberSelect>[0]
-	) {
-		context.mobileActions.onFiberSelect(fiberData);
-		activeSheet = 'ports';
 	}
 
 	onMount(() => {

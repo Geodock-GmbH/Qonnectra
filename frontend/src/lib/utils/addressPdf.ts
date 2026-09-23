@@ -1016,7 +1016,6 @@ function addPageNumbers(doc: jsPDF) {
 		doc.setTextColor(...COLORS.emerald600);
 		doc.text(m.Qonnectra(), MARGIN, PAGE_HEIGHT - 8);
 
-		const qWidth = doc.getTextWidth(m.Qonnectra());
 		doc.setFont('helvetica', 'normal');
 		doc.setTextColor(...COLORS.slate400);
 

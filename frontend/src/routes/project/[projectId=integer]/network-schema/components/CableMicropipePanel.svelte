@@ -52,7 +52,7 @@
 	let olMap = $state<import('ol/Map').default | undefined>();
 	let dragBoxInteraction = $state<import('ol/interaction/DragBox').default | undefined>();
 	let selectionLayer = $state<VectorTileLayer | undefined>();
-	let selectedFeatureIds = $state<SvelteSet<string>>(new SvelteSet());
+	const selectedFeatureIds = new SvelteSet<string>();
 	let cableRouteLayer = $state<VectorTileLayer | undefined>();
 
 	const projectId = routeProjectId();
@@ -65,7 +65,7 @@
 		if (cableId && cableId !== previousCableId) {
 			previousCableId = cableId;
 			manager.initialize(cableId, cableName);
-			selectedFeatureIds = new SvelteSet();
+			selectedFeatureIds.clear();
 			if (selectionLayer) {
 				selectionLayer.changed();
 			}
@@ -213,13 +213,11 @@
 				const featureId = String(feature.getId() || feature.get('uuid'));
 
 				if (featureId) {
-					const newSet = new SvelteSet(selectedFeatureIds);
-					if (newSet.has(featureId)) {
-						newSet.delete(featureId);
+					if (selectedFeatureIds.has(featureId)) {
+						selectedFeatureIds.delete(featureId);
 					} else {
-						newSet.add(featureId);
+						selectedFeatureIds.add(featureId);
 					}
-					selectedFeatureIds = newSet;
 					if (selectionLayer) {
 						selectionLayer.changed();
 					}
@@ -235,7 +233,6 @@
 
 		dragBox.on('boxend', () => {
 			const extent = dragBox.getGeometry().getExtent();
-			const newSet = new SvelteSet(selectedFeatureIds);
 			const boxPixelMin = map.getPixelFromCoordinate([extent[0], extent[1]]);
 			const boxPixelMax = map.getPixelFromCoordinate([extent[2], extent[3]]);
 			if (!boxPixelMin || !boxPixelMax) return;
@@ -253,14 +250,13 @@
 						features.forEach((feature) => {
 							const featureId = String(feature.getId() || feature.get('uuid'));
 							if (featureId) {
-								newSet.add(featureId);
+								selectedFeatureIds.add(featureId);
 							}
 						});
 					}
 				}
 			}
 
-			selectedFeatureIds = newSet;
 			if (selectionLayer) {
 				selectionLayer.changed();
 			}
@@ -276,7 +272,7 @@
 	}
 
 	function clearMapSelection() {
-		selectedFeatureIds = new SvelteSet();
+		selectedFeatureIds.clear();
 		if (selectionLayer) {
 			selectionLayer.changed();
 		}
@@ -298,7 +294,7 @@
 		}
 		mapState.cleanup();
 		olMap = undefined;
-		selectedFeatureIds = new SvelteSet();
+		selectedFeatureIds.clear();
 	}
 
 	function isConduitSelected(conduitId: string): boolean {

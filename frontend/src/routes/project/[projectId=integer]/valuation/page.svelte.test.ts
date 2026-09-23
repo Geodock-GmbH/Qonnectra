@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest';
 
 import type { AfterNavigate } from '@sveltejs/kit';
 import type { ValuationArea } from '$lib/remote/valuation/valuation-data';
+import type { ReactivePage } from '$lib/test-utils/reactivePageStub.svelte';
 import { goto } from '$app/navigation';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
@@ -12,12 +13,7 @@ import { httpError } from '$lib/test-utils/remote-stubs';
 
 import Page from './+page.svelte';
 
-const { pageState, remote } = vi.hoisted(() => ({
-	pageState: {
-		url: new URL('http://localhost/project/1/valuation'),
-		params: { projectId: '1' as string | undefined },
-		data: {}
-	},
+const { remote } = vi.hoisted(() => ({
 	remote: {
 		getValuationAreas: vi.fn(),
 		getValuationRateCount: vi.fn(),
@@ -27,7 +23,15 @@ const { pageState, remote } = vi.hoisted(() => ({
 
 vi.mock('$lib/remote/valuation/valuation.remote', () => remote);
 
-vi.mock('$app/state', () => ({ page: pageState }));
+vi.mock('$app/state', async () => {
+	const { reactivePageStub } = await import('$lib/test-utils/reactivePageStub.svelte');
+	return {
+		page: reactivePageStub({
+			url: 'http://localhost/project/1/valuation',
+			params: { projectId: '1' }
+		})
+	};
+});
 
 const nav = vi.hoisted(() => ({
 	callbacks: [] as Array<(navigation: AfterNavigate) => void>
@@ -35,7 +39,13 @@ const nav = vi.hoisted(() => ({
 
 vi.mock('$app/navigation', async () => {
 	const { afterNavigateStub } = await import('$lib/test-utils/afterNavigateStub');
-	return { goto: vi.fn(), afterNavigate: afterNavigateStub(nav.callbacks) };
+	const { replaceStateStub } = await import('$lib/test-utils/reactivePageStub.svelte');
+	const { page } = await import('$app/state');
+	return {
+		goto: vi.fn(),
+		replaceState: replaceStateStub(page),
+		afterNavigate: afterNavigateStub(nav.callbacks)
+	};
 });
 
 vi.mock('$app/environment', () => ({ browser: true }));
@@ -54,6 +64,8 @@ vi.mock('$lib/paraglide/messages', () => ({
 }));
 
 const { globalMapView } = await import('$lib/stores/store');
+/** The mocked `page`, typed as the stub so tests can move its URL. */
+const pageState = (await import('$app/state')).page as ReactivePage;
 
 const user = userEvent.setup();
 
@@ -84,6 +96,7 @@ async function renderCalculatedPage() {
 beforeEach(() => {
 	pageState.url = new URL('http://localhost/project/1/valuation');
 	pageState.params.projectId = '1';
+	pageState.state = {};
 	nav.callbacks.length = 0;
 	globalMapView.set(false);
 	remote.getValuationAreas.mockResolvedValue(areas);

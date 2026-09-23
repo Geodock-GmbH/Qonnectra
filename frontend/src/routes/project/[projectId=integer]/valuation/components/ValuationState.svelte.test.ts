@@ -1,4 +1,5 @@
 import type { ValuationResult } from '$lib/remote/valuation/valuation-data';
+import type { ReactivePage } from '$lib/test-utils/reactivePageStub.svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { calculateValuation } from '$lib/remote/valuation/valuation.remote';
@@ -6,13 +7,22 @@ import { calculateValuation } from '$lib/remote/valuation/valuation.remote';
 import { ValuationState } from './ValuationState.svelte';
 import { defaultBaseYear, MAX_URL_AREAS } from './valuationRequest';
 
-const { pageState, gotoMock } = vi.hoisted(() => ({
-	pageState: { url: new URL('http://localhost/project/7/valuation'), params: { projectId: '7' } },
-	gotoMock: vi.fn()
-}));
+const { gotoMock } = vi.hoisted(() => ({ gotoMock: vi.fn() }));
 
-vi.mock('$app/state', () => ({ page: pageState }));
-vi.mock('$app/navigation', () => ({ goto: (...args: unknown[]) => gotoMock(...args) }));
+vi.mock('$app/state', async () => {
+	const { reactivePageStub } = await import('$lib/test-utils/reactivePageStub.svelte');
+	return {
+		page: reactivePageStub({
+			url: 'http://localhost/project/7/valuation',
+			params: { projectId: '7' }
+		})
+	};
+});
+vi.mock('$app/navigation', async () => {
+	const { replaceStateStub } = await import('$lib/test-utils/reactivePageStub.svelte');
+	const { page } = await import('$app/state');
+	return { goto: (...args: unknown[]) => gotoMock(...args), replaceState: replaceStateStub(page) };
+});
 
 vi.mock('$lib/remote/valuation/valuation.remote', () => ({
 	calculateValuation: vi.fn()
@@ -24,6 +34,8 @@ vi.mock('$lib/stores/store', async () => {
 });
 
 const { globalMapView } = await import('$lib/stores/store');
+/** The mocked `page`, typed as the stub so tests can move its URL. */
+const pageState = (await import('$app/state')).page as ReactivePage;
 
 const result: ValuationResult = {
 	categories: [],
@@ -47,6 +59,7 @@ describe('ValuationState', () => {
 
 	beforeEach(() => {
 		pageState.url = new URL('http://localhost/project/7/valuation');
+		pageState.state = {};
 		gotoMock.mockReset();
 		vi.mocked(calculateValuation).mockReset();
 		vi.mocked(calculateValuation).mockReturnValue(queryOf(result) as never);
@@ -120,6 +133,15 @@ describe('ValuationState', () => {
 			expect(gotoMock).not.toHaveBeenCalled();
 		});
 
+		test('should leave area picking with the first area, in the same navigation', () => {
+			valuation.toggleWholeProject();
+
+			valuation.toggleArea('area-1');
+
+			expect(lastGoto()?.[0]).toBe('/project/7/valuation?areas=area-1');
+			expect(lastGoto()?.[1]).not.toHaveProperty('state');
+		});
+
 		test('should drop the selected areas from the URL when switching back to the whole project', () => {
 			pageState.url = new URL('http://localhost/project/7/valuation?areas=area-1&baseYear=2030');
 
@@ -142,6 +164,14 @@ describe('ValuationState', () => {
 			expect(lastGoto()?.[0]).toBe('/project/7/valuation?correction=4');
 			valuation.setAnnualCorrection(undefined);
 			expect(lastGoto()?.[0]).toBe('/project/7/valuation?baseYear=2030');
+		});
+
+		test('should keep area picking while an input changes', () => {
+			valuation.toggleWholeProject();
+
+			valuation.setBaseYear(2030);
+
+			expect(lastGoto()?.[1]).toMatchObject({ state: { valuation: { pickingAreas: true } } });
 		});
 
 		test('should read the inputs from the URL', () => {

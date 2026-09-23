@@ -20,13 +20,10 @@
 	// edit-path tests hit the live gestures; passing `{ locked: true }` or a
 	// different `editingCableId` reproduces the non-editing paths. `loadCableDetails`
 	// is stubbed by default and overridable per test.
-	// svelte-ignore state_referenced_locally
 	const state = new NetworkSchemaState();
-	// svelte-ignore state_referenced_locally
 	state.locked = false;
 	// svelte-ignore state_referenced_locally
 	state.editingCableId = labelProps.edgeId;
-	// svelte-ignore state_referenced_locally
 	state.loadCableDetails = async () => ({}) as Awaited<ReturnType<typeof state.loadCableDetails>>;
 	// svelte-ignore state_referenced_locally
 	Object.assign(state, schemaState);

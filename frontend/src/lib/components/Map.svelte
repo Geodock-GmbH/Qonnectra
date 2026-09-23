@@ -2,7 +2,6 @@
 	import type { SearchFeaturePayload } from '$lib/map/searchUtils';
 	import type { MapView } from '$lib/map/viewHash';
 	import type { AreaType, ConstructionType, NodeType, Surface } from '$lib/types/mapLayers';
-	import type Feature from 'ol/Feature';
 	import type BaseLayer from 'ol/layer/Base';
 	import type TileLayer from 'ol/layer/Tile';
 	import type OlMap from 'ol/Map';
@@ -146,7 +145,6 @@
 	let container = $state<HTMLDivElement | undefined>();
 	let map = $state<OlMap | undefined>();
 	let osmLayer = $state<TileLayer | undefined>();
-	let baseLayerGroup = $state();
 	let usingFallbackOSM = $state(false);
 
 	/** The view a map shows before anything else is known. */
@@ -332,17 +330,8 @@
 	onMount(async () => {
 		tileLoadingManager.resume();
 
-		const [
-			{ default: OlMap },
-			{ default: OlView },
-			{ defaults: defaultControls },
-			{ default: Zoom }
-		] = await Promise.all([
-			import('ol/Map'),
-			import('ol/View'),
-			import('ol/control'),
-			import('ol/control/Zoom')
-		]);
+		const [{ default: OlMap }, { default: OlView }, { defaults: defaultControls }] =
+			await Promise.all([import('ol/Map'), import('ol/View'), import('ol/control')]);
 
 		const initialOpacity = browser ? $layerOpacity : 1;
 		currentLayerOpacity = initialOpacity;
