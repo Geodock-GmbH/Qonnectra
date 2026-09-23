@@ -247,7 +247,7 @@ export class NodeStructureManager {
 
 			if (this.#fetchVersion !== requestVersion) return;
 
-			this.structures = structures as unknown as NodeStructure[];
+			this.structures = structures;
 		} catch (err: unknown) {
 			if (this.#fetchVersion !== requestVersion) return;
 			console.error('Error fetching structures:', err);

@@ -75,6 +75,18 @@ describe('show and hide', () => {
 		expect(manager.overlay?.getPosition()).toEqual([10, 20]);
 	});
 
+	test('should render markup in property values and aliases as plain text', () => {
+		mountPopupDom();
+		const manager = new MapPopupManager({ name: '<b>Name</b>' });
+		manager.initialize(makeMapStub());
+		const payload = '<img src="x" onerror="alert(1)">';
+
+		manager.show([10, 20], makeFeature({ name: payload }));
+
+		expect(manager.contentElement?.querySelector('img, b')).toBeNull();
+		expect(manager.contentElement?.textContent).toBe(`<b>Name</b>: ${payload}`);
+	});
+
 	test('should warn instead of throwing when not initialized', () => {
 		const manager = new MapPopupManager();
 
@@ -109,22 +121,22 @@ describe('generatePopupContent', () => {
 	test('should skip objects and internal fields', () => {
 		const manager = new MapPopupManager();
 
-		const html = manager.generatePopupContent({
+		const list = manager.generatePopupContent({
 			name: 'PoP-1',
 			geometry: { type: 'Point' },
 			layer: 'node-layer',
 			source: 'tiles'
 		});
 
-		expect(html).toBe('<ul><li><strong>name:</strong> PoP-1</li></ul>');
+		expect(list.outerHTML).toBe('<ul><li><strong>name:</strong> PoP-1</li></ul>');
 	});
 
 	test('should use alias names when available', () => {
 		const manager = new MapPopupManager({ id_trench: 'Graben-ID' });
 
-		const html = manager.generatePopupContent({ id_trench: 'T-1' });
+		const list = manager.generatePopupContent({ id_trench: 'T-1' });
 
-		expect(html).toContain('<strong>Graben-ID:</strong> T-1');
+		expect(list.outerHTML).toContain('<strong>Graben-ID:</strong> T-1');
 	});
 });
 

@@ -467,10 +467,7 @@ export class FiberSpliceManager {
 
 		globalToaster.warning({
 			title: m.common_warning?.() || 'Warning',
-			description:
-				(
-					m as unknown as Record<string, (() => string) | undefined>
-				).message_unsupported_drop_type?.() || 'Unsupported drop type'
+			description: m.message_unsupported_drop_type()
 		});
 		return false;
 	}
@@ -663,9 +660,7 @@ export class FiberSpliceManager {
 		if (fibers.length === 0) {
 			globalToaster.warning({
 				title: m.common_warning?.() || 'Warning',
-				description:
-					(m as unknown as Record<string, (() => string) | undefined>).message_bundle_empty?.() ||
-					'Bundle contains no fibers'
+				description: m.message_bundle_empty()
 			});
 			return false;
 		}
@@ -679,10 +674,7 @@ export class FiberSpliceManager {
 		if (availablePorts.length === 0) {
 			globalToaster.warning({
 				title: m.common_warning?.() || 'Warning',
-				description:
-					(
-						m as unknown as Record<string, (() => string) | undefined>
-					).message_no_available_ports?.() || 'No available ports'
+				description: m.message_no_available_ports()
 			});
 			return false;
 		}
@@ -809,7 +801,7 @@ export class FiberSpliceManager {
 	 */
 	async #fetchFibersForCable(cableUuid: string): Promise<BundleFiber[]> {
 		try {
-			return (await getFibersForCable(cableUuid)) as unknown as BundleFiber[];
+			return await getFibersForCable(cableUuid);
 		} catch (err: unknown) {
 			console.error('Error fetching fibers for cable:', err);
 			void logToBackendClient({
@@ -1153,10 +1145,7 @@ export class FiberSpliceManager {
 		if (availablePorts.length === 0) {
 			globalToaster.warning({
 				title: m.common_warning?.() || 'Warning',
-				description:
-					(
-						m as unknown as Record<string, (() => string) | undefined>
-					).message_no_available_ports?.() || 'No available ports'
+				description: m.message_no_available_ports()
 			});
 			return false;
 		}
@@ -1480,11 +1469,7 @@ export class FiberSpliceManager {
 			if (portNumbers[i] !== portNumbers[i - 1] + 1) {
 				globalToaster.warning({
 					title: m.common_warning?.() || 'Warning',
-					description:
-						(
-							m as unknown as Record<string, (() => string) | undefined>
-						).message_ports_must_be_consecutive?.() ||
-						'Ports must be consecutive (e.g., 1-2-3, not 1-3)'
+					description: m.message_ports_must_be_consecutive()
 				});
 				return false;
 			}

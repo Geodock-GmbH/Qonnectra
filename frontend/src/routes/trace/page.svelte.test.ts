@@ -195,7 +195,14 @@ describe('trace search page', () => {
 		const user = userEvent.setup();
 		searchTraceEntries.mockResolvedValue([cableHit]);
 		vi.mocked(getFibersForCable).mockResolvedValue([
-			{ uuid: 'fiber-1', bundle_number: 1, bundle_color: 'Rot', fiber_number_in_bundle: 1 }
+			{
+				uuid: 'fiber-1',
+				bundle_number: 1,
+				bundle_color: 'Rot',
+				fiber_number_in_bundle: 1,
+				fiber_number_absolute: 1,
+				fiber_color: 'Rot'
+			}
 		]);
 		vi.mocked(getFiberColors).mockResolvedValue([]);
 		render(TracePage);
@@ -225,7 +232,14 @@ describe('trace search page', () => {
 			cable_type: { cable_type: '48F' }
 		});
 		vi.mocked(getFibersForCable).mockResolvedValue([
-			{ uuid: 'fiber-1', bundle_number: 1, bundle_color: 'Rot', fiber_number_in_bundle: 1 }
+			{
+				uuid: 'fiber-1',
+				bundle_number: 1,
+				bundle_color: 'Rot',
+				fiber_number_in_bundle: 1,
+				fiber_number_absolute: 1,
+				fiber_color: 'Rot'
+			}
 		]);
 		vi.mocked(getFiberColors).mockResolvedValue([]);
 		await goto('/trace?type=fiber&cable=cable-1');

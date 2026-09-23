@@ -1,3 +1,4 @@
+import type { NodeStructure } from '$lib/classes/NodeStructureContext.svelte';
 import type { Hierarchy } from '$lib/components/node-structure/containerItemTypes';
 import { command, query } from '$app/server';
 import { API_URL } from '$env/static/private';
@@ -91,7 +92,7 @@ export const getNodeStructures = query(v.pipe(v.string(), v.nonEmpty()), async (
 		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to fetch node structures`);
 	}
 
-	return (await response.json()) as Record<string, unknown>[];
+	return (await response.json()) as NodeStructure[];
 });
 
 /**

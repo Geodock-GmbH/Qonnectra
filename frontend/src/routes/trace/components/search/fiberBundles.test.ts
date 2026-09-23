@@ -5,9 +5,27 @@ import { groupFibersByBundle } from './fiberBundles';
 describe('groupFibersByBundle', () => {
 	test('should group the fibers by bundle, ordered by bundle number', () => {
 		const fibers = [
-			{ uuid: 'f-3', bundle_number: 2, bundle_color: 'Blau' },
-			{ uuid: 'f-1', bundle_number: 1, bundle_color: 'Rot' },
-			{ uuid: 'f-2', bundle_number: 1, bundle_color: 'Rot' }
+			{
+				uuid: 'f-3',
+				bundle_number: 2,
+				bundle_color: 'Blau',
+				fiber_number_absolute: 13,
+				fiber_color: 'Rot'
+			},
+			{
+				uuid: 'f-1',
+				bundle_number: 1,
+				bundle_color: 'Rot',
+				fiber_number_absolute: 1,
+				fiber_color: 'Rot'
+			},
+			{
+				uuid: 'f-2',
+				bundle_number: 1,
+				bundle_color: 'Rot',
+				fiber_number_absolute: 2,
+				fiber_color: 'Rot'
+			}
 		];
 
 		expect(groupFibersByBundle(fibers)).toEqual([

@@ -25,8 +25,8 @@ export interface Fiber {
 	bundle_number: number;
 	bundle_color: string;
 	fiber_number_in_bundle?: number;
-	fiber_number_absolute?: number;
-	fiber_color?: string;
+	fiber_number_absolute: number;
+	fiber_color: string;
 	color?: string;
 	fiber_status_id?: number | null;
 	fiber_status?: FiberStatusOption | null;

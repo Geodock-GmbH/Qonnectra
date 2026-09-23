@@ -524,7 +524,7 @@ export class NodeStructureContext {
 	async #handleDeleteStructure(structureUuid: string): Promise<DeleteResult> {
 		// Check if the structure has fiber splices before deleting
 		try {
-			const splices = (await getFiberSplices(structureUuid)) as unknown as FiberSplice[];
+			const splices = await getFiberSplices(structureUuid);
 
 			// Count splices that have actual fiber connections
 			const activeSpliceCount = splices.filter(
