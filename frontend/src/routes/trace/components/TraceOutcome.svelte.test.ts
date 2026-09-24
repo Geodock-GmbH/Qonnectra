@@ -31,7 +31,8 @@ const traceOptions = {
 	includeGeometry: true,
 	geometryMode: 'merged',
 	orientGeometry: false,
-	signalSource: null
+	signalSource: null,
+	pathStart: null
 } as const;
 
 const traceResult = {
@@ -44,7 +45,7 @@ const traceResult = {
 
 const signalResult = {
 	signal_analysis: {
-		source_node: { id: 'node-src', name: 'PoP-1' },
+		source_node: { id: 'node-src', name: 'PoP-1', direction: 'start', is_default: true },
 		total_breaks: 0,
 		break_points: [],
 		available_sources: []
@@ -90,9 +91,25 @@ describe('TraceOutcome', () => {
 			entryId: 'cable-1',
 			includeGeometry: true,
 			geometryMode: 'merged',
-			orientGeometry: false
+			orientGeometry: false,
+			startNode: null
 		});
 		expect(getSignalAnalysis).not.toHaveBeenCalled();
+	});
+
+	test('should read a fiber trace from the picked end', async () => {
+		vi.mocked(getFiberTrace).mockResolvedValue(traceResult);
+
+		renderOutcome({
+			entryType: 'fiber',
+			entryId: 'fiber-1',
+			options: { ...traceOptions, pathStart: 'node-end' }
+		});
+
+		expect(await screen.findAllByText('trace_entry_point')).toHaveLength(2);
+		expect(getFiberTrace).toHaveBeenCalledWith(
+			expect.objectContaining({ entryId: 'fiber-1', startNode: 'node-end' })
+		);
 	});
 
 	test('should run the signal analysis from the picked source in signal mode', async () => {
@@ -106,7 +123,8 @@ describe('TraceOutcome', () => {
 				includeGeometry: true,
 				geometryMode: 'routed',
 				orientGeometry: true,
-				signalSource: 'node-src'
+				signalSource: 'node-src',
+				pathStart: null
 			}
 		});
 

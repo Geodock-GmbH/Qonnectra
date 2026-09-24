@@ -11847,6 +11847,8 @@ export interface operations {
                 orient_geometry?: boolean;
                 /** @description Trace fibers connected to a residential unit. */
                 residential_unit_id?: string;
+                /** @description End of the path to read a fiber trace from (default: the node the path comes from). Only with fiber_id. */
+                start_node_id?: string;
             };
             header?: never;
             path?: never;

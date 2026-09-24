@@ -4282,6 +4282,12 @@ paths:
         schema:
           type: string
         description: Trace fibers connected to a residential unit.
+      - in: query
+        name: start_node_id
+        schema:
+          type: string
+        description: 'End of the path to read a fiber trace from (default: the node
+          the path comes from). Only with fiber_id.'
       tags:
       - fiber-trace
       security:

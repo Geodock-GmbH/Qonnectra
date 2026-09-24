@@ -23,7 +23,6 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import {
 		downloadGeoJSON as downloadGeoJSONFile,
 		hasGeometries,
@@ -31,6 +30,7 @@
 	} from '$lib/utils/traceUtils';
 	import { setQuery } from '$lib/utils/urlState';
 
+	import CableEndPicker from './CableEndPicker.svelte';
 	import TraceFiberDetails from './TraceFiberDetails.svelte';
 	import TraceSpliceDetails from './TraceSpliceDetails.svelte';
 
@@ -90,14 +90,6 @@
 	const affectedSummary = $derived(result?.affected_summary);
 	const traceTree = $derived(result?.trace_tree);
 	const availableSources = $derived(signalAnalysis?.available_sources || []);
-	const sourceOptions = $derived(
-		availableSources.map(
-			(s: { id: string; name: string; direction: string; is_default: boolean }) => ({
-				value: String(s.id),
-				label: `${s.name} (${s.direction === 'start' ? m.signal_source_cable_start() : m.signal_source_cable_end()})${s.is_default ? ` (${m.common_default()})` : ''}`
-			})
-		)
-	);
 	const cableInfrastructure = $derived(result?.cable_infrastructure || {});
 	const sourceNode = $derived(signalAnalysis?.source_node);
 	const breakPoints = $derived(signalAnalysis?.break_points || []);
@@ -572,28 +564,12 @@
 
 {#if result}
 	<div class="min-w-0 space-y-8" transition:fly={{ y: 30, duration: 400, easing: cubicOut }}>
-		<!-- Signal Source Selector -->
-		<section>
-			<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
-				{m.signal_source()}
-			</h2>
-			<div class="flex items-center gap-4">
-				<div class="w-full max-w-2xl">
-					<GenericCombobox
-						data={sourceOptions}
-						value={sourceNode?.id ? [String(sourceNode.id)] : []}
-						onValueChange={(e) => {
-							changeSignalSource(e.value[0] || '');
-						}}
-					/>
-				</div>
-				{#if sourceNode}
-					<span class="text-sm text-surface-600-400">
-						{sourceNode.type || ''}
-					</span>
-				{/if}
-			</div>
-		</section>
+		<CableEndPicker
+			label={m.signal_source()}
+			options={availableSources}
+			value={sourceNode?.id}
+			onchange={changeSignalSource}
+		/>
 
 		<!-- Break Points Summary -->
 		{#if hasBreaks}

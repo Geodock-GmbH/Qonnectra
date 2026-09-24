@@ -24,6 +24,8 @@ export interface FiberTraceInput {
 	includeGeometry: boolean;
 	geometryMode: GeometryMode;
 	orientGeometry: boolean;
+	/** End of the path a fiber trace is read from; `null` lets the backend pick its default. */
+	startNode: string | null;
 }
 
 /** What a signal analysis is calculated from. */
@@ -44,8 +46,9 @@ export interface TraceSearchInput {
 
 /**
  * Builds the `fiber-trace/` request path. The geometry mode and orientation
- * only travel when geometry is included.
- * @param input - Entry entity and geometry options.
+ * only travel when geometry is included, and the start node only when one
+ * is picked.
+ * @param input - Entry entity, start node and geometry options.
  * @returns The path relative to the API root.
  */
 export function fiberTracePath(input: FiberTraceInput): string {
@@ -53,6 +56,7 @@ export function fiberTracePath(input: FiberTraceInput): string {
 		[`${input.entryType}_id`]: input.entryId,
 		include_geometry: String(input.includeGeometry)
 	});
+	if (input.startNode) params.set('start_node_id', input.startNode);
 	if (input.includeGeometry) {
 		params.set('geometry_mode', input.geometryMode);
 		params.set('orient_geometry', String(input.orientGeometry));

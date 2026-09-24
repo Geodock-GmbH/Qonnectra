@@ -13,11 +13,14 @@ export interface TraceOptions {
 	orientGeometry: boolean;
 	/** Node the signal is fed in at; `null` uses the backend's default. */
 	signalSource: string | null;
+	/** End of the path a plain fiber trace is read from; `null` uses the backend's default. */
+	pathStart: string | null;
 }
 
 /**
  * Reads the trace options from a trace page's URL. Only a fiber can be
- * analysed for its signal, and the analysis always draws routed geometry.
+ * analysed for its signal or read from one end, and the analysis always
+ * draws routed geometry.
  * @param entryType - Kind of entity the trace starts from.
  * @param url - The page URL.
  * @returns The options, with defaults for everything the URL leaves out.
@@ -32,7 +35,8 @@ export function traceOptionsFromUrl(entryType: TraceEntryType, url: URL): TraceO
 			includeGeometry: true,
 			geometryMode: 'routed',
 			orientGeometry,
-			signalSource: params.get('source') || null
+			signalSource: params.get('source') || null,
+			pathStart: null
 		};
 	}
 
@@ -42,7 +46,8 @@ export function traceOptionsFromUrl(entryType: TraceEntryType, url: URL): TraceO
 		includeGeometry: params.get('include_geometry') === 'true',
 		geometryMode: geometryMode ?? 'segments',
 		orientGeometry,
-		signalSource: null
+		signalSource: null,
+		pathStart: entryType === 'fiber' ? params.get('start') || null : null
 	};
 }
 
@@ -97,7 +102,8 @@ export function traceQuery({ entryType, entryId, options }: TraceRequest) {
 		entryId,
 		includeGeometry: options.includeGeometry,
 		geometryMode: options.geometryMode,
-		orientGeometry: options.orientGeometry
+		orientGeometry: options.orientGeometry,
+		startNode: options.pathStart
 	});
 }
 
@@ -116,6 +122,7 @@ export function traceRequestKey({ entryType, entryId, options }: TraceRequest): 
 		options.includeGeometry,
 		options.geometryMode,
 		options.orientGeometry,
-		options.signalSource ?? ''
+		options.signalSource ?? '',
+		options.pathStart ?? ''
 	].join('|');
 }

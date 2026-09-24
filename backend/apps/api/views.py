@@ -8679,6 +8679,10 @@ class FiberTraceView(APIView):
         address_id: UUID of an address (traces fibers via linked nodes/RUs)
         residential_unit_id: UUID of a residential unit (traces connected fibers)
 
+    Query Parameters (optional, fiber_id only):
+        start_node_id: UUID of the end of the path to read it from
+            (default: the node the path comes from)
+
     Geometry Parameters (optional):
         include_geometry: "true" to include trench geometry (default: "false")
         geometry_mode: "segments" for individual trenches, "merged" for combined
@@ -8695,6 +8699,14 @@ class FiberTraceView(APIView):
                 OpenApiParameter.QUERY,
                 required=False,
                 description="Trace a single fiber (mutually exclusive with the other *_id params).",
+            ),
+            OpenApiParameter(
+                "start_node_id",
+                str,
+                OpenApiParameter.QUERY,
+                required=False,
+                description="End of the path to read a fiber trace from "
+                "(default: the node the path comes from). Only with fiber_id.",
             ),
             OpenApiParameter(
                 "cable_id",
@@ -8773,6 +8785,7 @@ class FiberTraceView(APIView):
         node_id = request.query_params.get("node_id")
         address_id = request.query_params.get("address_id")
         residential_unit_id = request.query_params.get("residential_unit_id")
+        start_node_id = request.query_params.get("start_node_id")
         include_geometry = (
             request.query_params.get("include_geometry", "").lower() == "true"
         )
@@ -8787,6 +8800,20 @@ class FiberTraceView(APIView):
                 {"error": "geometry_mode must be 'segments', 'merged', or 'routed'"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        if start_node_id:
+            if not fiber_id:
+                return Response(
+                    {"error": "start_node_id only applies to fiber_id"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                UUIDType(start_node_id)
+            except ValueError:
+                return Response(
+                    {"error": "Invalid start_node_id UUID format"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         params = [fiber_id, cable_id, node_id, address_id, residential_unit_id]
         param_count = sum(1 for p in params if p)
@@ -8824,7 +8851,11 @@ class FiberTraceView(APIView):
         try:
             if fiber_id:
                 result = trace_fiber(
-                    fiber_id, include_geometry, geometry_mode, orient_geometry
+                    fiber_id,
+                    include_geometry,
+                    geometry_mode,
+                    orient_geometry,
+                    start_node_id=start_node_id,
                 )
             elif cable_id:
                 result = trace_cable(

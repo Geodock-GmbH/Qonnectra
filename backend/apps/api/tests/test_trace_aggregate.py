@@ -191,8 +191,10 @@ def _merge_fiber_traces(result, options):
     """Rebuild an aggregate result by tracing each of its root fibers alone.
 
     This is how the aggregates were assembled before they shared one cable
-    infrastructure lookup: one full :func:`trace_fiber` per root fiber, the
-    first infrastructure per cable wins, and the statistics are summed.
+    infrastructure lookup: one full walk per root fiber, the first
+    infrastructure per cable wins, and the statistics are summed. The walks
+    stay rooted at their fibers, unlike :func:`trace_fiber`, which reads the
+    path from one end.
 
     Args:
         result (dict): Aggregate trace result whose root fibers are retraced.
@@ -202,7 +204,8 @@ def _merge_fiber_traces(result, options):
         dict: ``'trace_trees'``, ``'cable_infrastructure'`` and ``'statistics'``.
     """
     traces = [
-        trace_fiber(tree["fiber"]["id"], *options) for tree in result["trace_trees"]
+        services._trace_fiber_as_walked(tree["fiber"]["id"], *options)
+        for tree in result["trace_trees"]
     ]
 
     infrastructure = {}

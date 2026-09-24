@@ -9,7 +9,7 @@ from itertools import count
 from dataclasses import dataclass, field
 from io import BytesIO
 from pathlib import PureWindowsPath
-from typing import cast
+from typing import NamedTuple, cast
 
 import geopandas as gpd
 import openpyxl
@@ -1887,8 +1887,12 @@ def trace_fiber(
     include_geometry: bool = False,
     geometry_mode: str = "segments",
     orient_geometry: bool = False,
+    start_node_id: str | None = None,
 ) -> dict:
-    """Trace a single fiber through all splice connections bidirectionally.
+    """Trace a single fiber and read its path from one end.
+
+    Walk the fiber through all splices in both directions, then rebuild the
+    tree from the start node so each fiber is listed once, in path order.
 
     Args:
         fiber_id: UUID of the :model:`api.Fiber` to trace.
@@ -1896,6 +1900,58 @@ def trace_fiber(
         geometry_mode (str): ``"segments"`` for individual trenches,
             ``"merged"`` for a single combined geometry, ``"routed"`` for
             the trenches on the path between the cable's end nodes.
+        orient_geometry (bool): If ``True``, orient geometries from cable
+            start node to end node.
+        start_node_id (str | None): UUID of the node to read the path from,
+            one of the path's ends. Defaults to the node the path comes
+            from, see :func:`_upstream_cable_end`.
+
+    Returns:
+        dict: Contains ``'entry_point'``, ``'trace_tree'`` (read from the
+            start node), ``'start'`` (the ``'node'`` the path is read from
+            and the ``'available_nodes'`` to choose from, with
+            ``'is_default'`` marking the fallback), ``'cable_infrastructure'``,
+            ``'statistics'``, and ``'_raw_segments'`` (internal, removed
+            before external return).
+    """
+    result = _trace_fiber_as_walked(
+        fiber_id, include_geometry, geometry_mode, orient_geometry
+    )
+    trace_tree = result["trace_tree"]
+    if trace_tree is None:
+        return {**result, "start": {"node": None, "available_nodes": []}}
+
+    start, options = _cable_end_choice(trace_tree, start_node_id, ends_only=True)
+    trace_tree = _read_tree_from(trace_tree, start["id"] if start else None)
+    return {
+        **result,
+        "trace_tree": trace_tree,
+        "statistics": {
+            **result["statistics"],
+            "has_branches": _tree_has_branches(trace_tree),
+        },
+        "start": {"node": start, "available_nodes": options},
+    }
+
+
+def _trace_fiber_as_walked(
+    fiber_id,
+    include_geometry: bool = False,
+    geometry_mode: str = "segments",
+    orient_geometry: bool = False,
+) -> dict:
+    """Trace a single fiber through all splice connections bidirectionally.
+
+    The tree is rooted at the traced fiber and keeps every walked path, so
+    a ring lists a fiber once per direction it was reached from. It is the
+    shape the signal analysis spreads over; :func:`trace_fiber` rebuilds it
+    to read from one end.
+
+    Args:
+        fiber_id: UUID of the :model:`api.Fiber` to trace.
+        include_geometry (bool): If ``True``, include trench geometry as GeoJSON.
+        geometry_mode (str): ``"segments"``, ``"merged"`` or ``"routed"``,
+            see :func:`trace_fiber`.
         orient_geometry (bool): If ``True``, orient geometries from cable
             start node to end node.
 
@@ -3647,7 +3703,8 @@ def trace_fiber_summary(fiber_id) -> dict:
 
     Determine the true terminal nodes by collecting all cable endpoints
     and excluding nodes that appear as splice points in the middle of
-    the path.
+    the path. The walked tree keeps every splice, unlike the tree read
+    from one end, which drops the splice that closes a ring.
 
     Args:
         fiber_id: UUID of the :model:`api.Fiber` to summarise.
@@ -3656,7 +3713,7 @@ def trace_fiber_summary(fiber_id) -> dict:
         dict: Contains ``'fiber_id'``, ``'start_node'``, ``'end_node'``,
             and ``'statistics'``.
     """
-    full_trace = trace_fiber(fiber_id, include_geometry=False)
+    full_trace = _trace_fiber_as_walked(fiber_id, include_geometry=False)
 
     if "_raw_segments" in full_trace:
         del full_trace["_raw_segments"]
@@ -3747,8 +3804,8 @@ def trace_fiber_summary(fiber_id) -> dict:
 # =============================================================================
 
 
-def _collect_available_signal_sources(trace_tree: dict) -> list[dict]:
-    """Collect all cable start/end nodes from the trace tree as signal source options.
+def _collect_cable_end_nodes(trace_tree: dict) -> list[dict]:
+    """Collect the cable start and end nodes on the trace as choices.
 
     Args:
         trace_tree (dict): Root trace tree node.
@@ -3796,44 +3853,114 @@ def _collect_available_signal_sources(trace_tree: dict) -> list[dict]:
     return list(sources.values())
 
 
-def _determine_signal_source(
-    trace_tree: dict,
-    available_sources: list[dict],
-    requested_source_id: str | None = None,
-) -> dict | None:
-    """Determine which node is the signal source.
+def _terminal_cable_ends(trace_tree: dict, options: list[dict]) -> list[dict]:
+    """Keep the options where the path ends.
 
-    Fall back to the traced cable's start node, then to the first available
-    source, when no source is requested or the requested one is not on the
-    trace.
+    A cable end that a splice on the trace continues from lies in the middle
+    of the path. When no option is an end, as in a closed ring, all options
+    are kept.
 
     Args:
-        trace_tree (dict): Trace tree rooted at the traced fiber.
-        available_sources (list[dict]): Sources from
-            :func:`_collect_available_signal_sources`.
-        requested_source_id (str | None): UUID of the source node asked for.
+        trace_tree (dict): Trace tree as walked from the traced fiber.
+        options (list[dict]): Cable ends from :func:`_collect_cable_end_nodes`.
 
     Returns:
-        dict | None: The chosen entry of *available_sources*, or ``None`` if
-            there are none.
+        list[dict]: The options at the ends of the path.
     """
-    if not available_sources:
-        return None
+    splice_node_ids = set()
 
-    if requested_source_id:
-        for source in available_sources:
-            if source["id"] == requested_source_id:
-                return source
+    def collect(node):
+        splice_node = node.get("node")
+        if splice_node and splice_node.get("id"):
+            splice_node_ids.add(splice_node["id"])
+        for child in node.get("children", []):
+            collect(child)
 
-    cable_endpoints = trace_tree.get("cable_endpoints")
-    if cable_endpoints:
-        start = cable_endpoints.get("start_node")
-        if start and start.get("id"):
-            for source in available_sources:
-                if source["id"] == start["id"]:
-                    return source
+    collect(trace_tree)
+    return [o for o in options if o["id"] not in splice_node_ids] or options
 
-    return available_sources[0] if available_sources else None
+
+def _upstream_cable_end(trace_tree: dict) -> str | None:
+    """Find the node the path comes from, following each cable back to its start.
+
+    From the traced fiber, step to the fiber spliced at the cable's start
+    node and repeat until a start node has no splice on the trace. Cables
+    are drawn from the feeding side to the fed side, so that node is the
+    origin of the path, such as the POP, whichever fiber was traced.
+
+    Args:
+        trace_tree (dict): Trace tree as walked from the traced fiber.
+
+    Returns:
+        str | None: UUID of that node, or ``None`` when the walk loops or
+            reaches a cable without a start node.
+    """
+    waypoints, edges = _fiber_graph(trace_tree)
+    fiber_id = trace_tree["fiber"]["id"]
+    seen = set()
+    while fiber_id not in seen:
+        seen.add(fiber_id)
+        cable_endpoints = waypoints[fiber_id].get("cable_endpoints") or {}
+        start_id = (cable_endpoints.get("start_node") or {}).get("id")
+        if not start_id:
+            return None
+        upstream = [e.neighbour_id for e in edges[fiber_id] if e.node_id == start_id]
+        if not upstream:
+            return start_id
+        fiber_id = upstream[0]
+    return None
+
+
+def _fallback_cable_end(trace_tree: dict, options: list[dict]) -> dict | None:
+    """Pick the cable end a path is read from when none is requested.
+
+    Prefer the node the path comes from, then the traced cable's start node,
+    then the first option.
+
+    Args:
+        trace_tree (dict): Trace tree as walked from the traced fiber.
+        options (list[dict]): The cable ends to choose from.
+
+    Returns:
+        dict | None: The chosen option, or ``None`` without options.
+    """
+    by_id = {option["id"]: option for option in options}
+    upstream_id = _upstream_cable_end(trace_tree)
+    if upstream_id in by_id:
+        return by_id[upstream_id]
+    cable_endpoints = trace_tree.get("cable_endpoints") or {}
+    start_id = (cable_endpoints.get("start_node") or {}).get("id")
+    if start_id in by_id:
+        return by_id[start_id]
+    return options[0] if options else None
+
+
+def _cable_end_choice(
+    trace_tree: dict, requested_id: str | None = None, ends_only: bool = False
+) -> tuple[dict | None, list[dict]]:
+    """Choose the cable end a path or signal starts from and list the options.
+
+    Args:
+        trace_tree (dict): Trace tree as walked from the traced fiber.
+        requested_id (str | None): UUID of the node asked for. Falls back
+            when it is not an option, see :func:`_fallback_cable_end`.
+        ends_only (bool): Offer only the ends of the path instead of every
+            cable end on it.
+
+    Returns:
+        tuple[dict | None, list[dict]]: The chosen option, or ``None``
+            without options, and all options with ``'is_default'`` marking
+            the fallback.
+    """
+    options = _collect_cable_end_nodes(trace_tree)
+    if ends_only:
+        options = _terminal_cable_ends(trace_tree, options)
+    default = _fallback_cable_end(trace_tree, options)
+    requested = next((o for o in options if o["id"] == requested_id), None)
+    chosen = requested or default
+    for option in options:
+        option["is_default"] = default is not None and option["id"] == default["id"]
+    return chosen, options
 
 
 _REVERSED_DIRECTION = {"a_to_b": "b_to_a", "b_to_a": "a_to_b"}
@@ -3876,20 +4003,36 @@ def _break_point(fiber: dict, status: str | None, at_node: dict | None) -> dict:
     }
 
 
+class _FiberEdge(NamedTuple):
+    """A splice between two fibers, seen from one of them.
+
+    Attributes:
+        neighbour_id (str): UUID of the fiber on the other side.
+        waypoint (dict): Child waypoint the splice was read from; its
+            ``splice``, ``node`` and ``direction`` describe the splice.
+        is_reversed (bool): Whether the edge is walked against the
+            direction the waypoint was read in.
+    """
+
+    neighbour_id: str
+    waypoint: dict
+    is_reversed: bool
+
+    @property
+    def node_id(self) -> str | None:
+        """UUID of the node the splice sits in."""
+        return (self.waypoint.get("node") or {}).get("id")
+
+
 def _fiber_graph(trace_tree: dict) -> tuple[dict, dict]:
     """Read a trace tree as an undirected graph of fibers joined by splices.
 
-    A waypoint's ``splice``, ``node`` and ``direction`` describe the splice to
-    its parent, so each edge keeps the child waypoint it was read from and
-    whether it is walked against its original direction.
-
     Args:
-        trace_tree (dict): Trace tree rooted at the traced fiber.
+        trace_tree (dict): Trace tree as walked from the traced fiber.
 
     Returns:
         tuple[dict, dict]: The first waypoint per fiber UUID, in tree order,
-            and per fiber UUID a list of ``(neighbour_id, edge_waypoint,
-            is_reversed)`` tuples.
+            and per fiber UUID a list of :class:`_FiberEdge`.
     """
     waypoints = {}
     edges = defaultdict(list)
@@ -3899,8 +4042,8 @@ def _fiber_graph(trace_tree: dict) -> tuple[dict, dict]:
         fiber_id = waypoint["fiber"]["id"]
         waypoints.setdefault(fiber_id, waypoint)
         if parent_id is not None:
-            edges[parent_id].append((fiber_id, waypoint, False))
-            edges[fiber_id].append((parent_id, waypoint, True))
+            edges[parent_id].append(_FiberEdge(fiber_id, waypoint, False))
+            edges[fiber_id].append(_FiberEdge(parent_id, waypoint, True))
         for child in waypoint.get("children", []):
             collect(child, fiber_id)
 
@@ -3908,46 +4051,163 @@ def _fiber_graph(trace_tree: dict) -> tuple[dict, dict]:
     return waypoints, edges
 
 
-def _trace_signal(trace_tree: dict, source_node_id: str | None) -> tuple[dict, list]:
-    """Mark how far the signal from the source reaches on a fiber trace.
-
-    Signal enters every fiber whose cable ends at the source node or that is
-    spliced there, and spreads over splices in both directions. A fiber with
-    a status is a break: it takes the signal in but passes nothing on. Since
-    the spread runs on the fiber graph, a ring still lights the fibers behind
-    a break from its other side. Without a source on the trace the signal
-    enters at the traced fiber.
-
-    The returned tree starts at a fiber fed by the source and prefers lit
-    fibers as parents, so it reads from the source outwards.
+def _fibers_fed_at(waypoints: dict, edges: dict, node_id: str | None) -> list[str]:
+    """List the fibers whose cable ends at a node or that are spliced there.
 
     Args:
-        trace_tree (dict): Trace tree rooted at the traced fiber.
+        waypoints (dict): Waypoint per fiber UUID from :func:`_fiber_graph`.
+        edges (dict): Edges per fiber UUID from :func:`_fiber_graph`.
+        node_id (str | None): UUID of the node.
+
+    Returns:
+        list[str]: Fiber UUIDs in tree order; empty without a node.
+    """
+    if not node_id:
+        return []
+    fed = []
+    for fiber_id, waypoint in waypoints.items():
+        end_ids = [n.get("id") for n in _cable_end_nodes(waypoint)]
+        if node_id in end_ids or any(e.node_id == node_id for e in edges[fiber_id]):
+            fed.append(fiber_id)
+    return fed
+
+
+def _rebuild_fiber_tree(
+    waypoints: dict, edges: dict, root_id: str, states: dict | None = None
+) -> dict:
+    """Rebuild the trace tree from a fiber outwards, listing each fiber once.
+
+    Each waypoint's ``splice``, ``node`` and ``direction`` describe the
+    splice to its new parent. Fibers are expanded in walk order; with
+    *states*, lit fibers are expanded first so a lit fiber hangs under the
+    lit fiber that feeds it rather than under a break it happens to share a
+    splice with, and each waypoint carries its ``signal_state``.
+
+    Args:
+        waypoints (dict): Waypoint per fiber UUID from :func:`_fiber_graph`.
+        edges (dict): Edges per fiber UUID from :func:`_fiber_graph`.
+        root_id (str): UUID of the fiber to start from.
+        states (dict | None): Signal state per fiber UUID.
+
+    Returns:
+        dict: The rebuilt trace tree.
+    """
+
+    def rank(fiber_id):
+        return _SIGNAL_STATE_RANK[states[fiber_id]] if states else 0
+
+    def waypoint_via(fiber_id, edge):
+        """Build the waypoint for *fiber_id* reached over *edge*."""
+        fiber_part = {
+            key: value
+            for key, value in waypoints[fiber_id].items()
+            if key not in ("splice", "node", "direction", "children", "signal_state")
+        }
+        direction = edge.waypoint.get("direction") if edge else None
+        if edge and edge.is_reversed and direction:
+            direction = _REVERSED_DIRECTION.get(direction, direction)
+        waypoint = {
+            **fiber_part,
+            "splice": edge.waypoint.get("splice") if edge else None,
+            "node": edge.waypoint.get("node") if edge else None,
+            "direction": direction,
+            "children": [],
+        }
+        if states:
+            waypoint["signal_state"] = states[fiber_id]
+        return waypoint
+
+    order = count()
+    built = {root_id: waypoint_via(root_id, None)}
+    pending = [(rank(root_id), next(order), root_id)]
+    while pending:
+        _, _, fiber_id = heappop(pending)
+        for edge in edges[fiber_id]:
+            if edge.neighbour_id in built:
+                continue
+            child = waypoint_via(edge.neighbour_id, edge)
+            built[edge.neighbour_id] = child
+            built[fiber_id]["children"].append(child)
+            heappush(pending, (rank(edge.neighbour_id), next(order), edge.neighbour_id))
+
+    return built[root_id]
+
+
+def _read_tree_from(trace_tree: dict, start_node_id: str | None) -> dict:
+    """Rebuild the trace tree to read from a node outwards.
+
+    Without a node on the trace, the tree is read from the traced fiber.
+
+    Args:
+        trace_tree (dict): Trace tree as walked from the traced fiber.
+        start_node_id (str | None): UUID of the node to read the path from.
+
+    Returns:
+        dict: The trace tree rooted at the first fiber fed at the node.
+    """
+    waypoints, edges = _fiber_graph(trace_tree)
+    fed = _fibers_fed_at(waypoints, edges, start_node_id) or [trace_tree["fiber"]["id"]]
+    return _rebuild_fiber_tree(waypoints, edges, fed[0])
+
+
+def _tree_has_branches(trace_tree: dict) -> bool:
+    """Tell whether the path splits anywhere in the tree.
+
+    Args:
+        trace_tree (dict): Trace tree node.
+
+    Returns:
+        bool: ``True`` when any waypoint has more than one child.
+    """
+    children = trace_tree.get("children", [])
+    return len(children) > 1 or any(_tree_has_branches(c) for c in children)
+
+
+def _trace_signal(trace_tree: dict, source_node_id: str | None) -> tuple[dict, list]:
+    """Spread the signal from the source over the traced fibers.
+
+    The signal enters every fiber whose cable ends at the source or that is
+    spliced there, then spreads over splices in both directions. A fiber
+    with a status takes the signal in but passes nothing on, so a ring still
+    feeds the fibers behind a break from the other side. Without a source on
+    the trace, the traced fiber is fed.
+
+    Args:
+        trace_tree (dict): Trace tree as walked from the traced fiber.
         source_node_id (str | None): UUID of the signal source node.
 
     Returns:
-        tuple[dict, list[dict]]: New trace tree with ``signal_state`` on each
-            node, and the break points the signal runs into.
+        tuple[dict, list[dict]]: The tree rebuilt from the source with a
+            ``signal_state`` on every waypoint, and the break points the
+            signal runs into.
     """
     waypoints, edges = _fiber_graph(trace_tree)
+    fed = _fibers_fed_at(waypoints, edges, source_node_id) or [
+        trace_tree["fiber"]["id"]
+    ]
+    states, break_points = _spread_signal(waypoints, edges, fed)
+    return _rebuild_fiber_tree(waypoints, edges, fed[0], states), break_points
 
-    def is_fed(fiber_id):
-        """Tell whether the source node feeds the fiber directly."""
-        if not source_node_id:
-            return False
-        at_source = [n.get("id") for n in _cable_end_nodes(waypoints[fiber_id])]
-        at_source += [(edge[1].get("node") or {}).get("id") for edge in edges[fiber_id]]
-        return source_node_id in at_source
 
-    def is_broken(fiber_id):
-        return bool(waypoints[fiber_id]["fiber"].get("status"))
+def _spread_signal(waypoints: dict, edges: dict, fed: list[str]) -> tuple[dict, list]:
+    """Spread the signal from the fed fibers over the splices.
 
-    fed = [fiber_id for fiber_id in waypoints if is_fed(fiber_id)]
-    if not fed:
-        fed = [trace_tree["fiber"]["id"]]
+    Args:
+        waypoints (dict): Waypoint per fiber UUID from :func:`_fiber_graph`.
+        edges (dict): Edges per fiber UUID from :func:`_fiber_graph`.
+        fed (list[str]): UUIDs of the fibers the signal enters first.
 
+    Returns:
+        tuple[dict, list[dict]]: The signal state per fiber UUID (``'lit'``,
+            ``'break_point'`` or ``'dark'``) and the break points.
+    """
     states = {}
     break_points = []
+    queue = deque()
+
+    def is_broken(fiber_id):
+        """Tell whether the fiber has a status, which stops the signal."""
+        return bool(waypoints[fiber_id]["fiber"].get("status"))
 
     def reach(fiber_id, at_node):
         """Let the signal reach a fiber, stopping there if it is broken."""
@@ -3959,54 +4219,17 @@ def _trace_signal(trace_tree: dict, source_node_id: str | None) -> tuple[dict, l
             states[fiber_id] = "lit"
             queue.append(fiber_id)
 
-    queue = deque()
     for fiber_id in fed:
         reach(fiber_id, None)
     while queue:
         fiber_id = queue.popleft()
-        for neighbour_id, edge_waypoint, _is_reversed in edges[fiber_id]:
-            if neighbour_id not in states:
-                reach(neighbour_id, edge_waypoint.get("node"))
+        for edge in edges[fiber_id]:
+            if edge.neighbour_id not in states:
+                reach(edge.neighbour_id, edge.waypoint.get("node"))
     for fiber_id in waypoints:
         states.setdefault(fiber_id, "dark")
 
-    def waypoint_via(fiber_id, edge_waypoint, is_reversed):
-        """Build the waypoint for *fiber_id* reached over *edge_waypoint*."""
-        fiber_part = {
-            key: value
-            for key, value in waypoints[fiber_id].items()
-            if key not in ("splice", "node", "direction", "children", "signal_state")
-        }
-        direction = edge_waypoint.get("direction") if edge_waypoint else None
-        if is_reversed and direction:
-            direction = _REVERSED_DIRECTION.get(direction, direction)
-        return {
-            **fiber_part,
-            "splice": edge_waypoint.get("splice") if edge_waypoint else None,
-            "node": edge_waypoint.get("node") if edge_waypoint else None,
-            "direction": direction,
-            "signal_state": states[fiber_id],
-            "children": [],
-        }
-
-    # Expand lit fibers first so a lit fiber hangs under the lit fiber that
-    # feeds it rather than under a break it happens to share a splice with.
-    order = count()
-    root_id = fed[0]
-    built = {root_id: waypoint_via(root_id, None, False)}
-    pending = [(_SIGNAL_STATE_RANK[states[root_id]], next(order), root_id)]
-    while pending:
-        _, _, fiber_id = heappop(pending)
-        for neighbour_id, edge_waypoint, is_reversed in edges[fiber_id]:
-            if neighbour_id in built:
-                continue
-            child = waypoint_via(neighbour_id, edge_waypoint, is_reversed)
-            built[neighbour_id] = child
-            built[fiber_id]["children"].append(child)
-            rank = _SIGNAL_STATE_RANK[states[neighbour_id]]
-            heappush(pending, (rank, next(order), neighbour_id))
-
-    return built[root_id], break_points
+    return states, break_points
 
 
 def _propagate_signal_state(
@@ -4061,17 +4284,42 @@ def _propagate_signal_state(
     return node["signal_state"]
 
 
-def _cut_off_cable_end_addresses(
-    waypoint: dict, source_node_id: str | None
-) -> set[str]:
+def _lit_cable_end_node_ids(trace_tree: dict) -> set[str]:
+    """Collect the ids of every cable end a lit fiber reaches.
+
+    Args:
+        trace_tree (dict): Trace tree with ``signal_state`` propagated.
+
+    Returns:
+        set[str]: Node UUIDs where a lit fiber's cable starts or ends.
+    """
+    node_ids = set()
+
+    def walk(node):
+        if node.get("signal_state", "lit") == "lit":
+            node_ids.update(
+                end_node["id"]
+                for end_node in _cable_end_nodes(node)
+                if end_node.get("id")
+            )
+        for child in node.get("children", []):
+            walk(child)
+
+    walk(trace_tree)
+    return node_ids
+
+
+def _cut_off_cable_end_addresses(waypoint: dict, fed_node_ids: set[str]) -> set[str]:
     """Collect the addresses at the cable ends a fiber without signal cuts off.
 
     A break point still carries signal up to the splice that feeds it, so that
-    end keeps its signal. The source node never counts as cut off.
+    end keeps its signal. Nodes in *fed_node_ids*, such as the source and the
+    ends of lit fibers, never count as cut off; in a ring the far end of a
+    break is fed from the other side.
 
     Args:
         waypoint (dict): Trace tree node with ``signal_state`` propagated.
-        source_node_id (str | None): UUID of the signal source node.
+        fed_node_ids (set[str]): UUIDs of the nodes that receive signal anyway.
 
     Returns:
         set[str]: Address UUIDs at the fiber's cut-off cable ends.
@@ -4080,7 +4328,7 @@ def _cut_off_cable_end_addresses(
     if signal_state not in ("dark", "break_point"):
         return set()
 
-    fed_at = {source_node_id}
+    fed_at = set(fed_node_ids)
     if signal_state == "break_point" and waypoint.get("node"):
         fed_at.add(waypoint["node"].get("id"))
 
@@ -4116,6 +4364,7 @@ def _collect_affected_summary(
         "affected_addresses": set(),
         "affected_residential_units": set(),
     }
+    fed_node_ids = _lit_cable_end_node_ids(trace_tree) | {source_node_id}
 
     def collect_from_node(node):
         if not node:
@@ -4147,7 +4396,7 @@ def _collect_affected_summary(
                 summary["affected_addresses"].add(address["id"])
 
         summary["affected_addresses"].update(
-            _cut_off_cable_end_addresses(node, source_node_id)
+            _cut_off_cable_end_addresses(node, fed_node_ids)
         )
 
         rus = node.get("residential_units") or []
@@ -4180,9 +4429,9 @@ def analyze_signal_flow(
 ) -> dict:
     """Analyze signal flow through a fiber trace, marking lit and dark parts.
 
-    Trace the fiber with :func:`trace_fiber`, then spread the signal from
-    the source over the traced fibers with :func:`_trace_signal`. A fiber
-    with a status is a break; everything only it feeds loses signal.
+    Walk the fiber with :func:`_trace_fiber_as_walked`, then spread the
+    signal from the source over the traced fibers with :func:`_trace_signal`.
+    A fiber with a status is a break; everything only it feeds loses signal.
 
     Signal states:
 
@@ -4194,7 +4443,8 @@ def analyze_signal_flow(
         fiber_id (UUID | str): UUID of the :model:`api.Fiber` to trace and
             analyze.
         signal_source_node_id (str | None): UUID of the node the signal
-            originates from. Defaults to the traced cable's start node.
+            originates from. Defaults to the node the path comes from, see
+            :func:`_upstream_cable_end`.
         include_geometry (bool): If ``True``, include trench geometry.
         geometry_mode (str): ``"segments"``, ``"merged"`` or ``"routed"``,
             see :func:`trace_fiber`.
@@ -4208,7 +4458,7 @@ def analyze_signal_flow(
             ``signal_state`` on each node), ``'affected_summary'``,
             ``'statistics'`` and ``'cable_infrastructure'``.
     """
-    trace_result = trace_fiber(
+    trace_result = _trace_fiber_as_walked(
         fiber_id,
         include_geometry=include_geometry,
         geometry_mode=geometry_mode,
@@ -4242,17 +4492,9 @@ def analyze_signal_flow(
             "cable_infrastructure": trace_result.get("cable_infrastructure", {}),
         }
 
-    available_sources = _collect_available_signal_sources(trace_tree)
-    default_source = _determine_signal_source(trace_tree, available_sources)
-    source_node = _determine_signal_source(
-        trace_tree, available_sources, signal_source_node_id
+    source_node, available_sources = _cable_end_choice(
+        trace_tree, signal_source_node_id
     )
-
-    for src in available_sources:
-        src["is_default"] = default_source is not None and (
-            src["id"] == default_source["id"]
-        )
-
     source_node_id = source_node["id"] if source_node else None
     trace_tree, break_points = _trace_signal(trace_tree, source_node_id)
 
@@ -4268,7 +4510,10 @@ def analyze_signal_flow(
         },
         "trace_tree": trace_tree,
         "affected_summary": affected_summary,
-        "statistics": trace_result.get("statistics", {}),
+        "statistics": {
+            **trace_result.get("statistics", {}),
+            "has_branches": _tree_has_branches(trace_tree),
+        },
         "cable_infrastructure": trace_result.get("cable_infrastructure", {}),
     }
 

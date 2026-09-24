@@ -32,7 +32,7 @@ const breakPoint = {
 
 const baseResult = {
 	signal_analysis: {
-		source_node: { id: 'node-src', name: 'PoP-1' },
+		source_node: { id: 'node-src', name: 'PoP-1', direction: 'start', is_default: true },
 		total_breaks: 0,
 		break_points: [],
 		available_sources: [{ id: 'node-src', name: 'PoP-1', direction: 'start', is_default: true }]

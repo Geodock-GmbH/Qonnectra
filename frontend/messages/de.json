@@ -940,6 +940,7 @@
 	"trace_no_geometry_available": "Keine Geometriedaten für diesen Weg verfügbar",
 	"trace_no_trace_data": "Keine Wegdaten verfügbar",
 	"trace_orient_geometry": "Nach Kabelrichtung ausrichten",
+	"trace_path_start": "Startpunkt",
 	"trace_raw_json": "JSON-Rohdaten",
 	"trace_residential_units": [
 		{

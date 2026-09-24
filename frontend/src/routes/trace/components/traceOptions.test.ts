@@ -17,8 +17,17 @@ describe('traceOptionsFromUrl', () => {
 			includeGeometry: false,
 			geometryMode: 'segments',
 			orientGeometry: false,
-			signalSource: null
+			signalSource: null,
+			pathStart: null
 		});
+	});
+
+	test('should read the end a fiber trace is read from', () => {
+		expect(traceOptionsFromUrl('fiber', traceUrl('start=node-abc')).pathStart).toBe('node-abc');
+	});
+
+	test('should only read a fiber trace from one end', () => {
+		expect(traceOptionsFromUrl('cable', traceUrl('start=node-abc')).pathStart).toBeNull();
 	});
 
 	test('should read the geometry options', () => {
@@ -45,8 +54,15 @@ describe('traceOptionsFromUrl', () => {
 			includeGeometry: true,
 			geometryMode: 'routed',
 			orientGeometry: false,
-			signalSource: 'node-abc'
+			signalSource: 'node-abc',
+			pathStart: null
 		});
+	});
+
+	test('should leave the path start to the backend in signal mode', () => {
+		const url = traceUrl('mode=signal&source=node-abc&start=node-def');
+
+		expect(traceOptionsFromUrl('fiber', url).pathStart).toBeNull();
 	});
 
 	test('should leave the signal source to the backend when the URL names none', () => {
@@ -100,7 +116,8 @@ describe('traceRequestKey', () => {
 			traceRequestFromPage(params, new URL(`${url}&orient_geometry=true`)),
 			traceRequestFromPage(params, new URL(url.replace('merged', 'segments'))),
 			traceRequestFromPage(params, new URL(`${url}&mode=signal`)),
-			traceRequestFromPage(params, new URL(`${url}&mode=signal&source=n-1`))
+			traceRequestFromPage(params, new URL(`${url}&mode=signal&source=n-1`)),
+			traceRequestFromPage(params, new URL(`${url}&start=n-1`))
 		];
 
 		const keys = new Set(variants.map((request) => traceRequestKey(request!)));

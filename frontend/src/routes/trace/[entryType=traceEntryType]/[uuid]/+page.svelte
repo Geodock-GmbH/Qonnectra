@@ -12,16 +12,20 @@
 	const request = $derived(traceRequestFromPage(page.params, page.url));
 
 	/**
-	 * Switches a fiber between the plain trace and the signal analysis. Leaving
-	 * the analysis also drops its signal source. A mode is a place, so the
-	 * switch is pushed and the back button returns to the previous mode.
+	 * Switches a fiber between the plain trace and the signal analysis, carrying
+	 * the picked cable end over so both modes show the same tree. The switch is
+	 * pushed, so the back button returns to the previous mode.
 	 * @param mode - The mode to switch to.
 	 */
 	function switchMode(mode: 'trace' | 'signal') {
 		if (!request) return;
-		setQuery(mode === 'signal' ? { mode: 'signal' } : { mode: null, source: null }, {
-			push: true
-		});
+		const { signalSource, pathStart } = request.options;
+		setQuery(
+			mode === 'signal'
+				? { mode: 'signal', source: pathStart, start: null }
+				: { mode: null, source: null, start: signalSource },
+			{ push: true }
+		);
 	}
 </script>
 

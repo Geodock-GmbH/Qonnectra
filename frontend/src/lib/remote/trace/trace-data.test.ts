@@ -12,7 +12,8 @@ describe('fiberTracePath', () => {
 		const geometry = {
 			includeGeometry: false,
 			geometryMode: 'segments',
-			orientGeometry: false
+			orientGeometry: false,
+			startNode: null
 		} as const;
 
 		expect(fiberTracePath({ entryType: 'address', entryId: 'a-1', ...geometry })).toBe(
@@ -33,7 +34,8 @@ describe('fiberTracePath', () => {
 				entryId: 'c-1',
 				includeGeometry: true,
 				geometryMode: 'merged',
-				orientGeometry: true
+				orientGeometry: true,
+				startNode: null
 			})
 		).toBe(
 			'fiber-trace/?cable_id=c-1&include_geometry=true&geometry_mode=merged&orient_geometry=true'
@@ -45,9 +47,23 @@ describe('fiberTracePath', () => {
 				entryId: 'n-1',
 				includeGeometry: false,
 				geometryMode: 'merged',
-				orientGeometry: true
+				orientGeometry: true,
+				startNode: null
 			})
 		).toBe('fiber-trace/?node_id=n-1&include_geometry=false');
+	});
+
+	test('should name the end a fiber trace is read from when one is picked', () => {
+		expect(
+			fiberTracePath({
+				entryType: 'fiber',
+				entryId: 'f-1',
+				includeGeometry: false,
+				geometryMode: 'segments',
+				orientGeometry: false,
+				startNode: 'node-abc'
+			})
+		).toBe('fiber-trace/?fiber_id=f-1&include_geometry=false&start_node_id=node-abc');
 	});
 });
 

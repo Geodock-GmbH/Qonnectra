@@ -1627,8 +1627,10 @@ class TestTraceTreeParents:
 
     def test_trace_from_middle_keeps_each_side_separate(self, four_fiber_chain):
         """Fiber4 follows Fiber3 only, not every fiber one step from the entry."""
+        from apps.api.services import _trace_fiber_as_walked
+
         fiber1, fiber2, fiber3, fiber4 = four_fiber_chain
-        tree = trace_fiber(fiber2.uuid)["trace_tree"]
+        tree = _trace_fiber_as_walked(fiber2.uuid)["trace_tree"]
 
         children = {c["fiber"]["id"]: c for c in tree["children"]}
         assert set(children) == {str(fiber1.uuid), str(fiber3.uuid)}
@@ -1636,6 +1638,189 @@ class TestTraceTreeParents:
         assert [c["fiber"]["id"] for c in children[str(fiber3.uuid)]["children"]] == [
             str(fiber4.uuid)
         ]
+
+
+@pytest.fixture
+def pop_nvt_house(db):
+    """
+    Create a feeder, a distribution cable and a drop cable in a chain.
+
+    POP -[feeder]-> NVt1 -[distribution]-> NVt2 -[drop]-> House (with address)
+
+    Every cable runs from the feeding side to the fed side.
+    """
+    pop = NodeFactory(name="POP")
+    nvt1 = NodeFactory(name="NVt1")
+    nvt2 = NodeFactory(name="NVt2")
+    house = NodeFactory(
+        name="House", uuid_address=AddressFactory(street="Dorfstraße", housenumber=52)
+    )
+    cables = [
+        CableFactory(name="Feeder", uuid_node_start=pop, uuid_node_end=nvt1),
+        CableFactory(name="Distribution", uuid_node_start=nvt1, uuid_node_end=nvt2),
+        CableFactory(name="Drop", uuid_node_start=nvt2, uuid_node_end=house),
+    ]
+    fibers = [
+        FiberFactory(uuid_cable=cable, fiber_number_absolute=1, fiber_status=None)
+        for cable in cables
+    ]
+    for node, fiber_a, fiber_b in zip((nvt1, nvt2), fibers, fibers[1:]):
+        _splice(_splice_structure(node, f"Cassette {node.name}"), fiber_a, fiber_b)
+    return {"pop": pop, "nvt1": nvt1, "nvt2": nvt2, "house": house, "fibers": fibers}
+
+
+def _walk_chain(node):
+    """List the waypoints of a tree that never branches, top to bottom."""
+    chain = [node]
+    while node["children"]:
+        assert len(node["children"]) == 1
+        node = node["children"][0]
+        chain.append(node)
+    return chain
+
+
+def _fiber_chain(node):
+    """List the fiber UUIDs of a tree that never branches, top to bottom."""
+    return [waypoint["fiber"]["id"] for waypoint in _walk_chain(node)]
+
+
+@pytest.mark.django_db
+class TestTraceReadFromEnd:
+    """The trace tree reads the path from one of its ends."""
+
+    def test_default_reads_from_the_node_the_path_comes_from(self, pop_nvt_house):
+        """A fiber traced mid-path still reads POP first, then down to the house."""
+        feeder, distribution, drop = pop_nvt_house["fibers"]
+        result = trace_fiber(distribution.uuid)
+
+        assert _fiber_chain(result["trace_tree"]) == [
+            str(feeder.uuid),
+            str(distribution.uuid),
+            str(drop.uuid),
+        ]
+        assert result["start"]["node"]["id"] == str(pop_nvt_house["pop"].uuid)
+        assert result["statistics"]["has_branches"] is False
+
+    def test_waypoints_describe_the_splice_to_the_new_parent(self, pop_nvt_house):
+        """Each waypoint names the node it was reached through from its parent."""
+        result = trace_fiber(pop_nvt_house["fibers"][2].uuid)
+
+        root, distribution, drop = _walk_chain(result["trace_tree"])
+        assert root["node"] is None and root["splice"] is None
+        assert distribution["node"]["id"] == str(pop_nvt_house["nvt1"].uuid)
+        assert drop["node"]["id"] == str(pop_nvt_house["nvt2"].uuid)
+        assert drop["splice"] is not None
+
+    def test_start_node_reads_the_path_the_other_way(self, pop_nvt_house):
+        """Reading from the house lists the drop first and the feeder last."""
+        feeder, distribution, drop = pop_nvt_house["fibers"]
+        result = trace_fiber(
+            feeder.uuid, start_node_id=str(pop_nvt_house["house"].uuid)
+        )
+
+        assert _fiber_chain(result["trace_tree"]) == [
+            str(drop.uuid),
+            str(distribution.uuid),
+            str(feeder.uuid),
+        ]
+        assert result["start"]["node"]["id"] == str(pop_nvt_house["house"].uuid)
+
+    def test_only_the_ends_of_the_path_are_offered(self, pop_nvt_house):
+        """The nodes in the middle of the path are no place to read it from."""
+        result = trace_fiber(pop_nvt_house["fibers"][1].uuid)
+
+        options = {o["id"]: o for o in result["start"]["available_nodes"]}
+        assert set(options) == {
+            str(pop_nvt_house["pop"].uuid),
+            str(pop_nvt_house["house"].uuid),
+        }
+        assert options[str(pop_nvt_house["pop"].uuid)]["is_default"] is True
+        assert options[str(pop_nvt_house["house"].uuid)]["is_default"] is False
+
+    def test_node_in_the_middle_falls_back_to_the_default(self, pop_nvt_house):
+        """Asking for a splice node reads the path from the default end."""
+        result = trace_fiber(
+            pop_nvt_house["fibers"][2].uuid,
+            start_node_id=str(pop_nvt_house["nvt1"].uuid),
+        )
+
+        assert result["start"]["node"]["id"] == str(pop_nvt_house["pop"].uuid)
+        assert result["trace_tree"]["fiber"]["id"] == str(
+            pop_nvt_house["fibers"][0].uuid
+        )
+
+    def test_ring_offers_every_cable_end_and_lists_each_fiber_once(
+        self, ring_with_houses
+    ):
+        """A closed ring has no end, so every cable end can be read from."""
+        result = trace_fiber(ring_with_houses["fibers"][1].uuid)
+
+        assert len(result["start"]["available_nodes"]) == 4
+        fibers = []
+
+        def collect(node):
+            fibers.append(node["fiber"]["id"])
+            for child in node["children"]:
+                collect(child)
+
+        collect(result["trace_tree"])
+        assert sorted(fibers) == sorted(str(f.uuid) for f in ring_with_houses["fibers"])
+
+    def test_fiber_without_cable_nodes_reads_from_itself(self, four_fiber_chain):
+        """Without cable ends there is no end to read from, so the entry stays root."""
+        result = trace_fiber(four_fiber_chain[1].uuid)
+
+        assert result["start"] == {"node": None, "available_nodes": []}
+        assert result["trace_tree"]["fiber"]["id"] == str(four_fiber_chain[1].uuid)
+
+    def test_signal_source_defaults_to_the_node_the_path_comes_from(
+        self, pop_nvt_house
+    ):
+        """The default source is the POP whichever fiber was traced."""
+        from apps.api.services import analyze_signal_flow
+
+        for fiber in pop_nvt_house["fibers"]:
+            result = analyze_signal_flow(fiber.uuid)
+            assert result["signal_analysis"]["source_node"]["id"] == str(
+                pop_nvt_house["pop"].uuid
+            )
+
+    def test_api_reads_the_path_from_the_start_node(
+        self, authenticated_client, pop_nvt_house
+    ):
+        """The start node travels as a query parameter."""
+        house = pop_nvt_house["house"]
+        response = authenticated_client.get(
+            f"/api/v1/fiber-trace/?fiber_id={pop_nvt_house['fibers'][0].uuid}"
+            f"&start_node_id={house.uuid}"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["start"]["node"]["id"] == str(house.uuid)
+        assert response.data["trace_tree"]["fiber"]["id"] == str(
+            pop_nvt_house["fibers"][2].uuid
+        )
+
+    def test_api_rejects_a_start_node_for_other_entries(
+        self, authenticated_client, pop_nvt_house
+    ):
+        """Only a fiber trace reads from one end."""
+        response = authenticated_client.get(
+            f"/api/v1/fiber-trace/?node_id={pop_nvt_house['pop'].uuid}"
+            f"&start_node_id={pop_nvt_house['house'].uuid}"
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_api_rejects_a_malformed_start_node(
+        self, authenticated_client, pop_nvt_house
+    ):
+        response = authenticated_client.get(
+            f"/api/v1/fiber-trace/?fiber_id={pop_nvt_house['fibers'][0].uuid}"
+            "&start_node_id=not-a-uuid"
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.fixture
@@ -1658,6 +1843,42 @@ def fiber_ring(db):
         for i in range(4)
     ]
     for node, fiber_a, fiber_b in zip(nodes, fibers, fibers[1:] + fibers[:1]):
+        _splice(_splice_structure(node, f"Cassette {node.name}"), fiber_a, fiber_b)
+    return {"pop": pop, "fibers": fibers}
+
+
+@pytest.fixture
+def ring_with_houses(db):
+    """
+    Create a ring closed at the POP whose cables end at houses.
+
+    POP -[Ring-0]- H1 -[Ring-1]- H2 -[Ring-2]- N3 -[Ring-3]- POP
+
+    H1 and H2 carry addresses, so a cut-off cable end shows in the affected
+    count whichever side the trace reaches the broken fiber from.
+    """
+    pop = NodeFactory(name="Ring-POP")
+    houses = [
+        NodeFactory(
+            name=f"Ring-H{i}",
+            uuid_address=AddressFactory(street="Ringstraße", housenumber=i),
+        )
+        for i in (1, 2)
+    ]
+    nodes = [pop, *houses, NodeFactory(name="Ring-N3")]
+    fibers = [
+        FiberFactory(
+            uuid_cable=CableFactory(
+                name=f"Ring-{i}", uuid_node_start=start, uuid_node_end=end
+            ),
+            fiber_number_absolute=1,
+            fiber_status=None,
+        )
+        for i, (start, end) in enumerate(zip(nodes, nodes[1:] + nodes[:1]))
+    ]
+    for node, fiber_a, fiber_b in zip(
+        nodes[1:] + nodes[:1], fibers, fibers[1:] + fibers[:1]
+    ):
         _splice(_splice_structure(node, f"Cassette {node.name}"), fiber_a, fiber_b)
     return {"pop": pop, "fibers": fibers}
 
@@ -1715,6 +1936,24 @@ class TestSignalOnFiberGraph:
             str(fiber3.uuid): "lit",
         }
         assert result["affected_summary"]["dark_fibers"] == 0
+
+    def test_ring_keeps_houses_fed_from_the_other_side(self, ring_with_houses):
+        """A broken ring fiber cuts off no house that a lit fiber still reaches."""
+        from apps.api.services import analyze_signal_flow
+
+        fiber0, fiber1, fiber2, fiber3 = ring_with_houses["fibers"]
+        _break(fiber1)
+        result = analyze_signal_flow(
+            fiber1.uuid, signal_source_node_id=str(ring_with_houses["pop"].uuid)
+        )
+
+        assert _signal_states(result["trace_tree"]) == {
+            str(fiber0.uuid): "lit",
+            str(fiber1.uuid): "break_point",
+            str(fiber2.uuid): "lit",
+            str(fiber3.uuid): "lit",
+        }
+        assert result["affected_summary"]["affected_addresses"] == 0
 
     def test_ring_trace_never_nests_a_fiber_under_itself(self, fiber_ring):
         """Each branch of the plain trace follows one walked path."""

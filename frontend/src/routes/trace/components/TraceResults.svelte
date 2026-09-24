@@ -23,7 +23,9 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { downloadGeoJSON, hasGeometries, traceFrom } from '$lib/utils/traceUtils';
+	import { setQuery } from '$lib/utils/urlState';
 
+	import CableEndPicker from './CableEndPicker.svelte';
 	import FiberPathsTable from './FiberPathsTable.svelte';
 	import TraceCableEndpoints from './TraceCableEndpoints.svelte';
 	import TraceFiberDetails from './TraceFiberDetails.svelte';
@@ -54,6 +56,18 @@
 	}: Props = $props();
 
 	let expandedWaypoints = new SvelteSet<string>();
+
+	/** UUID of the traced fiber, marked in the tree; `null` outside a fiber trace. */
+	const entryFiberId = $derived(entryType === 'fiber' ? result?.entry_point?.id || entryId : null);
+
+	/**
+	 * Reads the path from another end via the URL. The change is pushed, so the
+	 * back button returns to the previous end.
+	 * @param nodeId - The end's node UUID, or empty string for the backend's default
+	 */
+	function changePathStart(nodeId: string): void {
+		setQuery({ start: nodeId || null }, { push: true });
+	}
 
 	/**
 	 * @param fiberId
@@ -158,6 +172,15 @@
 					{/each}
 				</div>
 			</section>
+		{/if}
+
+		{#if result.start && result.start.available_nodes.length > 0}
+			<CableEndPicker
+				label={m.trace_path_start()}
+				options={result.start.available_nodes}
+				value={result.start.node?.id}
+				onchange={changePathStart}
+			/>
 		{/if}
 
 		<section>
@@ -296,6 +319,7 @@
 		(node.residential_units && node.residential_units.length > 0)}
 	{@const isExpanded = expandedWaypoints.has(node.fiber.id ?? '')}
 	{@const hasChildren = node.children && node.children.length > 0}
+	{@const isEntry = entryFiberId !== null && node.fiber.id === entryFiberId}
 	{@const STEP = 28}
 	{@const INDENT = 20}
 	{@const lineX = depth * STEP + INDENT}
@@ -332,9 +356,11 @@
 
 		<!-- Circle marker -->
 		<div
-			class="absolute rounded-full border-2 {isSelected('fiber', node.fiber.id ?? '')
-				? 'border-primary-500 bg-primary-500'
-				: 'border-primary-500 bg-surface-50-950'}"
+			class={[
+				'absolute rounded-full border-2 border-primary-500',
+				isSelected('fiber', node.fiber.id ?? '') ? 'bg-primary-500' : 'bg-surface-50-950',
+				isEntry && 'ring-2 ring-primary-500/40 ring-offset-1 ring-offset-surface-50-950'
+			]}
 			style="left: {lineX}px; top: {circleTop}px; width: {circleSize}px; height: {circleSize}px"
 		></div>
 
@@ -370,6 +396,13 @@
 				{#if node.fiber.cable_type}
 					<span class="rounded bg-surface-100-900 px-1.5 py-0.5 text-surface-600-400">
 						{node.fiber.cable_type}
+					</span>
+				{/if}
+				{#if isEntry}
+					<span
+						class="rounded border border-primary-500 bg-primary-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-500"
+					>
+						{m.trace_entry_point()}
 					</span>
 				{/if}
 				{#if node.node}

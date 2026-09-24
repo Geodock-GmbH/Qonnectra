@@ -939,6 +939,7 @@
 	"trace_no_geometry_available": "No geometry data available for this trace",
 	"trace_no_trace_data": "No trace data available",
 	"trace_orient_geometry": "Orient by Cable Direction",
+	"trace_path_start": "Start Point",
 	"trace_raw_json": "Raw JSON Response",
 	"trace_residential_units": [
 		{
