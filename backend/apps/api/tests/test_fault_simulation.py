@@ -278,3 +278,30 @@ class TestFaultSimulationView:
             status.HTTP_401_UNAUTHORIZED,
             status.HTTP_403_FORBIDDEN,
         )
+
+
+def test_simulated_break_darkens_everything_below_it():
+    """A virtually broken fiber is a break point and darkens its subtree."""
+    from apps.api.services import _propagate_signal_state
+
+    tree = {
+        "fiber": {"id": "f-1", "status": None},
+        "children": [
+            {
+                "fiber": {"id": "f-2", "status": None},
+                "node": {"id": "n-1", "name": "N1"},
+                "children": [{"fiber": {"id": "f-3", "status": None}, "children": []}],
+            }
+        ],
+    }
+    break_points = []
+
+    _propagate_signal_state(tree, break_points=break_points, broken_fiber_ids={"f-2"})
+
+    middle = tree["children"][0]
+    assert tree["signal_state"] == "lit"
+    assert middle["signal_state"] == "break_point"
+    assert middle["children"][0]["signal_state"] == "dark"
+    assert [(bp["fiber_id"], bp["status"], bp["at_node"]) for bp in break_points] == [
+        ("f-2", "simulated_break", {"id": "n-1", "name": "N1"})
+    ]

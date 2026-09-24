@@ -17,6 +17,7 @@ Tests cover:
 import pytest
 from apps.api.models import (
     AttributesComponentType,
+    AttributesFiberStatus,
     FiberSplice,
     NodeSlotConfiguration,
     NodeStructure,
@@ -381,9 +382,7 @@ class TestTraceFiber:
         assert "address" in node
         assert "geometry" not in node["address"]
 
-    def test_trace_fiber_cable_endpoints_have_geometry(
-        self, fiber_chain_with_address
-    ):
+    def test_trace_fiber_cable_endpoints_have_geometry(self, fiber_chain_with_address):
         """Test that cable endpoint nodes include geometry when include_geometry=True."""
         fiber1 = fiber_chain_with_address["fibers"][0]
         result = trace_fiber(fiber1.uuid, include_geometry=True)
@@ -1387,3 +1386,362 @@ class TestSignalStatePropagation:
             assert bp["status"] == "Broken"
             assert "fiber_id" in bp
             assert "cable_name" in bp
+
+
+# =============================================================================
+# Tests for the signal source direction
+# =============================================================================
+
+
+def _splice_structure(node, component_name):
+    """Create a splice cassette structure in *node* to hang splices on."""
+    slot_config = NodeSlotConfiguration.objects.create(
+        uuid_node=node, side="A", total_slots=12
+    )
+    component_type = AttributesComponentType.objects.create(
+        component_type=component_name, occupied_slots=2
+    )
+    return NodeStructure.objects.create(
+        uuid_node=node,
+        slot_configuration=slot_config,
+        component_type=component_type,
+        slot_start=1,
+        slot_end=2,
+    )
+
+
+def _splice(structure, fiber_a, fiber_b):
+    """Splice *fiber_a* to *fiber_b* in *structure*."""
+    return FiberSplice.objects.create(
+        node_structure=structure,
+        port_number=1,
+        fiber_a=fiber_a,
+        cable_a=fiber_a.uuid_cable,
+        fiber_b=fiber_b,
+        cable_b=fiber_b.uuid_cable,
+    )
+
+
+def _signal_states(node, states=None):
+    """Map each fiber UUID in a signal trace tree to its signal state."""
+    if states is None:
+        states = {}
+    states[node["fiber"]["id"]] = node["signal_state"]
+    for child in node.get("children", []):
+        _signal_states(child, states)
+    return states
+
+
+@pytest.fixture
+def pop_to_house(db):
+    """
+    Create a feeder spliced to a drop cable that ends at a house.
+
+    POP -[feeder]-> NVt -[drop]-> House (with address)
+
+    The factory statuses are left empty, so each test breaks the fibers it
+    needs through :func:`_break`.
+    """
+    pop = NodeFactory(name="POP")
+    nvt = NodeFactory(name="NVt")
+    house_address = AddressFactory(street="Dorfstraße", housenumber=52)
+    house = NodeFactory(name="House", uuid_address=house_address)
+
+    feeder = CableFactory(name="Feeder", uuid_node_start=pop, uuid_node_end=nvt)
+    drop = CableFactory(name="Drop", uuid_node_start=nvt, uuid_node_end=house)
+    feeder_fiber = FiberFactory(
+        uuid_cable=feeder, fiber_number_absolute=1, fiber_status=None
+    )
+    drop_fiber = FiberFactory(
+        uuid_cable=drop, fiber_number_absolute=1, fiber_status=None
+    )
+    _splice(_splice_structure(nvt, "Splice Cassette NVt"), feeder_fiber, drop_fiber)
+
+    return {
+        "pop": pop,
+        "nvt": nvt,
+        "house": house,
+        "house_address": house_address,
+        "feeder_fiber": feeder_fiber,
+        "drop_fiber": drop_fiber,
+    }
+
+
+def _break(fiber):
+    """Give *fiber* a status, which the signal analysis reads as a break."""
+    status_row, _ = AttributesFiberStatus.objects.get_or_create(fiber_status="Defekt")
+    fiber.fiber_status = status_row
+    fiber.save()
+
+
+@pytest.mark.django_db
+class TestSignalSourceDirection:
+    """The chosen signal source decides where the signal enters the trace."""
+
+    def test_source_upstream_of_break_lights_fibers_before_it(self, pop_to_house):
+        """Tracing from the broken drop still lights the feeder fed by the POP."""
+        from apps.api.services import analyze_signal_flow
+
+        _break(pop_to_house["drop_fiber"])
+        result = analyze_signal_flow(
+            pop_to_house["drop_fiber"].uuid,
+            signal_source_node_id=str(pop_to_house["pop"].uuid),
+        )
+
+        states = _signal_states(result["trace_tree"])
+        assert states == {
+            str(pop_to_house["feeder_fiber"].uuid): "lit",
+            str(pop_to_house["drop_fiber"].uuid): "break_point",
+        }
+
+    def test_source_behind_break_darkens_fibers_beyond_it(self, pop_to_house):
+        """Feeding from the house end leaves the feeder behind the break dark."""
+        from apps.api.services import analyze_signal_flow
+
+        _break(pop_to_house["drop_fiber"])
+        result = analyze_signal_flow(
+            pop_to_house["feeder_fiber"].uuid,
+            signal_source_node_id=str(pop_to_house["house"].uuid),
+        )
+
+        states = _signal_states(result["trace_tree"])
+        assert states == {
+            str(pop_to_house["drop_fiber"].uuid): "break_point",
+            str(pop_to_house["feeder_fiber"].uuid): "dark",
+        }
+
+    def test_tree_is_rooted_at_the_fiber_fed_by_the_source(self, pop_to_house):
+        """The tree reads from the source outwards, whichever fiber was traced."""
+        from apps.api.services import analyze_signal_flow
+
+        result = analyze_signal_flow(
+            pop_to_house["drop_fiber"].uuid,
+            signal_source_node_id=str(pop_to_house["pop"].uuid),
+        )
+
+        root = result["trace_tree"]
+        assert root["fiber"]["id"] == str(pop_to_house["feeder_fiber"].uuid)
+        assert root["splice"] is None
+        assert root["node"] is None
+        [child] = root["children"]
+        assert child["fiber"]["id"] == str(pop_to_house["drop_fiber"].uuid)
+        assert child["node"]["id"] == str(pop_to_house["nvt"].uuid)
+        assert child["splice"] is not None
+
+    def test_every_fiber_at_the_source_receives_signal(self, pop_to_house):
+        """A source at the splice node feeds both fibers spliced there."""
+        from apps.api.services import analyze_signal_flow
+
+        _break(pop_to_house["feeder_fiber"])
+        result = analyze_signal_flow(
+            pop_to_house["feeder_fiber"].uuid,
+            signal_source_node_id=str(pop_to_house["nvt"].uuid),
+        )
+
+        states = _signal_states(result["trace_tree"])
+        assert states == {
+            str(pop_to_house["feeder_fiber"].uuid): "break_point",
+            str(pop_to_house["drop_fiber"].uuid): "lit",
+        }
+
+    def test_default_flag_marks_the_fallback_not_the_selection(self, pop_to_house):
+        """Picking another source leaves the default flag on the fallback source."""
+        from apps.api.services import analyze_signal_flow
+
+        result = analyze_signal_flow(
+            pop_to_house["feeder_fiber"].uuid,
+            signal_source_node_id=str(pop_to_house["house"].uuid),
+        )
+
+        analysis = result["signal_analysis"]
+        assert analysis["source_node"]["id"] == str(pop_to_house["house"].uuid)
+        defaults = [s["id"] for s in analysis["available_sources"] if s["is_default"]]
+        assert defaults == [str(pop_to_house["pop"].uuid)]
+
+    def test_address_behind_a_break_counts_as_affected(self, pop_to_house):
+        """The house at the far end of the broken drop cable loses signal."""
+        from apps.api.services import analyze_signal_flow
+
+        _break(pop_to_house["drop_fiber"])
+        result = analyze_signal_flow(
+            pop_to_house["feeder_fiber"].uuid,
+            signal_source_node_id=str(pop_to_house["pop"].uuid),
+        )
+
+        assert result["affected_summary"]["affected_addresses"] == 1
+
+    def test_address_at_the_source_is_not_affected(self, pop_to_house):
+        """The house feeding the signal itself is not cut off by the break."""
+        from apps.api.services import analyze_signal_flow
+
+        _break(pop_to_house["drop_fiber"])
+        result = analyze_signal_flow(
+            pop_to_house["feeder_fiber"].uuid,
+            signal_source_node_id=str(pop_to_house["house"].uuid),
+        )
+
+        assert result["affected_summary"]["affected_addresses"] == 0
+
+    def test_source_param_changes_the_api_result(
+        self, authenticated_client, pop_to_house
+    ):
+        """The endpoint passes the chosen source through to the analysis."""
+        _break(pop_to_house["drop_fiber"])
+        url = f"/api/v1/signal-analysis/?fiber_id={pop_to_house['drop_fiber'].uuid}"
+
+        from_pop = authenticated_client.get(
+            f"{url}&signal_source_node_id={pop_to_house['pop'].uuid}"
+        )
+        from_house = authenticated_client.get(
+            f"{url}&signal_source_node_id={pop_to_house['house'].uuid}"
+        )
+
+        assert from_pop.status_code == status.HTTP_200_OK
+        assert from_pop.data["affected_summary"]["lit_fibers"] == 1
+        assert from_house.data["affected_summary"]["lit_fibers"] == 0
+
+
+@pytest.fixture
+def four_fiber_chain(db):
+    """
+    Create a linear chain: Fiber1 -N1- Fiber2 -N2- Fiber3 -N3- Fiber4.
+    """
+    fibers = [
+        FiberFactory(
+            uuid_cable=CableFactory(name=f"Chain-{i}"), fiber_number_absolute=1
+        )
+        for i in range(1, 5)
+    ]
+    for i, (fiber_a, fiber_b) in enumerate(zip(fibers, fibers[1:]), start=1):
+        _splice(
+            _splice_structure(NodeFactory(name=f"N{i}"), f"Cassette N{i}"),
+            fiber_a,
+            fiber_b,
+        )
+    return fibers
+
+
+@pytest.mark.django_db
+class TestTraceTreeParents:
+    """Each fiber hangs under the fiber it is spliced to."""
+
+    def test_trace_from_middle_keeps_each_side_separate(self, four_fiber_chain):
+        """Fiber4 follows Fiber3 only, not every fiber one step from the entry."""
+        fiber1, fiber2, fiber3, fiber4 = four_fiber_chain
+        tree = trace_fiber(fiber2.uuid)["trace_tree"]
+
+        children = {c["fiber"]["id"]: c for c in tree["children"]}
+        assert set(children) == {str(fiber1.uuid), str(fiber3.uuid)}
+        assert children[str(fiber1.uuid)]["children"] == []
+        assert [c["fiber"]["id"] for c in children[str(fiber3.uuid)]["children"]] == [
+            str(fiber4.uuid)
+        ]
+
+
+@pytest.fixture
+def fiber_ring(db):
+    """
+    Create a ring fed from the POP through Fiber0.
+
+    POP -[Fiber0]- N1 - Fiber1 - N2 - Fiber2 - N3 - Fiber3 - N4 - Fiber0
+    """
+    pop = NodeFactory(name="Ring-POP")
+    nodes = [NodeFactory(name=f"Ring-N{i}") for i in range(1, 5)]
+    fibers = [
+        FiberFactory(
+            uuid_cable=CableFactory(
+                name=f"Ring-{i}", uuid_node_start=pop if i == 0 else None
+            ),
+            fiber_number_absolute=1,
+            fiber_status=None,
+        )
+        for i in range(4)
+    ]
+    for node, fiber_a, fiber_b in zip(nodes, fibers, fibers[1:] + fibers[:1]):
+        _splice(_splice_structure(node, f"Cassette {node.name}"), fiber_a, fiber_b)
+    return {"pop": pop, "fibers": fibers}
+
+
+@pytest.fixture
+def cable_passing_the_source(db):
+    """
+    Create a feeder ending at a node that a passing cable is spliced in.
+
+    A -[feeder]-> S (with address), and B -[passing]-> C spliced at S.
+    """
+    source = NodeFactory(
+        name="Source", uuid_address=AddressFactory(street="Quelle", housenumber=1)
+    )
+    feeder = CableFactory(
+        name="Feeder-S", uuid_node_start=NodeFactory(name="A"), uuid_node_end=source
+    )
+    passing = CableFactory(
+        name="Passing",
+        uuid_node_start=NodeFactory(name="B"),
+        uuid_node_end=NodeFactory(name="C"),
+    )
+    feeder_fiber = FiberFactory(
+        uuid_cable=feeder, fiber_number_absolute=1, fiber_status=None
+    )
+    passing_fiber = FiberFactory(
+        uuid_cable=passing, fiber_number_absolute=1, fiber_status=None
+    )
+    _splice(_splice_structure(source, "Cassette Source"), feeder_fiber, passing_fiber)
+    return {
+        "source": source,
+        "feeder_fiber": feeder_fiber,
+        "passing_fiber": passing_fiber,
+    }
+
+
+@pytest.mark.django_db
+class TestSignalOnFiberGraph:
+    """The signal spreads over the splices, not along a single tree path."""
+
+    def test_ring_routes_the_signal_around_a_break(self, fiber_ring):
+        """Fibers behind a break stay lit when the ring feeds them the other way."""
+        from apps.api.services import analyze_signal_flow
+
+        fiber0, fiber1, fiber2, fiber3 = fiber_ring["fibers"]
+        _break(fiber1)
+        result = analyze_signal_flow(
+            fiber2.uuid, signal_source_node_id=str(fiber_ring["pop"].uuid)
+        )
+
+        assert _signal_states(result["trace_tree"]) == {
+            str(fiber0.uuid): "lit",
+            str(fiber1.uuid): "break_point",
+            str(fiber2.uuid): "lit",
+            str(fiber3.uuid): "lit",
+        }
+        assert result["affected_summary"]["dark_fibers"] == 0
+
+    def test_ring_trace_never_nests_a_fiber_under_itself(self, fiber_ring):
+        """Each branch of the plain trace follows one walked path."""
+        tree = trace_fiber(fiber_ring["fibers"][0].uuid)["trace_tree"]
+
+        def assert_no_repeats(node, ancestors):
+            fiber_id = node["fiber"]["id"]
+            assert fiber_id not in ancestors
+            for child in node["children"]:
+                assert_no_repeats(child, ancestors | {fiber_id})
+
+        assert_no_repeats(tree, set())
+
+    def test_fiber_spliced_at_the_source_receives_signal(
+        self, cable_passing_the_source
+    ):
+        """A cable passing through the source node is fed at its splice there."""
+        from apps.api.services import analyze_signal_flow
+
+        _break(cable_passing_the_source["feeder_fiber"])
+        result = analyze_signal_flow(
+            cable_passing_the_source["feeder_fiber"].uuid,
+            signal_source_node_id=str(cable_passing_the_source["source"].uuid),
+        )
+
+        assert _signal_states(result["trace_tree"]) == {
+            str(cable_passing_the_source["feeder_fiber"].uuid): "break_point",
+            str(cable_passing_the_source["passing_fiber"].uuid): "lit",
+        }
+        assert result["affected_summary"]["affected_addresses"] == 0

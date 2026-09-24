@@ -3,6 +3,9 @@ import logging
 import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
+from collections import defaultdict, deque
+from heapq import heappop, heappush
+from itertools import count
 from dataclasses import dataclass, field
 from io import BytesIO
 from pathlib import PureWindowsPath
@@ -2084,6 +2087,7 @@ def _walk_fibers(fiber_ids, include_geometry: bool = False) -> dict:
         ft.from_node_id,
         ft.from_node_name,
         ft.direction,
+        ft.visited,
         ft.depth,
         -- Full address fields from node
         addr.uuid as address_id,
@@ -3004,12 +3008,15 @@ def _build_fiber_walk(
             nodes_by_depth[depth] = []
         nodes_by_depth[depth].append(row)
 
-    def build_children(parent_fiber_id, current_depth):
+    def build_children(parent_path, current_depth):
+        """Build the rows whose walked path extends *parent_path* by one fiber."""
         children = []
         if current_depth not in nodes_by_depth:
             return children
 
         for row in nodes_by_depth[current_depth]:
+            if row["visited"][:-1] != parent_path:
+                continue
             child = {
                 "fiber": {
                     "id": str(row["fiber_id"]),
@@ -3031,13 +3038,13 @@ def _build_fiber_walk(
                 "node": build_node_with_address(row),
                 "residential_units": build_residential_units(row),
                 "direction": row["direction"],
-                "children": build_children(row["fiber_id"], current_depth + 1),
+                "children": build_children(row["visited"], current_depth + 1),
             }
             children.append(child)
 
         return children
 
-    trace_tree["children"] = build_children(root["fiber_id"], 1)
+    trace_tree["children"] = build_children(root["visited"], 1)
 
     has_branches = any(len(nodes_by_depth.get(d, [])) > 1 for d in nodes_by_depth)
 
@@ -3794,16 +3801,21 @@ def _determine_signal_source(
     available_sources: list[dict],
     requested_source_id: str | None = None,
 ) -> dict | None:
-    """
-    Determine which node is the signal source.
+    """Determine which node is the signal source.
+
+    Fall back to the traced cable's start node, then to the first available
+    source, when no source is requested or the requested one is not on the
+    trace.
 
     Args:
-        trace_tree: The trace tree structure
-        available_sources: List of available source nodes
-        requested_source_id: User-requested source node ID (optional)
+        trace_tree (dict): Trace tree rooted at the traced fiber.
+        available_sources (list[dict]): Sources from
+            :func:`_collect_available_signal_sources`.
+        requested_source_id (str | None): UUID of the source node asked for.
 
     Returns:
-        The selected source node info, or None if no valid sources.
+        dict | None: The chosen entry of *available_sources*, or ``None`` if
+            there are none.
     """
     if not available_sources:
         return None
@@ -3824,29 +3836,201 @@ def _determine_signal_source(
     return available_sources[0] if available_sources else None
 
 
-def _propagate_signal_state(
-    node: dict,
-    source_node_id: str | None,
-    current_state: str = "lit",
-    break_points: list | None = None,
-) -> str:
-    """
-    Recursively propagate signal state through trace tree.
-    Mutates nodes in place by adding 'signal_state' field.
+_REVERSED_DIRECTION = {"a_to_b": "b_to_a", "b_to_a": "a_to_b"}
+_SIGNAL_STATE_RANK = {"lit": 0, "break_point": 1, "dark": 2}
 
-    Signal propagation rules:
-    - Start from source node as "lit"
-    - If a fiber has status (non-null), mark it as "break_point"
-    - All children of a break_point become "dark"
+
+def _cable_end_nodes(waypoint: dict) -> list[dict]:
+    """Return the start and end nodes of the waypoint's cable that are known.
 
     Args:
-        node: Current trace tree node to process
-        source_node_id: ID of the signal source node
-        current_state: Current signal state ("lit" or "dark")
-        break_points: List to collect break point info (mutated)
+        waypoint (dict): Trace tree node.
 
     Returns:
-        The signal state after processing this node.
+        list[dict]: Cable endpoint node dicts, without missing ends.
+    """
+    endpoints = waypoint.get("cable_endpoints") or {}
+    return [endpoints[end] for end in ("start_node", "end_node") if endpoints.get(end)]
+
+
+def _break_point(fiber: dict, status: str | None, at_node: dict | None) -> dict:
+    """Describe a fiber where the signal stops.
+
+    Args:
+        fiber (dict): The waypoint's ``fiber`` dict.
+        status (str | None): Fiber status that makes it a break.
+        at_node (dict | None): Node where the signal reaches the fiber.
+
+    Returns:
+        dict: Break point entry for ``signal_analysis['break_points']``.
+    """
+    return {
+        "fiber_id": fiber.get("id"),
+        "fiber_number_absolute": fiber.get("fiber_number_absolute"),
+        "cable_id": fiber.get("cable_id"),
+        "cable_name": fiber.get("cable_name"),
+        "status": status,
+        "at_node": {"id": at_node.get("id"), "name": at_node.get("name")}
+        if at_node
+        else None,
+    }
+
+
+def _fiber_graph(trace_tree: dict) -> tuple[dict, dict]:
+    """Read a trace tree as an undirected graph of fibers joined by splices.
+
+    A waypoint's ``splice``, ``node`` and ``direction`` describe the splice to
+    its parent, so each edge keeps the child waypoint it was read from and
+    whether it is walked against its original direction.
+
+    Args:
+        trace_tree (dict): Trace tree rooted at the traced fiber.
+
+    Returns:
+        tuple[dict, dict]: The first waypoint per fiber UUID, in tree order,
+            and per fiber UUID a list of ``(neighbour_id, edge_waypoint,
+            is_reversed)`` tuples.
+    """
+    waypoints = {}
+    edges = defaultdict(list)
+
+    def collect(waypoint, parent_id):
+        """Record each fiber once and its splice to the parent both ways."""
+        fiber_id = waypoint["fiber"]["id"]
+        waypoints.setdefault(fiber_id, waypoint)
+        if parent_id is not None:
+            edges[parent_id].append((fiber_id, waypoint, False))
+            edges[fiber_id].append((parent_id, waypoint, True))
+        for child in waypoint.get("children", []):
+            collect(child, fiber_id)
+
+    collect(trace_tree, None)
+    return waypoints, edges
+
+
+def _trace_signal(trace_tree: dict, source_node_id: str | None) -> tuple[dict, list]:
+    """Mark how far the signal from the source reaches on a fiber trace.
+
+    Signal enters every fiber whose cable ends at the source node or that is
+    spliced there, and spreads over splices in both directions. A fiber with
+    a status is a break: it takes the signal in but passes nothing on. Since
+    the spread runs on the fiber graph, a ring still lights the fibers behind
+    a break from its other side. Without a source on the trace the signal
+    enters at the traced fiber.
+
+    The returned tree starts at a fiber fed by the source and prefers lit
+    fibers as parents, so it reads from the source outwards.
+
+    Args:
+        trace_tree (dict): Trace tree rooted at the traced fiber.
+        source_node_id (str | None): UUID of the signal source node.
+
+    Returns:
+        tuple[dict, list[dict]]: New trace tree with ``signal_state`` on each
+            node, and the break points the signal runs into.
+    """
+    waypoints, edges = _fiber_graph(trace_tree)
+
+    def is_fed(fiber_id):
+        """Tell whether the source node feeds the fiber directly."""
+        if not source_node_id:
+            return False
+        at_source = [n.get("id") for n in _cable_end_nodes(waypoints[fiber_id])]
+        at_source += [(edge[1].get("node") or {}).get("id") for edge in edges[fiber_id]]
+        return source_node_id in at_source
+
+    def is_broken(fiber_id):
+        return bool(waypoints[fiber_id]["fiber"].get("status"))
+
+    fed = [fiber_id for fiber_id in waypoints if is_fed(fiber_id)]
+    if not fed:
+        fed = [trace_tree["fiber"]["id"]]
+
+    states = {}
+    break_points = []
+
+    def reach(fiber_id, at_node):
+        """Let the signal reach a fiber, stopping there if it is broken."""
+        if is_broken(fiber_id):
+            states[fiber_id] = "break_point"
+            fiber = waypoints[fiber_id]["fiber"]
+            break_points.append(_break_point(fiber, fiber.get("status"), at_node))
+        else:
+            states[fiber_id] = "lit"
+            queue.append(fiber_id)
+
+    queue = deque()
+    for fiber_id in fed:
+        reach(fiber_id, None)
+    while queue:
+        fiber_id = queue.popleft()
+        for neighbour_id, edge_waypoint, _is_reversed in edges[fiber_id]:
+            if neighbour_id not in states:
+                reach(neighbour_id, edge_waypoint.get("node"))
+    for fiber_id in waypoints:
+        states.setdefault(fiber_id, "dark")
+
+    def waypoint_via(fiber_id, edge_waypoint, is_reversed):
+        """Build the waypoint for *fiber_id* reached over *edge_waypoint*."""
+        fiber_part = {
+            key: value
+            for key, value in waypoints[fiber_id].items()
+            if key not in ("splice", "node", "direction", "children", "signal_state")
+        }
+        direction = edge_waypoint.get("direction") if edge_waypoint else None
+        if is_reversed and direction:
+            direction = _REVERSED_DIRECTION.get(direction, direction)
+        return {
+            **fiber_part,
+            "splice": edge_waypoint.get("splice") if edge_waypoint else None,
+            "node": edge_waypoint.get("node") if edge_waypoint else None,
+            "direction": direction,
+            "signal_state": states[fiber_id],
+            "children": [],
+        }
+
+    # Expand lit fibers first so a lit fiber hangs under the lit fiber that
+    # feeds it rather than under a break it happens to share a splice with.
+    order = count()
+    root_id = fed[0]
+    built = {root_id: waypoint_via(root_id, None, False)}
+    pending = [(_SIGNAL_STATE_RANK[states[root_id]], next(order), root_id)]
+    while pending:
+        _, _, fiber_id = heappop(pending)
+        for neighbour_id, edge_waypoint, is_reversed in edges[fiber_id]:
+            if neighbour_id in built:
+                continue
+            child = waypoint_via(neighbour_id, edge_waypoint, is_reversed)
+            built[neighbour_id] = child
+            built[fiber_id]["children"].append(child)
+            rank = _SIGNAL_STATE_RANK[states[neighbour_id]]
+            heappush(pending, (rank, next(order), neighbour_id))
+
+    return built[root_id], break_points
+
+
+def _propagate_signal_state(
+    node: dict,
+    current_state: str = "lit",
+    break_points: list | None = None,
+    broken_fiber_ids: set[str] | None = None,
+) -> str:
+    """Recursively propagate signal state down a trace tree from its root.
+
+    Mutate nodes in place by adding a ``'signal_state'`` field. A fiber with a
+    status, or listed in *broken_fiber_ids*, becomes a ``'break_point'`` and
+    everything below it turns ``'dark'``.
+
+    Args:
+        node (dict): Current trace tree node to process.
+        current_state (str): State passed on by the parent (``'lit'`` or
+            ``'dark'``).
+        break_points (list | None): List to collect break point info (mutated).
+        broken_fiber_ids (set[str] | None): Fiber UUIDs to treat as broken
+            regardless of their ``fiber_status``, for simulated faults.
+
+    Returns:
+        str: The signal state of this node.
     """
     if break_points is None:
         break_points = []
@@ -3856,45 +4040,67 @@ def _propagate_signal_state(
 
     fiber = node.get("fiber", {})
     fiber_status = fiber.get("status")
+    is_virtually_broken = bool(broken_fiber_ids) and (
+        str(fiber.get("id")) in broken_fiber_ids
+    )
 
     if current_state == "dark":
         node["signal_state"] = "dark"
-        propagate_state = "dark"
-    elif fiber_status:
+    elif fiber_status or is_virtually_broken:
         node["signal_state"] = "break_point"
-        propagate_state = "dark"
-
-        splice_node = node.get("node")
         break_points.append(
-            {
-                "fiber_id": fiber.get("id"),
-                "fiber_number_absolute": fiber.get("fiber_number_absolute"),
-                "cable_id": fiber.get("cable_id"),
-                "cable_name": fiber.get("cable_name"),
-                "status": fiber_status,
-                "at_node": {
-                    "id": splice_node.get("id") if splice_node else None,
-                    "name": splice_node.get("name") if splice_node else None,
-                }
-                if splice_node
-                else None,
-            }
+            _break_point(fiber, fiber_status or "simulated_break", node.get("node"))
         )
     else:
         node["signal_state"] = "lit"
-        propagate_state = "lit"
 
+    passed_on = "lit" if node["signal_state"] == "lit" else "dark"
     for child in node.get("children", []):
-        _propagate_signal_state(child, source_node_id, propagate_state, break_points)
+        _propagate_signal_state(child, passed_on, break_points, broken_fiber_ids)
 
     return node["signal_state"]
 
 
-def _collect_affected_summary(trace_tree: dict) -> dict:
+def _cut_off_cable_end_addresses(
+    waypoint: dict, source_node_id: str | None
+) -> set[str]:
+    """Collect the addresses at the cable ends a fiber without signal cuts off.
+
+    A break point still carries signal up to the splice that feeds it, so that
+    end keeps its signal. The source node never counts as cut off.
+
+    Args:
+        waypoint (dict): Trace tree node with ``signal_state`` propagated.
+        source_node_id (str | None): UUID of the signal source node.
+
+    Returns:
+        set[str]: Address UUIDs at the fiber's cut-off cable ends.
+    """
+    signal_state = waypoint.get("signal_state")
+    if signal_state not in ("dark", "break_point"):
+        return set()
+
+    fed_at = {source_node_id}
+    if signal_state == "break_point" and waypoint.get("node"):
+        fed_at.add(waypoint["node"].get("id"))
+
+    return {
+        end_node["address"]["id"]
+        for end_node in _cable_end_nodes(waypoint)
+        if (end_node.get("address") or {}).get("id")
+        and end_node.get("id") not in fed_at
+    }
+
+
+def _collect_affected_summary(
+    trace_tree: dict, source_node_id: str | None = None
+) -> dict:
     """Collect statistics about lit/dark components in the trace tree.
 
     Args:
         trace_tree (dict): Trace tree with ``signal_state`` already propagated.
+        source_node_id (str | None): UUID of the signal source node, which
+            never counts as an affected address.
 
     Returns:
         dict: Counts keyed by ``'lit_fibers'``, ``'dark_fibers'``,
@@ -3932,8 +4138,17 @@ def _collect_affected_summary(trace_tree: dict) -> dict:
                 summary["lit_nodes"] += 1
 
             address = splice_node.get("address")
-            if address and address.get("id") and signal_state == "dark":
+            if (
+                address
+                and address.get("id")
+                and signal_state == "dark"
+                and splice_node["id"] != source_node_id
+            ):
                 summary["affected_addresses"].add(address["id"])
+
+        summary["affected_addresses"].update(
+            _cut_off_cable_end_addresses(node, source_node_id)
+        )
 
         rus = node.get("residential_units") or []
         for ru in rus:
@@ -3963,35 +4178,35 @@ def analyze_signal_flow(
     geometry_mode: str = "segments",
     orient_geometry: bool = False,
 ) -> dict:
-    """
-    Analyze signal flow through a fiber trace, marking lit/dark portions.
+    """Analyze signal flow through a fiber trace, marking lit and dark parts.
 
-    Uses the existing trace_fiber() function to get the complete trace,
-    then overlays signal flow analysis based on:
-    - Selected signal source node (defaults to cable start node)
-    - Fiber status (non-null status indicates a break)
+    Trace the fiber with :func:`trace_fiber`, then spread the signal from
+    the source over the traced fibers with :func:`_trace_signal`. A fiber
+    with a status is a break; everything only it feeds loses signal.
 
     Signal states:
-    - "lit": Fiber is receiving signal from source
-    - "break_point": Fiber has a status (broken/defective)
-    - "dark": Fiber is downstream of a break, no signal
+
+    - ``'lit'``: the fiber receives signal from the source.
+    - ``'break_point'``: the fiber has a status (broken, defective, ...).
+    - ``'dark'``: the fiber lies beyond a break.
 
     Args:
-        fiber_id: UUID of the fiber to trace and analyze
-        signal_source_node_id: Node UUID where signal originates (optional).
-            If not provided, defaults to the root cable's start node.
-        include_geometry: If True, include trench geometry
-        geometry_mode: "segments" for individual trenches, "merged" for combined
-        orient_geometry: If True, orient geometries from cable start to end
+        fiber_id (UUID | str): UUID of the :model:`api.Fiber` to trace and
+            analyze.
+        signal_source_node_id (str | None): UUID of the node the signal
+            originates from. Defaults to the traced cable's start node.
+        include_geometry (bool): If ``True``, include trench geometry.
+        geometry_mode (str): ``"segments"``, ``"merged"`` or ``"routed"``,
+            see :func:`trace_fiber`.
+        orient_geometry (bool): If ``True``, orient geometries from cable
+            start node to end node.
 
     Returns:
-        dict containing:
-        - entry_point: Entry point information
-        - signal_analysis: Signal source and break point details
-        - trace_tree: Trace tree with signal_state on each node
-        - affected_summary: Statistics about affected components
-        - statistics: Standard trace statistics
-        - cable_infrastructure: Infrastructure details (same as trace_fiber)
+        dict: Contains ``'entry_point'``, ``'signal_analysis'`` (source,
+            available sources with ``is_default`` marking the fallback source,
+            break points), ``'trace_tree'`` (rooted at the source, with
+            ``signal_state`` on each node), ``'affected_summary'``,
+            ``'statistics'`` and ``'cable_infrastructure'``.
     """
     trace_result = trace_fiber(
         fiber_id,
@@ -4028,24 +4243,20 @@ def analyze_signal_flow(
         }
 
     available_sources = _collect_available_signal_sources(trace_tree)
+    default_source = _determine_signal_source(trace_tree, available_sources)
     source_node = _determine_signal_source(
         trace_tree, available_sources, signal_source_node_id
     )
 
     for src in available_sources:
-        src["is_default"] = source_node is not None and src["id"] == source_node.get(
-            "id"
+        src["is_default"] = default_source is not None and (
+            src["id"] == default_source["id"]
         )
 
-    break_points = []
-    _propagate_signal_state(
-        trace_tree,
-        source_node["id"] if source_node else None,
-        current_state="lit",
-        break_points=break_points,
-    )
+    source_node_id = source_node["id"] if source_node else None
+    trace_tree, break_points = _trace_signal(trace_tree, source_node_id)
 
-    affected_summary = _collect_affected_summary(trace_tree)
+    affected_summary = _collect_affected_summary(trace_tree, source_node_id)
 
     return {
         "entry_point": trace_result.get("entry_point"),
@@ -4247,12 +4458,10 @@ def simulate_fault(
             walks.append(walk)
 
             break_points = []
-            _propagate_signal_state_with_virtual_breaks(
+            _propagate_signal_state(
                 trace_tree,
-                source_node_id=None,
-                broken_fiber_ids=broken_fiber_ids,
-                current_state="lit",
                 break_points=break_points,
+                broken_fiber_ids=broken_fiber_ids,
             )
 
             summary = _collect_affected_summary(trace_tree)
@@ -4355,77 +4564,6 @@ def simulate_fault(
             },
         },
     }
-
-
-def _propagate_signal_state_with_virtual_breaks(
-    node: dict,
-    source_node_id: str | None,
-    broken_fiber_ids: set,
-    current_state: str = "lit",
-    break_points: list | None = None,
-) -> str:
-    """Propagate signal state treating specified fibers as broken.
-
-    Behave like ``_propagate_signal_state`` but additionally treat any fiber
-    whose ID appears in *broken_fiber_ids* as a break point, regardless of
-    its actual ``fiber_status`` in the database.
-
-    Mutate nodes in place by adding a ``'signal_state'`` field.
-
-    Args:
-        node (dict): Current trace tree node to process.
-        source_node_id (str | None): ID of the signal source node.
-        broken_fiber_ids (set[str]): Fiber UUIDs to treat as virtually broken.
-        current_state (str): Current signal state (``'lit'`` or ``'dark'``).
-        break_points (list | None): List to collect break point info (mutated).
-
-    Returns:
-        str: The signal state after processing this node.
-    """
-    if break_points is None:
-        break_points = []
-
-    if not node:
-        return current_state
-
-    fiber = node.get("fiber", {})
-    fiber_id = fiber.get("id")
-    fiber_status = fiber.get("status")
-    is_virtually_broken = fiber_id and str(fiber_id) in broken_fiber_ids
-
-    if current_state == "dark":
-        node["signal_state"] = "dark"
-        propagate_state = "dark"
-    elif fiber_status or is_virtually_broken:
-        node["signal_state"] = "break_point"
-        propagate_state = "dark"
-
-        splice_node = node.get("node")
-        break_points.append(
-            {
-                "fiber_id": fiber.get("id"),
-                "fiber_number_absolute": fiber.get("fiber_number_absolute"),
-                "cable_id": fiber.get("cable_id"),
-                "cable_name": fiber.get("cable_name"),
-                "status": fiber_status or "simulated_break",
-                "at_node": {
-                    "id": splice_node.get("id") if splice_node else None,
-                    "name": splice_node.get("name") if splice_node else None,
-                }
-                if splice_node
-                else None,
-            }
-        )
-    else:
-        node["signal_state"] = "lit"
-        propagate_state = "lit"
-
-    for child in node.get("children", []):
-        _propagate_signal_state_with_virtual_breaks(
-            child, source_node_id, broken_fiber_ids, propagate_state, break_points
-        )
-
-    return node["signal_state"]
 
 
 def _collect_affected_entities(
