@@ -338,6 +338,68 @@ class TestNodeCanvasCoordinatesView:
         assert first_node.canvas_x == expected_x
         assert first_node.canvas_y == expected_y
 
+    def _add_node(self, name, x, y):
+        return Node.objects.create(
+            name=name,
+            project=self.project,
+            flag=self.flag,
+            node_type=self.node_type,
+            status=self.status_attr,
+            network_level=self.network_level,
+            owner=self.company,
+            geom=Point(x, y, srid=25832),
+        )
+
+    def test_post_resync_keeps_anchor_when_extent_grows(self):
+        """A node added outside the extent is placed relative to the first sync's center."""
+        self.client.force_authenticate(user=self.user1)
+        self.client.post(self.url, {"project_id": self.project.id, "scale": 0.5}, format="json")
+
+        new_node = self._add_node("Far Node", 10000.0, 12000.0)
+        response = self.client.post(
+            self.url, {"project_id": self.project.id, "scale": 0.5}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["updated_count"] == 1
+        assert response.json()["center"] == {"x": 1750.0, "y": 2750.0}
+
+        new_node.refresh_from_db()
+        assert new_node.canvas_x == (10000.0 - 1750.0) * 0.5
+        assert new_node.canvas_y == -(12000.0 - 2750.0) * 0.5
+
+    def test_post_resync_keeps_anchor_scale(self):
+        """A later sync with another scale still places new nodes at the first sync's scale."""
+        self.client.force_authenticate(user=self.user1)
+        self.client.post(self.url, {"project_id": self.project.id, "scale": 0.5}, format="json")
+
+        new_node = self._add_node("Inner Node", 2000.0, 2000.0)
+        response = self.client.post(
+            self.url, {"project_id": self.project.id, "scale": 2.0}, format="json"
+        )
+
+        assert response.json()["scale"] == 0.5
+        new_node.refresh_from_db()
+        assert new_node.canvas_x == (2000.0 - 1750.0) * 0.5
+        assert new_node.canvas_y == -(2000.0 - 2750.0) * 0.5
+
+    def test_post_resync_recomputes_anchor_when_no_node_is_placed(self):
+        """Once no node holds a canvas position, the sync starts over from the current extent."""
+        self.client.force_authenticate(user=self.user1)
+        self.client.post(self.url, {"project_id": self.project.id, "scale": 0.5}, format="json")
+
+        Node.objects.filter(project=self.project).delete()
+        self._add_node("Reimported A", 10000.0, 12000.0)
+        self._add_node("Reimported B", 12000.0, 16000.0)
+        response = self.client.post(
+            self.url, {"project_id": self.project.id, "scale": 1.0}, format="json"
+        )
+
+        data = response.json()
+        assert data["updated_count"] == 2
+        assert data["scale"] == 1.0
+        assert data["center"] == {"x": 11000.0, "y": 14000.0}
+
     def test_post_no_nodes_found(self):
         """Test POST when no nodes are found."""
         self.client.force_authenticate(user=self.user1)

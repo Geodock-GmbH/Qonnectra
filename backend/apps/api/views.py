@@ -3242,6 +3242,9 @@ class NodeCanvasCoordinatesView(APIView):
             "flag_id": int,     # Optional: filter by flag
             "scale": float      # Optional: scale factor (default: 1.0)
         }
+
+        The scale only applies when no node in scope holds a canvas position
+        yet; later syncs keep the scale of the layout they extend.
         """
         project_id = request.data.get("project_id")
         flag_id = request.data.get("flag_id")
@@ -3266,7 +3269,6 @@ class NodeCanvasCoordinatesView(APIView):
                         started_by=request.user,
                         started_at=timezone.now(),
                         last_heartbeat=timezone.now(),
-                        scale=scale,
                     )
                 else:
                     # Check if sync is already in progress
@@ -3291,7 +3293,6 @@ class NodeCanvasCoordinatesView(APIView):
                     sync_status.started_by = request.user
                     sync_status.started_at = timezone.now()
                     sync_status.last_heartbeat = timezone.now()
-                    sync_status.scale = scale
                     sync_status.nodes_processed = 0
                     sync_status.error_message = None
                     sync_status.save()
@@ -3320,8 +3321,11 @@ class NodeCanvasCoordinatesView(APIView):
         Perform the actual canvas coordinate synchronization.
 
         Only calculates positions for nodes missing canvas coordinates,
-        preserving user-positioned nodes. The bounding box is calculated
-        from ALL nodes.
+        preserving user-positioned nodes. While any node in scope is placed,
+        the center and scale stored by the sync that started the layout are
+        reused, so new nodes line up with the existing ones even when they
+        widen the extent. Otherwise the center is the bounding box center of
+        ALL nodes and the requested scale applies.
         """
         try:
             # Get ALL nodes with geometry for bounding box calculation
@@ -3361,13 +3365,27 @@ class NodeCanvasCoordinatesView(APIView):
             min_y = min(coord["y"] for coord in all_coordinates)
             max_y = max(coord["y"] for coord in all_coordinates)
 
-            # Calculate center
-            center_x = (min_x + max_x) / 2
-            center_y = (min_y + max_y) / 2
+            has_placed_nodes = any(
+                coord["node"].canvas_x is not None
+                and coord["node"].canvas_y is not None
+                for coord in all_coordinates
+            )
+            has_stored_anchor = (
+                sync_status.center_x is not None
+                and sync_status.center_y is not None
+                and sync_status.scale is not None
+            )
+            if has_placed_nodes and has_stored_anchor:
+                center_x = sync_status.center_x
+                center_y = sync_status.center_y
+                scale = sync_status.scale
+            else:
+                center_x = (min_x + max_x) / 2
+                center_y = (min_y + max_y) / 2
 
-            # Store calculated values in sync status
             sync_status.center_x = center_x
             sync_status.center_y = center_y
+            sync_status.scale = scale
             sync_status.save()
 
             # Only update nodes MISSING canvas coordinates, preserving user-positioned nodes
