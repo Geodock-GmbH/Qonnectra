@@ -237,6 +237,7 @@
 		{#if layersInitialized}
 			<Map
 				className="h-full w-full"
+				{projectId}
 				layers={mapState.getLayers()}
 				variant="fullscreen"
 				showSearchPanel={true}
