@@ -120,7 +120,7 @@
 	}
 </script>
 
-<!-- Mounted only while open, so every opening starts in the default stage. `persistRect` keeps the machine from resetting the rect on close; `resetOnClose` decides it instead. -->
+<!-- Mounted only while open, so every opening starts in the default stage. `persistRect` keeps the machine from resetting the rect on close; `resetOnClose` decides it instead. `restoreFocus` is off because the panel has no trigger to refocus, and the machine's deferred refocus would read its props after the panel unmounted. -->
 {#if open}
 	<SkeletonFloatingPanel
 		open={true}
@@ -133,6 +133,7 @@
 		onPositionChange={(details) => (position = details.position)}
 		onPositionChangeEnd={(details) => rememberRect({ ...details.position, ...size })}
 		persistRect={true}
+		restoreFocus={false}
 		minSize={{ width: minWidth, height: minHeight }}
 		maxSize={{ width: maxWidth, height: maxHeight }}
 		draggable={true}

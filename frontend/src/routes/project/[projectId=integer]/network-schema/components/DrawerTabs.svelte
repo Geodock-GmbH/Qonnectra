@@ -77,12 +77,14 @@
 
 	const detailsQuery = $derived(kind === 'cable' ? getCableDetails(id) : getNodeDetails(id));
 
+	// `recordOf` reads props, so it must not run after the await in the same expression.
+	const details = $derived(await detailsQuery);
+	const data = $derived(recordOf(details));
+
 	// The drawer body re-keys this component per feature, so the first load names
 	// the drawer once; renames report through `onLabelUpdate`.
 	// svelte-ignore state_referenced_locally
-	title = String(recordOf(await detailsQuery).name ?? '');
-
-	const data = $derived(recordOf(await detailsQuery));
+	title = String(data.name ?? '');
 	const type = $derived(kind === 'cable' ? 'edge' : 'node');
 
 	const isChildView = $derived(isNetworkSchemaChildView(page.route.id));

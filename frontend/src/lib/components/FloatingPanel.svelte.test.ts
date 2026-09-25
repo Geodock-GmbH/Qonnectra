@@ -1,7 +1,7 @@
 import { createRawSnippet } from 'svelte';
 import { get } from 'svelte/store';
 import { render, screen, waitFor } from '@testing-library/svelte';
-import { afterEach, describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { floatingPanelRects } from '$lib/stores/store';
 
@@ -162,6 +162,19 @@ describe('FloatingPanel', () => {
 		render(FloatingPanel, { open: false, title: 'Grabenprofil', children });
 
 		expect(screen.queryByText('Grabenprofil')).not.toBeInTheDocument();
+	});
+
+	test('should not read its unmounted state after closing', async () => {
+		const warn = vi.spyOn(console, 'warn');
+		render(FloatingPanel, { open: true, title: 'Grabenprofil', children });
+		await screen.findByText('Grabenprofil');
+
+		document.querySelector<HTMLElement>('[data-part="close-trigger"]')?.click();
+		await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve)));
+
+		expect(screen.queryByText('Grabenprofil')).not.toBeInTheDocument();
+		expect(warn.mock.calls.flat().join('\n')).not.toContain('derived_inert');
+		warn.mockRestore();
 	});
 
 	test('should render a resize trigger only when resizable', async () => {
