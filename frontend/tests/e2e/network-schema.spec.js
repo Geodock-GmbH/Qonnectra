@@ -81,6 +81,76 @@ test.describe('Network schema page', () => {
 		await expect(page.locator('.svelte-flow').first()).toBeVisible();
 	});
 
+	test('the drawer tab carries over between cables and falls back on a node without it', async ({
+		page
+	}) => {
+		test.setTimeout(90000);
+		await expect(page.locator('.svelte-flow').first()).toBeVisible({ timeout: 15000 });
+		const cableLabels = page.locator('.svelte-flow foreignObject.nopan [role="button"]');
+		const nodeLabel = page
+			.locator('.svelte-flow__node [role="button"]:not(.svelte-flow__handle)')
+			.first();
+		await cableLabels
+			.nth(1)
+			.waitFor({ state: 'attached', timeout: 15000 })
+			.catch(() => {});
+		await nodeLabel.waitFor({ state: 'attached', timeout: 15000 }).catch(() => {});
+		test.skip(
+			(await cableLabels.count()) < 2 || (await nodeLabel.count()) === 0,
+			'Needs at least two cables and one node in the schema'
+		);
+
+		/**
+		 * Clicks a canvas label until the URL names the feature it opens. Labels
+		 * can sit outside the canvas viewport or under the drawer, and the first
+		 * click can land before the canvas is interactive.
+		 * @param {import('@playwright/test').Locator} label
+		 * @param {RegExp} expected - What the URL must name afterwards.
+		 * @returns {Promise<string>} The `feature` value the URL then carries.
+		 */
+		const openFrom = async (label, expected) => {
+			await expect
+				.poll(
+					async () => {
+						await label.dispatchEvent('click');
+						await page.waitForTimeout(500);
+						return expected.test(page.url());
+					},
+					{ timeout: 15000 }
+				)
+				.toBe(true);
+			return new URL(page.url()).searchParams.get('feature') ?? '';
+		};
+
+		const drawer = page.locator('[data-drawer]');
+		const handlesTab = drawer.getByRole('tab', { name: /^(handles|fangpunkte)$/i });
+		const attributesTab = drawer.getByRole('tab', { name: /^(attributes|eigenschaften)$/i });
+
+		const firstCable = await openFrom(cableLabels.first(), /[?&]feature=cable%3A/);
+		await handlesTab.click();
+		await expect(page).toHaveURL(/[?&]tab=handles/);
+
+		// Several labels can belong to one cable; take the first that opens another.
+		let secondCable = firstCable;
+		const count = await cableLabels.count();
+		for (let index = 1; index < count && secondCable === firstCable; index++) {
+			await cableLabels.nth(index).dispatchEvent('click');
+			await page.waitForTimeout(500);
+			secondCable = new URL(page.url()).searchParams.get('feature') ?? '';
+		}
+		test.skip(secondCable === firstCable, 'Needs labels of two different cables');
+		await expect(page).toHaveURL(/[?&]tab=handles/);
+		await expect(handlesTab).toHaveAttribute('aria-selected', 'true', { timeout: 15000 });
+
+		await openFrom(nodeLabel, /[?&]feature=node%3A/);
+		await expect(attributesTab).toHaveAttribute('aria-selected', 'true', { timeout: 15000 });
+		await expect(handlesTab).toHaveCount(0);
+		await expect(page).toHaveURL(/[?&]tab=handles/);
+
+		await openFrom(cableLabels.first(), new RegExp(`feature=${encodeURIComponent(firstCable)}`));
+		await expect(handlesTab).toHaveAttribute('aria-selected', 'true', { timeout: 15000 });
+	});
+
 	test('renders the SvelteFlow canvas and the attributes panel', async ({ page }) => {
 		// The @xyflow/svelte canvas mounts a .svelte-flow root once initialised.
 		await expect(page.locator('.svelte-flow').first()).toBeVisible({ timeout: 15000 });

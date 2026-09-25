@@ -188,12 +188,12 @@ describe('openFeature', () => {
 		});
 	});
 
-	test('should replace the entry when switching the open feature', () => {
+	test('should replace the entry and keep the tab when switching the open feature', () => {
 		appState.page.url = url('?feature=conduit%3Aabc&tab=files');
 
 		openFeature('conduit', 'def');
 
-		expect(goto).toHaveBeenCalledWith('/conduit/5?feature=conduit%3Adef', {
+		expect(goto).toHaveBeenCalledWith('/conduit/5?feature=conduit%3Adef&tab=files', {
 			keepFocus: true,
 			noScroll: true,
 			replaceState: true

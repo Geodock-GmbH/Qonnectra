@@ -1,3 +1,4 @@
+import { goto } from '$app/navigation';
 import { render, screen } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -159,5 +160,33 @@ describe('DrawerTabs', () => {
 			'aria-selected',
 			'true'
 		);
+	});
+
+	test('should open a cable on the tab carried over in the URL', async () => {
+		statePage.current.url = new URL(
+			'http://localhost/project/7/network-schema?feature=cable:cable-2&tab=handles'
+		);
+
+		render(DrawerTabsFixture, { drawerProps: { kind: 'cable', id: 'cable-2' } });
+
+		expect(await screen.findByRole('tab', { name: 'form_handles' })).toHaveAttribute(
+			'aria-selected',
+			'true'
+		);
+	});
+
+	test('should fall back to attributes for a carried-over tab a node lacks, keeping the URL', async () => {
+		vi.mocked(goto).mockClear();
+		statePage.current.url = new URL(
+			'http://localhost/project/7/network-schema?feature=node:node-1&tab=handles'
+		);
+
+		render(DrawerTabsFixture, { drawerProps: { kind: 'node', id: 'node-1' } });
+
+		expect(await screen.findByRole('tab', { name: 'common_attributes' })).toHaveAttribute(
+			'aria-selected',
+			'true'
+		);
+		expect(goto).not.toHaveBeenCalled();
 	});
 });

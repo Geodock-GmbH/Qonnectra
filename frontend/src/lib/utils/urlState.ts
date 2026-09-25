@@ -193,19 +193,21 @@ export function featureParam(kind: string, id: string): string {
  * Opens a feature in the drawer. Opening from a closed drawer is a place,
  * so it pushes a history entry and back closes the drawer; switching the
  * feature while the drawer is open replaces the entry, so back still closes
- * the drawer in one step. The drawer tab is reset with the feature.
+ * the drawer in one step. The drawer tab carries over to the next feature,
+ * which shows its default tab when it does not offer that one.
  * @param kind - The feature kind.
  * @param id - The feature identifier.
  * @returns Resolves once the navigation has completed.
  */
 export function openFeature(kind: string, id: string) {
 	const isOpen = page.url.searchParams.has('feature');
-	return setQuery({ feature: featureParam(kind, id), tab: null }, { push: !isOpen });
+	return setQuery({ feature: featureParam(kind, id) }, { push: !isOpen });
 }
 
 /**
- * Closes the drawer by rewriting the current entry without the feature, so
- * back never reopens it; after a delete that would resurrect a dead entity.
+ * Closes the drawer by rewriting the current entry without the feature and
+ * its tab, so back never reopens it (after a delete that would resurrect a
+ * dead entity) and the next opened feature starts on its default tab.
  * @returns Resolves once the navigation has completed.
  */
 export function closeFeature() {
