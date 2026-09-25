@@ -70,6 +70,23 @@ export const networkSchemaChildViewport: Writable<{ x: number; y: number; zoom: 
 		zoom: 1
 	});
 
+/** A floating panel's position and size in viewport pixels. */
+export interface FloatingPanelRect {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}
+
+/**
+ * Last rect of each floating panel that names a storage key. It depends on the
+ * screen, so it stays per device and is not part of the synced settings.
+ */
+export const floatingPanelRects: Writable<Record<string, FloatingPanelRect>> = persisted(
+	'floatingPanelRects',
+	{}
+);
+
 /** Whether to show all projects on map */
 export const globalMapView = persisted('globalMapView', false);
 

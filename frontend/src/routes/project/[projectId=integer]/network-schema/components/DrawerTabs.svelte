@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { Fiber } from '$lib/classes/CableFiberDataManager.svelte';
-	import type { SlotConfiguration } from '$lib/classes/NodeStructureContext.svelte.js';
 	import type {
 		AttributeOptions,
 		CableDrawerProps,
@@ -25,27 +24,22 @@
 	import FibersStatusTable from '$lib/components/FibersStatusTable.svelte';
 	import FileExplorer from '$lib/components/FileExplorer.svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';
-	import FloatingPanel from '$lib/components/FloatingPanel.svelte';
-	import NodeSlotConfigPanel from '$lib/components/node-structure/NodeSlotConfigPanel.svelte';
-	import NodeStructurePanel from '$lib/components/node-structure/NodeStructurePanel.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { queryEnum, setQuery } from '$lib/utils/urlState';
 	import { isNetworkSchemaChildView } from '$lib/config/routes';
-	import { getSchemaState } from '$lib/context/networkSchemaContext';
+	import { getSchemaPanels, getSchemaState } from '$lib/context/networkSchemaContext';
 	import { routeProjectId } from '$lib/context/project';
 	import {
 		getCableDetails,
 		recalculateCableLength
 	} from '$lib/remote/network-schema/cables.remote';
-	import { getMicropipeConnectionsForCable } from '$lib/remote/network-schema/micropipes.remote';
 	import { getNodeDetails } from '$lib/remote/network-schema/nodes.remote';
 
 	import CableDiagramEdgeAttributeCard from './CableDiagramEdgeAttributeCard.svelte';
 	import CableDiagramEdgeHandleConfig from './CableDiagramEdgeHandleConfig.svelte';
 	import CableDiagramNodeAttributeCard from './CableDiagramNodeAttributeCard.svelte';
-	import CableMicropipePanel from './CableMicropipePanel.svelte';
 
 	/** Feature kinds the network-schema drawer can show, as named in `?feature=kind:id`. */
 	export type SchemaFeatureKind = 'node' | 'cable';
@@ -61,6 +55,7 @@
 
 	const attributeOptions = getContext<AttributeOptions>('attributeOptions');
 	const schemaState = getSchemaState();
+	const panels = getSchemaPanels();
 
 	const fiberDataManager = new CableFiberDataManager();
 
@@ -82,28 +77,13 @@
 
 	const detailsQuery = $derived(kind === 'cable' ? getCableDetails(id) : getNodeDetails(id));
 
-	// The page re-keys this component per feature, so the first load names
+	// The drawer body re-keys this component per feature, so the first load names
 	// the drawer once; renames report through `onLabelUpdate`.
 	// svelte-ignore state_referenced_locally
 	title = String(recordOf(await detailsQuery).name ?? '');
 
 	const data = $derived(recordOf(await detailsQuery));
 	const type = $derived(kind === 'cable' ? 'edge' : 'node');
-
-	let slotConfigPanelOpen = $state(false);
-	let structurePanelOpen = $state(false);
-	let structurePanelSlotConfigUuid = $state<string | null>(null);
-	let micropipePanelOpen = $state(false);
-
-	let sharedSlotState = $state<{
-		nodeUuid: string | null;
-		slotConfigurations: SlotConfiguration[];
-		lastUpdated: number;
-	}>({
-		nodeUuid: null,
-		slotConfigurations: [],
-		lastUpdated: 0
-	});
 
 	const isChildView = $derived(isNetworkSchemaChildView(page.route.id));
 	const childViewEnabledTypeIds = $derived(attributeOptions?.childViewEnabledNodeTypeIds ?? []);
@@ -216,7 +196,7 @@
 
 	const featureId = $derived(id);
 
-	// A tab change rewrites the history entry and the page re-keys this component
+	// A tab change rewrites the history entry and the drawer body re-keys this component
 	// per feature, so a status tab present at mount is the only one not opened by click.
 	onMount(() => {
 		if (group === 'status') loadFiberStatus();
@@ -234,15 +214,6 @@
 		if (fileExplorer) {
 			fileExplorer.refresh();
 		}
-	}
-
-	/**
-	 * Opens the node structure panel, optionally pre-selecting a slot configuration.
-	 * @param slotConfigUuid - UUID of the slot configuration to display, or null for the default view.
-	 */
-	function handleOpenStructurePanel(slotConfigUuid: string | null = null) {
-		structurePanelSlotConfigUuid = slotConfigUuid;
-		structurePanelOpen = true;
 	}
 
 	/**
@@ -279,34 +250,12 @@
 	}
 
 	/**
-	 * Refreshes the cable record from the server, which updates every card
-	 * awaiting the query, and dispatches a micropipeLinkageChanged event to
-	 * update edge micropipe connection coloring.
+	 * Refreshes the cable record, which updates every card awaiting the query,
+	 * and the edge's micropipe coloring.
 	 */
 	async function refreshCableData() {
 		if (type !== 'edge' || !featureId) return;
-
-		try {
-			await schemaState.loadCableDetails(featureId);
-
-			const connections = await getMicropipeConnectionsForCable(featureId);
-			window.dispatchEvent(
-				new CustomEvent('micropipeLinkageChanged', {
-					detail: { cableId: featureId, connections }
-				})
-			);
-		} catch (err) {
-			console.error('Error refreshing cable data:', err);
-			void logToBackendClient({
-				level: 'ERROR',
-				message: 'Error refreshing cable data',
-				extraData: {
-					from: 'DrawerTabs.refreshCableData',
-					error: err instanceof Error ? err.message : String(err),
-					stack: err instanceof Error ? err.stack : undefined
-				}
-			});
-		}
+		await schemaState.refreshCable(featureId);
 	}
 </script>
 
@@ -361,7 +310,7 @@
 				<button
 					type="button"
 					class="btn preset-filled-primary-500 w-full"
-					onclick={() => (slotConfigPanelOpen = true)}
+					onclick={() => (panels.slotConfigOpen = true)}
 				>
 					<IconSettings size={18} />
 					{m.action_configure_slots()}
@@ -369,7 +318,7 @@
 				<button
 					type="button"
 					class="btn preset-filled-secondary-500 w-full"
-					onclick={() => handleOpenStructurePanel()}
+					onclick={() => panels.openStructure(id)}
 				>
 					<IconLayoutList size={18} />
 					{m.action_configure_structure()}
@@ -390,7 +339,7 @@
 				<button
 					type="button"
 					class="btn preset-filled-primary-500 w-full"
-					onclick={() => (micropipePanelOpen = true)}
+					onclick={() => (panels.micropipeOpen = true)}
 				>
 					<IconLink size={18} />
 					{m.action_link_micropipes()}
@@ -427,58 +376,3 @@
 		</div>
 	{/if}
 </Tabs>
-
-{#if type === 'node'}
-	<FloatingPanel
-		bind:open={slotConfigPanelOpen}
-		title={m.title_slot_configuration()}
-		width={900}
-		height={600}
-		maxWidth={1920}
-		maxHeight={1080}
-	>
-		<NodeSlotConfigPanel
-			nodeUuid={featureId}
-			nodeName={String(data.name ?? '')}
-			onViewStructure={(slotConfigUuid) => handleOpenStructurePanel(slotConfigUuid)}
-			bind:sharedSlotState
-		/>
-	</FloatingPanel>
-
-	<FloatingPanel
-		bind:open={structurePanelOpen}
-		title={m.title_node_structure()}
-		width={900}
-		height={600}
-		minWidth={600}
-		minHeight={400}
-		maxWidth={1920}
-		maxHeight={1080}
-	>
-		<NodeStructurePanel
-			nodeUuid={featureId}
-			initialSlotConfigUuid={structurePanelSlotConfigUuid}
-			bind:sharedSlotState
-		/>
-	</FloatingPanel>
-{/if}
-
-{#if type === 'edge' && micropipePanelOpen}
-	<FloatingPanel
-		bind:open={micropipePanelOpen}
-		title={m.title_cable_micropipe_linking()}
-		width={1200}
-		height={700}
-		minWidth={800}
-		minHeight={500}
-		maxWidth={1920}
-		maxHeight={1080}
-	>
-		<CableMicropipePanel
-			cableId={featureId}
-			cableName={String(data.name ?? '')}
-			onClose={() => (micropipePanelOpen = false)}
-			onLinkageChange={refreshCableData}
-		/>
-	</FloatingPanel>
-{/if}

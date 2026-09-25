@@ -42,7 +42,7 @@
 	let pendingDeleteUuid = $state<string | null>(null);
 	let pendingDeleteSpliceCount = $state(0);
 
-	// The drawer is re-keyed per feature, so `nodeUuid` is fixed for this panel's lifetime.
+	// Every host re-keys this panel per feature, so `nodeUuid` is fixed for its lifetime.
 	// svelte-ignore state_referenced_locally
 	const context = new NodeStructureContext(nodeUuid, { initialSlotConfigUuid, sharedSlotState });
 

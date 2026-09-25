@@ -148,7 +148,7 @@
 		return configs;
 	}
 
-	// The drawer is re-keyed per feature, so `nodeUuid` is fixed for this panel's lifetime.
+	// Every host re-keys this panel per feature, so `nodeUuid` is fixed for its lifetime.
 	onMount(() => {
 		fetchContainerTypes();
 		fetchHierarchy();

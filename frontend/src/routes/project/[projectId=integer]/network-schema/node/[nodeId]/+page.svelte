@@ -14,7 +14,6 @@
 	import { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte';
 	import Drawer from '$lib/components/Drawer.svelte';
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
-	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import {
 		cableDirectionAnimationEnabled,
 		edgeSnappingEnabled,
@@ -29,15 +28,15 @@
 	import '@xyflow/svelte/dist/style.css';
 
 	import type { PageData } from './$types';
-	import { onMount, setContext } from 'svelte';
+	import { setContext } from 'svelte';
 
 	import CableDiagramEdge from '../../components/CableDiagramEdge.svelte';
 	import CableDiagramNode from '../../components/CableDiagramNode.svelte';
-	import DrawerTabs from '../../components/DrawerTabs.svelte';
 	import MicroductChoiceDialog from '../../components/MicroductChoiceDialog.svelte';
 	import NetworkSchemaControls from '../../components/NetworkSchemaControls.svelte';
 	import NetworkSchemaEditModeBadge from '../../components/NetworkSchemaEditModeBadge.svelte';
 	import NetworkSchemaSearch from '../../components/NetworkSchemaSearch.svelte';
+	import SchemaDrawerBody from '../../components/SchemaDrawerBody.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -109,18 +108,6 @@
 	});
 
 	setSchemaState(schemaState);
-
-	onMount(() => {
-		function handleMicropipeLinkageChanged(event: WindowEventMap['micropipeLinkageChanged']) {
-			const { cableId, connections } = event.detail;
-			schemaState.updateEdgeMicropipeConnections(cableId, connections);
-		}
-
-		window.addEventListener('micropipeLinkageChanged', handleMicropipeLinkageChanged);
-		return () => {
-			window.removeEventListener('micropipeLinkageChanged', handleMicropipeLinkageChanged);
-		};
-	});
 
 	function navigateBack() {
 		goto(resolve('/project/[projectId=integer]/network-schema', { projectId: routeProjectId() }));
@@ -302,11 +289,7 @@
 
 	<Drawer open={feature !== null} title={feature ? drawerTitle : ''} onclose={closeFeature}>
 		{#if feature}
-			{#key feature.id}
-				<QueryBoundary>
-					<DrawerTabs kind={feature.kind} id={feature.id} bind:title={drawerTitle} />
-				</QueryBoundary>
-			{/key}
+			<SchemaDrawerBody kind={feature.kind} id={feature.id} bind:title={drawerTitle} />
 		{/if}
 	</Drawer>
 </div>

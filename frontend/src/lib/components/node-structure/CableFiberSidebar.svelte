@@ -162,8 +162,9 @@
 	}
 
 	/**
-	 * Loads the cables, addresses and their usage for the node. The drawer is
-	 * re-keyed per feature, so `nodeUuid` is fixed for this sidebar's lifetime.
+	 * Loads the cables, addresses and their usage for the node. The structure
+	 * panel around it is re-keyed per feature, so `nodeUuid` is fixed for this
+	 * sidebar's lifetime.
 	 */
 	function loadNode() {
 		if (!nodeUuid) return;

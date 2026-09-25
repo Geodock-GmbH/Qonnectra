@@ -184,7 +184,6 @@ vi.mock('$lib/classes/NetworkSchemaState.svelte', () => ({
 		initialize = vi.fn();
 		handleNodeDragStop = vi.fn();
 		handleConnect = vi.fn();
-		updateEdgeMicropipeConnections = vi.fn();
 		updateCableHandles = vi.fn();
 		updateEdgeConnection = vi.fn();
 		deselectAllNodes = vi.fn();

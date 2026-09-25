@@ -11,6 +11,7 @@ import type {
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalToaster } from '$lib/stores/toaster';
+import { logToBackendClient } from '$lib/utils/logToBackendClient';
 import { remoteQueryStub } from '$lib/test-utils/remoteQueryStub';
 
 import { NetworkSchemaState } from './NetworkSchemaState.svelte';
@@ -24,6 +25,19 @@ vi.mock('$lib/remote/network-schema/nodes.remote', () => ({
 	// loadNodeDetails force-refreshes this cached query, so mock it as a query stub.
 	getNodeDetails: (...a: unknown[]) => remoteQueryStub(getNodeDetails)(...a),
 	saveNodeGeometry: (...args: unknown[]) => saveNodeGeometry(...args)
+}));
+
+const getCableDetails = vi.fn().mockResolvedValue({});
+const getMicropipeConnectionsForCable = vi.fn().mockResolvedValue([]);
+
+vi.mock('$lib/remote/network-schema/cables.remote', () => ({
+	getCableDetails: (...a: unknown[]) => remoteQueryStub(getCableDetails)(...a),
+	createCable: vi.fn()
+}));
+
+vi.mock('$lib/remote/network-schema/micropipes.remote', () => ({
+	autoLinkMicropipe: vi.fn(),
+	getMicropipeConnectionsForCable: (...a: unknown[]) => getMicropipeConnectionsForCable(...a)
 }));
 
 vi.mock('$app/state', () => ({
@@ -669,5 +683,38 @@ describe('NetworkSchemaState.handleNodeDragStop', () => {
 		expect(state.nodes[0].position).toEqual({ x: 1, y: 2 });
 		expect(globalToaster.error).toHaveBeenCalled();
 		errorSpy.mockRestore();
+	});
+});
+
+describe('NetworkSchemaState.refreshCable', () => {
+	let state: NetworkSchemaState;
+	beforeEach(() => {
+		state = new NetworkSchemaState();
+		state.edges = [{ id: 'cable-1', data: { label: 'x' } } as unknown as SvelteFlowEdge];
+		getCableDetails.mockReset().mockResolvedValue({ uuid: 'cable-1' });
+		getMicropipeConnectionsForCable
+			.mockReset()
+			.mockResolvedValue([{ number: 3, color_hex: '#00ff00', color_name: 'grün' }]);
+		vi.mocked(logToBackendClient).mockClear();
+	});
+
+	test('reloads the cable record and recolors its edge', async () => {
+		await state.refreshCable('cable-1');
+
+		expect(getCableDetails).toHaveBeenCalledWith('cable-1');
+		expect(getMicropipeConnectionsForCable).toHaveBeenCalledWith('cable-1');
+		expect(state.edges[0].data.lowestMicropipe?.number).toBe(3);
+	});
+
+	test('logs a failed record reload and leaves the edge coloring alone', async () => {
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+		getCableDetails.mockRejectedValue(new Error('offline'));
+
+		await state.refreshCable('cable-1');
+
+		expect(logToBackendClient).toHaveBeenCalledWith(
+			expect.objectContaining({ message: 'Error refreshing cable data' })
+		);
+		expect(getMicropipeConnectionsForCable).not.toHaveBeenCalled();
 	});
 });

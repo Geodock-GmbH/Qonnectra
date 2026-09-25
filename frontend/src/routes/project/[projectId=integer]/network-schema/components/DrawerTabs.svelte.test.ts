@@ -1,8 +1,20 @@
 import { goto } from '$app/navigation';
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import DrawerTabsFixture from './DrawerTabs.fixture.svelte';
+import SchemaDrawerBodyFixture from './SchemaDrawerBody.fixture.svelte';
+
+// The panel contents load node structures and a map; a stub that reads its
+// feature once, like they do, shows which feature a panel was mounted for.
+vi.mock(
+	'$lib/components/node-structure/NodeSlotConfigPanel.svelte',
+	() => import('./SchemaPanelContent.fixture.svelte')
+);
+vi.mock(
+	'$lib/components/node-structure/NodeStructurePanel.svelte',
+	() => import('./SchemaPanelContent.fixture.svelte')
+);
+vi.mock('./CableMicropipePanel.svelte', () => import('./SchemaPanelContent.fixture.svelte'));
 
 vi.mock('$app/environment', () => ({
 	browser: true
@@ -120,7 +132,7 @@ afterEach(() => {
 
 describe('DrawerTabs', () => {
 	test('should show edge tabs for cables', async () => {
-		render(DrawerTabsFixture, { drawerProps: { kind: 'cable', id: 'cable-1' } });
+		render(SchemaDrawerBodyFixture, { drawerProps: { kind: 'cable', id: 'cable-1' } });
 
 		expect(await screen.findByRole('tab', { name: 'common_attributes' })).toBeInTheDocument();
 		expect(screen.getByRole('tab', { name: 'form_status' })).toBeInTheDocument();
@@ -130,7 +142,7 @@ describe('DrawerTabs', () => {
 	});
 
 	test('should show node tabs without cable-specific entries', async () => {
-		render(DrawerTabsFixture, { drawerProps: { kind: 'node', id: 'node-1' } });
+		render(SchemaDrawerBodyFixture, { drawerProps: { kind: 'node', id: 'node-1' } });
 
 		expect(await screen.findByRole('tab', { name: 'common_attributes' })).toBeInTheDocument();
 		expect(screen.getByRole('tab', { name: 'form_actions' })).toBeInTheDocument();
@@ -143,7 +155,7 @@ describe('DrawerTabs', () => {
 			'http://localhost/project/7/network-schema?feature=cable:cable-1&tab=status'
 		);
 
-		render(DrawerTabsFixture, { drawerProps: { kind: 'cable', id: 'cable-1' } });
+		render(SchemaDrawerBodyFixture, { drawerProps: { kind: 'cable', id: 'cable-1' } });
 
 		expect(await screen.findByRole('tab', { name: 'form_status' })).toHaveAttribute(
 			'aria-selected',
@@ -154,7 +166,7 @@ describe('DrawerTabs', () => {
 	});
 
 	test('should select the attributes tab by default', async () => {
-		render(DrawerTabsFixture, { drawerProps: { kind: 'node', id: 'node-1' } });
+		render(SchemaDrawerBodyFixture, { drawerProps: { kind: 'node', id: 'node-1' } });
 
 		expect(await screen.findByRole('tab', { name: 'common_attributes' })).toHaveAttribute(
 			'aria-selected',
@@ -167,7 +179,7 @@ describe('DrawerTabs', () => {
 			'http://localhost/project/7/network-schema?feature=cable:cable-2&tab=handles'
 		);
 
-		render(DrawerTabsFixture, { drawerProps: { kind: 'cable', id: 'cable-2' } });
+		render(SchemaDrawerBodyFixture, { drawerProps: { kind: 'cable', id: 'cable-2' } });
 
 		expect(await screen.findByRole('tab', { name: 'form_handles' })).toHaveAttribute(
 			'aria-selected',
@@ -181,12 +193,83 @@ describe('DrawerTabs', () => {
 			'http://localhost/project/7/network-schema?feature=node:node-1&tab=handles'
 		);
 
-		render(DrawerTabsFixture, { drawerProps: { kind: 'node', id: 'node-1' } });
+		render(SchemaDrawerBodyFixture, { drawerProps: { kind: 'node', id: 'node-1' } });
 
 		expect(await screen.findByRole('tab', { name: 'common_attributes' })).toHaveAttribute(
 			'aria-selected',
 			'true'
 		);
 		expect(goto).not.toHaveBeenCalled();
+	});
+});
+
+describe('drawer floating panels', () => {
+	beforeEach(() => {
+		statePage.current.url = new URL('http://localhost/project/7/network-schema?tab=actions');
+	});
+
+	/**
+	 * Clicks an action button once the drawer's record has loaded.
+	 * @param name - The button's accessible name.
+	 */
+	async function clickAction(name: string) {
+		await fireEvent.click(await screen.findByRole('button', { name }));
+	}
+
+	test('should keep the structure panel open for the next node and load that node', async () => {
+		const { rerender } = render(SchemaDrawerBodyFixture, {
+			drawerProps: { kind: 'node', id: 'node-1' }
+		});
+		await clickAction('action_configure_structure');
+		expect(await screen.findByText('content for node-1')).toBeInTheDocument();
+
+		await rerender({ drawerProps: { kind: 'node', id: 'node-2' } });
+
+		expect(await screen.findByText('content for node-2')).toBeInTheDocument();
+		expect(screen.getByText('title_node_structure')).toBeInTheDocument();
+		expect(screen.queryByText('content for node-1')).not.toBeInTheDocument();
+	});
+
+	test('should close the node panels when a cable is selected', async () => {
+		const { rerender } = render(SchemaDrawerBodyFixture, {
+			drawerProps: { kind: 'node', id: 'node-1' }
+		});
+		await clickAction('action_configure_slots');
+		expect(await screen.findByText('title_slot_configuration')).toBeInTheDocument();
+
+		await rerender({ drawerProps: { kind: 'cable', id: 'cable-1' } });
+		await screen.findByRole('button', { name: 'action_link_micropipes' });
+		expect(screen.queryByText('title_slot_configuration')).not.toBeInTheDocument();
+
+		await rerender({ drawerProps: { kind: 'node', id: 'node-2' } });
+		await screen.findByRole('button', { name: 'action_configure_slots' });
+		expect(screen.queryByText('title_slot_configuration')).not.toBeInTheDocument();
+	});
+
+	test('should not carry a slot configuration picked on one node over to the next', async () => {
+		const { rerender } = render(SchemaDrawerBodyFixture, {
+			drawerProps: { kind: 'node', id: 'node-1' }
+		});
+		await clickAction('action_configure_slots');
+		await fireEvent.click(await screen.findByRole('button', { name: 'view structure' }));
+		expect(await screen.findByText('starts on slot-9')).toBeInTheDocument();
+
+		await rerender({ drawerProps: { kind: 'node', id: 'node-2' } });
+
+		expect(await screen.findAllByText('content for node-2')).toHaveLength(2);
+		expect(screen.queryByText('starts on slot-9')).not.toBeInTheDocument();
+	});
+
+	test('should keep the micropipe panel open for the next cable and load that cable', async () => {
+		const { rerender } = render(SchemaDrawerBodyFixture, {
+			drawerProps: { kind: 'cable', id: 'cable-1' }
+		});
+		await clickAction('action_link_micropipes');
+		expect(await screen.findByText('content for cable-1')).toBeInTheDocument();
+
+		await rerender({ drawerProps: { kind: 'cable', id: 'cable-2' } });
+
+		expect(await screen.findByText('content for cable-2')).toBeInTheDocument();
+		expect(screen.getByText('title_cable_micropipe_linking')).toBeInTheDocument();
 	});
 });

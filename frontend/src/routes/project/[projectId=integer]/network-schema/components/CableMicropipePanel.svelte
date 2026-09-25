@@ -53,7 +53,7 @@
 	const mapState = new MapState(projectId);
 	const layersInitialized = mapState.initializeLayers();
 
-	// DrawerTabs is re-keyed per feature, so `cableId` is fixed for this panel's lifetime.
+	// The panel host re-keys this panel per cable, so `cableId` is fixed for its lifetime.
 	// svelte-ignore state_referenced_locally
 	manager.initialize(cableId, cableName);
 

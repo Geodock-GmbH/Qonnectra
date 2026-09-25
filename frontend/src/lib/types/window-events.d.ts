@@ -1,7 +1,7 @@
 /**
  * Ambient typings for the app's custom `window` events.
  *
- * Augmenting `WindowEventMap` lets `window.addEventListener('micropipeLinkageChanged', h)`
+ * Augmenting `WindowEventMap` lets `window.addEventListener('cableConnectionChanged', h)`
  * infer `h`'s event as the matching `CustomEvent<Detail>` — no untyped window
  * cast and no loosely-typed handler needed. Keep each entry in sync with the
  * corresponding `window.dispatchEvent(new CustomEvent(...))` call site.
@@ -21,10 +21,6 @@ declare global {
 	}
 
 	interface WindowEventMap {
-		micropipeLinkageChanged: CustomEvent<{
-			cableId: string;
-			connections: import('$lib/classes/NetworkSchemaState.svelte').MicropipeConnection[];
-		}>;
 		/**
 		 * Broadcast of the node IDs affected by a cable create/delete so the fiber
 		 * sidebar can refresh its cache.
