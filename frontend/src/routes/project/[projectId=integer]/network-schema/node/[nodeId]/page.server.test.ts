@@ -152,7 +152,6 @@ describe('child view +page.server.js', () => {
 
 			expect(result.isChildView).toBe(true);
 			expect(result.parentNodeId).toBe('node-1');
-			expect(result.syncStatus).toBeNull();
 			expect(result.networkSchemaSettingsConfigured).toBe(true);
 			expect(result.excludedNodeTypeIds).toEqual([]);
 		});

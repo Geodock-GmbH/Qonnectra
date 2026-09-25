@@ -114,19 +114,6 @@
 				description: m.message_network_schema_settings_not_configured()
 			});
 		}
-
-		if (data.syncStatus) {
-			if (data.syncStatus.sync_status === 'FAILED') {
-				globalToaster.error({
-					title: m.title_error_canvas_sync_failed(),
-					description: data.syncStatus.error_message || m.message_error_canvas_sync_failed()
-				});
-			} else if (data.syncStatus.sync_status === 'COMPLETED') {
-				globalToaster.success({
-					title: m.title_success_canvas_sync_complete()
-				});
-			}
-		}
 	});
 
 	/**

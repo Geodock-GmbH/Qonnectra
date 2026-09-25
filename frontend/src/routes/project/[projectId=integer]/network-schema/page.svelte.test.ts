@@ -19,9 +19,6 @@ vi.mock('$lib/paraglide/messages', () => {
 					common_warning: 'Warning',
 					form_snapping: 'Snapping',
 					placeholder_select_cable_type: 'Select cable type',
-					title_error_canvas_sync_failed: 'Canvas sync failed',
-					message_error_canvas_sync_failed: 'Sync failed',
-					title_success_canvas_sync_complete: 'Sync complete',
 					message_network_schema_settings_not_configured: 'Settings not configured'
 				};
 				return () => messageMap[prop as string] || String(prop);
@@ -232,8 +229,7 @@ describe('/network-schema/+page.svelte', () => {
 		flags: [],
 		excludedNodeTypeIds: [],
 		childViewEnabledNodeTypeIds: [],
-		networkSchemaSettingsConfigured: true,
-		syncStatus: null
+		networkSchemaSettingsConfigured: true
 	} as unknown as PageData;
 
 	test('should render the SvelteFlow container', () => {
@@ -307,59 +303,6 @@ describe('/network-schema/+page.svelte', () => {
 	test('should render with empty nodes array', () => {
 		const emptyData = { ...mockData, nodes: [] };
 		render(Page, { props: { data: emptyData } });
-
-		expect(screen.getByTestId('svelte-flow')).toBeInTheDocument();
-	});
-
-	test('should render with null syncStatus', () => {
-		const nullSyncData = { ...mockData, syncStatus: null };
-		render(Page, { props: { data: nullSyncData } });
-
-		expect(screen.getByTestId('svelte-flow')).toBeInTheDocument();
-	});
-
-	test('should render with completed sync status', () => {
-		const syncCompletedData = {
-			...mockData,
-			syncStatus: {
-				sync_in_progress: false,
-				sync_status: 'COMPLETED',
-				sync_progress: 100.0
-			}
-		};
-
-		render(Page, { props: { data: syncCompletedData as unknown as PageData } });
-
-		expect(screen.getByTestId('svelte-flow')).toBeInTheDocument();
-	});
-
-	test('should render with failed sync status', () => {
-		const syncFailedData = {
-			...mockData,
-			syncStatus: {
-				sync_in_progress: false,
-				sync_status: 'FAILED',
-				error_message: 'Database connection failed'
-			}
-		};
-
-		render(Page, { props: { data: syncFailedData as unknown as PageData } });
-
-		expect(screen.getByTestId('svelte-flow')).toBeInTheDocument();
-	});
-
-	test('should render with in-progress sync status', () => {
-		const syncInProgressData = {
-			...mockData,
-			syncStatus: {
-				sync_in_progress: true,
-				sync_progress: 75.5,
-				sync_started_by: 'test_user',
-				sync_status: 'IN_PROGRESS'
-			}
-		};
-
-		render(Page, { props: { data: syncInProgressData as unknown as PageData } });
 
 		expect(screen.getByTestId('svelte-flow')).toBeInTheDocument();
 	});

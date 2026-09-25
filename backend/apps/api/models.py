@@ -12,7 +12,6 @@ from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
-from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from pathvalidate import sanitize_filename
 from simple_history.models import HistoricalRecords
@@ -46,10 +45,14 @@ class Projects(models.Model):
 
 
 class NetworkSchemaSettings(models.Model):
-    """Project-specific settings for network schema display.
+    """Project-specific settings for network schema display, one per :model:`api.Projects`.
 
-    Configures which node types are excluded when loading nodes
-    for the network schema view.
+    Configures which :model:`api.AttributesNodeType` entries are excluded when
+    loading nodes for the network schema view, and how node geometries map
+    onto the schema canvas. The ``tg_place_node_on_canvas`` trigger places
+    every new :model:`api.Node` at ``(geo - canvas_center) * canvas_scale``
+    (Y flipped) and creates the row on the project's first node, taking that
+    node as the center.
     """
 
     project = models.OneToOneField(
@@ -72,6 +75,40 @@ class NetworkSchemaSettings(models.Model):
         related_name="child_view_enabled_schemas",
         verbose_name=_("Child View Enabled Node Types"),
         help_text=_("Node types that show the 'View Building Connections' button."),
+    )
+    configured = models.BooleanField(
+        _("Configured"),
+        default=False,
+        db_default=False,
+        help_text=_(
+            "Tick once the excluded node types are set up. Until then the network "
+            "schema warns that every node, including house connections, is shown."
+        ),
+    )
+    canvas_scale = models.FloatField(
+        _("Canvas Scale"),
+        default=0.5,
+        db_default=0.5,
+        help_text=_(
+            "Canvas units per metre for placing nodes on the network schema. "
+            "Can only be changed while no node of the project is placed."
+        ),
+    )
+    canvas_center_x = models.FloatField(
+        _("Canvas Center X"),
+        null=True,
+        blank=True,
+        help_text=_(
+            "Geo X coordinate at the canvas origin, taken from the first placed node."
+        ),
+    )
+    canvas_center_y = models.FloatField(
+        _("Canvas Center Y"),
+        null=True,
+        blank=True,
+        help_text=_(
+            "Geo Y coordinate at the canvas origin, taken from the first placed node."
+        ),
     )
 
     class Meta:
@@ -2234,100 +2271,6 @@ class MicroductConnection(models.Model):
 
     def __str__(self):
         return str(self.uuid_microduct_from) + " -> " + str(self.uuid_microduct_to)
-
-
-class CanvasSyncStatus(models.Model):
-    """
-    Tracks canvas coordinate synchronization operations to prevent concurrent syncs.
-    Ensures only one sync operation runs per project/flag combination at a time.
-    """
-
-    SYNC_STATUS_CHOICES = [
-        ("IDLE", "Idle"),
-        ("IN_PROGRESS", "In Progress"),
-        ("COMPLETED", "Completed"),
-        ("FAILED", "Failed"),
-    ]
-
-    sync_key = models.CharField(
-        max_length=100,
-        unique=True,
-        help_text="Unique identifier for sync operation (e.g., 'project_1', 'project_1_flag_5')",
-    )
-    status = models.CharField(
-        max_length=20, choices=SYNC_STATUS_CHOICES, default="IDLE"
-    )
-    started_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True
-    )
-    started_at = models.DateTimeField(null=True, blank=True)
-    completed_at = models.DateTimeField(null=True, blank=True)
-    last_heartbeat = models.DateTimeField(null=True, blank=True)
-
-    scale = models.FloatField(null=True, blank=True)
-    center_x = models.FloatField(null=True, blank=True)
-    center_y = models.FloatField(null=True, blank=True)
-    nodes_processed = models.IntegerField(default=0)
-    error_message = models.TextField(null=True, blank=True)
-
-    class Meta:
-        db_table = "canvas_sync_status"
-        verbose_name = _("Canvas Sync Status")
-        verbose_name_plural = _("Canvas Sync Statuses")
-
-    def __str__(self):
-        return f"{self.sync_key} - {self.status}"
-
-    def is_stale(self, timeout_minutes=10):
-        """Check if the sync operation has timed out.
-
-        Args:
-            timeout_minutes: Minutes without heartbeat before considered stale.
-
-        Returns:
-            bool: True if no heartbeat received within the timeout window.
-        """
-        if not self.last_heartbeat:
-            return True
-        return timezone.now() - self.last_heartbeat > timezone.timedelta(
-            minutes=timeout_minutes
-        )
-
-    def update_heartbeat(self):
-        """Update heartbeat timestamp to indicate the sync is still active."""
-        self.last_heartbeat = timezone.now()
-        self.save(update_fields=["last_heartbeat"])
-
-    @classmethod
-    def get_sync_key(cls, project_id, flag_id=None):
-        """Generate a consistent sync key for a project/flag combination.
-
-        Args:
-            project_id: Primary key of the project.
-            flag_id: Optional flag primary key for flag-specific sync.
-
-        Returns:
-            str: Sync key in the form ``project_{id}`` or ``project_{id}_flag_{id}``.
-        """
-        if flag_id:
-            return f"project_{project_id}_flag_{flag_id}"
-        return f"project_{project_id}"
-
-    @classmethod
-    def cleanup_stale_syncs(cls, timeout_minutes=10):
-        """Mark stale IN_PROGRESS sync operations as FAILED.
-
-        Args:
-            timeout_minutes: Minutes without heartbeat before marking as failed.
-        """
-        stale_cutoff = timezone.now() - timezone.timedelta(minutes=timeout_minutes)
-        cls.objects.filter(
-            status="IN_PROGRESS", last_heartbeat__lt=stale_cutoff
-        ).update(
-            status="FAILED",
-            completed_at=timezone.now(),
-            error_message="Sync operation timed out",
-        )
 
 
 class Cable(models.Model):

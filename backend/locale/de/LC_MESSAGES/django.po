@@ -186,6 +186,52 @@ msgstr "Wertermittlungssätze"
 msgid "Excluded Node Types"
 msgstr "Ausgeschlossene Netzknotentypen"
 
+#: apps/api/models.py
+msgid "Configured"
+msgstr "Konfiguriert"
+
+#: apps/api/models.py
+msgid ""
+"Tick once the excluded node types are set up. Until then the network schema "
+"warns that every node, including house connections, is shown."
+msgstr ""
+"Setzen, sobald die ausgeschlossenen Netzknotentypen eingerichtet sind. Bis "
+"dahin warnt das Netzschema, dass alle Netzknoten inklusive Hausanschlüsse "
+"angezeigt werden."
+
+#: apps/api/models.py
+msgid "Canvas Scale"
+msgstr "Canvas Maßstab"
+
+#: apps/api/models.py
+msgid ""
+"Canvas units per metre for placing nodes on the network schema. Can only be "
+"changed while no node of the project is placed."
+msgstr ""
+"Canvas-Einheiten pro Meter für die Platzierung der Netzknoten im Netzschema. "
+"Kann nur geändert werden, solange noch kein Netzknoten des Projekts platziert "
+"ist."
+
+#: apps/api/models.py
+msgid "Canvas Center X"
+msgstr "Canvas Mittelpunkt X"
+
+#: apps/api/models.py
+msgid "Canvas Center Y"
+msgstr "Canvas Mittelpunkt Y"
+
+#: apps/api/models.py
+msgid "Geo X coordinate at the canvas origin, taken from the first placed node."
+msgstr ""
+"Geo-X-Koordinate im Canvas-Ursprung, übernommen vom ersten platzierten "
+"Netzknoten."
+
+#: apps/api/models.py
+msgid "Geo Y coordinate at the canvas origin, taken from the first placed node."
+msgstr ""
+"Geo-Y-Koordinate im Canvas-Ursprung, übernommen vom ersten platzierten "
+"Netzknoten."
+
 #: apps/api/admin.py:783 apps/api/admin.py:801 apps/api/admin.py:854
 #: apps/api/admin.py:867 apps/api/admin.py:891
 msgid "None"
@@ -1466,14 +1512,6 @@ msgstr "Mikrorohr-Verbindung"
 #: apps/api/models.py:2217
 msgid "Microduct Connections"
 msgstr "Mikrorohr-Verbindungen"
-
-#: apps/api/models.py:2275
-msgid "Canvas Sync Status"
-msgstr "Canvas Sync Status"
-
-#: apps/api/models.py:2276
-msgid "Canvas Sync Statuses"
-msgstr "Canvas Sync Status"
 
 #: apps/api/models.py:2348 apps/api/serializers.py:1371
 #: apps/api/serializers.py:1499

@@ -169,7 +169,6 @@ export const load: PageServerLoad = async ({ fetch, cookies, params }) => {
 			networkLevels: networkLevelData,
 			companies: companyData,
 			flags: flagsData,
-			syncStatus: null,
 			networkSchemaSettingsConfigured: true,
 			excludedNodeTypeIds: [],
 			childViewEnabledNodeTypeIds,

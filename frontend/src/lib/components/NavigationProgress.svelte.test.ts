@@ -72,7 +72,7 @@ describe('NavigationProgress', () => {
 		expect(screen.getByRole('status')).toBeInTheDocument();
 	});
 
-	test('should name the schema sync by its route id', () => {
+	test('should name the network schema load by its route id', () => {
 		setNavigating(
 			'/project/[projectId=integer]/map',
 			'/project/[projectId=integer]/network-schema'

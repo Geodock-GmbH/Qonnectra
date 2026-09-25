@@ -717,14 +717,81 @@ class AttributesFiberStatusAdmin(admin.ModelAdmin):
     list_display = ("id", "fiber_status")
 
 
+def canvas_readonly_fields(project_id):
+    """Return the network schema canvas fields an admin may not edit.
+
+    The canvas center is set by the project's first placed node. The scale
+    is locked once a node is placed, because nodes placed later at another
+    scale would no longer line up with the existing schema.
+
+    Args:
+        project_id: Primary key of the :model:`api.Projects` row, or None on
+            an add form.
+
+    Returns:
+        list[str]: Read-only field names.
+    """
+    fields = ["canvas_center_x", "canvas_center_y"]
+    if (
+        project_id is not None
+        and Node.objects.filter(project_id=project_id, canvas_x__isnull=False).exists()
+    ):
+        fields.append("canvas_scale")
+    return fields
+
+
+def _configured_schema_settings(project):
+    """Return the project's network schema settings once an admin ticked them.
+
+    Args:
+        project: :model:`api.Projects` instance.
+
+    Returns:
+        NetworkSchemaSettings | None: The settings, or None when missing or
+            not yet marked as configured.
+    """
+    try:
+        settings = project.network_schema_settings
+    except NetworkSchemaSettings.DoesNotExist:
+        return None
+    return settings if settings.configured else None
+
+
+def _schema_not_configured_badge():
+    """Return the red "Not configured" badge for the project list.
+
+    Returns:
+        SafeString: HTML badge markup.
+    """
+    return format_html(
+        '<span style="color: #dc3545;">⚠ {}</span>',
+        _("Not configured"),
+    )
+
+
 class NetworkSchemaSettingsInline(admin.StackedInline):
-    """Inline admin for Network Schema Settings within Project admin."""
+    """Inline admin for :model:`api.NetworkSchemaSettings` within the project admin.
+
+    The canvas center is always read-only; the scale locks once a node is placed.
+    """
 
     model = NetworkSchemaSettings
     can_delete = False
     verbose_name = _("Network Schema Settings")
     verbose_name_plural = _("Network Schema Settings")
     filter_horizontal = ("excluded_node_types", "child_view_enabled_node_types")
+
+    def get_readonly_fields(self, request, obj=None):
+        """Return the canvas fields to lock for the project being edited.
+
+        Args:
+            request: Current admin request.
+            obj: Parent :model:`api.Projects` instance, or None on the add form.
+
+        Returns:
+            list[str]: Read-only field names.
+        """
+        return canvas_readonly_fields(obj.pk if obj else None)
 
 
 class PipeBranchSettingsInline(admin.StackedInline):
@@ -771,39 +838,49 @@ class ProjectsAdmin(SimpleHistoryAdmin):
 
     @admin.display(description=_("Excluded Node Types"))
     def excluded_types_display(self, obj):
-        """Return a comma-separated preview of excluded node types."""
-        try:
-            settings = obj.network_schema_settings
-            count = settings.excluded_node_types.count()
-            if count > 0:
-                types = settings.excluded_node_types.all()[:3]
-                names = [t.node_type for t in types]
-                suffix = f"... (+{count - 3})" if count > 3 else ""
-                return ", ".join(names) + suffix
-            return _("None")
-        except NetworkSchemaSettings.DoesNotExist:
-            return format_html(
-                '<span style="color: #dc3545;">⚠ {}</span>',
-                _("Not configured"),
-            )
+        """Return a comma-separated preview of the project's excluded node types.
+
+        Args:
+            obj: :model:`api.Projects` instance of the list row.
+
+        Returns:
+            str | SafeString: Up to three type names with a ``(+n)`` suffix,
+                "None", or the "Not configured" badge while the settings are
+                missing or not ticked as configured.
+        """
+        settings = _configured_schema_settings(obj)
+        if settings is None:
+            return _schema_not_configured_badge()
+        count = settings.excluded_node_types.count()
+        if count > 0:
+            types = settings.excluded_node_types.all()[:3]
+            names = [t.node_type for t in types]
+            suffix = f"... (+{count - 3})" if count > 3 else ""
+            return ", ".join(names) + suffix
+        return _("None")
 
     @admin.display(description=_("Child View Types"))
     def child_view_types_display(self, obj):
-        """Return a comma-separated preview of child-view-enabled node types."""
-        try:
-            settings = obj.network_schema_settings
-            count = settings.child_view_enabled_node_types.count()
-            if count > 0:
-                types = settings.child_view_enabled_node_types.all()[:3]
-                names = [t.node_type for t in types]
-                suffix = f"... (+{count - 3})" if count > 3 else ""
-                return ", ".join(names) + suffix
-            return _("None")
-        except NetworkSchemaSettings.DoesNotExist:
-            return format_html(
-                '<span style="color: #dc3545;">⚠ {}</span>',
-                _("Not configured"),
-            )
+        """Return a comma-separated preview of the project's child-view node types.
+
+        Args:
+            obj: :model:`api.Projects` instance of the list row.
+
+        Returns:
+            str | SafeString: Up to three type names with a ``(+n)`` suffix,
+                "None", or the "Not configured" badge while the settings are
+                missing or not ticked as configured.
+        """
+        settings = _configured_schema_settings(obj)
+        if settings is None:
+            return _schema_not_configured_badge()
+        count = settings.child_view_enabled_node_types.count()
+        if count > 0:
+            types = settings.child_view_enabled_node_types.all()[:3]
+            names = [t.node_type for t in types]
+            suffix = f"... (+{count - 3})" if count > 3 else ""
+            return ", ".join(names) + suffix
+        return _("None")
 
     @admin.display(description=_("Pipe Branch Types"))
     def allowed_pipe_branch_types_display(self, obj):
@@ -826,10 +903,15 @@ class ProjectsAdmin(SimpleHistoryAdmin):
 
 @admin.register(NetworkSchemaSettings)
 class NetworkSchemaSettingsAdmin(admin.ModelAdmin):
-    """Standalone admin for Network Schema Settings."""
+    """Standalone admin for :model:`api.NetworkSchemaSettings`.
+
+    The canvas center is always read-only; the scale locks once a node is placed.
+    """
 
     list_display = (
         "project",
+        "configured",
+        "canvas_scale",
         "excluded_count",
         "excluded_types_preview",
         "child_view_count",
@@ -839,6 +921,18 @@ class NetworkSchemaSettingsAdmin(admin.ModelAdmin):
     search_fields = ("project__project",)
     filter_horizontal = ("excluded_node_types", "child_view_enabled_node_types")
     autocomplete_fields = ["project"]
+
+    def get_readonly_fields(self, request, obj=None):
+        """Return the canvas fields to lock for the settings' project.
+
+        Args:
+            request: Current admin request.
+            obj: :model:`api.NetworkSchemaSettings` instance, or None on the add form.
+
+        Returns:
+            list[str]: Read-only field names.
+        """
+        return canvas_readonly_fields(obj.project_id if obj else None)
 
     @admin.display(description=_("Excluded Count"))
     def excluded_count(self, obj):

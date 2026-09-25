@@ -63,7 +63,6 @@ from .views import (
     MicroductConnectionViewSet,
     MicroductViewSet,
     MicropipesByConduitsView,
-    NodeCanvasCoordinatesView,
     NodeSlotClipNumberViewSet,
     NodeSlotConfigurationViewSet,
     NodeSlotDividerViewSet,
@@ -358,11 +357,6 @@ urlpatterns = [
         "export/features/",
         ExportFeaturesView.as_view(),
         name="export-features",
-    ),
-    path(
-        "canvas-coordinates/",
-        NodeCanvasCoordinatesView.as_view(),
-        name="node-canvas-coordinates",
     ),
     path(
         "auth/webdav-auth/",
