@@ -47,6 +47,7 @@ vi.mock('$lib/classes/InquiryDrawManager.svelte', () => ({
 
 vi.mock('$lib/classes/MapState.svelte', () => ({
 	MapState: class {
+		constructor(public selectedProject: string) {}
 		initializeLayers = () => true;
 		getLayers = () => [];
 		cleanup = vi.fn();
@@ -65,7 +66,13 @@ vi.mock('$lib/components/Map.svelte', async () => {
 vi.mock('ol/ol.css', () => ({}));
 
 vi.mock('$app/state', () => ({
-	page: { data: { srid: 25832, proj4Def: '+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs' } }
+	page: {
+		data: {
+			srid: 25832,
+			proj4Def: '+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs',
+			projects: [{ value: '7', label: 'North' }]
+		}
+	}
 }));
 
 vi.mock('$lib/stores/store', async () => {
@@ -178,6 +185,12 @@ describe('InquiryWorkspace', () => {
 		expect(featureProjection).toBe('EPSG:3857');
 		expect(draw.updatePolygonGeometryCache).toHaveBeenCalled();
 		expect(getInquiryAreas).toHaveBeenCalledWith('rec-1');
+	});
+
+	test('should hand the map its project so the saved view and layer extents resolve', async () => {
+		renderWorkspace();
+
+		expect(await screen.findByTestId('map')).toHaveAttribute('data-project-id', '7');
 	});
 
 	test('should fail the boundary for an unknown record', async () => {
