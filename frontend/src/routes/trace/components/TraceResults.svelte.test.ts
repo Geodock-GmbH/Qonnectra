@@ -175,4 +175,24 @@ describe('TraceResults', () => {
 
 		expect(screen.getByText('trace_no_trace_data')).toBeInTheDocument();
 	});
+
+	test('should use dark text and an outline on a white microduct so its color stays readable', () => {
+		render(TraceResults, {
+			result: {
+				...baseResult,
+				cable_infrastructure: {
+					'cable-1': {
+						cable_name: 'K-Nord',
+						microduct: { number: 5, color: 'weiss', color_hex: '#ffffff' }
+					}
+				}
+			},
+			entryType: 'node',
+			entryId: 'node-1'
+		});
+
+		const chip = screen.getByText('weiss');
+		expect(chip).not.toHaveClass('text-white');
+		expect(chip).toHaveClass('text-surface-950', 'ring-1');
+	});
 });

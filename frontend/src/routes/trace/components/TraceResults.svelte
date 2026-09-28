@@ -24,6 +24,7 @@
 	import { setQuery } from '$lib/utils/urlState';
 
 	import CableEndPicker from './CableEndPicker.svelte';
+	import ColorChip from './ColorChip.svelte';
 	import FiberPathsTable from './FiberPathsTable.svelte';
 	import TraceCableEndpoints from './TraceCableEndpoints.svelte';
 	import TraceTreeBranch from './TraceTreeBranch.svelte';
@@ -230,12 +231,9 @@
 						<span class="font-mono font-semibold text-surface-900-100"
 							>#{infra.microduct.number}</span
 						>
-						<span
-							class="rounded px-2 py-0.5 text-xs font-medium text-white"
-							style="background: {infra.microduct.color_hex || '#ec4899'}"
-						>
+						<ColorChip hex={infra.microduct.color_hex || '#ec4899'} class="px-2 py-0.5 text-xs">
 							{infra.microduct.color}
-						</span>
+						</ColorChip>
 						{#if infra.microduct.status}
 							<span class="text-xs text-surface-600-400">{infra.microduct.status}</span>
 						{/if}
