@@ -8,14 +8,12 @@
 		SignalAnalysisResult
 	} from '$lib/types/trace';
 	import { cubicOut } from 'svelte/easing';
-	import { SvelteSet } from 'svelte/reactivity';
-	import { fly, slide } from 'svelte/transition';
+	import { fly } from 'svelte/transition';
 	import { page } from '$app/state';
 	import {
 		IconAlertTriangle,
 		IconBolt,
 		IconBoltOff,
-		IconChevronDown,
 		IconDownload,
 		IconHome,
 		IconMapPin
@@ -31,9 +29,8 @@
 	import { setQuery } from '$lib/utils/urlState';
 
 	import CableEndPicker from './CableEndPicker.svelte';
-	import FiberColorDots from './FiberColorDots.svelte';
-	import TraceFiberDetails from './TraceFiberDetails.svelte';
-	import TraceSpliceDetails from './TraceSpliceDetails.svelte';
+	import TraceTreeBranch from './TraceTreeBranch.svelte';
+	import TraceWaypointDetails from './TraceWaypointDetails.svelte';
 
 	interface Props {
 		/** The signal analysis result data */
@@ -139,16 +136,6 @@
 
 			return { litLength, darkLength, totalLength: litLength + darkLength };
 		});
-
-	let expandedWaypoints = new SvelteSet<string>();
-
-	function toggleWaypoint(fiberId: string) {
-		if (expandedWaypoints.has(fiberId)) {
-			expandedWaypoints.delete(fiberId);
-		} else {
-			expandedWaypoints.add(fiberId);
-		}
-	}
 </script>
 
 {#snippet statCard(label: string, value: string | number | null | undefined, colorClass: string)}
@@ -253,194 +240,115 @@
 	{@const signalState = node.signal_state || 'lit'}
 	{@const isDark = signalState === 'dark'}
 	{@const isBreak = signalState === 'break_point'}
-	{@const hasDetails =
-		node.splice ||
-		(node.cable_endpoints && (node.cable_endpoints.start_node || node.cable_endpoints.end_node)) ||
-		node.node?.address ||
-		(node.residential_units && node.residential_units.length > 0)}
-	{@const isExpanded = expandedWaypoints.has(node.fiber.id ?? '')}
-	{@const hasChildren = node.children && node.children.length > 0}
-	{@const STEP = 28}
-	{@const INDENT = 20}
-	{@const lineX = depth * STEP + INDENT}
-	{@const parentLineX = (depth - 1) * STEP + INDENT}
-	{@const circleSize = 12}
-	{@const circleTop = 10}
-
-	<div
-		class="relative {isDark ? 'opacity-50' : ''}"
-		style="padding-left: {depth * STEP + INDENT + circleSize + 8}px"
+	{@const children = node.children ?? []}
+	<TraceTreeBranch
+		{depth}
+		{isLastChild}
+		hasChildren={children.length > 0}
+		class={isDark ? 'opacity-50' : undefined}
+		markerClass={isBreak
+			? 'border-error-500 bg-error-500'
+			: isDark
+				? 'border-surface-500 bg-surface-500'
+				: isSelected('fiber', node.fiber.id ?? '')
+					? 'border-success-500 bg-success-500'
+					: 'border-success-500 bg-surface-50-950'}
 	>
-		<!-- Vertical line from parent -->
-		{#if depth > 0}
-			<div
-				class="absolute top-0 w-px bg-surface-300-700"
-				style="left: {parentLineX + circleSize / 2}px"
-				style:height={isLastChild ? `${circleTop + circleSize / 2}px` : '100%'}
-			></div>
-		{/if}
-
-		<!-- Vertical line down to children -->
-		{#if hasChildren}
-			<div
-				class="absolute bottom-0 w-px bg-surface-300-700"
-				style="left: {lineX + circleSize / 2}px; top: {circleTop + circleSize}px"
-			></div>
-		{/if}
-
-		<!-- Horizontal connector from parent to circle -->
-		{#if depth > 0}
-			<div
-				class="absolute h-px bg-surface-300-700"
-				style="left: {parentLineX + circleSize / 2}px; top: {circleTop +
-					circleSize / 2}px; width: {STEP - circleSize / 2}px"
-			></div>
-		{/if}
-
-		<!-- Circle marker (colored by signal state) -->
-		<div
-			class="absolute rounded-full border-2 {isBreak
-				? 'border-error-500 bg-error-500'
-				: isDark
-					? 'border-surface-500 bg-surface-500'
-					: isSelected('fiber', node.fiber.id ?? '')
-						? 'border-success-500 bg-success-500'
-						: 'border-success-500 bg-surface-50-950'}"
-			style="left: {lineX}px; top: {circleTop}px; width: {circleSize}px; height: {circleSize}px"
-		></div>
-
-		<!-- Waypoint content -->
-		<div class="pb-4">
-			<!-- Line 1: Signal badge + Fiber + Cable + Node -->
-			<div class="flex flex-wrap items-center gap-1.5 py-1 text-xs">
-				{#if isBreak}
-					<span
-						class="flex items-center gap-1 rounded bg-error-500 px-1.5 py-0.5 text-xs font-medium text-white"
-					>
-						<IconAlertTriangle size={10} />
-						{m.signal_break_point()}
-					</span>
-				{:else if isDark}
-					<span
-						class="flex items-center gap-1 rounded bg-surface-500 px-1.5 py-0.5 text-xs font-medium text-white"
-					>
-						<IconBoltOff size={10} />
-						{m.signal_no_signal()}
-					</span>
-				{:else}
-					<span
-						class="flex items-center gap-1 rounded bg-success-500 px-1.5 py-0.5 text-xs font-medium text-white"
-					>
-						<IconBolt size={10} />
-						{m.signal_lit()}
-					</span>
-				{/if}
+		<!-- Line 1: Signal badge + Fiber + Cable + Node -->
+		<div class="flex flex-wrap items-center gap-1.5 py-1 text-xs">
+			{#if isBreak}
+				<span
+					class="flex items-center gap-1 rounded bg-error-500 px-1.5 py-0.5 text-xs font-medium text-white"
+				>
+					<IconAlertTriangle size={10} />
+					{m.signal_break_point()}
+				</span>
+			{:else if isDark}
+				<span
+					class="flex items-center gap-1 rounded bg-surface-500 px-1.5 py-0.5 text-xs font-medium text-white"
+				>
+					<IconBoltOff size={10} />
+					{m.signal_no_signal()}
+				</span>
+			{:else}
+				<span
+					class="flex items-center gap-1 rounded bg-success-500 px-1.5 py-0.5 text-xs font-medium text-white"
+				>
+					<IconBolt size={10} />
+					{m.signal_lit()}
+				</span>
+			{/if}
+			<button
+				type="button"
+				class="rounded px-2 py-0.5 font-mono font-medium transition-colors {isSelected(
+					'fiber',
+					node.fiber.id ?? ''
+				)
+					? 'bg-primary-500 text-white'
+					: 'bg-primary-500/15 text-primary-500 hover:bg-primary-500/25'}"
+				onclick={() => handleItemClick('fiber', node.fiber.id ?? '')}
+			>
+				F{node.fiber.fiber_number_absolute}
+			</button>
+			<span class="text-surface-500-400">in</span>
+			<button
+				type="button"
+				class="rounded px-2 py-0.5 font-mono font-medium transition-colors {isSelected(
+					'cable',
+					node.fiber.cable_id ?? ''
+				)
+					? 'bg-success-500 text-white'
+					: 'bg-success-500/15 text-success-500 hover:bg-success-500/25'}"
+				onclick={() => handleItemClick('cable', node.fiber.cable_id ?? '')}
+			>
+				{node.fiber.cable_name}
+			</button>
+			{#if node.fiber.cable_type}
+				<span class="rounded bg-surface-100-900 px-1.5 py-0.5 text-surface-600-400">
+					{node.fiber.cable_type}
+				</span>
+			{/if}
+			{#if node.node}
+				<span class="text-surface-400-500">→</span>
 				<button
 					type="button"
 					class="rounded px-2 py-0.5 font-mono font-medium transition-colors {isSelected(
-						'fiber',
-						node.fiber.id ?? ''
+						'node',
+						node.node?.id ?? ''
 					)
-						? 'bg-primary-500 text-white'
-						: 'bg-primary-500/15 text-primary-500 hover:bg-primary-500/25'}"
-					onclick={() => handleItemClick('fiber', node.fiber.id ?? '')}
+						? 'bg-warning-500 text-white'
+						: 'bg-warning-500/15 text-warning-500 hover:bg-warning-500/25'}"
+					onclick={() => handleItemClick('node', node.node?.id ?? '')}
 				>
-					F{node.fiber.fiber_number_absolute}
+					{node.node.name}
 				</button>
-				<span class="text-surface-500-400">in</span>
-				<button
-					type="button"
-					class="rounded px-2 py-0.5 font-mono font-medium transition-colors {isSelected(
-						'cable',
-						node.fiber.cable_id ?? ''
-					)
-						? 'bg-success-500 text-white'
-						: 'bg-success-500/15 text-success-500 hover:bg-success-500/25'}"
-					onclick={() => handleItemClick('cable', node.fiber.cable_id ?? '')}
-				>
-					{node.fiber.cable_name}
-				</button>
-				{#if node.fiber.cable_type}
-					<span class="rounded bg-surface-100-900 px-1.5 py-0.5 text-surface-600-400">
-						{node.fiber.cable_type}
-					</span>
-				{/if}
-				{#if node.node}
-					<span class="text-surface-400-500">→</span>
-					<button
-						type="button"
-						class="rounded px-2 py-0.5 font-mono font-medium transition-colors {isSelected(
-							'node',
-							node.node?.id ?? ''
-						)
-							? 'bg-warning-500 text-white'
-							: 'bg-warning-500/15 text-warning-500 hover:bg-warning-500/25'}"
-						onclick={() => handleItemClick('node', node.node?.id ?? '')}
-					>
-						{node.node.name}
-					</button>
-				{/if}
-			</div>
-
-			<!-- Line 2: Cable path anchor + colors + expand toggle -->
-			<div class="flex items-center gap-2 pl-0.5">
-				{#if node.cable_endpoints}
-					<span class="text-xs text-surface-500-400">
-						{node.cable_endpoints.start_node?.name || '?'}
-						<span class="mx-0.5">↔</span>
-						{node.cable_endpoints.end_node?.name || '?'}
-					</span>
-				{/if}
-				<FiberColorDots fiber={node.fiber} />
-				{#if hasDetails}
-					<button
-						type="button"
-						class="ml-auto flex items-center gap-1 rounded px-2 py-0.5 text-xs text-surface-500-400 transition-colors hover:bg-surface-100-900 hover:text-surface-700-300"
-						onclick={() => toggleWaypoint(node.fiber.id ?? '')}
-					>
-						<span>{m.trace_details ? m.trace_details() : 'Details'}</span>
-						<IconChevronDown
-							size={14}
-							class="transition-transform {isExpanded ? 'rotate-180' : ''}"
-						/>
-					</button>
-				{/if}
-			</div>
-
-			<!-- Expandable details drawer -->
-			{#if hasDetails && isExpanded}
-				<div class="mt-2 space-y-2 pl-0.5" transition:slide={{ duration: 150 }}>
-					<TraceFiberDetails fiber={node.fiber} />
-
-					{#if node.splice}
-						<TraceSpliceDetails splice={node.splice} />
-					{/if}
-
-					{#if node.cable_endpoints && (node.cable_endpoints.start_node || node.cable_endpoints.end_node)}
-						{@render cableEndpointsDetails(node.cable_endpoints, node.node?.id)}
-					{/if}
-
-					{#if node.node?.address}
-						{@render addressDetails(node.node.address, isDark)}
-					{/if}
-
-					{#if node.residential_units && node.residential_units.length > 0}
-						{#each node.residential_units as ru (ru.id)}
-							{@render residentialUnitDetails(ru, isDark)}
-						{/each}
-					{/if}
-				</div>
 			{/if}
 		</div>
 
-		<!-- Children -->
-		{#if node.children && node.children.length > 0}
-			{@const children = node.children}
+		<TraceWaypointDetails {node}>
+			{#snippet details()}
+				{#if node.cable_endpoints && (node.cable_endpoints.start_node || node.cable_endpoints.end_node)}
+					{@render cableEndpointsDetails(node.cable_endpoints, node.node?.id)}
+				{/if}
+
+				{#if node.node?.address}
+					{@render addressDetails(node.node.address, isDark)}
+				{/if}
+
+				{#if node.residential_units && node.residential_units.length > 0}
+					{#each node.residential_units as ru (ru.id)}
+						{@render residentialUnitDetails(ru, isDark)}
+					{/each}
+				{/if}
+			{/snippet}
+		</TraceWaypointDetails>
+
+		{#snippet branches()}
 			{#each children as child, i (`${child.fiber?.id}-${i}`)}
 				{@render signalTraceNode(child as FiberWaypoint, depth + 1, i === children.length - 1)}
 			{/each}
-		{/if}
-	</div>
+		{/snippet}
+	</TraceTreeBranch>
 {/snippet}
 
 {#snippet cableEndpointsDetails(
@@ -451,14 +359,14 @@
 		<div class="mb-1 font-semibold text-primary-500">
 			{m.trace_cable_endpoints()}
 		</div>
-		<div class="flex flex-wrap items-center gap-2">
+		<div class="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
 			{#if endpoints.start_node}
-				<div class="flex items-center gap-1">
+				<div class="flex min-w-0 flex-wrap items-center gap-1">
 					<span class="text-xs uppercase text-surface-600-400">{m.signal_source_cable_start()}</span
 					>
 					<button
 						type="button"
-						class="rounded px-1.5 py-0.5 font-mono text-xs {currentNodeId ===
+						class="min-w-0 rounded px-1.5 py-0.5 text-left font-mono text-xs wrap-anywhere {currentNodeId ===
 						endpoints.start_node.id
 							? 'bg-primary-500/20 text-primary-500'
 							: 'bg-surface-200-800 text-surface-900-100'} hover:bg-surface-300-700"
@@ -472,14 +380,15 @@
 				</div>
 			{/if}
 
-			<span class="text-surface-500-400">↔</span>
+			<span class="hidden text-surface-500-400 sm:inline">↔</span>
 
 			{#if endpoints.end_node}
-				<div class="flex items-center gap-1">
+				<div class="flex min-w-0 flex-wrap items-center gap-1">
 					<span class="text-xs uppercase text-surface-600-400">{m.signal_source_cable_end()}</span>
 					<button
 						type="button"
-						class="rounded px-1.5 py-0.5 font-mono text-xs {currentNodeId === endpoints.end_node.id
+						class="min-w-0 rounded px-1.5 py-0.5 text-left font-mono text-xs wrap-anywhere {currentNodeId ===
+						endpoints.end_node.id
 							? 'bg-primary-500/20 text-primary-500'
 							: 'bg-surface-200-800 text-surface-900-100'} hover:bg-surface-300-700"
 						onclick={() => traceFrom('node', endpoints.end_node?.id ?? '')}
@@ -501,8 +410,12 @@
 			? 'border-surface-400/30 bg-surface-200-800'
 			: 'border-error-500/30 bg-error-500/5'} px-3 py-1.5 text-xs"
 	>
-		<div class="mb-1 flex items-center gap-2 {isDark ? 'text-surface-500' : 'text-error-500'}">
-			<IconMapPin size={14} />
+		<div
+			class="mb-1 flex flex-wrap items-center gap-2 {isDark
+				? 'text-surface-500'
+				: 'text-error-500'}"
+		>
+			<IconMapPin size={14} class="shrink-0" />
 			<span class="font-semibold">{m.form_address({ count: 1 })}</span>
 			{#if isDark}
 				<span class="rounded bg-surface-500 px-1.5 py-0.5 text-[10px] text-white">
@@ -524,8 +437,12 @@
 			? 'border-surface-400/30 bg-surface-200-800'
 			: 'border-tertiary-500/30 bg-tertiary-500/5'} px-3 py-1.5 text-xs"
 	>
-		<div class="mb-1 flex items-center gap-2 {isDark ? 'text-surface-500' : 'text-tertiary-500'}">
-			<IconHome size={14} />
+		<div
+			class="mb-1 flex flex-wrap items-center gap-2 {isDark
+				? 'text-surface-500'
+				: 'text-tertiary-500'}"
+		>
+			<IconHome size={14} class="shrink-0" />
 			<span class="font-semibold">{m.section_residential_units({ count: 1 })}</span>
 			{#if isDark}
 				<span class="rounded bg-surface-500 px-1.5 py-0.5 text-[10px] text-white">
@@ -551,7 +468,10 @@
 {/snippet}
 
 {#if result}
-	<div class="min-w-0 space-y-8" transition:fly={{ y: 30, duration: 400, easing: cubicOut }}>
+	<div
+		class="min-w-0 space-y-6 sm:space-y-8"
+		transition:fly={{ y: 30, duration: 400, easing: cubicOut }}
+	>
 		<CableEndPicker
 			label={m.signal_source()}
 			options={availableSources}
@@ -562,7 +482,9 @@
 		<!-- Break Points Summary -->
 		{#if hasBreaks}
 			<section class="@container min-w-0">
-				<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-error-500">
+				<h2
+					class="mb-3 flex items-center gap-3 text-base font-semibold text-error-500 sm:mb-4 sm:text-lg"
+				>
 					{m.signal_break_point()} ({signalAnalysis?.total_breaks})
 				</h2>
 				<div class="grid grid-cols-1 gap-3 @min-[28rem]:grid-cols-2 @min-[42rem]:grid-cols-3">
@@ -583,7 +505,9 @@
 		<!-- Impact Summary Statistics -->
 		{#if affectedSummary}
 			<section class="@container min-w-0">
-				<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
+				<h2
+					class="mb-3 flex items-center gap-3 text-base font-semibold text-surface-900-100 sm:mb-4 sm:text-lg"
+				>
 					{m.signal_affected_summary()}
 				</h2>
 				<div
@@ -637,12 +561,12 @@
 		<!-- Signal Flow Tree -->
 		{#if traceTree}
 			<section class="min-w-0">
-				<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
+				<h2
+					class="mb-3 flex items-center gap-3 text-base font-semibold text-surface-900-100 sm:mb-4 sm:text-lg"
+				>
 					{m.signal_analysis()}
 				</h2>
-				<div
-					class="-mx-1 border rounded-xl border-surface-200-800 p-3 sm:p-6 min-w-0 overflow-x-auto px-1 pb-1"
-				>
+				<div class="min-w-0 overflow-x-auto rounded-xl border border-surface-200-800 p-3 sm:p-6">
 					{@render signalTraceNode(traceTree as FiberWaypoint, 0, true)}
 				</div>
 			</section>

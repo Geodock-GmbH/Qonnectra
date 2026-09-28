@@ -13,8 +13,8 @@
 </script>
 
 <div class="rounded-lg border border-secondary-500/30 bg-secondary-500/5 px-3 py-1.5 text-xs">
-	<div class="mb-1 flex items-center gap-2 text-secondary-500">
-		<IconArrowsSplit size={14} />
+	<div class="mb-1 flex flex-wrap items-center gap-2 text-secondary-500">
+		<IconArrowsSplit size={14} class="shrink-0" />
 		<span class="font-semibold">{m.trace_splice()}</span>
 		<code class="text-surface-600-400">{m.form_port()} {splice.port_number}</code>
 	</div>

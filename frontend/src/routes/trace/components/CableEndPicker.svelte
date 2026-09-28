@@ -25,11 +25,13 @@
 </script>
 
 <section>
-	<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
+	<h2
+		class="mb-3 flex items-center gap-3 text-base font-semibold text-surface-900-100 sm:mb-4 sm:text-lg"
+	>
 		{label}
 	</h2>
-	<div class="flex items-center gap-4">
-		<div class="w-full max-w-2xl">
+	<div class="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
+		<div class="w-full min-w-0 max-w-2xl">
 			<GenericCombobox
 				data={items}
 				value={value ? [value] : []}
@@ -37,7 +39,7 @@
 			/>
 		</div>
 		{#if chosen?.type}
-			<span class="text-sm text-surface-600-400">{chosen.type}</span>
+			<span class="shrink-0 text-sm text-surface-600-400">{chosen.type}</span>
 		{/if}
 	</div>
 </section>

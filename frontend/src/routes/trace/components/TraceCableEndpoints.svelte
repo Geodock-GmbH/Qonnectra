@@ -19,13 +19,14 @@
 	<div class="mb-1 font-semibold text-primary-500">
 		{m.trace_cable_path()}: {endpoints.cable_name}
 	</div>
-	<div class="flex flex-wrap items-center gap-2">
+	<div class="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
 		{#if endpoints.start_node}
-			<div class="flex items-center gap-1">
+			<div class="flex min-w-0 flex-wrap items-center gap-1">
 				<span class="text-xs uppercase text-surface-600-400">{m.trace_start()}</span>
 				<button
 					type="button"
-					class="rounded px-1.5 py-0.5 font-mono text-xs {endpoints.start_node.id === currentNodeId
+					class="min-w-0 rounded px-1.5 py-0.5 text-left font-mono text-xs wrap-anywhere {endpoints
+						.start_node.id === currentNodeId
 						? 'bg-primary-500/20 text-primary-500'
 						: 'bg-surface-200-800 text-surface-900-100'} hover:bg-surface-300-700"
 					onclick={() => traceFrom('node', endpoints.start_node?.id ?? '')}
@@ -40,14 +41,15 @@
 			<span class="text-xs text-surface-600-400">{m.trace_start_not_set()}</span>
 		{/if}
 
-		<span class="text-surface-500-400">↔</span>
+		<span class="hidden text-surface-500-400 sm:inline">↔</span>
 
 		{#if endpoints.end_node}
-			<div class="flex items-center gap-1">
+			<div class="flex min-w-0 flex-wrap items-center gap-1">
 				<span class="text-xs uppercase text-surface-600-400">{m.trace_end()}</span>
 				<button
 					type="button"
-					class="rounded px-1.5 py-0.5 font-mono text-xs {endpoints.end_node.id === currentNodeId
+					class="min-w-0 rounded px-1.5 py-0.5 text-left font-mono text-xs wrap-anywhere {endpoints
+						.end_node.id === currentNodeId
 						? 'bg-primary-500/20 text-primary-500'
 						: 'bg-surface-200-800 text-surface-900-100'} hover:bg-surface-300-700"
 					onclick={() => traceFrom('node', endpoints.end_node?.id ?? '')}
@@ -70,7 +72,7 @@
 					<span class="text-surface-600-400">{m.trace_start_address()}</span>
 					<button
 						type="button"
-						class="underline decoration-surface-300-700 underline-offset-2 text-surface-900-100 hover:text-primary-500 hover:decoration-primary-500"
+						class="text-left text-surface-900-100 underline decoration-surface-300-700 underline-offset-2 hover:text-primary-500 hover:decoration-primary-500"
 						onclick={() => traceFrom('address', endpoints.start_node?.address?.id ?? '')}
 					>
 						{endpoints.start_node.address.street}
@@ -85,7 +87,7 @@
 					<span class="text-surface-600-400">{m.trace_end_address()}</span>
 					<button
 						type="button"
-						class="underline decoration-surface-300-700 underline-offset-2 text-surface-900-100 hover:text-primary-500 hover:decoration-primary-500"
+						class="text-left text-surface-900-100 underline decoration-surface-300-700 underline-offset-2 hover:text-primary-500 hover:decoration-primary-500"
 						onclick={() => traceFrom('address', endpoints.end_node?.address?.id ?? '')}
 					>
 						{endpoints.end_node.address.street}

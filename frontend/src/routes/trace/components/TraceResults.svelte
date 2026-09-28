@@ -8,12 +8,10 @@
 		TraceResult
 	} from '$lib/types/trace';
 	import { cubicOut } from 'svelte/easing';
-	import { SvelteSet } from 'svelte/reactivity';
-	import { fly, slide } from 'svelte/transition';
+	import { fly } from 'svelte/transition';
 	import { page } from '$app/state';
 	import {
 		IconArrowsSplit,
-		IconChevronDown,
 		IconChevronRight,
 		IconDownload,
 		IconHome,
@@ -26,11 +24,10 @@
 	import { setQuery } from '$lib/utils/urlState';
 
 	import CableEndPicker from './CableEndPicker.svelte';
-	import FiberColorDots from './FiberColorDots.svelte';
 	import FiberPathsTable from './FiberPathsTable.svelte';
 	import TraceCableEndpoints from './TraceCableEndpoints.svelte';
-	import TraceFiberDetails from './TraceFiberDetails.svelte';
-	import TraceSpliceDetails from './TraceSpliceDetails.svelte';
+	import TraceTreeBranch from './TraceTreeBranch.svelte';
+	import TraceWaypointDetails from './TraceWaypointDetails.svelte';
 
 	interface Props {
 		/** The trace result data */
@@ -56,8 +53,6 @@
 		onItemSelect = () => {}
 	}: Props = $props();
 
-	let expandedWaypoints = new SvelteSet<string>();
-
 	/** UUID of the traced fiber, marked in the tree; `null` outside a fiber trace. */
 	const entryFiberId = $derived(entryType === 'fiber' ? result?.entry_point?.id || entryId : null);
 
@@ -68,17 +63,6 @@
 	 */
 	function changePathStart(nodeId: string): void {
 		setQuery({ start: nodeId || null }, { push: true });
-	}
-
-	/**
-	 * @param fiberId
-	 */
-	function toggleWaypoint(fiberId: string) {
-		if (expandedWaypoints.has(fiberId)) {
-			expandedWaypoints.delete(fiberId);
-		} else {
-			expandedWaypoints.add(fiberId);
-		}
 	}
 
 	/**
@@ -127,7 +111,10 @@
 </script>
 
 {#if result}
-	<div class="min-w-0 space-y-8" transition:fly={{ y: 30, duration: 400, easing: cubicOut }}>
+	<div
+		class="min-w-0 space-y-6 sm:space-y-8"
+		transition:fly={{ y: 30, duration: 400, easing: cubicOut }}
+	>
 		{#if includeGeometry && hasGeometries(result)}
 			<div class="flex justify-center">
 				<button
@@ -142,16 +129,20 @@
 		{/if}
 
 		<section>
-			<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
+			<h2
+				class="mb-3 flex items-center gap-3 text-base font-semibold text-surface-900-100 sm:mb-4 sm:text-lg"
+			>
 				{m.trace_entry_point()}
 			</h2>
-			<div class="flex items-center gap-4 rounded-lg border border-surface-200-800 px-4 py-3">
+			<div
+				class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-surface-200-800 px-3 py-3 sm:px-4"
+			>
 				<span
 					class="rounded border border-primary-500 bg-primary-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary-500"
 				>
 					{getEntryTypeLabel(result.entry_point?.type || entryType)}
 				</span>
-				<span class="font-medium text-surface-900-100">
+				<span class="min-w-0 font-medium text-surface-900-100 wrap-anywhere">
 					{result.entry_point?.name ||
 						result.entry_point?.id ||
 						entryId ||
@@ -164,7 +155,9 @@
 
 		{#if result.cable_infrastructure && Object.keys(result.cable_infrastructure).length > 0}
 			<section>
-				<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
+				<h2
+					class="mb-3 flex items-center gap-3 text-base font-semibold text-surface-900-100 sm:mb-4 sm:text-lg"
+				>
 					{m.trace_cable_infrastructure()}
 				</h2>
 				<div class="space-y-3">
@@ -185,7 +178,9 @@
 		{/if}
 
 		<section>
-			<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
+			<h2
+				class="mb-3 flex items-center gap-3 text-base font-semibold text-surface-900-100 sm:mb-4 sm:text-lg"
+			>
 				{m.trace_trace_tree()}
 			</h2>
 			{#if result.trace_tree}
@@ -205,21 +200,27 @@
 
 {#snippet infrastructureCard(cableId: string, infra: CableInfrastructure)}
 	<details class="group rounded-lg border border-surface-200-800">
-		<summary class="flex cursor-pointer items-center gap-4 px-4 py-3 hover:bg-surface-100-900">
-			<span class="font-mono text-sm font-semibold text-warning-500">
-				{infra.cable_name || cableId.slice(0, 8) + '...'}
-			</span>
-			{#if infra.conduit}
-				<span class="rounded bg-surface-100-900 px-2 py-0.5 text-xs text-surface-600-400">
-					{infra.conduit.name}
+		<summary
+			class="flex cursor-pointer items-center gap-3 px-3 py-3 hover:bg-surface-100-900 sm:gap-4 sm:px-4"
+		>
+			<div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1">
+				<span class="min-w-0 font-mono text-sm font-semibold text-warning-500 wrap-anywhere">
+					{infra.cable_name || cableId.slice(0, 8) + '...'}
 				</span>
-			{/if}
+				{#if infra.conduit}
+					<span
+						class="min-w-0 rounded bg-surface-100-900 px-2 py-0.5 text-xs text-surface-600-400 wrap-anywhere"
+					>
+						{infra.conduit.name}
+					</span>
+				{/if}
+			</div>
 			<IconChevronRight
 				size={16}
-				class="ml-auto text-surface-500-400 transition-transform group-open:rotate-90"
+				class="shrink-0 text-surface-500-400 transition-transform group-open:rotate-90"
 			/>
 		</summary>
-		<div class="space-y-3 border-t border-surface-200-800 p-4">
+		<div class="space-y-3 border-t border-surface-200-800 p-3 sm:p-4">
 			{#if infra.microduct}
 				<div class="rounded-lg bg-surface-100-900 p-3">
 					<span class="mb-2 block text-xs font-semibold uppercase tracking-wide text-secondary-500"
@@ -312,201 +313,123 @@
 {/snippet}
 
 {#snippet traceNode(node: FiberWaypoint, depth: number, isLastChild: boolean)}
-	{@const hasDetails =
-		node.splice ||
-		(node.endpoint_splices && node.endpoint_splices.length > 0) ||
-		(node.cable_endpoints && (node.cable_endpoints.start_node || node.cable_endpoints.end_node)) ||
-		node.node?.address ||
-		(node.residential_units && node.residential_units.length > 0)}
-	{@const isExpanded = expandedWaypoints.has(node.fiber.id ?? '')}
-	{@const hasChildren = node.children && node.children.length > 0}
+	{@const children = node.children ?? []}
 	{@const isEntry = entryFiberId !== null && node.fiber.id === entryFiberId}
-	{@const STEP = 28}
-	{@const INDENT = 20}
-	{@const lineX = depth * STEP + INDENT}
-	{@const parentLineX = (depth - 1) * STEP + INDENT}
-	{@const circleSize = 12}
-	{@const circleTop = 10}
-
-	<div class="relative" style="padding-left: {depth * STEP + INDENT + circleSize + 8}px">
-		<!-- Vertical line from parent (non-root nodes) -->
-		{#if depth > 0}
-			<div
-				class="absolute top-0 w-px bg-surface-300-700"
-				style="left: {parentLineX + circleSize / 2}px"
-				style:height={isLastChild ? `${circleTop + circleSize / 2}px` : '100%'}
-			></div>
-		{/if}
-
-		<!-- Vertical line down to children -->
-		{#if hasChildren}
-			<div
-				class="absolute bottom-0 w-px bg-surface-300-700"
-				style="left: {lineX + circleSize / 2}px; top: {circleTop + circleSize}px"
-			></div>
-		{/if}
-
-		<!-- Horizontal connector from parent line to this node's circle -->
-		{#if depth > 0}
-			<div
-				class="absolute h-px bg-surface-300-700"
-				style="left: {parentLineX + circleSize / 2}px; top: {circleTop +
-					circleSize / 2}px; width: {STEP - circleSize / 2}px"
-			></div>
-		{/if}
-
-		<!-- Circle marker -->
-		<div
-			class={[
-				'absolute rounded-full border-2 border-primary-500',
-				isSelected('fiber', node.fiber.id ?? '') ? 'bg-primary-500' : 'bg-surface-50-950',
-				isEntry && 'ring-2 ring-primary-500/40 ring-offset-1 ring-offset-surface-50-950'
-			]}
-			style="left: {lineX}px; top: {circleTop}px; width: {circleSize}px; height: {circleSize}px"
-		></div>
-
-		<!-- Waypoint content -->
-		<div class="pb-4">
-			<!-- Line 1: Fiber + Cable + Node -->
-			<div class="flex flex-wrap items-center gap-1.5 py-1 text-xs">
+	<TraceTreeBranch
+		{depth}
+		{isLastChild}
+		hasChildren={children.length > 0}
+		markerClass={[
+			'border-primary-500',
+			isSelected('fiber', node.fiber.id ?? '') ? 'bg-primary-500' : 'bg-surface-50-950',
+			isEntry && 'ring-2 ring-primary-500/40 ring-offset-1 ring-offset-surface-50-950'
+		]}
+	>
+		<!-- Line 1: Fiber + Cable + Node -->
+		<div class="flex flex-wrap items-center gap-1.5 py-1 text-xs">
+			<button
+				type="button"
+				class="rounded px-2 py-0.5 font-mono font-medium transition-colors {isSelected(
+					'fiber',
+					node.fiber.id ?? ''
+				)
+					? 'bg-primary-500 text-white'
+					: 'bg-primary-500/15 text-primary-500 hover:bg-primary-500/25'}"
+				onclick={() => handleItemClick('fiber', node.fiber.id ?? '')}
+			>
+				F{node.fiber.fiber_number_absolute}
+			</button>
+			<span class="text-surface-500-400">in</span>
+			<button
+				type="button"
+				class="rounded px-2 py-0.5 font-mono font-medium transition-colors {isSelected(
+					'cable',
+					node.fiber.cable_id ?? ''
+				)
+					? 'bg-success-500 text-white'
+					: 'bg-success-500/15 text-success-500 hover:bg-success-500/25'}"
+				onclick={() => handleItemClick('cable', node.fiber.cable_id ?? '')}
+			>
+				{node.fiber.cable_name}
+			</button>
+			{#if node.fiber.cable_type}
+				<span class="rounded bg-surface-100-900 px-1.5 py-0.5 text-surface-600-400">
+					{node.fiber.cable_type}
+				</span>
+			{/if}
+			{#if isEntry}
+				<span
+					class="rounded border border-primary-500 bg-primary-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-500"
+				>
+					{m.trace_entry_point()}
+				</span>
+			{/if}
+			{#if node.node}
+				<span class="text-surface-400-500">→</span>
 				<button
 					type="button"
 					class="rounded px-2 py-0.5 font-mono font-medium transition-colors {isSelected(
-						'fiber',
-						node.fiber.id ?? ''
+						'node',
+						node.node.id
 					)
-						? 'bg-primary-500 text-white'
-						: 'bg-primary-500/15 text-primary-500 hover:bg-primary-500/25'}"
-					onclick={() => handleItemClick('fiber', node.fiber.id ?? '')}
+						? 'bg-warning-500 text-white'
+						: 'bg-warning-500/15 text-warning-500 hover:bg-warning-500/25'}"
+					onclick={() => handleItemClick('node', node.node?.id ?? '')}
 				>
-					F{node.fiber.fiber_number_absolute}
+					{node.node.name}
 				</button>
-				<span class="text-surface-500-400">in</span>
-				<button
-					type="button"
-					class="rounded px-2 py-0.5 font-mono font-medium transition-colors {isSelected(
-						'cable',
-						node.fiber.cable_id ?? ''
-					)
-						? 'bg-success-500 text-white'
-						: 'bg-success-500/15 text-success-500 hover:bg-success-500/25'}"
-					onclick={() => handleItemClick('cable', node.fiber.cable_id ?? '')}
-				>
-					{node.fiber.cable_name}
-				</button>
-				{#if node.fiber.cable_type}
-					<span class="rounded bg-surface-100-900 px-1.5 py-0.5 text-surface-600-400">
-						{node.fiber.cable_type}
-					</span>
-				{/if}
-				{#if isEntry}
-					<span
-						class="rounded border border-primary-500 bg-primary-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-500"
-					>
-						{m.trace_entry_point()}
-					</span>
-				{/if}
-				{#if node.node}
-					<span class="text-surface-400-500">→</span>
-					<button
-						type="button"
-						class="rounded px-2 py-0.5 font-mono font-medium transition-colors {isSelected(
-							'node',
-							node.node.id
-						)
-							? 'bg-warning-500 text-white'
-							: 'bg-warning-500/15 text-warning-500 hover:bg-warning-500/25'}"
-						onclick={() => handleItemClick('node', node.node?.id ?? '')}
-					>
-						{node.node.name}
-					</button>
-				{/if}
-			</div>
-
-			<!-- Line 2: Cable path anchor + colors + expand toggle -->
-			<div class="flex items-center gap-2 pl-0.5">
-				{#if node.cable_endpoints}
-					<span class="text-xs text-surface-500-400">
-						{node.cable_endpoints.start_node?.name || '?'}
-						<span class="mx-0.5">↔</span>
-						{node.cable_endpoints.end_node?.name || '?'}
-					</span>
-				{/if}
-				<FiberColorDots fiber={node.fiber} />
-				{#if hasDetails}
-					<button
-						type="button"
-						class="ml-auto flex items-center gap-1 rounded px-2 py-0.5 text-xs text-surface-500-400 transition-colors hover:bg-surface-100-900 hover:text-surface-700-300"
-						onclick={() => toggleWaypoint(node.fiber.id ?? '')}
-					>
-						<span>{m.trace_details ? m.trace_details() : 'Details'}</span>
-						<IconChevronDown
-							size={14}
-							class="transition-transform {isExpanded ? 'rotate-180' : ''}"
-						/>
-					</button>
-				{/if}
-			</div>
-
-			<!-- Expandable details drawer -->
-			{#if hasDetails && isExpanded}
-				<div class="mt-2 space-y-2 pl-0.5" transition:slide={{ duration: 150 }}>
-					<TraceFiberDetails fiber={node.fiber} />
-
-					{#if node.splice}
-						<TraceSpliceDetails splice={node.splice} />
-					{/if}
-
-					{#if node.endpoint_splices && node.endpoint_splices.length > 0}
-						{#each node.endpoint_splices as endpointSplice (endpointSplice.id)}
-							{@render endpointSpliceDetails(endpointSplice)}
-						{/each}
-					{/if}
-
-					{#if node.cable_endpoints && (node.cable_endpoints.start_node || node.cable_endpoints.end_node)}
-						<TraceCableEndpoints endpoints={node.cable_endpoints} currentNodeId={node.node?.id} />
-					{/if}
-
-					{#if node.node?.address}
-						{@render addressDetails(node.node.address)}
-					{/if}
-
-					{#if node.residential_units && node.residential_units.length > 0}
-						{#each node.residential_units as ru (ru.id)}
-							{@render residentialUnitDetails(ru)}
-						{/each}
-					{/if}
-				</div>
 			{/if}
 		</div>
 
-		<!-- Children -->
-		{#if node.children && node.children.length > 0}
-			{@const children = node.children}
+		<TraceWaypointDetails {node}>
+			{#snippet details()}
+				{#if node.endpoint_splices && node.endpoint_splices.length > 0}
+					{#each node.endpoint_splices as endpointSplice (endpointSplice.id)}
+						{@render endpointSpliceDetails(endpointSplice)}
+					{/each}
+				{/if}
+
+				{#if node.cable_endpoints && (node.cable_endpoints.start_node || node.cable_endpoints.end_node)}
+					<TraceCableEndpoints endpoints={node.cable_endpoints} currentNodeId={node.node?.id} />
+				{/if}
+
+				{#if node.node?.address}
+					{@render addressDetails(node.node.address)}
+				{/if}
+
+				{#if node.residential_units && node.residential_units.length > 0}
+					{#each node.residential_units as ru (ru.id)}
+						{@render residentialUnitDetails(ru)}
+					{/each}
+				{/if}
+			{/snippet}
+		</TraceWaypointDetails>
+
+		{#snippet branches()}
 			{#each children as child, i (`${child.fiber?.id}-${i}`)}
 				{@render traceNode(child as FiberWaypoint, depth + 1, i === children.length - 1)}
 			{/each}
-		{/if}
-	</div>
+		{/snippet}
+	</TraceTreeBranch>
 {/snippet}
 
 {#snippet endpointSpliceDetails(splice: EndpointSplice)}
 	<div
 		class="rounded-lg border border-dashed border-tertiary-500/30 bg-tertiary-500/5 px-3 py-1.5 text-xs"
 	>
-		<div class="mb-1 flex items-center gap-2 text-tertiary-500">
-			<IconArrowsSplit size={14} />
+		<div class="mb-1 flex flex-wrap items-center gap-2 text-tertiary-500">
+			<IconArrowsSplit size={14} class="shrink-0" />
 			<span class="font-semibold">{m.trace_endpoint_splice()}</span>
 			{#if splice.port_number}
 				<code class="text-surface-600-400">{m.form_port()} {splice.port_number}</code>
 			{/if}
 		</div>
 		{#if splice.node}
-			<div class="mb-1 flex items-center gap-2">
+			<div class="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
 				<span class="text-xs text-surface-600-400">{m.form_node()}</span>
 				<button
 					type="button"
-					class="rounded bg-warning-500/15 px-2 py-0.5 font-mono font-medium text-warning-500 transition-colors hover:bg-warning-500/25"
+					class="min-w-0 rounded bg-warning-500/15 px-2 py-0.5 text-left font-mono font-medium text-warning-500 transition-colors wrap-anywhere hover:bg-warning-500/25"
 					onclick={() => traceFrom('node', splice.node?.id ?? '')}
 				>
 					{splice.node.name || m.common_unknown()}
@@ -554,12 +477,12 @@
 
 {#snippet addressDetails(address: AddressInfo)}
 	<div class="rounded-lg border border-error-500/30 bg-error-500/5 px-3 py-1.5 text-xs">
-		<div class="mb-1 flex items-center gap-2 text-error-500">
-			<IconMapPin size={14} />
+		<div class="mb-1 flex flex-wrap items-center gap-2 text-error-500">
+			<IconMapPin size={14} class="shrink-0" />
 			<span class="font-semibold">{m.form_address({ count: 1 })}</span>
 			<button
 				type="button"
-				class="rounded px-1.5 py-0.5 font-mono transition-colors {isSelected(
+				class="min-w-0 rounded px-1.5 py-0.5 text-left font-mono transition-colors wrap-anywhere {isSelected(
 					'address',
 					address.id ?? ''
 				)
@@ -594,12 +517,12 @@
 
 {#snippet residentialUnitDetails(ru: ResidentialUnitInfo)}
 	<div class="rounded-lg border border-tertiary-500/30 bg-tertiary-500/5 px-3 py-1.5 text-xs">
-		<div class="mb-1 flex items-center gap-2 text-tertiary-500">
-			<IconHome size={14} />
+		<div class="mb-1 flex flex-wrap items-center gap-2 text-tertiary-500">
+			<IconHome size={14} class="shrink-0" />
 			<span class="font-semibold">{m.section_residential_units({ count: 1 })}</span>
 			<button
 				type="button"
-				class="rounded px-1.5 py-0.5 font-mono transition-colors {isSelected(
+				class="min-w-0 rounded px-1.5 py-0.5 text-left font-mono transition-colors wrap-anywhere {isSelected(
 					'residential_unit',
 					ru.id ?? ''
 				)
@@ -635,7 +558,7 @@
 				<span class="text-surface-600-400">{m.trace_at_address()}</span>
 				<button
 					type="button"
-					class="underline decoration-surface-300-700 underline-offset-2 text-surface-900-100 hover:text-primary-500 hover:decoration-primary-500"
+					class="text-left text-surface-900-100 underline decoration-surface-300-700 underline-offset-2 hover:text-primary-500 hover:decoration-primary-500"
 					onclick={() => traceFrom('address', ru.address?.id ?? '')}
 				>
 					{ru.address.street}
