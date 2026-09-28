@@ -81,6 +81,7 @@
 		}
 	],
 	"action_upload_files": "Upload",
+	"action_view_address": "View Address",
 	"action_view_slot_configuration": "View Slot Configuration",
 	"action_view_structure": "View Structure",
 	"action_view_trench_profile": "View Trench Profile",

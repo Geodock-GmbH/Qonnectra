@@ -81,6 +81,7 @@
 		}
 	],
 	"action_upload_files": "Upload",
+	"action_view_address": "Adresse anzeigen",
 	"action_view_slot_configuration": "Slot-Konfiguration anzeigen",
 	"action_view_structure": "Struktur anzeigen",
 	"action_view_trench_profile": "Grabenprofil anzeigen",

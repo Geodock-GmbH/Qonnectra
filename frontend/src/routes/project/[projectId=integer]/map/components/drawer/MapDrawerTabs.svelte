@@ -4,8 +4,10 @@
 		SlotConfiguration
 	} from '$lib/classes/NodeStructureContext.svelte';
 	import type { MapFeatureKind } from '$lib/map/featureDetails';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import {
+		IconHome,
 		IconLayoutGrid,
 		IconLayoutList,
 		IconSettings,
@@ -22,7 +24,7 @@
 	import NodeStructurePanel from '$lib/components/node-structure/NodeStructurePanel.svelte';
 	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
-	import { displayProperties, featureTitle } from '$lib/map/featureDetails';
+	import { addressLinkOf, displayProperties, featureTitle } from '$lib/map/featureDetails';
 	import { traceFrom } from '$lib/utils/traceUtils';
 	import { queryEnum, setQuery } from '$lib/utils/urlState';
 	import { getFeatureDetails } from '$lib/remote/map/feature-search.remote';
@@ -71,6 +73,8 @@
 	// svelte-ignore state_referenced_locally
 	title = featureTitle(kind, featureData);
 	const featureName = String(featureData.name ?? '');
+	// svelte-ignore state_referenced_locally
+	const addressLink = addressLinkOf(kind, feature);
 
 	let slotConfigPanelOpen = $state(false);
 	let structurePanelOpen = $state(false);
@@ -125,6 +129,18 @@
 	}
 </script>
 
+{#snippet addressLinkButton()}
+	{#if addressLink}
+		<a
+			class="btn preset-filled-primary-500 w-full"
+			href={resolve('/project/[projectId=integer]/address/[uuid]', addressLink)}
+		>
+			<IconHome size={18} />
+			{m.action_view_address()}
+		</a>
+	{/if}
+{/snippet}
+
 <Tabs tabs={tabItems} value={activeTab} onValueChange={(tab) => setQuery({ tab })}>
 	{#if activeTab === 'attributes'}
 		<FeatureAttributeCard properties={featureData} {alias} {projects} />
@@ -173,6 +189,7 @@
 				<IconLayoutList size={18} />
 				{m.action_view_structure()}
 			</button>
+			{@render addressLinkButton()}
 			<button
 				type="button"
 				class="btn preset-filled-tertiary-500 w-full"
@@ -186,6 +203,7 @@
 
 	{#if activeTab === 'actions' && kind === 'address'}
 		<div class="space-y-4">
+			{@render addressLinkButton()}
 			<button
 				type="button"
 				class="btn preset-filled-tertiary-500 w-full"

@@ -169,3 +169,28 @@ export function featureTitle(kind: MapFeatureKind, display: Properties): string 
 export function featureProjectId(feature: GeoJSONFeature): string | null {
 	return projectIdOf(field(feature.properties, 'project'));
 }
+
+/** The address detail page a feature links to. */
+export interface AddressLink {
+	uuid: string;
+	projectId: string;
+}
+
+/**
+ * The address a feature leads to: an address itself, or the address linked
+ * to a node. The project is the address's own, which in the global view can
+ * differ from the current project.
+ * @param kind - The feature kind.
+ * @param feature - The fetched GeoJSON feature.
+ * @returns The address uuid and project, or null when there is no address.
+ */
+export function addressLinkOf(kind: MapFeatureKind, feature: GeoJSONFeature): AddressLink | null {
+	const address =
+		kind === 'address'
+			? feature
+			: kind === 'node'
+				? (field(feature.properties, 'uuid_address') as GeoJSONFeature | null)
+				: null;
+	const projectId = address?.id ? featureProjectId(address) : null;
+	return address && projectId ? { uuid: address.id, projectId } : null;
+}
