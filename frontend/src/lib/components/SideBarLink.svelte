@@ -23,6 +23,10 @@
 		hidden?: boolean;
 		/** Called when the hide toggle is clicked */
 		onToggleHidden?: (routeId: string) => void;
+		/** CSS classes for the link icon */
+		iconClass?: string;
+		/** Called when the link itself is clicked */
+		onclick?: () => void;
 	}
 
 	let {
@@ -32,7 +36,9 @@
 		iconOnly = false,
 		customizing = false,
 		hidden = false,
-		onToggleHidden
+		onToggleHidden,
+		iconClass = 'size-7',
+		onclick
 	}: Props = $props();
 
 	const Icon = $derived(link.icon);
@@ -59,8 +65,9 @@
 			class={anchorClass(isSelected)}
 			aria-label={link.label()}
 			{@attach tooltip(link.label())}
+			{onclick}
 		>
-			<Icon class="size-7 text-surface-700-300" />
+			<Icon class="{iconClass} text-surface-700-300" />
 			<span>{link.label()}</span>
 		</a>
 		<!-- eslint-enable svelte/no-navigation-without-resolve -->

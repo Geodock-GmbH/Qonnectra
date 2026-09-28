@@ -1,63 +1,30 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
-	import {
-		IconAdjustmentsHorizontal,
-		IconBook,
-		IconChevronDown,
-		IconChevronRight,
-		IconRestore
-	} from '@tabler/icons-svelte';
+	import { IconBook, IconChevronDown, IconChevronRight } from '@tabler/icons-svelte';
 	import { env } from '$env/dynamic/public';
 
 	import { m } from '$lib/paraglide/messages';
 
-	import {
-		isGroupCollapsed,
-		isRouteHidden,
-		sidebarPreferences,
-		toggleGroupCollapsed,
-		toggleRouteHidden
-	} from '$lib/stores/sidebarPreferences';
+	import { SidebarNavState } from '$lib/classes/SidebarNavState.svelte';
 	import { sidebarExpanded } from '$lib/stores/store';
-	import { canAccessRoute } from '$lib/utils/permissions';
 	import { tooltip } from '$lib/utils/tooltip';
-	import { footerLinks, isActive, navGroups, navHref } from '$lib/config/navLinks';
+	import { isActive, navHref } from '$lib/config/navLinks';
 	import { getRememberedProject } from '$lib/context/rememberedProject.svelte';
 
 	import AppIcon from './AppIcon.svelte';
+	import SidebarCustomizeControls from './SidebarCustomizeControls.svelte';
 	import SideBarLink from './SideBarLink.svelte';
 
-	/** Whether the customize controls (per-route hide toggles, reset) are shown. */
-	let customizing = $state(false);
+	const nav = new SidebarNavState();
 
 	const remembered = getRememberedProject();
 
 	/** The project links point at: the URL's project, or the remembered one on a global page. */
 	const projectId = $derived(page.params.projectId ?? remembered.id);
 
-	/**
-	 * Content groups filtered to the routes the current user may access. Hidden
-	 * routes are kept here so they can still be revealed while customizing; the
-	 * template drops them from the normal view.
-	 */
-	const permittedGroups = $derived(
-		navGroups
-			.map((group) => ({
-				...group,
-				links: group.links.filter((link) =>
-					canAccessRoute(page.data.user?.permissions, link.permissionKey)
-				)
-			}))
-			.filter((group) => group.links.length > 0)
-	);
-
-	const permittedFooterLinks = $derived(
-		footerLinks.filter((link) => canAccessRoute(page.data.user?.permissions, link.permissionKey))
-	);
-
 	/** Flat list of all permitted content links, used for the collapsed rail layout. */
-	const railLinks = $derived(permittedGroups.flatMap((group) => group.links));
+	const railLinks = $derived(nav.permittedGroups.flatMap((group) => group.links));
 
 	/**
 	 * @param isSelected - Whether the nav item is currently active
@@ -69,24 +36,8 @@
 		const baseClass = `btn hover:preset-tonal ${justifyClass} ${paddingClass} w-full`;
 		return isSelected ? `${baseClass} preset-filled` : baseClass;
 	}
-
-	/** @param groupId - Stable id of the group to expand/collapse */
-	function handleToggleGroup(groupId: string) {
-		sidebarPreferences.update((prefs) => toggleGroupCollapsed(prefs, groupId));
-	}
-
-	/** @param routeId - Stable id of the route to hide/show */
-	function handleToggleRoute(routeId: string) {
-		sidebarPreferences.update((prefs) => toggleRouteHidden(prefs, routeId));
-	}
-
-	/** Clears all hidden routes and collapsed groups back to defaults. */
-	function resetPreferences() {
-		sidebarPreferences.set({ hiddenRoutes: [], collapsedGroups: [] });
-	}
 </script>
 
-<!-- SideBar -->
 <div class="hidden md:block border-r-2 border-surface-200-800">
 	<Navigation
 		layout={$sidebarExpanded ? 'sidebar' : 'rail'}
@@ -97,32 +48,7 @@
 				{#if $sidebarExpanded}
 					<AppIcon size="1.75rem" />
 					<h1 class="text-2xl font-semibold leading-none flex-1">Qonnectra</h1>
-					{#if customizing}
-						<button
-							type="button"
-							class="btn-icon btn-icon-sm hover:preset-tonal self-center"
-							aria-label={m.action_reset_sidebar()}
-							{@attach tooltip(m.action_reset_sidebar(), { position: 'bottom' })}
-							onclick={resetPreferences}
-						>
-							<IconRestore class="size-5 text-surface-700-300" />
-						</button>
-					{/if}
-					<button
-						type="button"
-						class="btn-icon btn-icon-sm hover:preset-tonal self-center {customizing
-							? 'preset-filled'
-							: ''}"
-						aria-pressed={customizing}
-						aria-label={customizing ? m.action_done_customizing() : m.action_customize_sidebar()}
-						{@attach tooltip(
-							customizing ? m.action_done_customizing() : m.action_customize_sidebar(),
-							{ position: 'bottom' }
-						)}
-						onclick={() => (customizing = !customizing)}
-					>
-						<IconAdjustmentsHorizontal class="size-5 text-surface-700-300" />
-					</button>
+					<SidebarCustomizeControls {nav} />
 				{:else}
 					<AppIcon />
 				{/if}
@@ -131,18 +57,16 @@
 		<Navigation.Content>
 			{#if $sidebarExpanded}
 				<!-- Expanded: grouped navigation with collapsible labels -->
-				{#each permittedGroups as group (group.id)}
-					{@const collapsed = isGroupCollapsed($sidebarPreferences, group.id)}
-					{@const visibleLinks = customizing
-						? group.links
-						: group.links.filter((link) => !isRouteHidden($sidebarPreferences, link.id))}
+				{#each nav.permittedGroups as group (group.id)}
+					{@const collapsed = nav.isCollapsed(group.id)}
+					{@const visibleLinks = nav.visibleLinks(group)}
 					{#if visibleLinks.length > 0}
 						<Navigation.Group>
 							<button
 								type="button"
 								class="flex w-full items-center justify-between px-2 py-1 text-surface-900-100 hover:preset-tonal rounded"
 								aria-expanded={!collapsed}
-								onclick={() => handleToggleGroup(group.id)}
+								onclick={() => nav.toggleGroup(group.id)}
 							>
 								<Navigation.Label class="text-surface-900-100">{group.label()}</Navigation.Label>
 								{#if collapsed}
@@ -158,9 +82,9 @@
 											{link}
 											{projectId}
 											anchorClass={getAnchorClass}
-											{customizing}
-											hidden={isRouteHidden($sidebarPreferences, link.id)}
-											onToggleHidden={handleToggleRoute}
+											customizing={nav.customizing}
+											hidden={nav.isHidden(link.id)}
+											onToggleHidden={(routeId) => nav.toggleRoute(routeId)}
 										/>
 									{/each}
 								</Navigation.Menu>
@@ -173,7 +97,7 @@
 				<Navigation.Group>
 					<Navigation.Menu>
 						{#each railLinks as link (link.id)}
-							{#if !isRouteHidden($sidebarPreferences, link.id)}
+							{#if !nav.isHidden(link.id)}
 								<SideBarLink {link} {projectId} anchorClass={getAnchorClass} iconOnly />
 							{/if}
 						{/each}
@@ -182,14 +106,14 @@
 			{/if}
 		</Navigation.Content>
 		<!-- Footer Navigation -->
-		{#if permittedFooterLinks.length > 0 || env.PUBLIC_DOCUMENTATION_URL}
+		{#if nav.permittedFooterLinks.length > 0 || env.PUBLIC_DOCUMENTATION_URL}
 			<Navigation.Footer>
 				<Navigation.Group>
 					{#if $sidebarExpanded}
 						<Navigation.Label>{m.nav_category_system()}</Navigation.Label>
 					{/if}
 					<Navigation.Menu>
-						{#each permittedFooterLinks as link (link.id)}
+						{#each nav.permittedFooterLinks as link (link.id)}
 							{@const Icon = link.icon}
 							{@const isSelected = isActive(link, page.route.id)}
 							<!-- eslint-disable svelte/no-navigation-without-resolve -- href comes from navHref(), which resolves the typed route id -->
