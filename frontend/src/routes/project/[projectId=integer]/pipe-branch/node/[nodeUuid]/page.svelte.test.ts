@@ -3,14 +3,12 @@ import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { page } from '../../components/pageState.fixture.svelte';
 import Page from './+page.svelte';
 
-const { pageState, getPipeBranches } = vi.hoisted(() => ({
-	pageState: { params: { projectId: 'proj-1', nodeUuid: 'uuid-a' } as Record<string, string> },
-	getPipeBranches: vi.fn()
-}));
+const { getPipeBranches } = vi.hoisted(() => ({ getPipeBranches: vi.fn() }));
 
-vi.mock('$app/state', () => ({ page: pageState }));
+vi.mock('$app/state', async () => await import('../../components/pageState.fixture.svelte'));
 
 vi.mock('$lib/remote/pipe-branch/branches.remote', () => ({
 	getPipeBranches: (...args: unknown[]) => getPipeBranches(...args)
@@ -27,9 +25,12 @@ vi.mock('../../components/PipeBranchCanvas.svelte', async () => {
 });
 
 beforeEach(() => {
-	pageState.params = { projectId: 'proj-1', nodeUuid: 'uuid-a' };
+	page.params = { projectId: 'proj-1', nodeUuid: 'uuid-a' };
 	getPipeBranches.mockResolvedValue({
-		branches: [{ label: 'Node A', value: 'Node A', uuid: 'uuid-a' }],
+		branches: [
+			{ label: 'Node A', value: 'Node A', uuid: 'uuid-a' },
+			{ label: 'Node B', value: 'Node B', uuid: 'uuid-b' }
+		],
 		configured: true
 	});
 });
@@ -48,8 +49,22 @@ describe('/pipe-branch/node/[nodeUuid]/+page.svelte', () => {
 		expect(getPipeBranches).toHaveBeenCalledWith('proj-1');
 	});
 
+	test('should start a fresh canvas for the node picked next', async () => {
+		render(Page);
+		const first = (await screen.findByTestId('pipe-branch-canvas')).dataset.instance;
+
+		page.params.nodeUuid = 'uuid-b';
+
+		await vi.waitFor(() =>
+			expect(screen.getByTestId('pipe-branch-canvas')).toHaveTextContent(
+				'canvas for proj-1 / Node B'
+			)
+		);
+		expect(screen.getByTestId('pipe-branch-canvas').dataset.instance).not.toBe(first);
+	});
+
 	test('should show the error state for a node the project does not have', async () => {
-		pageState.params.nodeUuid = 'uuid-unknown';
+		page.params.nodeUuid = 'uuid-unknown';
 		render(Page);
 
 		expect(await screen.findByRole('alert')).toHaveTextContent('message_pipe_branch_not_found');

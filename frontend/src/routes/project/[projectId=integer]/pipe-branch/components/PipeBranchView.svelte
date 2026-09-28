@@ -33,6 +33,8 @@
 	const node = $derived(nodeUuid ? await resolveNode(nodeUuid) : null);
 </script>
 
-{#key nodeUuid}
+<!-- Keyed on the resolved node, not the URL param: keying on the param would
+     build the next canvas while `node` still holds the previous node. -->
+{#key node?.uuid}
 	<PipeBranchCanvas {projectId} {node} />
 {/key}
