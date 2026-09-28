@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import dotenv from 'dotenv';
 
 import { loginOrSkip } from './helpers/auth.js';
+import { reloadPage } from './helpers/history.js';
 import { gotoProjectRoute } from './helpers/routes.js';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
@@ -649,7 +650,7 @@ test.describe('Conduit Route Tests', () => {
 			await expect(page.locator('[data-drawer]')).toBeVisible();
 			await expect(firstRow).toHaveAttribute('aria-selected', 'true');
 
-			await page.reload();
+			await reloadPage(page);
 			await expect(page.locator('[data-drawer]')).toBeVisible({ timeout: 15000 });
 			await expect(page.locator('[data-drawer] h2')).toHaveText(name);
 

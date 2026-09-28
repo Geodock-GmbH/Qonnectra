@@ -119,7 +119,9 @@ function effectiveOpacity(locator) {
  * through the real form, then deleted through the file explorer's actions.
  */
 test.describe('Address detail attachments', () => {
-	const stem = `e2e-attachment-${Date.now()}-with-a-deliberately-long-name-that-has-to-truncate`;
+	// Unique per worker: parallel workers upload to the same address, and a
+	// shared name would let one worker's delete remove another worker's file.
+	const stem = `e2e-attachment-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-with-a-deliberately-long-name-that-has-to-truncate`;
 	const fileName = `${stem}.txt`;
 	/** @type {string | null} */
 	let addressUuid = null;

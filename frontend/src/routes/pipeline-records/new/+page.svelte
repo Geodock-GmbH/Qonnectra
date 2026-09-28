@@ -10,7 +10,10 @@
 	import { globalToaster } from '$lib/stores/toaster';
 	import { defaultProject } from '$lib/utils/rememberedProject';
 	import { getRememberedProject } from '$lib/context/rememberedProject.svelte';
-	import { createPipelineRecord } from '$lib/remote/pipeline-records/records.remote';
+	import {
+		createPipelineRecord,
+		getPipelineRecordList
+	} from '$lib/remote/pipeline-records/records.remote';
 	import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
 
 	import { PipelineRecordDraft } from '../components/PipelineRecordDraft.svelte';
@@ -40,7 +43,7 @@
 			const created = await createPipelineRecord({
 				projectId: Number(activeProject.value),
 				...draft.toInput()
-			});
+			}).updates(getPipelineRecordList);
 			globalToaster.success({
 				title: m.title_success(),
 				description: m.message_pipeline_record_created()

@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { loginOrSkip } from './helpers/auth.js';
+import { reloadPage } from './helpers/history.js';
 import { gotoProjectRoute, projectPath } from './helpers/routes.js';
 
 /**
@@ -72,7 +73,7 @@ test.describe('Network schema page', () => {
 			{ timeout: 15000 }
 		);
 
-		await page.reload();
+		await reloadPage(page);
 		await expect(page.locator('[data-drawer]')).toBeVisible({ timeout: 15000 });
 
 		await page.goBack();

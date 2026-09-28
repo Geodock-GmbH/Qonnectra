@@ -67,7 +67,9 @@ test.describe.configure({ mode: 'serial' });
 
 test.describe('Pipeline Records CRUD', () => {
 	// A unique marker so parallel/reused DBs don't collide and cleanup is precise.
-	const ORG = `E2E Org ${Date.now()}`;
+	// The random part matters: workers loading this file in the same millisecond
+	// (one per browser) would otherwise share a marker and delete each other's records.
+	const ORG = `E2E Org ${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 	const ORG_EDITED = `${ORG} EDITED`;
 	const CONTACT = 'E2E Contact';
 
@@ -169,6 +171,10 @@ test.describe('Pipeline Records CRUD', () => {
 
 		await page.locator('input[name="organisation"]').fill(ORG_EDITED);
 		await page.getByRole('button', { name: /save|speichern/i }).click();
+		// Leaving before the save answered would abort it.
+		await expect(
+			page.getByText(/pipeline record updated|datensatz erfolgreich aktualisiert/i).first()
+		).toBeVisible({ timeout: 10000 });
 
 		// Go back to the list, search for the edited marker, and confirm it persisted.
 		await page.goto('/pipeline-records');

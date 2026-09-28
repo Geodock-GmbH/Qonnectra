@@ -4,6 +4,7 @@ import { expect, test } from '@playwright/test';
 
 import { firstFeature } from './helpers/api.js';
 import { loginOrSkip } from './helpers/auth.js';
+import { reloadPage } from './helpers/history.js';
 import { gotoProjectRoute, projectIdFromUrl, projectPath } from './helpers/routes.js';
 
 test.describe('Map page', () => {
@@ -150,7 +151,7 @@ test.describe('Map page', () => {
 		// The drawer fetched the trench itself: the title is its id.
 		await expect(drawer.locator('h2')).toHaveText(/** @type {ListedFeature} */ (trench).label);
 
-		await page.reload();
+		await reloadPage(page);
 		await expect(page.locator('[data-drawer]')).toBeVisible({ timeout: 15000 });
 
 		await page.goBack();

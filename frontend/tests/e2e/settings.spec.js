@@ -33,7 +33,9 @@ test.describe('Settings page', () => {
 
 	test('shows the logged-in username in the user section', async ({ page }) => {
 		// The account section renders the real authenticated user, not a placeholder.
-		await expect(page.getByText(/** @type {string} */ (TEST_USERNAME))).toBeVisible();
+		await expect(
+			page.getByText(/** @type {string} */ (TEST_USERNAME), { exact: true })
+		).toBeVisible();
 	});
 
 	test('renders the map style controls with named color inputs', async ({ page }) => {

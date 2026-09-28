@@ -4,8 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalToaster } from '$lib/stores/toaster';
+import { getPipelineRecordList } from '$lib/remote/pipeline-records/records.remote';
 import BoundaryFixture from '$lib/test-utils/Boundary.fixture.svelte';
-import { httpError } from '$lib/test-utils/remote-stubs';
+import { commandFailure, commandResult, httpError } from '$lib/test-utils/remote-stubs';
 
 import PipelineRecordEditor from './PipelineRecordEditor.svelte';
 
@@ -20,11 +21,14 @@ vi.mock('$app/navigation', () => ({
 const getPipelineRecord = vi.fn();
 const updatePipelineRecord = vi.fn();
 const deletePipelineRecord = vi.fn();
+/** Receives what a command handed to `.updates(...)`. */
+const updates = vi.fn();
 
 vi.mock('$lib/remote/pipeline-records/records.remote', () => ({
 	getPipelineRecord: (...args: unknown[]) => getPipelineRecord(...args),
 	updatePipelineRecord: (...args: unknown[]) => updatePipelineRecord(...args),
-	deletePipelineRecord: (...args: unknown[]) => deletePipelineRecord(...args)
+	deletePipelineRecord: (...args: unknown[]) => deletePipelineRecord(...args),
+	getPipelineRecordList: vi.fn()
 }));
 
 vi.mock('$lib/remote/pipeline-records/record-options.remote', () => ({
@@ -81,8 +85,8 @@ function renderEditor(record = makeRecord()) {
 }
 
 beforeEach(() => {
-	updatePipelineRecord.mockResolvedValue(makeRecord());
-	deletePipelineRecord.mockResolvedValue(undefined);
+	updatePipelineRecord.mockImplementation(() => commandResult(makeRecord(), updates));
+	deletePipelineRecord.mockImplementation(() => commandResult(undefined, updates));
 });
 
 afterEach(() => {
@@ -90,6 +94,7 @@ afterEach(() => {
 	getPipelineRecord.mockReset();
 	updatePipelineRecord.mockReset();
 	deletePipelineRecord.mockReset();
+	updates.mockReset();
 	vi.mocked(globalToaster.success).mockClear();
 	vi.mocked(globalToaster.error).mockClear();
 });
@@ -134,12 +139,14 @@ describe('PipelineRecordEditor', () => {
 			tel: '0123',
 			mobile: '0170'
 		});
+		// Every cached list page is refreshed, so the list shows the new values.
+		expect(updates).toHaveBeenCalledWith(getPipelineRecordList);
 		await vi.waitFor(() => expect(globalToaster.success).toHaveBeenCalled());
 	});
 
 	test('should show the backend message when the save is rejected', async () => {
 		const user = userEvent.setup();
-		updatePipelineRecord.mockRejectedValue(httpError(400, 'tel: Too long.'));
+		updatePipelineRecord.mockImplementation(() => commandFailure(httpError(400, 'tel: Too long.')));
 		renderEditor();
 		await screen.findByDisplayValue('Acme Telecom');
 
@@ -163,12 +170,16 @@ describe('PipelineRecordEditor', () => {
 		await user.click(within(dialog).getByRole('button', { name: 'common_delete' }));
 
 		expect(deletePipelineRecord).toHaveBeenCalledWith('rec-1');
+		// A cached list page would otherwise still show the deleted record.
+		expect(updates).toHaveBeenCalledWith(getPipelineRecordList);
 		await vi.waitFor(() => expect(gotoMock).toHaveBeenCalledWith('/pipeline-records'));
 	});
 
 	test('should stay on the page when the delete is rejected', async () => {
 		const user = userEvent.setup();
-		deletePipelineRecord.mockRejectedValue(httpError(409, 'Record is in use.'));
+		deletePipelineRecord.mockImplementation(() =>
+			commandFailure(httpError(409, 'Record is in use.'))
+		);
 		renderEditor();
 		await screen.findByDisplayValue('Acme Telecom');
 

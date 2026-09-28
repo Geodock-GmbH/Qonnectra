@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { firstFeature } from './helpers/api.js';
 import { loginOrSkip } from './helpers/auth.js';
+import { reloadPage } from './helpers/history.js';
 import { gotoProjectRoute, projectIdFromUrl, projectPath } from './helpers/routes.js';
 
 /**
@@ -126,7 +127,7 @@ test.describe('Pipe-branch page', () => {
 			timeout: 15000
 		});
 
-		await page.reload();
+		await reloadPage(page);
 		await expect(page).toHaveURL(/\/pipe-branch\/node\//);
 		await expect(page.locator('[data-testid="svelte-flow__wrapper"]').first()).toBeVisible({
 			timeout: 15000

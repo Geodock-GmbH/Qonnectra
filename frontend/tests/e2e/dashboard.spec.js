@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { loginOrSkip } from './helpers/auth.js';
+import { reloadPage } from './helpers/history.js';
 import { gotoProjectRoute, projectIdFromUrl, projectPath } from './helpers/routes.js';
 
 /**
@@ -55,7 +56,7 @@ test.describe('Dashboard page', () => {
 		await tab(page, /node|netzknoten/i).click();
 		await expect(page).toHaveURL(/[?&]tab=node/);
 
-		await page.reload();
+		await reloadPage(page);
 		await expect(tab(page, /node|netzknoten/i)).toHaveAttribute('aria-selected', 'true', {
 			timeout: 15000
 		});

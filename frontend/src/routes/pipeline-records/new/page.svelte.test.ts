@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalToaster } from '$lib/stores/toaster';
 import { getRememberedProject } from '$lib/context/rememberedProject.svelte';
-import { httpError } from '$lib/test-utils/remote-stubs';
+import { getPipelineRecordList } from '$lib/remote/pipeline-records/records.remote';
+import { commandFailure, commandResult, httpError } from '$lib/test-utils/remote-stubs';
 
 import Page from './+page.svelte';
 
@@ -33,9 +34,12 @@ vi.mock('$lib/context/rememberedProject.svelte', async (importOriginal) => {
 });
 
 const createPipelineRecord = vi.fn();
+/** Receives what the create command handed to `.updates(...)`. */
+const updates = vi.fn();
 
 vi.mock('$lib/remote/pipeline-records/records.remote', () => ({
-	createPipelineRecord: (...args: unknown[]) => createPipelineRecord(...args)
+	createPipelineRecord: (...args: unknown[]) => createPipelineRecord(...args),
+	getPipelineRecordList: vi.fn()
 }));
 
 vi.mock('$lib/components/GenericCombobox.svelte', async () => {
@@ -62,12 +66,13 @@ const user = userEvent.setup();
 
 beforeEach(() => {
 	getRememberedProject().set('2');
-	createPipelineRecord.mockResolvedValue({ uuid: 'rec-new' });
+	createPipelineRecord.mockImplementation(() => commandResult({ uuid: 'rec-new' }, updates));
 });
 
 afterEach(() => {
 	gotoMock.mockReset();
 	createPipelineRecord.mockReset();
+	updates.mockReset();
 	vi.mocked(globalToaster.success).mockClear();
 	vi.mocked(globalToaster.error).mockClear();
 });
@@ -117,12 +122,16 @@ describe('new pipeline record page', () => {
 			tel: '',
 			mobile: ''
 		});
+		// Every cached list page is refreshed, so the list shows the new record.
+		expect(updates).toHaveBeenCalledWith(getPipelineRecordList);
 		await vi.waitFor(() => expect(gotoMock).toHaveBeenCalledWith('/pipeline-records/rec-new'));
 		expect(globalToaster.success).toHaveBeenCalled();
 	});
 
 	test('should stay on the page and show the backend message when the create is rejected', async () => {
-		createPipelineRecord.mockRejectedValue(httpError(400, 'project: Invalid pk.'));
+		createPipelineRecord.mockImplementation(() =>
+			commandFailure(httpError(400, 'project: Invalid pk.'))
+		);
 		render(Page);
 		await screen.findByTestId('active-project');
 

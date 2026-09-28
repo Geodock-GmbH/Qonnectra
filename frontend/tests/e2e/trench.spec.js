@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { loginOrSkip } from './helpers/auth.js';
-import { gotoProjectRoute } from './helpers/routes.js';
+import { getProjectId, projectPath } from './helpers/routes.js';
 
 /**
  * Reads a persisted store value out of localStorage the way the `persisted`
@@ -20,7 +20,11 @@ async function readPersisted(page, key) {
 test.describe('Trench (conduit assignment) page', () => {
 	test.beforeEach(async ({ page }) => {
 		await loginOrSkip(page, test.skip);
-		await gotoProjectRoute(page, 'trench');
+		const id = await getProjectId(page);
+		// A URL without a flag is rewritten to the preferred flag (flag 1 by
+		// default), so the page always settles on /trench/<flagId>.
+		await page.goto(projectPath(id, 'trench'));
+		await expect(page).toHaveURL(/\/trench\/[^/?#]+(?:#.*)?$/);
 		await page.waitForLoadState('networkidle');
 	});
 
