@@ -138,7 +138,7 @@ afterEach(() => {
 });
 
 describe('CableDiagramEdge vertex handling', () => {
-	test('should delete the vertex on Shift+MouseDown even when the Shift keydown was never observed', async () => {
+	test('should delete the vertex on Shift+PointerDown even when the Shift keydown was never observed', async () => {
 		const schemaState = seededState([{ x: 100, y: 100 }]);
 		const saveSpy = vi.spyOn(schemaState, 'saveCablePath').mockResolvedValue();
 
@@ -150,20 +150,19 @@ describe('CableDiagramEdge vertex handling', () => {
 		const vertex = container.querySelector('circle.nopan')!;
 
 		// No keyboard events fired: Shift was pressed while focus was
-		// elsewhere, so only the mouse event itself carries the modifier.
-		await fireEvent.mouseDown(vertex, { shiftKey: true });
+		// elsewhere, so only the pointer event itself carries the modifier.
+		await fireEvent.pointerDown(vertex, { shiftKey: true });
 
 		expect(saveSpy).toHaveBeenCalledWith('cab-1', []);
 	});
 
-	test('should mark the vertex handle with the nokey class so SvelteFlow does not swallow its mousedown', () => {
+	test('should mark the vertex handle with the nokey class so SvelteFlow does not swallow its pointerdown', () => {
 		// Regression guard for the Shift-select capture bug: in edit mode the canvas
 		// is selectable, so holding Shift arms SvelteFlow's box-selection, whose Pane
-		// `onpointerdowncapture` preventDefaults the vertex pointerdown and thereby
-		// suppresses the compat `mousedown` that drives delete/drag. The `nokey`
-		// class opts the vertex out of that capture. This seam cannot reproduce the
-		// browser-level suppression (jsdom has no pointer→mouse compat, no Pane), so
-		// the class itself is the load-bearing fact we lock down here.
+		// `onpointerdowncapture` stops the vertex pointerdown that drives
+		// delete/drag from propagating. The `nokey` class opts the vertex out of
+		// that capture. This seam cannot reproduce the capture (jsdom has no Pane),
+		// so the class itself is the load-bearing fact we lock down here.
 		const schemaState = seededState([{ x: 100, y: 100 }]);
 
 		const { container } = render(CableDiagramEdgeFixture, {
@@ -175,7 +174,7 @@ describe('CableDiagramEdge vertex handling', () => {
 		expect(vertex.classList.contains('nokey')).toBe(true);
 	});
 
-	test('should persist the dragged waypoints on mouseup, not the pre-drag path from props', async () => {
+	test('should persist the dragged waypoints on pointerup, not the pre-drag path from props', async () => {
 		const schemaState = seededState([{ x: 100, y: 100 }]);
 		const saveSpy = vi.spyOn(schemaState, 'saveCablePath').mockResolvedValue();
 
@@ -187,14 +186,54 @@ describe('CableDiagramEdge vertex handling', () => {
 		stubSvgGeometry(container.querySelector('svg')!);
 		const vertex = container.querySelector('circle.nopan')!;
 
-		await fireEvent.mouseDown(vertex);
-		await fireEvent.mouseMove(window, { clientX: 300, clientY: 300 });
+		await fireEvent.pointerDown(vertex);
+		await fireEvent.pointerMove(window, { clientX: 300, clientY: 300 });
 		// Props are not updated by any parent here, mirroring the in-flight
 		// moment before the temporary update has round-tripped through state.
-		await fireEvent.mouseUp(window);
+		await fireEvent.pointerUp(window);
 
 		// endPathDrag saves the buffered waypoint, not the stale prop path.
 		expect(saveSpy).toHaveBeenCalledWith('cab-1', [{ x: 300, y: 300 }]);
+	});
+
+	test('should move the vertex with a touch drag, which emits no mouse events', async () => {
+		const schemaState = seededState([{ x: 100, y: 100 }]);
+		const saveSpy = vi.spyOn(schemaState, 'saveCablePath').mockResolvedValue();
+
+		const { container } = render(CableDiagramEdgeFixture, {
+			edgeProps: buildProps([{ x: 100, y: 100 }]),
+			schemaState
+		});
+
+		stubSvgGeometry(container.querySelector('svg')!);
+		const vertex = container.querySelector('circle.nopan')!;
+
+		await fireEvent.pointerDown(vertex, { pointerType: 'touch' });
+		await fireEvent.pointerMove(window, { pointerType: 'touch', clientX: 240, clientY: 180 });
+		await fireEvent.pointerUp(window, { pointerType: 'touch' });
+
+		expect(saveSpy).toHaveBeenCalledWith('cab-1', [{ x: 240, y: 180 }]);
+	});
+
+	test('should end the drag when the browser cancels the touch', async () => {
+		const schemaState = seededState([{ x: 100, y: 100 }]);
+		const saveSpy = vi.spyOn(schemaState, 'saveCablePath').mockResolvedValue();
+
+		const { container } = render(CableDiagramEdgeFixture, {
+			edgeProps: buildProps([{ x: 100, y: 100 }]),
+			schemaState
+		});
+
+		stubSvgGeometry(container.querySelector('svg')!);
+		const vertex = container.querySelector('circle.nopan')!;
+
+		await fireEvent.pointerDown(vertex, { pointerType: 'touch' });
+		await fireEvent.pointerMove(window, { pointerType: 'touch', clientX: 240, clientY: 180 });
+		await fireEvent.pointerCancel(window, { pointerType: 'touch' });
+		await fireEvent.pointerMove(window, { pointerType: 'touch', clientX: 400, clientY: 400 });
+
+		expect(saveSpy).toHaveBeenCalledTimes(1);
+		expect(saveSpy).toHaveBeenCalledWith('cab-1', [{ x: 240, y: 180 }]);
 	});
 });
 

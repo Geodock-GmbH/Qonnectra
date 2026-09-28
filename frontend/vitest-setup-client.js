@@ -372,6 +372,24 @@ global.ResizeObserver = class ResizeObserver {
 	disconnect() {}
 };
 
+// jsdom does not provide PointerEvent, so fireEvent.pointer* falls back to a bare
+// Event that drops clientX/shiftKey/pointerType. Pointer-driven handlers (cable
+// vertex drag) need those fields to be testable.
+if (typeof window.PointerEvent === 'undefined') {
+	window.PointerEvent = class PointerEvent extends MouseEvent {
+		/**
+		 * @param {string} type - The pointer event type, e.g. `pointerdown`.
+		 * @param {PointerEventInit} [init] - Mouse fields plus the pointer-specific ones.
+		 */
+		constructor(type, init = {}) {
+			super(type, init);
+			this.pointerId = init.pointerId ?? 1;
+			this.pointerType = init.pointerType ?? 'mouse';
+			this.isPrimary = init.isPrimary ?? true;
+		}
+	};
+}
+
 // required for svelte5 + jsdom as jsdom does not support matchMedia
 Object.defineProperty(window, 'matchMedia', {
 	writable: true,

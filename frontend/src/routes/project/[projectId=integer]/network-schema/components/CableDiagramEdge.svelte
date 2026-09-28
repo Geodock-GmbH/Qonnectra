@@ -49,7 +49,8 @@
 	const LINKED_BLUE = '#3b82f6';
 
 	/**
-	 * Compute the edge stroke color based on the current color mode setting
+	 * Stroke color for the current color mode: always green, green/blue by micropipe
+	 * linkage, or the lowest-numbered micropipe's color (green when missing or invalid).
 	 */
 	let strokeColor = $derived.by(() => {
 		const mode = $cableEdgeColorMode;
@@ -59,19 +60,14 @@
 		}
 
 		if (mode === 'linked') {
-			// Green when not connected, Blue when connected to at least one micropipe
 			return data?.isConnected ? LINKED_BLUE : DEFAULT_GREEN;
 		}
 
 		if (mode === 'micropipe') {
-			// Use the color from the lowest numbered micropipe
-			const lowestMicropipe = data?.lowestMicropipe;
-			const hexColor = lowestMicropipe?.color_hex;
-			// Validate hex color format before using it
+			const hexColor = data?.lowestMicropipe?.color_hex;
 			if (hexColor && /^#[0-9A-Fa-f]{6}$/.test(hexColor)) {
 				return hexColor;
 			}
-			// Fall back to green if no connection or invalid color
 			return DEFAULT_GREEN;
 		}
 
@@ -81,9 +77,11 @@
 	/** Direction-animation dash color: white dashes vanish on a white or yellow cable. */
 	let flowDashColor = $derived(isLightColor(strokeColor) ? 'var(--color-surface-900)' : 'white');
 
+	/**
+	 * Inline edge style: the cable in edit mode gets a primary-colored halo to stand
+	 * out, a merely selected cable keeps its own-color glow. Both thicken the stroke.
+	 */
 	let edgeStyle = $derived.by(() => {
-		// The cable in edit mode gets a primary-colored halo to stand out; a merely
-		// selected cable keeps its own-color glow. Both thicken the stroke.
 		if (schemaState.isEditing(id)) {
 			return `stroke: ${strokeColor}; stroke-width: 4; filter: drop-shadow(0 0 6px var(--color-primary-500));`;
 		}
@@ -96,6 +94,7 @@
 	let currentLabel = $derived(data?.label || data?.cable?.name || '');
 	let labelData = $derived(data?.labelData ?? null);
 
+	/** SVG path through the cable's waypoints, or a smooth-step path when it has none. */
 	let edgePath = $derived.by(() => {
 		const waypoints = data?.cable?.diagram_path;
 		const customPath = buildEdgePath(sourceX, sourceY, targetX, targetY, waypoints);
@@ -115,6 +114,7 @@
 		return stepPath;
 	});
 
+	/** Default label anchor: the midpoint along the drawn path, in flow coordinates. */
 	let labelX = $derived.by(() => {
 		const waypoints = data?.cable?.diagram_path;
 		const midpoint = getPathMidpoint(sourceX, sourceY, targetX, targetY, waypoints);
@@ -138,6 +138,7 @@
 
 	/**
 	 * Persist the cable label's position via the schema state (single owner).
+	 * @param positionData - The label's new flow position, plus its text and uuid when it already exists
 	 * @returns Whether the save persisted, so the label can clear its optimistic override
 	 */
 	function handleLabelPositionUpdate(positionData: {
@@ -159,7 +160,8 @@
 	let snapFeedbackPosition = $state({ x: 0, y: 0 });
 
 	/**
-	 * Handle click on edge to add a new vertex
+	 * Inserts a vertex into the segment nearest the click while the cable is in edit mode.
+	 * @param event - The click (or Enter/Space) on the edge; its client position picks the spot.
 	 */
 	function handleEdgeClick(event: MouseEvent) {
 		if (!schemaState.isEditing(id)) return;
@@ -204,9 +206,13 @@
 	}
 
 	/**
-	 * Handle vertex click - delete if Shift is pressed, otherwise start drag
+	 * Deletes the vertex when Shift is held, otherwise starts dragging it.
+	 * Pointer events (not mouse events) so a touch drag moves the vertex too:
+	 * touch only emits compat mouse events for a tap, never for a drag.
+	 * @param event - The pointerdown on the vertex handle.
+	 * @param index - Position of the vertex in the cable's diagram path.
 	 */
-	function handleVertexMouseDown(event: MouseEvent, index: number) {
+	function handleVertexPointerDown(event: PointerEvent, index: number) {
 		if (!schemaState.isEditing(id)) return;
 
 		event.stopPropagation();
@@ -224,12 +230,14 @@
 		svgElement = (event.currentTarget as Element).closest('svg');
 		schemaState.beginPathDrag(id);
 
-		window.addEventListener('mousemove', handleWindowMouseMove);
-		window.addEventListener('mouseup', handleWindowMouseUp);
+		window.addEventListener('pointermove', handleWindowPointerMove);
+		window.addEventListener('pointerup', handleWindowPointerUp);
+		window.addEventListener('pointercancel', handleWindowPointerUp);
 	}
 
 	/**
-	 * Delete a vertex at the given index
+	 * Removes a vertex from the cable's path and persists it.
+	 * @param index - Position of the vertex in the cable's diagram path.
 	 */
 	function deleteVertex(index: number) {
 		const waypoints = [...(data?.cable?.diagram_path || [])];
@@ -239,9 +247,10 @@
 	}
 
 	/**
-	 * Handle vertex drag on window (so it works even when mouse leaves SVG)
+	 * Moves the dragged vertex; listens on window so the drag continues when the pointer leaves the SVG.
+	 * @param event - The pointermove anywhere in the window.
 	 */
-	function handleWindowMouseMove(event: MouseEvent) {
+	function handleWindowPointerMove(event: PointerEvent) {
 		if (draggingVertexIndex === null || !svgElement) return;
 
 		const pt = svgElement.createSVGPoint();
@@ -271,21 +280,23 @@
 	}
 
 	/**
-	 * Handle vertex drag end on window
+	 * Ends the vertex drag and persists the new path; also runs when the browser cancels a touch.
 	 */
-	function handleWindowMouseUp() {
+	function handleWindowPointerUp() {
 		if (draggingVertexIndex !== null) {
 			void schemaState.endPathDrag(id);
 		}
 		draggingVertexIndex = null;
 		svgElement = null;
 
-		window.removeEventListener('mousemove', handleWindowMouseMove);
-		window.removeEventListener('mouseup', handleWindowMouseUp);
+		window.removeEventListener('pointermove', handleWindowPointerMove);
+		window.removeEventListener('pointerup', handleWindowPointerUp);
+		window.removeEventListener('pointercancel', handleWindowPointerUp);
 	}
 
 	/**
 	 * Suppress the browser context menu on a vertex right-click.
+	 * @param event - The contextmenu event on the vertex handle.
 	 */
 	function handleVertexContextMenu(event: MouseEvent) {
 		event.preventDefault();
@@ -293,7 +304,6 @@
 	}
 </script>
 
-<!-- Base edge with interaction -->
 <g
 	onclick={handleEdgeClick}
 	onkeydown={(e) => {
@@ -317,7 +327,6 @@
 	/>
 </g>
 
-<!-- Direction animation overlay -->
 {#if $cableDirectionAnimationEnabled}
 	<path
 		d={edgePath}
@@ -341,11 +350,10 @@
 		<!--
 			`nokey`: with the canvas unlocked in edit mode, `elementsSelectable` is
 			true, so holding Shift arms SvelteFlow's box-selection. Its Pane
-			`onpointerdowncapture` then calls `preventDefault()` on the vertex
-			pointerdown, which suppresses the compat `mousedown` — so
-			`handleVertexMouseDown` (Shift = delete, plain = drag) would never run.
-			`nokey` opts the vertex out of that capture, letting its own mousedown
-			fire. `nopan` only suppresses panning, not this selection capture.
+			`onpointerdowncapture` then stops the vertex pointerdown from
+			propagating, so `handleVertexPointerDown` (Shift = delete, plain = drag)
+			would never run. `nokey` opts the vertex out of that capture. `nopan`
+			only suppresses panning, not this selection capture.
 		-->
 		<circle
 			class="nopan nokey"
@@ -356,8 +364,9 @@
 			stroke="white"
 			pointer-events="all"
 			stroke-width="2"
-			style="{cursorStyle} opacity: {edgeHovered || draggingVertexIndex === index ? 1 : 0.3};"
-			onmousedown={(e) => handleVertexMouseDown(e, index)}
+			style={cursorStyle}
+			style:opacity={edgeHovered || draggingVertexIndex === index ? 1 : 0.3}
+			onpointerdown={(e) => handleVertexPointerDown(e, index)}
 			onmouseenter={() => (hoveredVertexIndex = index)}
 			onmouseleave={() => (hoveredVertexIndex = null)}
 			oncontextmenu={handleVertexContextMenu}
@@ -370,7 +379,6 @@
 	{/each}
 {/if}
 
-<!-- Dynamic label with position support -->
 {#if currentLabel}
 	<DynamicEdgeLabel
 		edgeId={id}
