@@ -48,9 +48,12 @@
 	let olMap = $state.raw<OlMap | null>(null);
 	let popupPixel = $state({ x: 0, y: 0 });
 
-	/** The damage location from the URL in the map's view projection, for anchoring the popup. */
+	/**
+	 * The damage location from the URL, or else the one picked on the map,
+	 * in the map's view projection, for anchoring the popup.
+	 */
 	const damageMapCoordinate: Coordinate | null = $derived.by(() => {
-		const point = simulation.damagePoint;
+		const point = simulation.damagePoint ?? simulation.picked?.point;
 		const { srid, proj4Def } = page.data;
 		if (!point || !olMap) return null;
 		if (!srid || !proj4Def) return point;
@@ -131,7 +134,8 @@
 
 	/**
 	 * Handles map clicks: the point on the clicked trench nearest the click
-	 * becomes the damage location in the URL, which runs the simulation.
+	 * becomes the picked damage location, which the popup offers to simulate.
+	 * A click beside every trench drops the pick.
 	 * @param evt - The map browser click event
 	 */
 	function handleMapClick(evt: MapBrowserEvent<PointerEvent>): void {
@@ -142,7 +146,11 @@
 			layerFilter: (layer) => layer === mapState.vectorTileLayer
 		});
 
-		if (!feature) return;
+		if (!feature) {
+			simulation.picked = null;
+			simulation.overlay.clear();
+			return;
+		}
 
 		const { srid, proj4Def } = page.data;
 		if (srid && proj4Def) {
@@ -166,7 +174,16 @@
 			? transform(snappedCoord, olMap.getView().getProjection(), storageProjection(srid))
 			: snappedCoord;
 
-		void simulation.selectDamagePoint([storageCoord[0], storageCoord[1]]);
+		const properties = feature.getProperties();
+		simulation.picked = {
+			point: [storageCoord[0], storageCoord[1]],
+			trench: {
+				id_trench: properties.id_trench ?? '—',
+				construction_type: properties.construction_type ?? null
+			}
+		};
+		simulation.overlay.showDamagePoint(snappedCoord);
+		updatePopupPixel();
 	}
 
 	onProjectChange((nextProjectId) =>
@@ -209,7 +226,7 @@
 			visible={!simulation.damagePoint && !simulation.simulationResult}
 		/>
 
-		{#if simulation.damagePoint && !simulation.simulationResult}
+		{#if (simulation.damagePoint || simulation.picked) && !simulation.simulationResult}
 			<div class="fault-popup" style:left="{popupPixel.x}px" style:top="{popupPixel.y}px">
 				<FaultSimulationPopUp />
 				<div class="fault-popup-arrow"></div>

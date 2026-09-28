@@ -53,14 +53,41 @@ describe('FaultSimulationState', () => {
 		expect(simulateFault).not.toHaveBeenCalled();
 	});
 
-	test('should pick the damage location by naming it in the URL as a place', async () => {
-		await simulation.selectDamagePoint([563210.4, 5934120.6]);
+	test('should not simulate or navigate while a picked location is unconfirmed', () => {
+		simulation.picked = { point: [563210.4, 5934120.6], trench };
+
+		expect(simulation.damagePoint).toBeNull();
+		expect(simulation.canSelectDamagePoint).toBe(true);
+		expect(simulateFault).not.toHaveBeenCalled();
+		expect(gotoMock).not.toHaveBeenCalled();
+	});
+
+	test('should start the simulation by naming the picked location in the URL as a place', async () => {
+		simulation.picked = { point: [563210.4, 5934120.6], trench };
+
+		await simulation.startSimulation();
 
 		expect(gotoMock).toHaveBeenCalledWith('/project/7/fault-simulation?damage=563210%2C5934121', {
 			keepFocus: true,
 			noScroll: true,
 			replaceState: false
 		});
+		expect(simulation.picked).toBeNull();
+	});
+
+	test('should not navigate when starting without a picked location', async () => {
+		await simulation.startSimulation();
+
+		expect(gotoMock).not.toHaveBeenCalled();
+	});
+
+	test('should drop the picked location on reset', async () => {
+		simulation.picked = { point: [563210, 5934120], trench };
+
+		await simulation.reset();
+
+		expect(simulation.picked).toBeNull();
+		expect(gotoMock).not.toHaveBeenCalled();
 	});
 
 	describe('with a damage location in the URL', () => {

@@ -1,4 +1,4 @@
-import type { FaultSimulationResult } from '$lib/remote/fault-simulation/simulation-data';
+import type { FaultSimulationResult, Trench } from '$lib/remote/fault-simulation/simulation-data';
 import { createContext } from 'svelte';
 import { page } from '$app/state';
 
@@ -9,14 +9,27 @@ import { simulateFault } from '$lib/remote/fault-simulation/simulation.remote';
 import { DamageOverlay } from './damageOverlay';
 import { formatDamage, queryDamage } from './damageParam';
 
+/** A damage location picked on the map that the user has not confirmed yet. */
+interface PickedDamage {
+	/** Location in the storage projection. */
+	point: [number, number];
+	/** The clicked trench as the map tile describes it. */
+	trench: Trench;
+}
+
 /**
  * State of the fault simulation page. The damage location lives in the URL
  * (`?damage=x,y`), the simulation is the remote query of that location, and
- * the map overlay mirrors both. Nothing here is a second source: picking a
- * location navigates, and a shared URL re-runs the same simulation.
+ * the map overlay mirrors both. A location picked on the map stays local
+ * until the user confirms it, since a simulation near a big node traces
+ * every cable through it; confirming navigates, and a shared URL re-runs
+ * the same simulation.
  */
 export class FaultSimulationState {
 	readonly overlay = new DamageOverlay();
+
+	/** The location picked on the map, awaiting confirmation; a later pick replaces it. */
+	picked = $state.raw<PickedDamage | null>(null);
 
 	/** A result handed in by the dev-only e2e hook instead of the backend. */
 	#injected = $state.raw<FaultSimulationResult | null>(null);
@@ -26,7 +39,7 @@ export class FaultSimulationState {
 		return routeProjectId();
 	}
 
-	/** Damage location in the storage projection, from the URL; null while none is picked. */
+	/** Damage location in the storage projection, from the URL; null while none is simulated. */
 	get damagePoint(): [number, number] | null {
 		return queryDamage(page.url);
 	}
@@ -40,7 +53,7 @@ export class FaultSimulationState {
 		return point ? simulateFault({ point, projectId: this.projectId }) : null;
 	}
 
-	/** The finished simulation, or null while none is picked or it is still running. */
+	/** The finished simulation, or null without a damage location in the URL or while it runs. */
 	get simulationResult(): FaultSimulationResult | null {
 		return this.#injected ?? this.query?.current ?? null;
 	}
@@ -55,19 +68,21 @@ export class FaultSimulationState {
 		return this.#injected ? false : (this.query?.loading ?? false);
 	}
 
-	/** Whether a damage location may be picked on the map: only while none is shown. */
+	/** Whether a damage location may be picked on the map: only while no simulation is shown. */
 	get canSelectDamagePoint(): boolean {
 		return this.damagePoint === null && this.#injected === null;
 	}
 
 	/**
-	 * Picks the damage location by naming it in the URL, a place the back
-	 * button returns from; the simulation follows from the URL.
-	 * @param point - Location in the storage projection.
+	 * Confirms the picked location by naming it in the URL, a place the back
+	 * button returns from; the simulation follows from the URL. Does nothing
+	 * without a picked location.
 	 * @returns Resolves once the navigation has completed.
 	 */
-	selectDamagePoint(point: [number, number]): Promise<void> {
-		return setQuery({ damage: formatDamage(point) }, { push: true });
+	async startSimulation(): Promise<void> {
+		if (!this.picked) return;
+		await setQuery({ damage: formatDamage(this.picked.point) }, { push: true });
+		this.picked = null;
 	}
 
 	/**
@@ -81,12 +96,14 @@ export class FaultSimulationState {
 	}
 
 	/**
-	 * Returns to the initial state: clears the overlay and removes the damage
-	 * from the URL, rewriting the entry so back never reopens the simulation.
+	 * Returns to the initial state: drops the picked location, clears the
+	 * overlay and removes the damage from the URL, rewriting the entry so
+	 * back never reopens the simulation.
 	 * @returns Resolves once the navigation has completed.
 	 */
 	async reset(): Promise<void> {
 		this.#injected = null;
+		this.picked = null;
 		this.overlay.clear();
 		if (this.damagePoint) await setQuery({ damage: null });
 	}
