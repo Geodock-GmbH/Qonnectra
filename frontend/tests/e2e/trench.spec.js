@@ -80,3 +80,45 @@ test.describe('Trench (conduit assignment) page', () => {
 		await expect.poll(() => readPersisted(page, 'routingMode')).toBe(true);
 	});
 });
+
+test.describe('Trench page reached through the sidebar', () => {
+	test.beforeEach(async ({ page }) => {
+		await loginOrSkip(page, test.skip);
+	});
+
+	test('opens the conduit dropdown right under its input after a client-side visit', async ({
+		page
+	}) => {
+		const id = await getProjectId(page);
+		// The dashboard loads no map, so the trench map is still loading its
+		// styles when the page renders; a navigation in that window (a redirect
+		// to the preferred flag) makes Svelte drop the conduit picker's effects.
+		await page.goto(projectPath(id, 'dashboard'));
+		await page.waitForLoadState('networkidle');
+
+		await page
+			.getByRole('link', { name: /^(connections|zuordnung)$/i })
+			.first()
+			.click();
+		await expect(page).toHaveURL(/\/trench\/[^/?#]+(?:#.*)?$/);
+
+		const input = page.getByPlaceholder(/select conduit|rohr auswählen/i);
+		await expect(input).toBeVisible({ timeout: 15000 });
+
+		await input.click();
+		await expect(input).toHaveAttribute('aria-expanded', 'true');
+
+		const listbox = page.locator(`#${await input.getAttribute('aria-controls')}`);
+		await expect(listbox.getByRole('option').first()).toBeVisible();
+
+		// A dropdown whose position was never measured sits at 0/0 with no width.
+		const inputBox = await input.boundingBox();
+		const listBox = await listbox.boundingBox();
+		expect(inputBox).not.toBeNull();
+		expect(listBox).not.toBeNull();
+		if (!inputBox || !listBox) return;
+		expect(listBox.y).toBeGreaterThanOrEqual(inputBox.y + inputBox.height);
+		expect(Math.abs(listBox.x - inputBox.x)).toBeLessThan(4);
+		expect(Math.abs(listBox.width - inputBox.width)).toBeLessThan(4);
+	});
+});

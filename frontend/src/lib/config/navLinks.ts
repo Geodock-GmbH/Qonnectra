@@ -1,5 +1,6 @@
 import type { RouteId } from '$app/types';
 import type { ComponentType } from 'svelte';
+import { fromStore } from 'svelte/store';
 import { resolve } from '$app/paths';
 import {
 	IconAbacus,
@@ -20,6 +21,14 @@ import {
 } from '@tabler/icons-svelte';
 
 import { m } from '$lib/paraglide/messages';
+
+import { selectedFlag } from '$lib/stores/store';
+
+/**
+ * The preferred flag, read reactively so a link rendered in a `$derived`
+ * follows it.
+ */
+const preferredFlag = fromStore(selectedFlag);
 
 /** Route params a project link keeps when only the project changes (flags are global). */
 export interface ProjectLinkParams {
@@ -161,10 +170,14 @@ export const navGroups: NavGroup[] = [
 				permissionKey: '/trench',
 				label: () => m.nav_conduit_connection(),
 				icon: IconArrowRightToArc,
+				// Opens on the preferred flag instead of leaving it to the page's
+				// redirect: a navigation during the page's first render (the map
+				// still loading its styles) makes Svelte drop the effects of the
+				// conduit picker it mounts.
 				href: (projectId, params) =>
 					resolve('/project/[projectId=integer]/trench/[[flagId]]', {
 						projectId,
-						flagId: params?.flagId
+						flagId: params?.flagId ?? preferredFlag.current[0]
 					})
 			},
 			{

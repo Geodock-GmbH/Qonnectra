@@ -1,5 +1,7 @@
 import { describe, expect, test, vi } from 'vitest';
 
+import { selectedFlag } from '$lib/stores/store';
+
 import { allNavLinks, findProjectLink, isActive, navHref } from './navLinks';
 
 vi.mock('$lib/paraglide/messages', () => ({
@@ -22,6 +24,15 @@ describe('navHref', () => {
 		expect(navHref(link('dashboard'), '7', { flagId: '3' })).toBe('/project/7/dashboard/3');
 		expect(navHref(link('trench'), '7', { flagId: '3' })).toBe('/project/7/trench/3');
 		expect(navHref(link('dashboard'), '7')).toBe('/project/7/dashboard');
+	});
+
+	test('should open the trench link on the preferred flag when no flag is kept', () => {
+		selectedFlag.set(['5']);
+		expect(navHref(link('trench'), '7')).toBe('/project/7/trench/5');
+
+		selectedFlag.set(['6']);
+		expect(navHref(link('trench'), '7')).toBe('/project/7/trench/6');
+		expect(navHref(link('trench'), '7', { flagId: '3' })).toBe('/project/7/trench/3');
 	});
 
 	test('should ignore the project for global links', () => {
