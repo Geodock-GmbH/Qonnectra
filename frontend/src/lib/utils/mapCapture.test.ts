@@ -73,7 +73,17 @@ describe('captureMapCanvases', () => {
 		expect(result).toBe('data:image/png;base64,abc123');
 		expect(mockMergedCanvas.width).toBe(800);
 		expect(mockMergedCanvas.height).toBe(600);
-		expect(mockContext.drawImage).toHaveBeenCalledWith(sourceCanvas, 0, 0);
+		expect(mockContext.drawImage).toHaveBeenCalledWith(
+			sourceCanvas,
+			0,
+			0,
+			800,
+			600,
+			0,
+			0,
+			800,
+			600
+		);
 
 		document.createElement = origCreateElement;
 	});
@@ -105,9 +115,54 @@ describe('captureMapCanvases', () => {
 		captureMapCanvases(container);
 
 		expect(mockContext.drawImage).toHaveBeenCalledTimes(3);
-		expect(mockContext.drawImage).toHaveBeenCalledWith(canvas1, 0, 0);
-		expect(mockContext.drawImage).toHaveBeenCalledWith(canvas2, 0, 0);
-		expect(mockContext.drawImage).toHaveBeenCalledWith(canvas3, 0, 0);
+		expect(mockContext.drawImage).toHaveBeenCalledWith(canvas1, 0, 0, 800, 600, 0, 0, 800, 600);
+		expect(mockContext.drawImage).toHaveBeenCalledWith(canvas2, 0, 0, 800, 600, 0, 0, 800, 600);
+		expect(mockContext.drawImage).toHaveBeenCalledWith(canvas3, 0, 0, 800, 600, 0, 0, 800, 600);
+
+		document.createElement = origCreateElement;
+	});
+
+	test.each([
+		{
+			shape: 'wider',
+			source: { width: 1000, height: 500 },
+			crop: [187.5, 0, 625, 500]
+		},
+		{
+			shape: 'taller',
+			source: { width: 400, height: 600 },
+			crop: [0, 140, 400, 320]
+		}
+	])('center-crops a $shape canvas to the requested aspect ratio', ({ source, crop }) => {
+		const mockContext = { drawImage: vi.fn() };
+		const mockMergedCanvas = {
+			width: 0,
+			height: 0,
+			getContext: vi.fn(() => mockContext),
+			toDataURL: vi.fn(() => 'data:image/png;base64,cropped')
+		};
+		const container = {
+			querySelectorAll: vi.fn(() => [source])
+		} as unknown as HTMLElement;
+
+		const origCreateElement = document.createElement;
+		document.createElement = vi.fn(
+			() => mockMergedCanvas
+		) as unknown as typeof document.createElement;
+
+		captureMapCanvases(container, 0.8);
+
+		const [, , cropWidth, cropHeight] = crop;
+		expect(mockMergedCanvas.width).toBe(cropWidth);
+		expect(mockMergedCanvas.height).toBe(cropHeight);
+		expect(mockContext.drawImage).toHaveBeenCalledWith(
+			source,
+			...crop,
+			0,
+			0,
+			cropWidth,
+			cropHeight
+		);
 
 		document.createElement = origCreateElement;
 	});

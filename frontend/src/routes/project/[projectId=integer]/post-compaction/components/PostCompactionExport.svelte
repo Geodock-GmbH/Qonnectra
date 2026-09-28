@@ -7,7 +7,7 @@
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { formatLatLon, formatStorageCoordinates } from '$lib/map/projectionUtils';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { generateAddressPdf } from '$lib/utils/addressPdf';
+	import { generateAddressPdf, MAP_IMAGE_ASPECT_RATIO } from '$lib/utils/addressPdf';
 	import { addressPdfLabels, toPdfAddress, toPdfUnit } from '$lib/utils/addressPdfInput';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { captureMapCanvases, getVisibleWMSAttributions } from '$lib/utils/mapCapture';
@@ -103,7 +103,7 @@
 					srid: page.data.srid
 				}),
 				residentialUnits: residentialUnits.map((unit) => toPdfUnit(unit, fiberConnections)),
-				mapImage: mapContainer ? captureMapCanvases(mapContainer) : null,
+				mapImage: mapContainer ? captureMapCanvases(mapContainer, MAP_IMAGE_ASPECT_RATIO) : null,
 				includeResidentialUnits: residentialUnits.length > 0,
 				linkedMicroducts: links.microducts,
 				wmsAttributions: getVisibleWMSAttributions(projectId),

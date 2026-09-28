@@ -16,19 +16,32 @@ interface WMSSource {
 
 /**
  * Merges all OpenLayers canvases inside a container into a single PNG data URL.
+ * @param container - Element holding the map's layer canvases.
+ * @param aspectRatio - Height / width to center-crop the result to, so a frame of that
+ *   shape shows the map undistorted whatever the container's shape; omitted keeps the full canvas.
+ * @returns The merged image as a PNG data URL, or null when the container has no canvas.
  */
-export function captureMapCanvases(container: HTMLElement): string | null {
+export function captureMapCanvases(container: HTMLElement, aspectRatio?: number): string | null {
 	const canvases = container.querySelectorAll('canvas');
 	if (canvases.length === 0) return null;
 
-	const firstCanvas = canvases[0];
+	const { width, height } = canvases[0];
+	let cropWidth = width;
+	let cropHeight = height;
+	if (aspectRatio) {
+		if (height / width > aspectRatio) cropHeight = Math.round(width * aspectRatio);
+		else cropWidth = Math.round(height / aspectRatio);
+	}
+	const offsetX = (width - cropWidth) / 2;
+	const offsetY = (height - cropHeight) / 2;
+
 	const mergedCanvas = document.createElement('canvas');
-	mergedCanvas.width = firstCanvas.width;
-	mergedCanvas.height = firstCanvas.height;
+	mergedCanvas.width = cropWidth;
+	mergedCanvas.height = cropHeight;
 	const ctx = mergedCanvas.getContext('2d') as CanvasRenderingContext2D;
 
 	for (const canvas of canvases) {
-		ctx.drawImage(canvas, 0, 0);
+		ctx.drawImage(canvas, offsetX, offsetY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 	}
 
 	return mergedCanvas.toDataURL('image/png');
@@ -36,6 +49,8 @@ export function captureMapCanvases(container: HTMLElement): string | null {
 
 /**
  * Collects attributions from visible WMS layers for PDF rendering.
+ * @param projectId - Project whose persisted layer visibility decides which sources count.
+ * @returns Unique attribution strings of active sources with at least one visible layer.
  */
 export function getVisibleWMSAttributions(projectId: string): string[] {
 	const { sources, loaded } = get(wmsSourcesData);

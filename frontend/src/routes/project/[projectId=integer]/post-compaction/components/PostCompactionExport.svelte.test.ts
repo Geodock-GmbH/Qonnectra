@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalToaster } from '$lib/stores/toaster';
 import { generateAddressPdf } from '$lib/utils/addressPdf';
+import { captureMapCanvases } from '$lib/utils/mapCapture';
 import BoundaryFixture from '$lib/test-utils/Boundary.fixture.svelte';
 
 import PostCompactionExport from './PostCompactionExport.svelte';
@@ -43,7 +44,8 @@ vi.mock('$app/state', () => ({
 }));
 
 vi.mock('$lib/utils/addressPdf', () => ({
-	generateAddressPdf: vi.fn()
+	generateAddressPdf: vi.fn(),
+	MAP_IMAGE_ASPECT_RATIO: 0.84
 }));
 
 vi.mock('$lib/utils/mapCapture', () => ({
@@ -185,6 +187,7 @@ describe('PostCompactionExport', () => {
 		expect(call.includeResidentialUnits).toBe(true);
 		expect(call.linkedMicroducts).toEqual([{ uuid: 'md-1', number: 1 }]);
 		expect(call.mapImage).toBe('data:image/png;base64,map');
+		expect(captureMapCanvases).toHaveBeenCalledWith(expect.anything(), 0.84);
 		expect(call.wmsAttributions).toEqual(['© WMS']);
 		expect(call.commentText).toBe('Trench reopened');
 		expect(updateAddress).not.toHaveBeenCalled();

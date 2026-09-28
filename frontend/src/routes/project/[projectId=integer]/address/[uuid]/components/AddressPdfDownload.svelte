@@ -6,7 +6,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { globalToaster } from '$lib/stores/toaster';
-	import { generateAddressPdf } from '$lib/utils/addressPdf';
+	import { generateAddressPdf, MAP_IMAGE_ASPECT_RATIO } from '$lib/utils/addressPdf';
 	import { addressPdfLabels, toPdfAddress, toPdfUnit } from '$lib/utils/addressPdfInput';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { captureMapCanvases, getVisibleWMSAttributions } from '$lib/utils/mapCapture';
@@ -55,7 +55,7 @@
 			generateAddressPdf({
 				address: toPdfAddress(address, { coordsDefault, coords4326, srid: page.data.srid }),
 				residentialUnits: residentialUnits.map((unit) => toPdfUnit(unit, fiberConnections)),
-				mapImage: mapContainer ? captureMapCanvases(mapContainer) : null,
+				mapImage: mapContainer ? captureMapCanvases(mapContainer, MAP_IMAGE_ASPECT_RATIO) : null,
 				includeResidentialUnits,
 				linkedMicroducts: links.microducts,
 				wmsAttributions: getVisibleWMSAttributions(projectId),
