@@ -1,17 +1,11 @@
 <script lang="ts">
 	import type { ConduitListRow } from '$lib/remote/conduit/conduit-data';
-	import { Pagination } from '@skeletonlabs/skeleton-svelte';
-	import {
-		IconArrowLeft,
-		IconArrowRight,
-		IconChevronDown,
-		IconChevronUp,
-		IconSelector
-	} from '@tabler/icons-svelte';
+	import { IconChevronDown, IconChevronUp, IconSelector } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { openFeature, setQuery } from '$lib/utils/urlState';
+	import ListPagination from '$lib/components/ListPagination.svelte';
+	import { openFeature } from '$lib/utils/urlState';
 
 	let {
 		pipes,
@@ -88,14 +82,6 @@
 	 */
 	function updateFilter(columnKey: ColumnKey, value: string) {
 		filters[columnKey] = value;
-	}
-
-	/**
-	 * Shows another page of the same list.
-	 * @param newPage - The page number to show.
-	 */
-	function goToPage(newPage: number) {
-		setQuery({ page: newPage });
 	}
 
 	const filteredPipes = $derived.by(() => {
@@ -316,39 +302,11 @@
 		</div>
 	</div>
 
-	<!-- Pagination -->
 	<div class="shrink-0 pt-4">
-		<div class="flex items-center justify-between gap-4">
-			<span class="text-sm text-surface-600-400" data-testid="pagination-count">
-				{pagination.totalCount}
-				{m.common_results({ count: pagination.totalCount })}
-			</span>
-			<Pagination
-				count={pagination.totalCount}
-				pageSize={pagination.pageSize}
-				page={pagination.page}
-				onPageChange={(e) => goToPage(e.page)}
-			>
-				<Pagination.PrevTrigger>
-					<IconArrowLeft class="size-4" />
-				</Pagination.PrevTrigger>
-				<Pagination.Context>
-					{#snippet children(paginationCtx)}
-						{#each paginationCtx().pages as pageItem, index (pageItem)}
-							{#if pageItem.type === 'page'}
-								<Pagination.Item {...pageItem}>
-									{pageItem.value}
-								</Pagination.Item>
-							{:else}
-								<Pagination.Ellipsis {index}>…</Pagination.Ellipsis>
-							{/if}
-						{/each}
-					{/snippet}
-				</Pagination.Context>
-				<Pagination.NextTrigger>
-					<IconArrowRight class="size-4" />
-				</Pagination.NextTrigger>
-			</Pagination>
-		</div>
+		<ListPagination
+			totalCount={pagination.totalCount}
+			pageSize={pagination.pageSize}
+			page={pagination.page}
+		/>
 	</div>
 </div>
