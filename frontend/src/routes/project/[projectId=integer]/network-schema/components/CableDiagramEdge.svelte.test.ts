@@ -4,6 +4,7 @@ import { fireEvent, render } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte';
+import { cableDirectionAnimationEnabled, cableEdgeColorMode } from '$lib/stores/store';
 
 import CableDiagramEdgeFixture from './CableDiagramEdge.fixture.svelte';
 
@@ -271,5 +272,37 @@ describe('CableDiagramEdge locking', () => {
 		await fireEvent.click(edgeGroup);
 
 		expect(updateSpy).not.toHaveBeenCalled();
+	});
+});
+
+describe('CableDiagramEdge direction animation', () => {
+	/**
+	 * Renders a cable colored by its lowest micropipe with the flow animation on.
+	 * @param micropipeHex - Color of the lowest micropipe, which becomes the cable stroke.
+	 * @returns The animated dash path drawn on top of the cable.
+	 */
+	function renderAnimatedCable(micropipeHex: string) {
+		cableEdgeColorMode.set('micropipe');
+		cableDirectionAnimationEnabled.set(true);
+		const props = buildProps([]);
+		props.data.lowestMicropipe = { color_hex: micropipeHex };
+		const { container } = render(CableDiagramEdgeFixture, {
+			edgeProps: props,
+			schemaState: seededState([])
+		});
+		return container.querySelector('path.animate-flow')!;
+	}
+
+	afterEach(() => {
+		cableEdgeColorMode.set('micropipe');
+		cableDirectionAnimationEnabled.set(false);
+	});
+
+	test('should draw dark dashes on a white cable so the animation stays visible', () => {
+		expect(renderAnimatedCable('#ffffff').getAttribute('stroke')).toBe('var(--color-surface-900)');
+	});
+
+	test('should keep white dashes on a dark cable', () => {
+		expect(renderAnimatedCable('#3b82f6').getAttribute('stroke')).toBe('white');
 	});
 });

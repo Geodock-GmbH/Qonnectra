@@ -17,7 +17,7 @@
 {/snippet}
 
 <div
-	class="card preset-filled-surface-50-950 p-4 space-y-4 flex flex-col gap-2 w-[calc(100vw-2rem)] sm:w-auto"
+	class="card preset-filled-surface-50-950 p-4 space-y-4 flex flex-col gap-2 w-[calc(100vw-2rem)] sm:w-80"
 >
 	<h1 class="text-lg font-semibold mb-1">{m.common_attributes()}</h1>
 

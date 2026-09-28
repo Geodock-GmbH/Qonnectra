@@ -295,7 +295,7 @@
 			<input
 				bind:this={inputEl}
 				type="text"
-				class="input w-full pr-8"
+				class="input w-full pr-8 text-ellipsis"
 				role="combobox"
 				aria-expanded={isOpen}
 				aria-controls={listboxId}

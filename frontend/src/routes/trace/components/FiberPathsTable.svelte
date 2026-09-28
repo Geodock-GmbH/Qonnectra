@@ -19,6 +19,8 @@
 
 	import { traceFrom } from '$lib/utils/traceUtils';
 
+	import ColorChip from './ColorChip.svelte';
+	import FiberColorDots from './FiberColorDots.svelte';
 	import TraceCableEndpoints from './TraceCableEndpoints.svelte';
 	import TraceFiberDetails from './TraceFiberDetails.svelte';
 	import TraceSpliceDetails from './TraceSpliceDetails.svelte';
@@ -254,6 +256,15 @@
 	</div>
 </div>
 
+{#snippet rowColorChips(row: FiberPathRow)}
+	{#if row.fiberColor}
+		<ColorChip hex={row.fiberColorHex} class="px-2 py-0.5 text-[10px]">{row.fiberColor}</ColorChip>
+	{/if}
+	{#if row.bundleColor}
+		<ColorChip hex={row.bundleColorHex} class="px-2 py-0.5 text-[10px] opacity-80">B</ColorChip>
+	{/if}
+{/snippet}
+
 {#snippet tableRow(row: FiberPathRow)}
 	<!-- Mobile card view -->
 	<div class="border-b border-surface-200-800 p-3 sm:hidden">
@@ -287,22 +298,7 @@
 			</button>
 		</div>
 		<div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-			{#if row.fiberColor}
-				<span
-					class="rounded px-2 py-0.5 text-[10px] font-medium text-white"
-					style="background: {row.fiberColorHex || '#64748b'}"
-				>
-					{row.fiberColor}
-				</span>
-			{/if}
-			{#if row.bundleColor}
-				<span
-					class="rounded px-2 py-0.5 text-[10px] font-medium text-white opacity-80"
-					style="background: {row.bundleColorHex || '#64748b'}"
-				>
-					B
-				</span>
-			{/if}
+			{@render rowColorChips(row)}
 			<span class="text-surface-500-400">→</span>
 			<span class="truncate text-surface-700-300">
 				{#if row.destinations.length === 0}
@@ -354,22 +350,7 @@
 		</div>
 
 		<div class="flex items-center gap-1">
-			{#if row.fiberColor}
-				<span
-					class="rounded px-2 py-0.5 text-[10px] font-medium text-white"
-					style="background: {row.fiberColorHex || '#64748b'}"
-				>
-					{row.fiberColor}
-				</span>
-			{/if}
-			{#if row.bundleColor}
-				<span
-					class="rounded px-2 py-0.5 text-[10px] font-medium text-white opacity-80"
-					style="background: {row.bundleColorHex || '#64748b'}"
-				>
-					B
-				</span>
-			{/if}
+			{@render rowColorChips(row)}
 		</div>
 
 		<div class="truncate text-sm text-surface-700-300">
@@ -510,20 +491,7 @@
 						{node.cable_endpoints.end_node?.name || '?'}
 					</span>
 				{/if}
-				{#if node.fiber.fiber_color}
-					<span
-						class="inline-block h-2.5 w-2.5 rounded-full border border-white/20"
-						style="background: {node.fiber.fiber_color_hex || '#64748b'}"
-						title={node.fiber.fiber_color}
-					></span>
-				{/if}
-				{#if node.fiber.bundle_color}
-					<span
-						class="inline-block h-2.5 w-2.5 rounded-full border border-white/20 opacity-70"
-						style="background: {node.fiber.bundle_color_hex || '#64748b'}"
-						title="B: {node.fiber.bundle_color}"
-					></span>
-				{/if}
+				<FiberColorDots fiber={node.fiber} />
 				{#if hasDetails}
 					<button
 						type="button"

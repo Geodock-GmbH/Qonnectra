@@ -31,6 +31,7 @@
 	import { setQuery } from '$lib/utils/urlState';
 
 	import CableEndPicker from './CableEndPicker.svelte';
+	import FiberColorDots from './FiberColorDots.svelte';
 	import TraceFiberDetails from './TraceFiberDetails.svelte';
 	import TraceSpliceDetails from './TraceSpliceDetails.svelte';
 
@@ -390,20 +391,7 @@
 						{node.cable_endpoints.end_node?.name || '?'}
 					</span>
 				{/if}
-				{#if node.fiber.fiber_color}
-					<span
-						class="inline-block h-2.5 w-2.5 rounded-full border border-white/20"
-						style="background: {node.fiber.fiber_color_hex || '#64748b'}"
-						title={node.fiber.fiber_color}
-					></span>
-				{/if}
-				{#if node.fiber.bundle_color}
-					<span
-						class="inline-block h-2.5 w-2.5 rounded-full border border-white/20 opacity-70"
-						style="background: {node.fiber.bundle_color_hex || '#64748b'}"
-						title="B: {node.fiber.bundle_color}"
-					></span>
-				{/if}
+				<FiberColorDots fiber={node.fiber} />
 				{#if hasDetails}
 					<button
 						type="button"

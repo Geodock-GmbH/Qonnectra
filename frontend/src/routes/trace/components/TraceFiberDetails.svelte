@@ -3,6 +3,8 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import ColorChip from './ColorChip.svelte';
+
 	interface Props {
 		/** Fiber whose bundle, position, colors, layer, and status are shown. */
 		fiber: FiberInfo;
@@ -24,20 +26,12 @@
 		>
 	{/if}
 	{#if fiber.fiber_color}
-		<span
-			class="rounded px-1.5 py-0.5 font-medium text-white"
-			style="background: {fiber.fiber_color_hex || '#64748b'}"
-		>
-			{fiber.fiber_color}
-		</span>
+		<ColorChip hex={fiber.fiber_color_hex} class="px-1.5 py-0.5">{fiber.fiber_color}</ColorChip>
 	{/if}
 	{#if fiber.bundle_color}
-		<span
-			class="rounded px-1.5 py-0.5 font-medium text-white opacity-80"
-			style="background: {fiber.bundle_color_hex || '#64748b'}"
-		>
+		<ColorChip hex={fiber.bundle_color_hex} class="px-1.5 py-0.5 opacity-80">
 			B: {fiber.bundle_color}
-		</span>
+		</ColorChip>
 	{/if}
 	{#if fiber.layer}
 		<span class="text-surface-900-100"

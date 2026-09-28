@@ -10,6 +10,7 @@
 		cableEdgeColorMode,
 		edgeSnappingEnabled
 	} from '$lib/stores/store';
+	import { isLightColor } from '$lib/utils/colorContrast';
 	import {
 		buildEdgePath,
 		getClosestPointOnSegment,
@@ -76,6 +77,9 @@
 
 		return DEFAULT_GREEN;
 	});
+
+	/** Direction-animation dash color: white dashes vanish on a white or yellow cable. */
+	let flowDashColor = $derived(isLightColor(strokeColor) ? 'var(--color-surface-900)' : 'white');
 
 	let edgeStyle = $derived.by(() => {
 		// The cable in edit mode gets a primary-colored halo to stand out; a merely
@@ -318,7 +322,7 @@
 	<path
 		d={edgePath}
 		fill="none"
-		stroke="white"
+		stroke={flowDashColor}
 		stroke-width="2"
 		stroke-dasharray="8,12"
 		stroke-linecap="round"
