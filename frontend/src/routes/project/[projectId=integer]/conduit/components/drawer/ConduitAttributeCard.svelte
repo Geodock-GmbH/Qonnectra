@@ -3,6 +3,7 @@
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
+	import NullableBooleanSelect from '$lib/components/NullableBooleanSelect.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { closeFeature } from '$lib/utils/urlState';
 	import {
@@ -69,6 +70,7 @@
 	let conduitManufacturer = $state(selectionOf(conduit.manufacturer));
 	let conduitDate = $state(conduit.date ?? '');
 	let conduitFlag = $state(selectionOf(conduit.flag));
+	let conduitFundingStatus = $state(conduit.funding_status ?? null);
 
 	/**
 	 * Saves the form; the command pushes the result into `getConduit` and
@@ -90,7 +92,8 @@
 				owner_id: idOf(conduitOwner),
 				constructor_id: idOf(conduitConstructor),
 				manufacturer_id: idOf(conduitManufacturer),
-				flag_id: idOf(conduitFlag)
+				flag_id: idOf(conduitFlag),
+				funding_status: conduitFundingStatus
 			}).updates(getConduitList);
 
 			onrename(updated.name);
@@ -175,6 +178,10 @@
 	<label class="label">
 		<span class="text-sm">{m.common_date()}</span>
 		<input type="date" class="input" name="date" bind:value={conduitDate} />
+	</label>
+	<label class="label">
+		<span class="text-sm">{m.form_funding_status()}</span>
+		<NullableBooleanSelect bind:value={conduitFundingStatus} />
 	</label>
 	<label class="label">
 		<span class="text-sm">{m.form_flag()}</span>

@@ -135,7 +135,8 @@ describe('PipeModal', () => {
 			owner_id: undefined,
 			constructor_id: undefined,
 			manufacturer_id: undefined,
-			flag_id: undefined
+			flag_id: undefined,
+			funding_status: null
 		});
 		const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
 		expect(stored.conduitName).toBe('Neues-Rohr');
@@ -143,6 +144,30 @@ describe('PipeModal', () => {
 		// The dialog stays open with its values for the next entry.
 		expect(dialogState()).toBe('open');
 		expect(nameInput().value).toBe('Neues-Rohr');
+	});
+
+	test('should send the chosen funding status and remember it for the next conduit', async () => {
+		const user = userEvent.setup();
+		renderModal();
+		await screen.findByRole('option', { name: 'DA 50' });
+
+		await user.type(nameInput(), 'Gefoerdert');
+		await user.selectOptions(screen.getByLabelText('form_funding_status'), 'true');
+		pipeForm().requestSubmit();
+
+		await vi.waitFor(() =>
+			expect(createConduit).toHaveBeenCalledWith(expect.objectContaining({ funding_status: true }))
+		);
+		const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
+		expect(stored.fundingStatus).toBe(true);
+	});
+
+	test('should prefill a remembered funding status when opened', async () => {
+		localStorage.setItem(STORAGE_KEY, JSON.stringify({ fundingStatus: false }));
+		renderModal();
+		await screen.findByRole('option', { name: 'DA 50' });
+
+		expect((screen.getByLabelText('form_funding_status') as HTMLSelectElement).value).toBe('false');
 	});
 
 	test('should toast the duplicate message on a 409', async () => {

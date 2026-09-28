@@ -3488,6 +3488,8 @@ export interface paths {
          *             pipe-branch allowed types.
          *         include_excluded: If ``'true'``, bypass NetworkSchemaSettings
          *             exclusions (for search).
+         *         child_view_for: UUID of a parent node; return only that node
+         *             and its direct children (requires ``project``).
          *         minimal: If ``'true'``, return only uuid and name
          *             (no geometry/relations).
          *
@@ -5409,6 +5411,8 @@ export interface components {
             diagram_path?: unknown;
             readonly uuid_node_start_name: string;
             readonly uuid_node_end_name: string;
+            /** Förderstatus */
+            funding_status?: boolean | null;
             /**
              * Startknoten
              * Format: uuid
@@ -5551,6 +5555,8 @@ export interface components {
             outer_conduit?: string;
             /** Format: date */
             date?: string;
+            /** Förderstatus */
+            funding_status?: boolean | null;
         };
         /** @description Serializer for conduits returned when selecting by trenches. */
         ConduitForTrenchSelection: {
@@ -6214,6 +6220,8 @@ export interface components {
                 project_id?: number;
                 /** Kennzeichen */
                 flag_id?: number;
+                /** Förderstatus */
+                funding_status?: boolean | null;
             };
         };
         NodeList: {
@@ -6755,6 +6763,8 @@ export interface components {
             diagram_path?: unknown;
             readonly uuid_node_start_name?: string;
             readonly uuid_node_end_name?: string;
+            /** Förderstatus */
+            funding_status?: boolean | null;
             /**
              * Startknoten
              * Format: uuid
@@ -6847,6 +6857,8 @@ export interface components {
             outer_conduit?: string;
             /** Format: date */
             date?: string;
+            /** Förderstatus */
+            funding_status?: boolean | null;
         };
         /** @description Serialize :model:`api.Container` instances with nested type and display name. */
         PatchedContainer: {
@@ -7264,6 +7276,8 @@ export interface components {
                 project_id?: number;
                 /** Kennzeichen */
                 flag_id?: number;
+                /** Förderstatus */
+                funding_status?: boolean | null;
             };
         };
         /** @description Serialize :model:`api.NodeSlotClipNumber` clip number assignments. */

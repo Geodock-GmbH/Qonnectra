@@ -36,7 +36,8 @@ const UpdateCableSchema = v.object({
 	reserveAtEnd: v.optional(v.number()),
 	reserveSection: v.optional(v.number()),
 	handleStart: v.optional(v.string()),
-	handleEnd: v.optional(v.string())
+	handleEnd: v.optional(v.string()),
+	fundingStatus: v.optional(v.nullable(v.boolean()))
 });
 
 /**
@@ -104,6 +105,7 @@ export const createCable = command(CreateCableSchema, async (input): Promise<Cab
  * cable attribute card (attributes/reserves) and the handle-config panel
  * (handle_start/handle_end).
  * @param input.cableId - Cable UUID to update.
+ * @param input.fundingStatus - Funding flag; `null` clears it, omitted leaves it untouched.
  * @returns The updated cable record.
  * @throws When the backend rejects the update.
  */
@@ -125,6 +127,7 @@ export const updateCable = command(UpdateCableSchema, async (input): Promise<Cab
 	if (input.reserveSection != null) requestBody.reserve_section = input.reserveSection;
 	if (input.handleStart) requestBody.handle_start = input.handleStart;
 	if (input.handleEnd) requestBody.handle_end = input.handleEnd;
+	if (input.fundingStatus !== undefined) requestBody.funding_status = input.fundingStatus;
 
 	const response = await fetch(`${API_URL}cable/${input.cableId}/`, {
 		method: 'PATCH',

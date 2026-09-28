@@ -18,7 +18,10 @@
 		selectedUuid?: string | null;
 	} = $props();
 
-	type ColumnKey = keyof ConduitListRow;
+	/** A list row with the funding status labelled, so every cell filters and sorts as text. */
+	type TableRow = Omit<ConduitListRow, 'funding_status'> & { funding_status: string };
+
+	type ColumnKey = keyof TableRow;
 
 	const columnConfig: {
 		key: ColumnKey;
@@ -36,7 +39,8 @@
 		{ key: 'constructor', label: m.form_constructor(), sortable: true, filterable: true },
 		{ key: 'manufacturer', label: m.form_manufacturer(), sortable: true, filterable: true },
 		{ key: 'date', label: m.common_date(), sortable: true, filterable: true, sortType: 'date' },
-		{ key: 'flag', label: m.form_flag(), sortable: true, filterable: true }
+		{ key: 'flag', label: m.form_flag(), sortable: true, filterable: true },
+		{ key: 'funding_status', label: m.form_funding_status(), sortable: true, filterable: true }
 	];
 
 	let sortColumn = $state<ColumnKey | null>(null);
@@ -52,7 +56,8 @@
 		constructor: '',
 		manufacturer: '',
 		date: '',
-		flag: ''
+		flag: '',
+		funding_status: ''
 	});
 
 	let mobileSearchTerm = $state('');
@@ -84,8 +89,21 @@
 		filters[columnKey] = value;
 	}
 
+	/**
+	 * The funding status as the table shows it: yes/no, or empty while unknown.
+	 * @param flag - The raw funding status.
+	 */
+	function fundingStatusLabel(flag: boolean | null): string {
+		if (flag === null) return '';
+		return flag ? m.common_yes() : m.common_no();
+	}
+
+	const rows = $derived<TableRow[]>(
+		pipes.map((pipe) => ({ ...pipe, funding_status: fundingStatusLabel(pipe.funding_status) }))
+	);
+
 	const filteredPipes = $derived.by(() => {
-		return pipes.filter((pipe) => {
+		return rows.filter((pipe) => {
 			return Object.entries(filters).every(([key, filterValue]) => {
 				if (!filterValue) return true;
 				const cellValue = String(pipe[key as ColumnKey] || '').toLowerCase();
@@ -138,7 +156,7 @@
 	 * loads the details itself.
 	 * @param pipe - The clicked row.
 	 */
-	function handleRowClick(pipe: ConduitListRow) {
+	function handleRowClick(pipe: TableRow) {
 		openFeature('conduit', pipe.value);
 	}
 </script>
@@ -290,6 +308,10 @@
 							<div>
 								<span class="font-medium text-surface-600-400">{m.form_flag()}:</span>
 								<p class="truncate">{row.flag}</p>
+							</div>
+							<div>
+								<span class="font-medium text-surface-600-400">{m.form_funding_status()}:</span>
+								<p class="truncate">{row.funding_status}</p>
 							</div>
 						</div>
 					</div>

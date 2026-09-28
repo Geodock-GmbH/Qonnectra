@@ -186,9 +186,9 @@ from .services import (
     GEOPACKAGE_LAYER_CONFIG,
     SpatialIntersectError,
     auto_link_cable_micropipes,
-    cable_trench_geometry,
+    cable_trench_connections,
     calculate_valuation,
-    conduit_trench_geometry,
+    conduit_trench_connections,
     export_features,
     feature_file_object_ids_for_project,
     generate_conduit_import_template,
@@ -196,9 +196,11 @@ from .services import (
     generate_node_structure_excel,
     import_conduits_from_excel,
     link_cable_to_chosen_microduct,
+    merge_trench_geoms,
     parse_project_id_list,
     spatial_intersect,
     trace_address,
+    trench_funding_summary,
 )
 from .wms_service import WMSServiceError, fetch_wms_layers, scan_wms_capabilities
 
@@ -3142,6 +3144,7 @@ class OlNodeTileViewSet(APIView):
                     n.project,
                     n.warranty,
                     n.date,
+                    n.funding_status,
                     c2.company,
                     f.flag,
                     c3.company,
@@ -3388,8 +3391,10 @@ class ExportFeaturesView(APIView):
     id for deterministic mapping and the human-readable label/contact columns.
 
     ``cable`` and ``conduit`` carry no geometry of their own; their geometry is
-    merged from the connected trenches via ``_merge_trench_geoms`` — the one
-    capability the CRUD endpoints lack.
+    merged from the connected trenches via ``merge_trench_geoms`` — the one
+    capability the CRUD endpoints lack. The same trenches feed a
+    ``trench_funding`` property with the counts of funded, unfunded and
+    unknown trenches.
     """
 
     permission_classes = [IsAuthenticated]
@@ -3399,29 +3404,44 @@ class ExportFeaturesView(APIView):
         "area": AreaSerializer,
     }
 
-    # Relation-derived layers: (properties serializer, geometry resolver). Their
-    # geometry is merged from connected trenches rather than a ``geom`` column.
+    # Relation-derived layers: (properties serializer, trench connection
+    # resolver). Their geometry is merged from connected trenches rather than a
+    # ``geom`` column.
     _merged_layers = {
-        "conduit": (ConduitSerializer, conduit_trench_geometry),
-        "cable": (CableSerializer, cable_trench_geometry),
+        "conduit": (ConduitSerializer, conduit_trench_connections),
+        "cable": (CableSerializer, cable_trench_connections),
     }
 
     def _merged_geometry_collection(self, name, queryset, request):
         """Build a FeatureCollection for a relation-derived (cable/conduit) layer.
 
-        Properties come from the CRUD serializer (nested FK objects); geometry
-        is merged from the object's connected trenches.
+        Properties come from the CRUD serializer (nested FK objects) plus a
+        ``trench_funding`` summary; geometry is merged from the same connected
+        trenches, so counts and geometry always describe one trench set.
+
+        Args:
+            name: Layer name, a key of ``_merged_layers`` (``cable``/``conduit``).
+            queryset: Features of that layer with their trench chain prefetched.
+            request: The current request, passed to the serializer context.
+
+        Returns:
+            dict: GeoJSON ``FeatureCollection`` whose features carry the merged
+                ``MultiLineString`` geometry (or ``None``) and the properties.
         """
-        serializer_class, geometry_of = self._merged_layers[name]
-        features = [
-            {
-                "type": "Feature",
-                "id": str(obj.uuid),
-                "geometry": geometry_of(obj),
-                "properties": serializer_class(obj, context={"request": request}).data,
-            }
-            for obj in queryset
-        ]
+        serializer_class, trench_connections_of = self._merged_layers[name]
+        features = []
+        for obj in queryset:
+            connections = trench_connections_of(obj)
+            properties = serializer_class(obj, context={"request": request}).data
+            properties["trench_funding"] = trench_funding_summary(connections)
+            features.append(
+                {
+                    "type": "Feature",
+                    "id": str(obj.uuid),
+                    "geometry": merge_trench_geoms(connections),
+                    "properties": properties,
+                }
+            )
         return {"type": "FeatureCollection", "features": features}
 
     @extend_schema(

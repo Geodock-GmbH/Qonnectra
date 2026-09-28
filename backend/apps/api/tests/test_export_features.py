@@ -15,8 +15,9 @@ from rest_framework.test import APIClient
 
 from apps.api.services import (
     SpatialIntersectError,
-    conduit_trench_geometry,
+    conduit_trench_connections,
     export_features,
+    merge_trench_geoms,
 )
 
 from .factories import (
@@ -93,9 +94,7 @@ class TestExportFeaturesView:
             status.HTTP_403_FORBIDDEN,
         )
 
-    def test_node_layer_returned_as_feature_collection(
-        self, authenticated_client, url
-    ):
+    def test_node_layer_returned_as_feature_collection(self, authenticated_client, url):
         node = NodeFactory()
 
         response = authenticated_client.get(url, {"layers": "node"})
@@ -126,9 +125,7 @@ class TestExportFeaturesView:
         assert body["counts"] == {"cable": 1, "conduit": 1, "node": 1, "area": 1}
         assert body["total"] == 4
 
-    def test_node_type_serialized_as_nested_object(
-        self, authenticated_client, url
-    ):
+    def test_node_type_serialized_as_nested_object(self, authenticated_client, url):
         node_type = NodeTypeFactory()
         node = NodeFactory(node_type=node_type)
 
@@ -141,7 +138,13 @@ class TestExportFeaturesView:
         )
         nested = feature["properties"]["node_type"]
         assert nested["id"] == node_type.id
-        assert set(nested.keys()) >= {"id", "node_type", "dimension", "group", "company"}
+        assert set(nested.keys()) >= {
+            "id",
+            "node_type",
+            "dimension",
+            "group",
+            "company",
+        }
 
     def test_conduit_owner_serialized_as_nested_company_object(
         self, authenticated_client, url
@@ -186,6 +189,68 @@ class TestExportFeaturesView:
         assert geom is not None
         assert geom["type"] == "MultiLineString"
 
+    def test_conduit_feature_counts_trench_funding(self, authenticated_client, url):
+        conduit, funded = _conduit_with_trench()
+        funded.funding_status = True
+        funded.save()
+        TrenchConduitConnectionFactory(
+            uuid_trench=TrenchFactory(funding_status=False), uuid_conduit=conduit
+        )
+        TrenchConduitConnectionFactory(
+            uuid_trench=TrenchFactory(funding_status=None), uuid_conduit=conduit
+        )
+
+        response = authenticated_client.get(url, {"layers": "conduit"})
+
+        properties = response.json()["layers"]["conduit"]["features"][0]["properties"]
+        assert properties["trench_funding"] == {
+            "funded": 1,
+            "unfunded": 1,
+            "unknown": 1,
+        }
+
+    def test_cable_feature_counts_each_trench_once(self, authenticated_client, url):
+        cable, conduit, trench = _cable_with_trench()
+        trench.funding_status = True
+        trench.save()
+        # A second microduct of the same conduit reaches the same trench again.
+        MicroductCableConnectionFactory(
+            uuid_microduct=MicroductFactory(uuid_conduit=conduit), uuid_cable=cable
+        )
+
+        response = authenticated_client.get(url, {"layers": "cable"})
+
+        properties = response.json()["layers"]["cable"]["features"][0]["properties"]
+        assert properties["trench_funding"] == {
+            "funded": 1,
+            "unfunded": 0,
+            "unknown": 0,
+        }
+
+    def test_features_carry_own_funding_status(self, authenticated_client, url):
+        conduit, _ = _conduit_with_trench()
+        conduit.funding_status = False
+        conduit.save()
+        cable, _, _ = _cable_with_trench()
+        cable.funding_status = True
+        cable.save()
+        node = NodeFactory(funding_status=True)
+
+        response = authenticated_client.get(url, {"layers": "cable,conduit,node"})
+
+        layers = response.json()["layers"]
+        conduit_feature = next(
+            f for f in layers["conduit"]["features"] if f["id"] == str(conduit.uuid)
+        )
+        cable_feature = layers["cable"]["features"][0]
+        node_feature = next(
+            f for f in layers["node"]["features"] if f["id"] == str(node.uuid)
+        )
+        assert conduit_feature["properties"]["funding_status"] is False
+        assert cable_feature["properties"]["funding_status"] is True
+        assert node_feature["properties"]["funding_status"] is True
+        assert "trench_funding" not in node_feature["properties"]
+
     def test_project_filter_scopes_results(self, authenticated_client, url):
         project_a = ProjectFactory()
         project_b = ProjectFactory()
@@ -201,9 +266,7 @@ class TestExportFeaturesView:
         returned_ids = {f["id"] for f in body["layers"]["node"]["features"]}
         assert returned_ids == {str(in_scope.uuid)}
 
-    def test_exclude_projects_drops_listed_projects(
-        self, authenticated_client, url
-    ):
+    def test_exclude_projects_drops_listed_projects(self, authenticated_client, url):
         project_a = ProjectFactory()
         project_b = ProjectFactory()
         keep = NodeFactory(project=project_a)
@@ -236,14 +299,10 @@ class TestExportFeaturesView:
             },
         )
 
-        returned_ids = {
-            f["id"] for f in response.json()["layers"]["node"]["features"]
-        }
+        returned_ids = {f["id"] for f in response.json()["layers"]["node"]["features"]}
         assert returned_ids == {str(keep.uuid)}
 
-    def test_layers_accepts_comma_separated_string(
-        self, authenticated_client, url
-    ):
+    def test_layers_accepts_comma_separated_string(self, authenticated_client, url):
         NodeFactory()
         AreaFactory()
 
@@ -258,9 +317,7 @@ class TestExportFeaturesView:
         assert "error" in response.json()
 
     def test_non_numeric_project_is_bad_request(self, authenticated_client, url):
-        response = authenticated_client.get(
-            url, {"layers": "node", "project": "abc"}
-        )
+        response = authenticated_client.get(url, {"layers": "node", "project": "abc"})
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "error" in response.json()
 
@@ -308,9 +365,7 @@ class TestExportFeaturesService:
         NodeFactory(project=project_a)
         NodeFactory(project=project_b)
 
-        result = export_features(
-            layers=["node"], exclude_project_ids=[project_b.id]
-        )
+        result = export_features(layers=["node"], exclude_project_ids=[project_b.id])
 
         assert result["node"].count() == 1
         assert result["node"].first().project_id == project_a.id
@@ -328,7 +383,10 @@ class TestExportFeaturesService:
         # small, feature-count-independent number of queries thanks to
         # prefetching (list + prefetched connections + trenches).
         with django_assert_max_num_queries(4):
-            geoms = [conduit_trench_geometry(c) for c in result["conduit"]]
+            geoms = [
+                merge_trench_geoms(conduit_trench_connections(c))
+                for c in result["conduit"]
+            ]
 
         assert len(geoms) == 5
         assert all(g is not None for g in geoms)

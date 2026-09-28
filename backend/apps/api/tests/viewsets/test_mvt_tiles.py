@@ -66,16 +66,12 @@ def _seed(name, project, flag):
         TrenchFactory(
             project=project,
             flag=flag,
-            geom=LineString(
-                (UTM_X, UTM_Y), (UTM_X + 100, UTM_Y), srid=25832
-            ),
+            geom=LineString((UTM_X, UTM_Y), (UTM_X + 100, UTM_Y), srid=25832),
         )
     elif name == "node":
         NodeFactory(project=project, flag=flag, geom=Point(UTM_X, UTM_Y, srid=25832))
     elif name == "address":
-        AddressFactory(
-            project=project, flag=flag, geom=Point(UTM_X, UTM_Y, srid=25832)
-        )
+        AddressFactory(project=project, flag=flag, geom=Point(UTM_X, UTM_Y, srid=25832))
     elif name == "area":
         AreaFactory(
             project=project,
@@ -137,3 +133,22 @@ class TestMvtTileViews:
             f"/api/v1/{prefix}/0/0/0.mvt?project=not-an-int"
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+def test_node_tile_carries_funding_status(authenticated_client, project, flag):
+    """The node tile exposes a set ``funding_status`` as a feature attribute."""
+    NodeFactory(
+        project=project,
+        flag=flag,
+        geom=Point(UTM_X, UTM_Y, srid=25832),
+        funding_status=True,
+    )
+
+    response = authenticated_client.get(
+        f"/api/v1/ol_node_tiles/{TILE_Z}/{TILE_X}/{TILE_Y}.mvt?project={project.id}"
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    # MVT stores attribute keys as plain strings in the layer's key table.
+    assert b"funding_status" in response.content

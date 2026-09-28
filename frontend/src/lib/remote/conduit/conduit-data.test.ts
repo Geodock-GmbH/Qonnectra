@@ -22,7 +22,8 @@ describe('mapConduitListRow', () => {
 				name: 'DA 50',
 				conduit_type: 'Rohr',
 				constructor: 'Baufirma',
-				date: null
+				date: null,
+				funding_status: true
 			})
 		).toEqual({
 			value: 'c-1',
@@ -35,8 +36,14 @@ describe('mapConduitListRow', () => {
 			constructor: 'Baufirma',
 			manufacturer: '',
 			date: '',
-			flag: ''
+			flag: '',
+			funding_status: true
 		});
+	});
+
+	test('should treat a missing or non-boolean funding status as unknown', () => {
+		expect(mapConduitListRow({ uuid: 'c-1' }).funding_status).toBeNull();
+		expect(mapConduitListRow({ uuid: 'c-1', funding_status: 'true' }).funding_status).toBeNull();
 	});
 });
 
@@ -94,8 +101,17 @@ describe('buildConduitCreateBody', () => {
 	});
 
 	test('should omit the project and empty optional fields', () => {
-		expect(buildConduitCreateBody(undefined, { name: 'Test', outer_conduit: '' })).toEqual({
+		expect(
+			buildConduitCreateBody(undefined, { name: 'Test', outer_conduit: '', funding_status: null })
+		).toEqual({
 			name: 'Test'
+		});
+	});
+
+	test('should send a known funding status, including false', () => {
+		expect(buildConduitCreateBody(undefined, { name: 'Test', funding_status: false })).toEqual({
+			name: 'Test',
+			funding_status: false
 		});
 	});
 });
@@ -117,6 +133,14 @@ describe('buildConduitPatch', () => {
 			conduit_type_id: 1,
 			status_id: 2,
 			date: '2024-01-01'
+		});
+	});
+
+	test('should send a null funding status so it can be cleared', () => {
+		expect(buildConduitPatch({ name: 'Test', funding_status: null })).toEqual({
+			name: 'Test',
+			outer_conduit: '',
+			funding_status: null
 		});
 	});
 });

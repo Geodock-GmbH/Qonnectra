@@ -51,12 +51,14 @@ describe('displayProperties', () => {
 			},
 			parent_node: { uuid: 'p', name: 'PoP-0' },
 			manufacturer: { id: 2, company: 'Hersteller' },
+			funding_status: false,
 			canvas_x: 5
 		});
 
 		expect(display).toEqual({
 			name: 'PoP-1',
 			project: '3',
+			funding_status: false,
 			node_type: 'Muffe',
 			address: 'Hauptstraße 12a',
 			parent_node_name: 'PoP-0',

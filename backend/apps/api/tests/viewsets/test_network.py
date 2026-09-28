@@ -705,3 +705,45 @@ class TestCableAutoLinkMicropipeView:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert MicroductCableConnection.objects.count() == 0
+
+
+@pytest.mark.django_db
+class TestFundingStatus:
+    """``funding_status`` on conduits, cables and nodes is a nullable flag."""
+
+    @pytest.mark.parametrize(
+        "factory,endpoint",
+        [
+            (ConduitFactory, "conduit"),
+            (CableFactory, "cable"),
+            (NodeFactory, "node"),
+        ],
+    )
+    @pytest.mark.parametrize("value", [True, False, None])
+    def test_patch_funding_status(self, authenticated_client, factory, endpoint, value):
+        """PATCH sets, clears and reports the funding status."""
+        obj = factory(funding_status=not value if value is not None else True)
+
+        response = authenticated_client.patch(
+            f"/api/v1/{endpoint}/{obj.uuid}/",
+            data={"funding_status": value},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        obj.refresh_from_db()
+        assert obj.funding_status is value
+        body = response.json()
+        reported = body.get("properties", body)["funding_status"]
+        assert reported is value
+
+    def test_conduit_list_reports_funding_status(self, authenticated_client):
+        """The lightweight ``conduit/all/`` rows carry the raw flag."""
+        conduit = ConduitFactory(funding_status=False)
+
+        response = authenticated_client.get(
+            f"/api/v1/conduit/all/?project={conduit.project.id}&no_pagination=true"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()[0]["funding_status"] is False

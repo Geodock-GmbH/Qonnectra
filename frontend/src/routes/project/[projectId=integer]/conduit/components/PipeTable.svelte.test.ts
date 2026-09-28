@@ -43,6 +43,7 @@ function makePipe(overrides: Record<string, string> = {}): ConduitListRow {
 		manufacturer: 'Firma-Herst',
 		date: '2024-01-01',
 		flag: 'Flag-X',
+		funding_status: null,
 		...overrides
 	};
 }
@@ -83,6 +84,29 @@ describe('PipeTable', () => {
 		expect(within(headerRow).getByText('common_name')).toBeInTheDocument();
 		expect(within(headerRow).getByText('form_conduit_type')).toBeInTheDocument();
 		expect(within(headerRow).getByText('form_flag')).toBeInTheDocument();
+		expect(within(headerRow).getByText('form_funding_status')).toBeInTheDocument();
+	});
+
+	test('should label the funding status and filter by that label', async () => {
+		const user = userEvent.setup();
+		render(PipeTable, {
+			pipes: [
+				{ ...makePipe({ value: 'uuid-1', name: 'Rohr-A' }), funding_status: true },
+				{ ...makePipe({ value: 'uuid-2', name: 'Rohr-B' }), funding_status: false },
+				makePipe({ value: 'uuid-3', name: 'Rohr-C' })
+			],
+			pagination
+		});
+
+		const table = desktopTable();
+		expect(within(table).getByText('common_yes')).toBeInTheDocument();
+		expect(within(table).getByText('common_no')).toBeInTheDocument();
+
+		await user.type(document.getElementById('filter-funding_status') as HTMLInputElement, 'yes');
+
+		expect(within(table).getByText('Rohr-A')).toBeInTheDocument();
+		expect(within(table).queryByText('Rohr-B')).not.toBeInTheDocument();
+		expect(within(table).queryByText('Rohr-C')).not.toBeInTheDocument();
 	});
 
 	test('should show the empty state when there are no pipes', () => {

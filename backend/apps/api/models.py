@@ -1569,6 +1569,11 @@ class Conduit(models.Model):
         related_name="manufactured_conduits",
     )
     date = models.DateField(_("Date"), null=True, blank=True)
+    funding_status = models.BooleanField(
+        _("Funding Status"),
+        null=True,
+        blank=True,
+    )
 
     project = models.ForeignKey(
         Projects,
@@ -1949,6 +1954,11 @@ class Node(models.Model):
     )
     warranty = models.DateField(_("Warranty"), null=True, blank=True)
     date = models.DateField(_("Date"), null=True, blank=True)
+    funding_status = models.BooleanField(
+        _("Funding Status"),
+        null=True,
+        blank=True,
+    )
     geom = gis_models.PointField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
     geom_3857 = models.GeneratedField(
         expression=Transform("geom", 3857),
@@ -2347,6 +2357,11 @@ class Cable(models.Model):
         related_name="manufactured_cables",
     )
     date = models.DateField(_("Date"), null=True, blank=True)
+    funding_status = models.BooleanField(
+        _("Funding Status"),
+        null=True,
+        blank=True,
+    )
     uuid_node_start = models.ForeignKey(
         Node,
         null=True,

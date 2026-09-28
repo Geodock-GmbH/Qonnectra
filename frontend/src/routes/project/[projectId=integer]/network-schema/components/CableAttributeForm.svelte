@@ -5,6 +5,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
+	import NullableBooleanSelect from '$lib/components/NullableBooleanSelect.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { updateCable } from '$lib/remote/network-schema/cables.remote';
@@ -42,7 +43,8 @@
 			reserveAtStart: source.reserve_at_start != null ? String(source.reserve_at_start) : '',
 			reserveAtEnd: source.reserve_at_end != null ? String(source.reserve_at_end) : '',
 			reserveSection: source.reserve_section != null ? String(source.reserve_section) : '',
-			flag: toOption(source.flag)
+			flag: toOption(source.flag),
+			fundingStatus: source.funding_status ?? null
 		};
 	}
 
@@ -62,6 +64,7 @@
 	let cableReserveAtEnd = $state(initial.reserveAtEnd);
 	let cableReserveSection = $state(initial.reserveSection);
 	let cableFlag = $state<string[]>(initial.flag);
+	let cableFundingStatus = $state(initial.fundingStatus);
 
 	/**
 	 * Parse a single-select combobox value list into a number id, or undefined.
@@ -100,7 +103,8 @@
 				date: cableDate || undefined,
 				reserveAtStart: toNumber(cableReserveAtStart),
 				reserveAtEnd: toNumber(cableReserveAtEnd),
-				reserveSection: toNumber(cableReserveSection)
+				reserveSection: toNumber(cableReserveSection),
+				fundingStatus: cableFundingStatus
 			});
 
 			globalToaster.success({
@@ -227,6 +231,10 @@
 			value={cableDate}
 			oninput={(e) => (cableDate = (e.target as HTMLInputElement).value)}
 		/>
+	</label>
+	<label class="label">
+		<span class="text-sm">{m.form_funding_status()}</span>
+		<NullableBooleanSelect bind:value={cableFundingStatus} />
 	</label>
 	<label class="label">
 		<span class="text-sm">{m.form_flag()}</span>

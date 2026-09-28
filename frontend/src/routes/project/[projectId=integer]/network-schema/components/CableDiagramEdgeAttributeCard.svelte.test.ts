@@ -1,5 +1,6 @@
 import type { CableDrawerProps } from '$lib/types/attributeCardTypes';
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, within } from '@testing-library/svelte';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalToaster } from '$lib/stores/toaster';
@@ -81,6 +82,15 @@ afterEach(() => {
 	vi.mocked(globalToaster.error).mockClear();
 });
 
+/**
+ * The real Skeleton combobox inside the funding status label.
+ * @returns The label's scope and its combobox input.
+ */
+function fundingStatusField() {
+	const label = screen.getByText('form_funding_status').closest('label') as HTMLLabelElement;
+	return { label, input: within(label).getByRole('combobox') as HTMLInputElement };
+}
+
 describe('CableDiagramEdgeAttributeCard', () => {
 	test('should prefill the form from the drawer cable and render connected conduits', () => {
 		getConduitsForCable.mockReturnValue({
@@ -123,6 +133,21 @@ describe('CableDiagramEdgeAttributeCard', () => {
 		);
 		expect(onLabelUpdate).toHaveBeenCalledWith('K-Nord');
 		expect(onSaveComplete).toHaveBeenCalled();
+	});
+
+	test('should prefill the funding status and submit a changed one', async () => {
+		const user = userEvent.setup();
+		render(CableDiagramEdgeAttributeCard, { cable: { ...cable, funding_status: null } });
+
+		const { label, input } = fundingStatusField();
+		expect(input.value).toBe('common_unknown');
+		await user.click(within(label).getByRole('button', { name: 'Toggle suggestions' }));
+		await user.click(await within(label).findByRole('option', { name: 'common_yes' }));
+		(document.getElementById('cable-form') as HTMLFormElement).requestSubmit();
+
+		await vi.waitFor(() =>
+			expect(updateCable).toHaveBeenCalledWith(expect.objectContaining({ fundingStatus: true }))
+		);
 	});
 
 	test('should toast an error when the update fails', async () => {

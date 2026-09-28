@@ -95,6 +95,7 @@ const DISPLAY: Record<MapFeatureKind, (p: Properties, extras: DisplayExtras) => 
 		project: projectIdOf(field(p, 'project')),
 		warranty: field(p, 'warranty'),
 		date: field(p, 'date'),
+		funding_status: field(p, 'funding_status'),
 		owner: companyOf(field(p, 'owner')),
 		constructor: companyOf(field(p, 'constructor')),
 		manufacturer: companyOf(field(p, 'manufacturer')),

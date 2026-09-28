@@ -10,6 +10,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
+	import NullableBooleanSelect from '$lib/components/NullableBooleanSelect.svelte';
 	import VirtualCombobox from '$lib/components/VirtualCombobox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
@@ -51,7 +52,8 @@
 			warranty: source.warranty || '',
 			date: source.date || '',
 			flag: toOption(source.flag),
-			parentNode: source.parent_node?.uuid ?? ''
+			parentNode: source.parent_node?.uuid ?? '',
+			fundingStatus: source.funding_status ?? null
 		};
 	}
 
@@ -69,6 +71,7 @@
 	let nodeDate = $state(initial.date);
 	let nodeFlag = $state<string[]>(initial.flag);
 	let nodeParentNode = $state(initial.parentNode);
+	let nodeFundingStatus = $state(initial.fundingStatus);
 
 	const availableNodes = $derived(
 		(attributes.parentNodeOptions || []).filter((n: ComboboxOption) => n.value !== id)
@@ -99,7 +102,8 @@
 				flagId: toId(nodeFlag),
 				warranty: nodeWarranty || undefined,
 				date: nodeDate || undefined,
-				parentNodeId: nodeParentNode || undefined
+				parentNodeId: nodeParentNode || undefined,
+				fundingStatus: nodeFundingStatus
 			});
 
 			globalToaster.success({
@@ -233,6 +237,10 @@
 			value={nodeDate}
 			oninput={(e) => (nodeDate = (e.target as HTMLInputElement).value)}
 		/>
+	</label>
+	<label class="label">
+		<span class="text-sm">{m.form_funding_status()}</span>
+		<NullableBooleanSelect bind:value={nodeFundingStatus} />
 	</label>
 	<label class="label">
 		<span class="text-sm">{m.form_flag()}</span>

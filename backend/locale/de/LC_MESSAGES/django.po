@@ -2464,6 +2464,21 @@ msgstr "Zeile %(row)d: Name ist erforderlich."
 msgid "Row %(row)d: Conduit with name '%(name)s' already exists."
 msgstr "Zeile %(row)d: Rohr mit Namen '%(name)s' existiert bereits."
 
+#: apps/api/services.py
+#, python-format
+msgid "Row %(row)d: Invalid funding status '%(value)s'. Use '%(yes)s' or '%(no)s'."
+msgstr ""
+"Zeile %(row)d: Ungültiger Förderstatus '%(value)s'. Verwenden Sie '%(yes)s' "
+"oder '%(no)s'."
+
+#: apps/api/services.py
+msgid "Yes"
+msgstr "Ja"
+
+#: apps/api/services.py
+msgid "No"
+msgstr "Nein"
+
 #: apps/api/services.py:330
 #, python-format
 msgid "Failed to save to database: %(error)s"

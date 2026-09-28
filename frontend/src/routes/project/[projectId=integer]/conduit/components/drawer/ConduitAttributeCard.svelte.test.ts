@@ -138,9 +138,39 @@ describe('ConduitAttributeCard', () => {
 			owner_id: 5,
 			constructor_id: undefined,
 			manufacturer_id: 6,
-			flag_id: 7
+			flag_id: 7,
+			funding_status: null
 		});
 		expect(onrename).toHaveBeenCalledWith('Rohr-Neu');
+	});
+
+	test('should prefill the funding status and save a changed one', async () => {
+		const user = userEvent.setup();
+		getConduit.mockResolvedValue({ ...conduit, funding_status: true });
+		renderCard();
+		const select = (await screen.findByLabelText('form_funding_status')) as HTMLSelectElement;
+		expect(select.value).toBe('true');
+
+		await user.selectOptions(select, 'false');
+		conduitForm().requestSubmit();
+
+		await vi.waitFor(() =>
+			expect(updateConduit).toHaveBeenCalledWith(expect.objectContaining({ funding_status: false }))
+		);
+	});
+
+	test('should clear the funding status when set back to unknown', async () => {
+		const user = userEvent.setup();
+		getConduit.mockResolvedValue({ ...conduit, funding_status: false });
+		renderCard();
+		const select = await screen.findByLabelText('form_funding_status');
+
+		await user.selectOptions(select, 'unknown');
+		conduitForm().requestSubmit();
+
+		await vi.waitFor(() =>
+			expect(updateConduit).toHaveBeenCalledWith(expect.objectContaining({ funding_status: null }))
+		);
 	});
 
 	test('should toast the backend message when the update is rejected', async () => {

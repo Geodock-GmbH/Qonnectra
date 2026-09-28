@@ -6726,6 +6726,8 @@ paths:
                 pipe-branch allowed types.
             include_excluded: If ``'true'``, bypass NetworkSchemaSettings
                 exclusions (for search).
+            child_view_for: UUID of a parent node; return only that node
+                and its direct children (requires ``project``).
             minimal: If ``'true'``, return only uuid and name
                 (no geometry/relations).
 
@@ -10424,6 +10426,10 @@ components:
         uuid_node_end_name:
           type: string
           readOnly: true
+        funding_status:
+          type: boolean
+          nullable: true
+          title: Förderstatus
         uuid_node_start:
           type: string
           format: uuid
@@ -10700,6 +10706,10 @@ components:
         date:
           type: string
           format: date
+        funding_status:
+          type: boolean
+          nullable: true
+          title: Förderstatus
       required:
       - conduit_type
       - conduit_type_id
@@ -11891,6 +11901,10 @@ components:
               type: integer
               writeOnly: true
               title: Kennzeichen
+            funding_status:
+              type: boolean
+              nullable: true
+              title: Förderstatus
     NodeList:
       type: object
       properties:
@@ -12793,6 +12807,10 @@ components:
         uuid_node_end_name:
           type: string
           readOnly: true
+        funding_status:
+          type: boolean
+          nullable: true
+          title: Förderstatus
         uuid_node_start:
           type: string
           format: uuid
@@ -12940,6 +12958,10 @@ components:
         date:
           type: string
           format: date
+        funding_status:
+          type: boolean
+          nullable: true
+          title: Förderstatus
     PatchedContainer:
       type: object
       description: Serialize :model:`api.Container` instances with nested type and
@@ -13569,6 +13591,10 @@ components:
               type: integer
               writeOnly: true
               title: Kennzeichen
+            funding_status:
+              type: boolean
+              nullable: true
+              title: Förderstatus
     PatchedNodeSlotClipNumber:
       type: object
       description: Serialize :model:`api.NodeSlotClipNumber` clip number assignments.

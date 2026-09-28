@@ -7,7 +7,7 @@ Tests cover:
 - _merge_trench_geometries: Merging multiple trench geometries
 - _orient_geometry: Orienting geometries along a cable's flow direction
 - _trim_trench_to_path_coords: Trimming a trench to a routed sub-path
-- _merge_trench_geoms: Merging geometries from TrenchConduitConnection objects
+- merge_trench_geoms: Merging geometries from TrenchConduitConnection objects
 - _fk_str: Foreign-key string coercion helper
 - _trench_feature / _node_feature / _address_feature / _conduit_feature /
   _cable_feature / _area_feature: GeoJSON feature builders
@@ -25,7 +25,7 @@ from apps.api.services import (
     _conduit_feature,
     _fk_str,
     _merge_trench_geometries,
-    _merge_trench_geoms,
+    merge_trench_geoms,
     _node_feature,
     _orient_geometry,
     _trench_feature,
@@ -43,6 +43,7 @@ from .factories import (
     ConduitFactory,
     MicroductCableConnectionFactory,
     MicroductFactory,
+    NodeFactory,
     TrenchConduitConnectionFactory,
     TrenchFactory,
 )
@@ -226,17 +227,17 @@ class TestFkStr:
 
 
 class TestMergeTrenchGeoms:
-    """Tests for the _merge_trench_geoms service function."""
+    """Tests for the merge_trench_geoms service function."""
 
     def test_returns_none_for_empty_connections(self):
         """No connections yields None."""
-        assert _merge_trench_geoms([]) is None
+        assert merge_trench_geoms([]) is None
 
     def test_returns_none_without_geometries(self):
         """Connections whose trenches have no geometry yield None."""
         conn = MagicMock()
         conn.uuid_trench.geom = None
-        assert _merge_trench_geoms([conn]) is None
+        assert merge_trench_geoms([conn]) is None
 
     @pytest.mark.django_db
     def test_builds_multilinestring_from_linestrings(self, project, flag):
@@ -258,7 +259,7 @@ class TestMergeTrenchGeoms:
         conn2 = TrenchConduitConnectionFactory(
             uuid_trench=trench2, uuid_conduit=conduit
         )
-        result = _merge_trench_geoms([conn1, conn2])
+        result = merge_trench_geoms([conn1, conn2])
         assert result["type"] == "MultiLineString"
         assert len(result["coordinates"]) == 2
 
@@ -275,7 +276,7 @@ class TestMergeTrenchGeoms:
         )
         conn = MagicMock()
         conn.uuid_trench.geom = mls
-        result = _merge_trench_geoms([conn])
+        result = merge_trench_geoms([conn])
         assert result["type"] == "MultiLineString"
         assert len(result["coordinates"]) == 2
 
@@ -373,6 +374,18 @@ class TestFeatureBuilders:
         props, geom = _cable_feature(cable)
         assert props["conduit_names"] == ["Conduit-A"]
         assert geom["type"] == "MultiLineString"
+
+    def test_feature_builders_carry_funding_status(self, project, flag):
+        """Trench, node, conduit and cable features report their own flag."""
+        trench = TrenchFactory(project=project, flag=flag, funding_status=True)
+        node = NodeFactory(project=project, flag=flag, funding_status=False)
+        conduit = ConduitFactory(project=project, flag=flag, funding_status=True)
+        cable = CableFactory(project=project, flag=flag, funding_status=None)
+
+        assert _trench_feature(trench)[0]["funding_status"] is True
+        assert _node_feature(node)[0]["funding_status"] is False
+        assert _conduit_feature(conduit)[0]["funding_status"] is True
+        assert _cable_feature(cable)[0]["funding_status"] is None
 
     def test_area_feature_shape(self, project, flag):
         """_area_feature returns area properties and its polygon geometry."""

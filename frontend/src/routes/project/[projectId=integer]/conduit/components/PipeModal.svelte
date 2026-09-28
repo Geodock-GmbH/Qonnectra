@@ -6,6 +6,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
+	import NullableBooleanSelect from '$lib/components/NullableBooleanSelect.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
 	import {
 		emptyConduitFormDefaults,
@@ -74,7 +75,8 @@
 				owner_id: idOf(values.owner),
 				constructor_id: idOf(values.constructor),
 				manufacturer_id: idOf(values.manufacturer),
-				flag_id: idOf(values.flag)
+				flag_id: idOf(values.flag),
+				funding_status: values.fundingStatus
 			}).updates(getConduitList);
 
 			saveConduitFormDefaults($state.snapshot(values));
@@ -200,6 +202,10 @@
 					<label class="label">
 						<span class="label-text">{m.common_date()}</span>
 						<input type="date" name="date" id="date" class="input" bind:value={values.date} />
+					</label>
+					<label class="label">
+						<span class="label-text">{m.form_funding_status()}</span>
+						<NullableBooleanSelect bind:value={values.fundingStatus} />
 					</label>
 					<label class="label">
 						<span class="label-text">{m.form_flag()}</span>

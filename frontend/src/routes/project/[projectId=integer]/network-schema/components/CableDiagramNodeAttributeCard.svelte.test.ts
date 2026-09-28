@@ -1,5 +1,6 @@
 import type { NodeDrawerProps } from '$lib/types/attributeCardTypes';
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, within } from '@testing-library/svelte';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalToaster } from '$lib/stores/toaster';
@@ -95,6 +96,15 @@ afterEach(() => {
 	vi.mocked(globalToaster.error).mockClear();
 });
 
+/**
+ * The real Skeleton combobox inside the funding status label.
+ * @returns The label's scope and its combobox input.
+ */
+function fundingStatusField() {
+	const label = screen.getByText('form_funding_status').closest('label') as HTMLLabelElement;
+	return { label, input: within(label).getByRole('combobox') as HTMLInputElement };
+}
+
 describe('CableDiagramNodeAttributeCard', () => {
 	test('should prefill the form from the drawer node', () => {
 		render(CableDiagramNodeAttributeCard, { node });
@@ -130,6 +140,21 @@ describe('CableDiagramNodeAttributeCard', () => {
 			})
 		);
 		expect(onLabelUpdate).toHaveBeenCalledWith('PoP-1');
+	});
+
+	test('should prefill the funding status and submit a changed one', async () => {
+		const user = userEvent.setup();
+		render(CableDiagramNodeAttributeCard, { node: { ...node, funding_status: true } });
+
+		const { label, input } = fundingStatusField();
+		expect(input.value).toBe('common_yes');
+		await user.click(within(label).getByRole('button', { name: 'Toggle suggestions' }));
+		await user.click(await within(label).findByRole('option', { name: 'common_unknown' }));
+		(document.getElementById('node-form') as HTMLFormElement).requestSubmit();
+
+		await vi.waitFor(() =>
+			expect(updateNode).toHaveBeenCalledWith(expect.objectContaining({ fundingStatus: null }))
+		);
 	});
 
 	test('should toast an error when the update fails', async () => {

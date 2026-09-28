@@ -66,6 +66,61 @@ from .storage import LocalMediaStorage
 logger = logging.getLogger(__name__)
 
 
+def _conduit_import_headers():
+    """Return the translated conduit import column headers in template order.
+
+    Shared by the importer and the template so both always agree on the
+    columns. Translated at call time, in the request's active language.
+
+    Returns:
+        list[str]: Header labels, one per template column.
+    """
+    return [
+        str(h)
+        for h in [
+            _("Name"),
+            _("Type"),
+            _("Outer Conduit"),
+            _("Status"),
+            _("Network Level"),
+            _("Owner"),
+            _("Constructor"),
+            _("Manufacturer"),
+            _("Date"),
+            _("Project"),
+            _("Flag"),
+            _("Funding Status"),
+        ]
+    ]
+
+
+def _parse_funding_status(value):
+    """Parse the funding status cell of a conduit import row.
+
+    Accepts the template's translated dropdown values as well as yes/no,
+    ja/nein, true/false and 1/0 in any case, so hand-filled sheets import too.
+
+    Args:
+        value: Raw cell value; openpyxl yields ``bool`` for Excel booleans.
+
+    Returns:
+        bool | None: The flag, or ``None`` for an empty cell (unknown).
+
+    Raises:
+        ValueError: If the value is not a recognised yes/no answer.
+    """
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return None
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    if text in {str(_("Yes")).lower(), "yes", "ja", "true", "1"}:
+        return True
+    if text in {str(_("No")).lower(), "no", "nein", "false", "0"}:
+        return False
+    raise ValueError(value)
+
+
 def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
     """Import conduits from an Excel file, validate data, and create records.
 
@@ -117,22 +172,7 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
     warnings = []
     conduits_to_create = []
 
-    headers_translated = [
-        str(h)
-        for h in [
-            _("Name"),
-            _("Type"),
-            _("Outer Conduit"),
-            _("Status"),
-            _("Network Level"),
-            _("Owner"),
-            _("Constructor"),
-            _("Manufacturer"),
-            _("Date"),
-            _("Project"),
-            _("Flag"),
-        ]
-    ]
+    headers_translated = _conduit_import_headers()
 
     header_from_file = [cell.value for cell in sheet[1]]
 
@@ -160,6 +200,7 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
         headers_translated[8]: "date",
         headers_translated[9]: "project",
         headers_translated[10]: "flag",
+        headers_translated[11]: "funding_status",
     }
 
     if headers_translated[0] not in header_from_file:
@@ -200,6 +241,24 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
             errors.append(
                 _("Row %(row)d: Conduit with name '%(name)s' already exists.")
                 % {"row": row_idx, "name": name}
+            )
+            continue
+
+        funding_status_val = row_data.get("funding_status")
+        try:
+            funding_status = _parse_funding_status(funding_status_val)
+        except ValueError:
+            errors.append(
+                _(
+                    "Row %(row)d: Invalid funding status '%(value)s'. "
+                    "Use '%(yes)s' or '%(no)s'."
+                )
+                % {
+                    "row": row_idx,
+                    "value": funding_status_val,
+                    "yes": _("Yes"),
+                    "no": _("No"),
+                }
             )
             continue
 
@@ -280,6 +339,7 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
                 constructor=constructor,
                 manufacturer=manufacturer,
                 date=row_data.get("date"),
+                funding_status=funding_status,
                 project=project,
                 flag=flag,
             )
@@ -347,6 +407,7 @@ def generate_conduit_import_template():
     Attribute-backed columns (type, status, network level, companies,
     project, flag) are filled from the live database tables and exposed as
     Excel dropdowns so the user can only pick values the import accepts.
+    The funding status column gets a translated yes/no dropdown.
 
     The allowed values are written to a hidden ``Lookups`` sheet and the
     dropdowns reference those ranges. This avoids Excel's 255-character cap
@@ -368,22 +429,7 @@ def generate_conduit_import_template():
     assert worksheet is not None
     worksheet.title = "Conduit Import Template"
 
-    headers = [
-        str(h)
-        for h in [
-            _("Name"),
-            _("Type"),
-            _("Outer Conduit"),
-            _("Status"),
-            _("Network Level"),
-            _("Owner"),
-            _("Constructor"),
-            _("Manufacturer"),
-            _("Date"),
-            _("Project"),
-            _("Flag"),
-        ]
-    ]
+    headers = _conduit_import_headers()
     for col, header in enumerate(headers, start=1):
         worksheet.cell(row=1, column=col, value=header)
 
@@ -468,6 +514,7 @@ def _add_conduit_template_dropdowns(workbook, worksheet, dropdown_row_span):
         (8, str(_("Manufacturer")), companies),
         (10, str(_("Project")), allowed_values(Projects, "project")),
         (11, str(_("Flag")), allowed_values(Flags, "flag")),
+        (12, str(_("Funding Status")), [str(_("Yes")), str(_("No"))]),
     ]
 
     lookups = workbook.create_sheet(title="Lookups")
@@ -5052,7 +5099,7 @@ def _add_address_linked_nodes(node_features: list, address_details: dict) -> Non
             )
 
 
-def _merge_trench_geoms(trench_connections):
+def merge_trench_geoms(trench_connections):
     """Merge trench geometries from a list of TrenchConduitConnection objects.
 
     Args:
@@ -5077,7 +5124,7 @@ def _merge_trench_geoms(trench_connections):
     return {"type": "MultiLineString", "coordinates": coordinates}
 
 
-def _cable_trench_connections(cable):
+def cable_trench_connections(cable):
     """Collect the distinct trench connections reachable from a cable.
 
     Walks the ``cable → microduct → conduit → trench`` connection chain and
@@ -5102,33 +5149,43 @@ def _cable_trench_connections(cable):
     return unique_connections
 
 
-def conduit_trench_geometry(conduit):
-    """Return the merged trench geometry for a conduit as GeoJSON.
+def conduit_trench_connections(conduit):
+    """Collect the trench connections of a conduit.
 
     Args:
         conduit: A :model:`api.Conduit` instance.
 
     Returns:
-        dict | None: GeoJSON MultiLineString, or ``None`` if the conduit is not
-            connected to any trench with geometry.
+        list: The conduit's :model:`api.TrenchConduitConnection` objects, each
+            with ``uuid_trench`` available.
     """
-    return _merge_trench_geoms(conduit.trenchconduitconnection_set.all())
+    return list(conduit.trenchconduitconnection_set.all())
 
 
-def cable_trench_geometry(cable):
-    """Return the merged trench geometry for a cable as GeoJSON.
+def trench_funding_summary(trench_connections):
+    """Count the funding status of the trenches behind a set of connections.
 
-    Geometry is assembled from the distinct trenches reachable through the
-    cable's ``microduct → conduit → trench`` connection chain.
+    Reports raw counts only; deriving a funding code from them is left to the
+    consumer.
 
     Args:
-        cable: A :model:`api.Cable` instance.
+        trench_connections: Iterable of :model:`api.TrenchConduitConnection`
+            with ``uuid_trench`` pre-selected.
 
     Returns:
-        dict | None: GeoJSON MultiLineString, or ``None`` if no connected
-            trench carries geometry.
+        dict: ``{"funded": int, "unfunded": int, "unknown": int}`` for trenches
+            whose ``funding_status`` is ``True``, ``False`` and ``None``.
     """
-    return _merge_trench_geoms(_cable_trench_connections(cable))
+    summary = {"funded": 0, "unfunded": 0, "unknown": 0}
+    for conn in trench_connections:
+        funding_status = conn.uuid_trench.funding_status
+        if funding_status is True:
+            summary["funded"] += 1
+        elif funding_status is False:
+            summary["unfunded"] += 1
+        else:
+            summary["unknown"] += 1
+    return summary
 
 
 def _fk_str(obj, attr):
@@ -5152,6 +5209,7 @@ def _trench_feature(obj):
         "date": str(obj.date) if obj.date else None,
         "comment": obj.comment,
         "house_connection": obj.house_connection,
+        "funding_status": obj.funding_status,
         "project": _fk_str(obj, "project"),
         "flag": _fk_str(obj, "flag"),
     }
@@ -5171,6 +5229,7 @@ def _node_feature(obj):
         "constructor": _fk_str(obj, "constructor"),
         "manufacturer": _fk_str(obj, "manufacturer"),
         "date": str(obj.date) if obj.date else None,
+        "funding_status": obj.funding_status,
         "project": _fk_str(obj, "project"),
         "flag": _fk_str(obj, "flag"),
     }
@@ -5210,11 +5269,12 @@ def _conduit_feature(obj):
         "constructor": _fk_str(obj, "constructor"),
         "manufacturer": _fk_str(obj, "manufacturer"),
         "date": str(obj.date) if obj.date else None,
+        "funding_status": obj.funding_status,
         "project": _fk_str(obj, "project"),
         "flag": _fk_str(obj, "flag"),
         "trench_ids": [conn.uuid_trench.id_trench for conn in trench_connections],
     }
-    geom_json = _merge_trench_geoms(trench_connections)
+    geom_json = merge_trench_geoms(trench_connections)
     return props, geom_json
 
 
@@ -5224,7 +5284,7 @@ def _cable_feature(obj):
     conduit_names = sorted(
         {conn.uuid_microduct.uuid_conduit.name for conn in cable_connections}
     )
-    unique_connections = _cable_trench_connections(obj)
+    unique_connections = cable_trench_connections(obj)
 
     props = {
         "uuid": str(obj.uuid),
@@ -5239,11 +5299,12 @@ def _cable_feature(obj):
         "node_start": _fk_str(obj, "uuid_node_start"),
         "node_end": _fk_str(obj, "uuid_node_end"),
         "length": float(obj.length) if obj.length is not None else None,
+        "funding_status": obj.funding_status,
         "project": _fk_str(obj, "project"),
         "flag": _fk_str(obj, "flag"),
         "conduit_names": conduit_names,
     }
-    geom_json = _merge_trench_geoms(unique_connections)
+    geom_json = merge_trench_geoms(unique_connections)
     return props, geom_json
 
 
@@ -5271,7 +5332,7 @@ def _microduct_feature(obj):
         "microduct_status": _fk_str(obj, "microduct_status"),
         "trench_ids": [conn.uuid_trench.id_trench for conn in trench_connections],
     }
-    geom_json = _merge_trench_geoms(trench_connections)
+    geom_json = merge_trench_geoms(trench_connections)
     return props, geom_json
 
 
