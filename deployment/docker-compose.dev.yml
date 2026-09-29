@@ -194,6 +194,8 @@ services:
     environment:
       - ORIGIN=https://app.localhost
       - NODE_ENV=production
+      - USE_COOKIE_DOMAIN_MIDDLEWARE=${USE_COOKIE_DOMAIN_MIDDLEWARE:-True}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN:-.localhost}
       - API_URL=${API_URL:-https://api.localhost/api/v1/}
       - PUBLIC_API_URL=${PUBLIC_API_URL:-https://api.localhost/api/v1/}
       - PUBLIC_TILE_SERVER_URL=${PUBLIC_TILE_SERVER_URL:-https://tiles.localhost}

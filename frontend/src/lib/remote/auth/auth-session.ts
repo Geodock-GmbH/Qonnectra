@@ -1,5 +1,6 @@
 import type { Cookies } from '@sveltejs/kit';
 import type { CookieSerializeOptions } from 'cookie';
+import { env } from '$env/dynamic/private';
 import setCookieParser from 'set-cookie-parser';
 
 const AUTH_COOKIES = ['api-access-token', 'api-refresh-token'] as const;
@@ -26,17 +27,37 @@ export function forwardSetCookies(cookies: Cookies, setCookieHeaders: string[], 
 }
 
 /**
- * Deletes the access and refresh token cookies.
+ * The domain Django's `CookieDomainMiddleware` puts on the token cookies,
+ * read from the same settings and with the same defaults; `undefined` while
+ * the middleware is off.
+ * @returns The cookie domain, e.g. `.example.org`, or `undefined`.
+ */
+function tokenCookieDomain(): string | undefined {
+	const enabled = ['1', 'true', 'yes'].includes(
+		env.USE_COOKIE_DOMAIN_MIDDLEWARE?.trim().toLowerCase() ?? ''
+	);
+	return enabled ? env.COOKIE_DOMAIN?.trim() || 'localhost' : undefined;
+}
+
+/**
+ * Deletes the access and refresh token cookies on the domain the backend set
+ * them with. A delete on another domain neither clears the browser cookie nor
+ * replaces the entry in SvelteKit's jar, where it would shadow a token set
+ * later in the same request (the login right after the auth hook's clear).
  * @param cookies - The request's cookie jar.
  */
 export function clearAuthCookies(cookies: Cookies) {
-	for (const name of AUTH_COOKIES) cookies.delete(name, { path: '/' });
+	const domain = tokenCookieDomain();
+	for (const name of AUTH_COOKIES) {
+		cookies.delete(name, domain ? { path: '/', domain } : { path: '/' });
+	}
 }
 
 /**
  * Builds the headers for the backend logout call: JSON content type plus the
  * CSRF token and refresh-token cookie when present.
  * @param cookies - The request's cookie jar.
+ * @returns The request headers for Django's logout endpoint.
  */
 export function logoutHeaders(cookies: Cookies): Record<string, string> {
 	const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -50,6 +71,7 @@ export function logoutHeaders(cookies: Cookies): Record<string, string> {
 /**
  * Reads the user-facing message from a failed Django login response.
  * @param errorData - Parsed JSON error body (may be anything).
+ * @returns Django's first non-field error or detail, else a generic message.
  */
 export function loginErrorMessage(errorData: unknown): string {
 	const fallback = 'Login failed. Please check your credentials.';

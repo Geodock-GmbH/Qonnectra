@@ -563,8 +563,8 @@ The production compose file is sized for the minimum supported host of 8 CPU cor
 | `DEBUG`                        | No       | Django debug mode                                        | `True` / `False`        |
 | `DEFAULT_SRID`                 | No       | Default coordinate system                                | `25832`                 |
 | `CORS_ALLOWED_ORIGINS`         | No       | CORS allowed origins                                     | `http://localhost:5173` |
-| `USE_COOKIE_DOMAIN_MIDDLEWARE` | No       | Enable cookie domain middleware                          | `False`                 |
-| `COOKIE_DOMAIN`                | No       | Cookie domain                                            | `.localhost`            |
+| `USE_COOKIE_DOMAIN_MIDDLEWARE` | No       | Enable cookie domain middleware (backend and frontend)   | `False`                 |
+| `COOKIE_DOMAIN`                | No       | Cookie domain (backend and frontend)                     | `.localhost`            |
 | `FIELD_ENCRYPTION_KEY`         | No       | Encryption key for sensitive fields (e.g. WMS passwords) | `base64-encoded-key`    |
 | `QGIS_PG_SERVICE_NAME`         | No       | PostgreSQL service name for QGIS Server                  | `qonnectra`             |
 | `QGIS_SERVER_VERSION`          | No       | QGIS Server version, used to warn about project skew     | `3.44.7`                |

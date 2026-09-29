@@ -1,6 +1,9 @@
 import type { Cookies } from '@sveltejs/kit';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+// SvelteKit does not export its cookie jar; the domain-keyed lookup under test lives there.
+// @ts-expect-error -- untyped internal module outside the package exports
+import { get_cookies } from '../../../../node_modules/@sveltejs/kit/src/runtime/server/cookie.js';
 import {
 	clearAuthCookies,
 	forwardSetCookies,
@@ -9,6 +12,27 @@ import {
 	safeRedirectTarget
 } from './auth-session';
 
+const env = vi.hoisted(() => ({}) as Record<string, string | undefined>);
+vi.mock('$env/dynamic/private', () => ({ env }));
+
+afterEach(() => {
+	for (const key of Object.keys(env)) delete env[key];
+});
+
+/**
+ * Builds SvelteKit's real per-request cookie jar, as the server hands it to hooks and remote functions.
+ * @param url - The request URL.
+ */
+function makeRequestCookies(url: string): Cookies {
+	const { cookies, set_trailing_slash } = get_cookies(new Request(url), new URL(url));
+	set_trailing_slash('never');
+	return cookies;
+}
+
+/**
+ * Builds a cookie jar stub that reads from `store` and records sets and deletes.
+ * @param store - Cookie values the request carries.
+ */
 function makeCookies(store: Record<string, string> = {}) {
 	return {
 		get: vi.fn((name: string) => store[name]),
@@ -88,6 +112,43 @@ describe('clearAuthCookies', () => {
 
 		expect(cookies.delete).toHaveBeenCalledWith('api-access-token', { path: '/' });
 		expect(cookies.delete).toHaveBeenCalledWith('api-refresh-token', { path: '/' });
+	});
+
+	test('deletes on the cookie domain when the backend sets one', () => {
+		env.USE_COOKIE_DOMAIN_MIDDLEWARE = 'True';
+		env.COOKIE_DOMAIN = '.example.org';
+		const cookies = makeCookies();
+
+		clearAuthCookies(cookies);
+
+		const options = { path: '/', domain: '.example.org' };
+		expect(cookies.delete).toHaveBeenCalledWith('api-access-token', options);
+		expect(cookies.delete).toHaveBeenCalledWith('api-refresh-token', options);
+	});
+
+	test('ignores the cookie domain while the backend middleware is off', () => {
+		env.USE_COOKIE_DOMAIN_MIDDLEWARE = 'False';
+		env.COOKIE_DOMAIN = '.example.org';
+		const cookies = makeCookies();
+
+		clearAuthCookies(cookies);
+
+		expect(cookies.delete).toHaveBeenCalledWith('api-access-token', { path: '/' });
+	});
+
+	test('a token forwarded after the clear is readable in the same request', () => {
+		env.USE_COOKIE_DOMAIN_MIDDLEWARE = 'True';
+		env.COOKIE_DOMAIN = '.example.org';
+		const cookies = makeRequestCookies('https://app.example.org/login');
+
+		clearAuthCookies(cookies);
+		forwardSetCookies(
+			cookies,
+			['api-access-token=fresh; Domain=.example.org; Path=/; HttpOnly; Secure; SameSite=Lax'],
+			true
+		);
+
+		expect(cookies.get('api-access-token')).toBe('fresh');
 	});
 });
 
