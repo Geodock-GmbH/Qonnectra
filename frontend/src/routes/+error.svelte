@@ -8,7 +8,6 @@
 <div class="flex flex-col gap-4 items-center justify-center">
 	<h1 class="text-2xl font-bold">{page.status}</h1>
 	<p class="text-5xl font-bold">{page.error?.message}</p>
-	<a href={resolve('/login')} class="btn preset-filled-primary-500"
-		>{m.message_error_go_back_home()}</a
-	>
+	<!-- `/` lets the route guard pick the user's landing page, or the login when signed out. -->
+	<a href={resolve('/')} class="btn preset-filled-primary-500">{m.message_error_go_back_home()}</a>
 </div>

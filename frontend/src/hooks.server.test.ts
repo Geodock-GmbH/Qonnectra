@@ -390,7 +390,7 @@ describe('handleAuth: permissions', () => {
 		expect((await thrownBy(event)).location).toBe('/project/7/map');
 	});
 
-	test('answers 403 instead of looping when the landing page itself is denied', async () => {
+	test('sends a user denied the map to the first page they may open', async () => {
 		const { event } = makeEvent({
 			pathname: '/project/7/map',
 			routeId: '/project/[projectId=integer]/map',
@@ -398,6 +398,35 @@ describe('handleAuth: permissions', () => {
 		});
 		mockDjango(event, {
 			permissions: [okJson({ routes: { '/map': false }, is_superuser: false })]
+		});
+
+		const err = await thrownBy(event);
+
+		expect(err.status).toBe(303);
+		expect(err.location).toBe('/project/7/dashboard');
+	});
+
+	test('lands a user denied the map on an allowed page after login', async () => {
+		const { event } = makeEvent({
+			pathname: '/login',
+			routeId: '/login',
+			cookies: { 'api-access-token': 'good', 'last-project': '7' }
+		});
+		mockDjango(event, {
+			permissions: [okJson({ routes: { '/*': false, '/address': true }, is_superuser: false })]
+		});
+
+		expect((await thrownBy(event)).location).toBe('/project/7/address');
+	});
+
+	test('answers 403 when the user may open no page at all', async () => {
+		const { event } = makeEvent({
+			pathname: '/project/7/map',
+			routeId: '/project/[projectId=integer]/map',
+			cookies: { 'api-access-token': 'good', 'last-project': '7' }
+		});
+		mockDjango(event, {
+			permissions: [okJson({ routes: { '/*': false }, is_superuser: false })]
 		});
 
 		const err = await thrownBy(event);

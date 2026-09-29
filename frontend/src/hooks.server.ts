@@ -54,15 +54,12 @@ export async function handleAuth({ event, resolve }: Parameters<Handle>[0]) {
 		redirect(303, redirectToUrl);
 	}
 
-	if (requestedPath === '/' || requestedPath.startsWith('/login')) {
-		redirect(303, await landingPathFor(event.fetch, event.cookies));
-	}
-
 	const permissionKey = permissionKeyFor(event.route.id);
-	if (permissionKey && !canAccessRoute(user.permissions, permissionKey)) {
-		const landing = await landingPathFor(event.fetch, event.cookies);
-		// The landing page itself is denied: a redirect would loop.
-		if (landing === requestedPath) error(403, 'Access denied');
+	const isLandingUrl = requestedPath === '/' || requestedPath.startsWith('/login');
+	if (isLandingUrl || (permissionKey && !canAccessRoute(user.permissions, permissionKey))) {
+		// The landing page is one the user may open, so this never redirects in a loop.
+		const landing = await landingPathFor(event.fetch, event.cookies, user.permissions);
+		if (!landing) error(403, 'Access denied');
 		redirect(303, landing);
 	}
 

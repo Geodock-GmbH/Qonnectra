@@ -28,6 +28,20 @@ describe('admin logs +page.server.ts', () => {
 		);
 	});
 
+	test('redirects a non-admin denied the map to the first page they may open', async () => {
+		const permissions = { models: {}, routes: { '/map': false }, is_superuser: false };
+		await expect(
+			load(createLoadArgs({ user: { isAdmin: false, permissions } }, '9'))
+		).rejects.toEqual(expect.objectContaining({ status: 303, location: '/project/9/dashboard' }));
+	});
+
+	test('answers 403 for a non-admin who may open no page at all', async () => {
+		const permissions = { models: {}, routes: { '/*': false }, is_superuser: false };
+		await expect(load(createLoadArgs({ user: { isAdmin: false, permissions } }))).rejects.toEqual(
+			expect.objectContaining({ status: 403 })
+		);
+	});
+
 	test('lets admins through without loading data', async () => {
 		await expect(load(createLoadArgs({ user: { isAdmin: true } }))).resolves.toBeUndefined();
 	});
