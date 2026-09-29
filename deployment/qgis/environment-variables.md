@@ -36,14 +36,12 @@ QGIS_DB_USER=qgis_user
 QGIS_DB_PASSWORD=your_secure_qgis_password
 ```
 
-`postgres/init.sh` creates the QGIS user with these permissions:
+`postgres/init.sh` creates the QGIS user when the database is initialised for the first time, with `CONNECT` on the database and `USAGE` on the `public` schema. The backend grants the table privileges after every `migrate` (`backend/apps/api/qgis_role.py`), so the backend container needs `QGIS_DB_USER` too:
 
-- SELECT, INSERT, UPDATE, DELETE on all tables
+- SELECT, INSERT, UPDATE, DELETE on all tables in `public`
 - Usage on sequences (for auto-increment fields)
 - No schema modification or extension privileges
-- No access to the `model_permission` and `route_permission` tables
-
-The user is created only when the database is initialised for the first time.
+- No access to the Django auth, session, token and admin tables, `django_migrations`, `model_permission`, `route_permission` and `user_settings`
 
 ## PostgreSQL service configuration
 

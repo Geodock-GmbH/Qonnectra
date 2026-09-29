@@ -343,7 +343,7 @@ docker-compose logs [service_name]
 - Extensions: PostGIS, pgRouting, dblink, pgcrypto
 - Users:
   - Main user (`DB_USER`): full privileges, used by the Django backend
-  - QGIS user (`QGIS_DB_USER`): limited read-write access for WFS/WMS
+  - QGIS user (`QGIS_DB_USER`): read-write access to the GIS data tables, none to the auth and permission tables; table grants are applied by the backend after every `migrate`
 
 #### Backend (Django 5.2)
 

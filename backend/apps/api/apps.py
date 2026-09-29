@@ -13,5 +13,10 @@ class ApiConfig(AppConfig):
     name = "apps.api"
 
     def ready(self) -> None:
-        """Import signal handlers so they are registered with Django."""
+        """Register the signal handlers and the post-migrate QGIS role grants."""
+        from django.db.models.signals import post_migrate
+
         from . import signals  # noqa: F401
+        from .qgis_role import apply_qgis_role_privileges
+
+        post_migrate.connect(apply_qgis_role_privileges, sender=self)

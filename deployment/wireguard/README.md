@@ -153,7 +153,7 @@ Once connected via WireGuard, set up the PostgreSQL connection in QGIS:
 | Password | _(from QGIS_DB_PASSWORD in .env)_ |
 | SSL Mode | `disable`                         |
 
-This is the same limited database user QGIS Server uses for WFS: it can read and write data in all tables but cannot change the schema, and it has no access to the permission tables.
+This is the same limited database user QGIS Server uses for WFS: it can read and write data in the GIS tables but cannot change the schema, and it has no access to the user, session, token and permission tables (see [QGIS environment variables](../qgis/environment-variables.md)).
 
 ## Revoking access
 

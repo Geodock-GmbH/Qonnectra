@@ -214,6 +214,10 @@ DEFAULT_SRID = int(os.getenv("DEFAULT_SRID", "25832"))
 # QGIS pg_service name for datasource conversion
 QGIS_PG_SERVICE_NAME = os.getenv("QGIS_PG_SERVICE_NAME", "qonnectra")
 
+# Database role used by QGIS Server and QGIS Desktop (via WireGuard).
+# Its table grants are re-applied after every migrate, see apps/api/qgis_role.py.
+QGIS_DB_USER = os.getenv("QGIS_DB_USER", "")
+
 # QGIS Server version — used to warn on version skew when uploading projects.
 # Keep in sync with the qgis/qgis-server image tag in docker-compose.
 QGIS_SERVER_VERSION = os.getenv("QGIS_SERVER_VERSION", "")

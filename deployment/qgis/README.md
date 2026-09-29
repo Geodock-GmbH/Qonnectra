@@ -140,7 +140,7 @@ To use your own project:
 
 3. Database connection issues / "Service not found"
    - Check `QGIS_DB_USER`, `QGIS_DB_PASSWORD` and `QGIS_PG_SERVICE_NAME` in `.env`
-   - The QGIS user is created only on the database's first start (`postgres/init.sh`); if you set the variables later, create the role and grants manually as in that script
+   - The QGIS user is created only on the database's first start (`postgres/init.sh`); if you set the variables later, create the role manually as in that script and restart the backend, which grants the table privileges on startup
    - Inspect the generated file: `docker exec <qgis_container> cat /etc/postgresql-common/pg_service.conf`
    - Check the PostgreSQL logs for connection errors
 
