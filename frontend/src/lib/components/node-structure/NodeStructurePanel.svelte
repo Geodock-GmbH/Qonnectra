@@ -21,13 +21,11 @@
 
 	let {
 		nodeUuid,
-		nodeName = '',
 		readonly = false,
 		initialSlotConfigUuid = null,
 		sharedSlotState = $bindable(null)
 	}: {
 		nodeUuid: string;
-		nodeName?: string;
 		readonly?: boolean;
 		initialSlotConfigUuid?: string | null;
 		sharedSlotState?: (SharedSlotState & { lastUpdated?: number }) | null;
@@ -36,19 +34,17 @@
 	let innerWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1024);
 	const isMobile = $derived(innerWidth < 768);
 
-	// `activeSheet` doubles as MobileBottomSheet's `open` binding: a string opens
-	// the sheet and the sheet resets it to a falsy value on close, hence the `any`.
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	let activeSheet = $state<any>(null);
-	let cableRefreshTrigger = $state(0);
+	/** The mobile bottom sheet that is open, if any. */
+	let activeSheet = $state<'components' | 'cables' | 'ports' | null>(null);
 	let showPortTableFullScreen = $state(false);
 
 	let deleteMessageBox = $state<ReturnType<typeof MessageBox> | null>(null);
 	let pendingDeleteUuid = $state<string | null>(null);
 	let pendingDeleteSpliceCount = $state(0);
 
-	// Context is created with initial prop values and updated reactively via $effect below
-	const context = new NodeStructureContext();
+	// Every host re-keys this panel per feature, so `nodeUuid` is fixed for its lifetime.
+	// svelte-ignore state_referenced_locally
+	const context = new NodeStructureContext(nodeUuid, { initialSlotConfigUuid, sharedSlotState });
 
 	setContext(NODE_STRUCTURE_CONTEXT_KEY, context);
 	setContext(DRAG_DROP_CONTEXT_KEY, context.getDragDropManager());
@@ -64,31 +60,29 @@
 		}))
 	);
 
+	/**
+	 * Tracks the window width and switches the context between the mobile and
+	 * desktop layout when the breakpoint is crossed.
+	 */
 	function handleResize() {
+		const wasMobile = isMobile;
 		innerWidth = window.innerWidth;
+		if (isMobile !== wasMobile) applyLayoutMode();
 	}
 
-	let previousNodeUuid = $state<string | null>(null);
-
-	$effect(() => {
-		if (nodeUuid && nodeUuid !== previousNodeUuid) {
-			previousNodeUuid = nodeUuid;
-			context.setNodeUuid(nodeUuid, sharedSlotState);
-			context.initialize();
-			cableRefreshTrigger++;
+	/**
+	 * Tells the context which layout is active; the mobile sheets only exist on mobile.
+	 */
+	function applyLayoutMode() {
+		context.handleResponsiveChange(isMobile);
+		if (!isMobile) {
+			activeSheet = null;
 		}
-	});
+	}
 
 	$effect(() => {
 		if (initialSlotConfigUuid) {
 			context.setInitialSlotConfigUuid(initialSlotConfigUuid);
-		}
-	});
-
-	$effect(() => {
-		context.handleResponsiveChange(isMobile);
-		if (!isMobile) {
-			activeSheet = null;
 		}
 	});
 
@@ -103,10 +97,6 @@
 			context.fetchAllForSlotConfig();
 		}
 	});
-
-	function handleSideChange(e: Event) {
-		context.selectSlotConfig((e.target as HTMLSelectElement).value);
-	}
 
 	async function handleStructureSelect(
 		structure: Parameters<typeof context.structureActions.onSelect>[0] | undefined
@@ -155,23 +145,13 @@
 		activeSheet = null;
 	}
 
-	function handleMobileFiberSelect(
-		fiberData: Parameters<typeof context.mobileActions.onFiberSelect>[0]
-	) {
-		context.mobileActions.onFiberSelect(fiberData);
-		activeSheet = 'ports';
-	}
-
 	onMount(() => {
+		applyLayoutMode();
 		context.initialize();
-		cableRefreshTrigger++;
-
-		if (typeof window !== 'undefined') {
-			window.addEventListener('resize', handleResize);
-			return () => window.removeEventListener('resize', handleResize);
-		}
 	});
 </script>
+
+<svelte:window onresize={handleResize} />
 
 <div class="flex flex-col h-full">
 	{#if isMobile}
@@ -268,7 +248,12 @@
 			{/if}
 
 			<MobileBottomSheet
-				bind:open={activeSheet}
+				bind:open={
+					() => activeSheet !== null,
+					(open) => {
+						if (!open) activeSheet = null;
+					}
+				}
 				title={activeSheet === 'components'
 					? m.form_component_types()
 					: activeSheet === 'cables'
@@ -282,12 +267,7 @@
 						disabled={context.creatingMultiple}
 					/>
 				{:else if activeSheet === 'cables'}
-					<CableFiberSidebar
-						{nodeUuid}
-						refreshTrigger={cableRefreshTrigger}
-						{isMobile}
-						{readonly}
-					/>
+					<CableFiberSidebar {nodeUuid} {isMobile} {readonly} />
 				{:else if activeSheet === 'ports' && context.selectedStructure}
 					<PortTable
 						structureName={context.selectedStructure.component_type?.component_type || '-'}
@@ -377,7 +357,7 @@
 				</div>
 			</div>
 
-			<CableFiberSidebar {nodeUuid} refreshTrigger={cableRefreshTrigger} {readonly} />
+			<CableFiberSidebar {nodeUuid} {readonly} />
 		</div>
 	{/if}
 </div>

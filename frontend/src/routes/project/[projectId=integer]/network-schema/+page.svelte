@@ -1,0 +1,312 @@
+<script lang="ts">
+	import type { PageData } from './$types';
+	import type { EdgeTypes, NodeTypes } from '@xyflow/svelte';
+	import type { NetworkSchemaInitData } from '$lib/classes/NetworkSchemaState.svelte';
+	import { afterNavigate } from '$app/navigation';
+	import { page } from '$app/state';
+	import { Background, ConnectionMode, Panel, SvelteFlow } from '@xyflow/svelte';
+	import { Switch } from '@skeletonlabs/skeleton-svelte';
+	import { IconChevronDown, IconChevronRight } from '@tabler/icons-svelte';
+
+	import { m } from '$lib/paraglide/messages';
+
+	import { NetworkSchemaSearchManager } from '$lib/classes/NetworkSchemaSearchManager.svelte.js';
+	import { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte';
+	import Drawer from '$lib/components/Drawer.svelte';
+	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
+	import {
+		cableDirectionAnimationEnabled,
+		edgeSnappingEnabled,
+		networkSchemaDisplayOptionsExpanded,
+		networkSchemaPanelExpanded,
+		networkSchemaViewport
+	} from '$lib/stores/store';
+	import { globalToaster } from '$lib/stores/toaster';
+	import { closeFeature, onFeatureChange, queryFeature } from '$lib/utils/urlState';
+	import { setSchemaState } from '$lib/context/networkSchemaContext';
+	import { routeProjectId } from '$lib/context/project';
+
+	import '@xyflow/svelte/dist/style.css';
+
+	import { onMount, setContext } from 'svelte';
+
+	import CableDiagramEdge from './components/CableDiagramEdge.svelte';
+	import CableDiagramNode from './components/CableDiagramNode.svelte';
+	import MicroductChoiceDialog from './components/MicroductChoiceDialog.svelte';
+	import NetworkSchemaControls from './components/NetworkSchemaControls.svelte';
+	import NetworkSchemaEditModeBadge from './components/NetworkSchemaEditModeBadge.svelte';
+	import NetworkSchemaSearch from './components/NetworkSchemaSearch.svelte';
+	import SchemaDrawerBody from './components/SchemaDrawerBody.svelte';
+
+	let { data }: { data: PageData } = $props();
+
+	// The custom node/edge components declare stricter `data` props than
+	// SvelteFlow's generic EdgeProps/NodeProps, so cast the registry to the
+	// library types (they are valid flow components at runtime).
+	const nodeTypes = { cableDiagramNode: CableDiagramNode } as unknown as NodeTypes;
+	const edgeTypes = { cableDiagramEdge: CableDiagramEdge } as unknown as EdgeTypes;
+	const connectionMode: ConnectionMode = ConnectionMode.Loose;
+	const svelteFlowExtraProps = {
+		snapToGrid: true,
+		snapGrid: [120, 120] as [number, number],
+		connectionRadius: 100,
+		noPanClass: 'nopan',
+		minZoom: 0.01
+	};
+
+	const schemaState = new NetworkSchemaState();
+	const searchManager = new NetworkSchemaSearchManager(schemaState);
+
+	// `data` only changes with the project, and a project change reloads the page (see below).
+	onMount(() => {
+		schemaState.isChildView = false;
+		schemaState.initialize(data as unknown as NetworkSchemaInitData);
+	});
+
+	const attributeOptions = $derived({
+		nodeTypes: data.nodeTypes,
+		cableTypes: data.cableTypes,
+		statuses: data.statuses,
+		networkLevels: data.networkLevels,
+		companies: data.companies,
+		flags: data.flags,
+		excludedNodeTypeIds: data.excludedNodeTypeIds,
+		childViewEnabledNodeTypeIds: data.childViewEnabledNodeTypeIds,
+		parentNodeOptions: data.parentNodeOptions ?? []
+	});
+
+	setContext('attributeOptions', {
+		get nodeTypes() {
+			return attributeOptions.nodeTypes;
+		},
+		get cableTypes() {
+			return attributeOptions.cableTypes;
+		},
+		get statuses() {
+			return attributeOptions.statuses;
+		},
+		get networkLevels() {
+			return attributeOptions.networkLevels;
+		},
+		get companies() {
+			return attributeOptions.companies;
+		},
+		get flags() {
+			return attributeOptions.flags;
+		},
+		get excludedNodeTypeIds() {
+			return attributeOptions.excludedNodeTypeIds;
+		},
+		get childViewEnabledNodeTypeIds() {
+			return attributeOptions.childViewEnabledNodeTypeIds;
+		},
+		get parentNodeOptions() {
+			return attributeOptions.parentNodeOptions;
+		}
+	});
+
+	setSchemaState(schemaState);
+
+	onMount(() => {
+		if (!data.networkSchemaSettingsConfigured && routeProjectId()) {
+			globalToaster.warning({
+				title: m.common_warning(),
+				description: m.message_network_schema_settings_not_configured()
+			});
+		}
+	});
+
+	/**
+	 * Force a full reload when the project changes while staying on this route
+	 * (SvelteKit reuses the component instance for same-route param changes and
+	 * the schema is not designed for partial re-initialization). Cross-route
+	 * arrivals always get a fresh mount, so they must not trigger a reload.
+	 */
+	afterNavigate(({ from, to }) => {
+		if (from?.route.id === to?.route.id && from?.params?.projectId !== to?.params?.projectId) {
+			window.location.reload();
+		}
+	});
+
+	/** Feature kinds this page can show in the drawer. */
+	const DRAWER_KINDS = ['node', 'cable'] as const;
+
+	// `?feature=kind:id` is the drawer: present means open with that element.
+	const feature = $derived(queryFeature(page.url, DRAWER_KINDS));
+	let drawerTitle = $state('');
+
+	/**
+	 * Mirrors the feature named in the URL onto the canvas selection, in one
+	 * direction: the URL is the source, the selection its cache.
+	 */
+	function followUrlFeature() {
+		const current = queryFeature(page.url, DRAWER_KINDS);
+		if (!current) {
+			schemaState.deselectAllNodes();
+			schemaState.deselectAllEdges();
+		} else if (current.kind === 'node') {
+			schemaState.selectNode(current.id);
+		} else {
+			schemaState.selectEdge(current.id);
+		}
+	}
+
+	followUrlFeature();
+	onFeatureChange(followUrlFeature);
+</script>
+
+<svelte:head>
+	<title>{m.nav_network_schema()}</title>
+</svelte:head>
+
+<svelte:window
+	onkeydown={(e) => {
+		schemaState.setShiftFromKeyboard(e);
+		if (e.key === 'Escape' && schemaState.editingCableId) {
+			schemaState.exitEditMode();
+		}
+	}}
+	onkeyup={(e) => schemaState.setShiftFromKeyboard(e)}
+	onblur={() => schemaState.clearShift()}
+/>
+<svelte:document onvisibilitychange={() => schemaState.clearShift()} />
+
+<div class="relative flex gap-4 h-full overflow-hidden">
+	<div class="flex-1 border-2 rounded-lg border-surface-200-800 h-full">
+		<SvelteFlow
+			bind:nodes={schemaState.nodes}
+			bind:edges={schemaState.edges}
+			fitView={schemaState.initialized && schemaState.nodes.length === 0}
+			{nodeTypes}
+			{edgeTypes}
+			{connectionMode}
+			{...svelteFlowExtraProps}
+			nodesDraggable={!schemaState.locked}
+			nodesConnectable={!schemaState.locked}
+			elementsSelectable={!schemaState.locked}
+			elevateEdgesOnSelect={true}
+			onnodedragstop={(e) => schemaState.handleNodeDragStop(e)}
+			onconnect={(conn) => schemaState.handleConnect(conn, routeProjectId())}
+			initialViewport={$networkSchemaViewport}
+			onmoveend={(_event, viewport) => ($networkSchemaViewport = viewport)}
+		>
+			<Background class="z-0" bgColor="var(--color-surface-100-900) " />
+			<NetworkSchemaControls />
+			<NetworkSchemaEditModeBadge />
+			<Panel position="top-left">
+				<div class="card bg-surface-50-950 p-2 rounded-lg shadow-lg w-72">
+					<!-- Collapsible Panel Header -->
+					<button
+						class="flex items-center gap-1.5 w-full hover:bg-surface-100-800 rounded px-1 py-0.5 transition-colors"
+						onclick={() => ($networkSchemaPanelExpanded = !$networkSchemaPanelExpanded)}
+					>
+						{#if $networkSchemaPanelExpanded}
+							<IconChevronDown size={16} class="text-surface-900-100 shrink-0" />
+						{:else}
+							<IconChevronRight size={16} class="text-surface-900-100 shrink-0" />
+						{/if}
+						<h1 class="text-lg font-semibold">{m.common_attributes()}</h1>
+					</button>
+
+					{#if $networkSchemaPanelExpanded}
+						<div class="flex flex-col gap-2 mt-2 pt-2 border-t border-surface-200-800">
+							<label for="cable_name_input" class="text-sm font-medium">
+								<input
+									class="input"
+									type="text"
+									placeholder={m.common_name()}
+									bind:value={schemaState.userCableName}
+								/>
+							</label>
+
+							<GenericCombobox
+								data={schemaState.cableTypes}
+								bind:value={schemaState.selectedCableType}
+								defaultValue={schemaState.selectedCableType}
+								placeholder={m.placeholder_select_cable_type()}
+								onValueChange={(e) => {
+									schemaState.selectedCableType = e.value;
+								}}
+								contentBase="preset-filled-surface-50-950 max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 shadow-lg"
+							/>
+						</div>
+
+						<!-- Collapsible Display Options Section -->
+						<div class="mt-3">
+							<button
+								class="flex items-center gap-1.5 w-full hover:bg-surface-100-800 rounded px-1 py-0.5 transition-colors"
+								onclick={() =>
+									($networkSchemaDisplayOptionsExpanded = !$networkSchemaDisplayOptionsExpanded)}
+							>
+								{#if $networkSchemaDisplayOptionsExpanded}
+									<IconChevronDown size={14} class="text-surface-900-100 shrink-0" />
+								{:else}
+									<IconChevronRight size={14} class="text-surface-900-100 shrink-0" />
+								{/if}
+								<h3 class="text-sm font-medium">{m.settings_display_options()}</h3>
+							</button>
+
+							{#if $networkSchemaDisplayOptionsExpanded}
+								<div class="mt-2 space-y-2">
+									<div
+										class="gap-2 flex items-center justify-between bg-surface-50-900 rounded-lg p-2"
+									>
+										<span class="text-sm">{m.form_snapping()}</span>
+										<Switch
+											name="edge-snapping-switch"
+											checked={$edgeSnappingEnabled}
+											onCheckedChange={() => {
+												$edgeSnappingEnabled = !$edgeSnappingEnabled;
+											}}
+										>
+											<Switch.Control>
+												<Switch.Thumb />
+											</Switch.Control>
+											<Switch.HiddenInput />
+										</Switch>
+									</div>
+									<div
+										class="gap-2 flex items-center justify-between bg-surface-50-900 rounded-lg p-2"
+									>
+										<span class="text-sm">{m.settings_cable_direction_animation()}</span>
+										<Switch
+											name="cable-direction-animation"
+											checked={$cableDirectionAnimationEnabled}
+											onCheckedChange={() => {
+												$cableDirectionAnimationEnabled = !$cableDirectionAnimationEnabled;
+											}}
+										>
+											<Switch.Control>
+												<Switch.Thumb />
+											</Switch.Control>
+											<Switch.HiddenInput />
+										</Switch>
+									</div>
+								</div>
+							{/if}
+						</div>
+
+						<hr class="hr mt-3" />
+						<div class="mt-3">
+							<NetworkSchemaSearch {searchManager} {schemaState} />
+						</div>
+					{/if}
+				</div>
+			</Panel>
+		</SvelteFlow>
+	</div>
+
+	<Drawer open={feature !== null} title={feature ? drawerTitle : ''} onclose={closeFeature}>
+		{#if feature}
+			<SchemaDrawerBody kind={feature.kind} id={feature.id} bind:title={drawerTitle} />
+		{/if}
+	</Drawer>
+</div>
+
+<MicroductChoiceDialog {schemaState} />
+
+<style>
+	:global(path[id^='xy-edge__'].svelte-flow__edge-path) {
+		display: none;
+	}
+</style>

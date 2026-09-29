@@ -105,7 +105,7 @@ export class MapMeasureManager {
 					}
 
 					if (this._measureTooltipElement) {
-						this._measureTooltipElement.innerHTML = output;
+						this._measureTooltipElement.textContent = output;
 					}
 					if (this._measureTooltip && tooltipCoord) {
 						this._measureTooltip.setPosition(tooltipCoord);

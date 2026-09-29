@@ -11,6 +11,7 @@ import {
 	getLinkedTrenchesForCable,
 	getMicropipesByConduits
 } from '$lib/remote/network-schema/micropipes.remote';
+import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
 
 export interface Conduit {
 	uuid: string;
@@ -55,7 +56,7 @@ export class CableMicropipeManager {
 
 	selectedMicropipe: { number: number; color_name: string } | null = $state(null);
 
-	linkedTrenchIds: SvelteSet<string> = $state(new SvelteSet());
+	#linkedTrenchIds: SvelteSet<string> = $state(new SvelteSet());
 
 	step: 1 | 2 = $state(1);
 
@@ -63,10 +64,32 @@ export class CableMicropipeManager {
 
 	saving: boolean = $state(false);
 
+	readonly #onLinkedTrenchesChange: () => void;
+
 	/**
-	 * Initialize with cable data and fetch linked trenches
-	 * @param cableId
-	 * @param cableName
+	 * @param options - Optional callbacks.
+	 * @param options.onLinkedTrenchesChange - Called after every replacement of
+	 *   `linkedTrenchIds`, so a map layer styled from the set can redraw.
+	 */
+	constructor({ onLinkedTrenchesChange = () => {} }: { onLinkedTrenchesChange?: () => void } = {}) {
+		this.#onLinkedTrenchesChange = onLinkedTrenchesChange;
+	}
+
+	/** Trenches the cable already runs through via a linked micropipe. */
+	get linkedTrenchIds(): SvelteSet<string> {
+		return this.#linkedTrenchIds;
+	}
+
+	#setLinkedTrenchIds(ids: Iterable<string> = []): void {
+		this.#linkedTrenchIds = new SvelteSet(ids);
+		this.#onLinkedTrenchesChange();
+	}
+
+	/**
+	 * Starts the panel for a cable: clears every selection and loads the trenches
+	 * the cable already runs through.
+	 * @param cableId - Uuid of the cable whose micropipes are linked.
+	 * @param cableName - Display name of the cable.
 	 */
 	initialize(cableId: string, cableName: string): void {
 		this.cableId = cableId;
@@ -84,7 +107,7 @@ export class CableMicropipeManager {
 		this.selectedConduitIds = new SvelteSet();
 		this.micropipes = [];
 		this.selectedMicropipe = null;
-		this.linkedTrenchIds = new SvelteSet();
+		this.#setLinkedTrenchIds();
 		this.step = 1;
 	}
 
@@ -93,7 +116,7 @@ export class CableMicropipeManager {
 	 */
 	async fetchLinkedTrenches(): Promise<void> {
 		if (!this.cableId) {
-			this.linkedTrenchIds = new SvelteSet();
+			this.#setLinkedTrenchIds();
 			return;
 		}
 
@@ -102,7 +125,7 @@ export class CableMicropipeManager {
 			// mutation returns the stale cached value — refresh() forces a fetch.
 			const trenchesQuery = getLinkedTrenchesForCable(this.cableId);
 			await trenchesQuery.refresh();
-			this.linkedTrenchIds = new SvelteSet(trenchesQuery.current ?? []);
+			this.#setLinkedTrenchIds(trenchesQuery.current ?? []);
 		} catch (error) {
 			console.error('Error fetching linked trenches:', error);
 			void logToBackendClient({
@@ -114,13 +137,13 @@ export class CableMicropipeManager {
 					stack: error instanceof Error ? error.stack : undefined
 				}
 			});
-			this.linkedTrenchIds = new SvelteSet();
+			this.#setLinkedTrenchIds();
 		}
 	}
 
 	/**
-	 * Handle trench selection from map
-	 * @param trenchIds
+	 * Replaces the trench selection from the map and loads the conduits in those trenches.
+	 * @param trenchIds - Uuids of the trenches selected on the map; empty clears the conduits.
 	 */
 	async handleTrenchSelection(trenchIds: string[]): Promise<void> {
 		this.selectedTrenchIds = new SvelteSet(trenchIds);
@@ -159,7 +182,7 @@ export class CableMicropipeManager {
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: (error as Error).message
+				description: remoteErrorMessage(error) ?? m.message_error_fetching_conduit()
 			});
 		} finally {
 			this.loading = false;
@@ -167,8 +190,8 @@ export class CableMicropipeManager {
 	}
 
 	/**
-	 * Toggle conduit selection
-	 * @param conduitId
+	 * Adds the conduit to the selection, or removes it when it is already selected.
+	 * @param conduitId - Uuid of the conduit.
 	 */
 	toggleConduit(conduitId: string): void {
 		const newSet = new SvelteSet(this.selectedConduitIds);
@@ -217,7 +240,7 @@ export class CableMicropipeManager {
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: (error as Error).message
+				description: remoteErrorMessage(error) ?? m.message_error_fetching_micropipes()
 			});
 		} finally {
 			this.loading = false;
@@ -233,8 +256,9 @@ export class CableMicropipeManager {
 	}
 
 	/**
-	 * Select a micropipe, or deselect if already selected
-	 * @param micropipe
+	 * Selects a micropipe, or deselects it when it is already selected. Only a
+	 * micropipe present in every selected conduit can be selected.
+	 * @param micropipe - The micropipe, identified by its number and color.
 	 */
 	selectMicropipe(micropipe: MicropipeSelection): void {
 		if (!micropipe.available_in_all) return;
@@ -289,7 +313,7 @@ export class CableMicropipeManager {
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: (error as Error).message
+				description: remoteErrorMessage(error) ?? m.message_error_creating_connection()
 			});
 		} finally {
 			this.saving = false;
@@ -297,9 +321,10 @@ export class CableMicropipeManager {
 	}
 
 	/**
-	 * Remove linkage for a micropipe and refresh state
-	 * @param micropipeNumber
-	 * @param conduitIds
+	 * Removes the cable's link to a micropipe in the given conduits, then reloads
+	 * the conduits and linked trenches and returns to conduit selection.
+	 * @param micropipeNumber - Number of the micropipe within its conduits.
+	 * @param conduitIds - Uuids of the conduits whose micropipe is unlinked.
 	 */
 	async removeLinkage(micropipeNumber: number, conduitIds: string[]): Promise<void> {
 		this.saving = true;
@@ -330,7 +355,7 @@ export class CableMicropipeManager {
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: (error as Error).message
+				description: remoteErrorMessage(error) ?? m.message_error_connection_deleted()
 			});
 		} finally {
 			this.saving = false;

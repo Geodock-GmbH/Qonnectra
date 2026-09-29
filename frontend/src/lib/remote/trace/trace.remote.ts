@@ -20,7 +20,8 @@ const FiberTraceSchema = v.object({
 	entryId: UuidSchema,
 	includeGeometry: v.boolean(),
 	geometryMode: v.picklist(GEOMETRY_MODES),
-	orientGeometry: v.boolean()
+	orientGeometry: v.boolean(),
+	startNode: v.nullable(UuidSchema)
 });
 
 const SignalAnalysisSchema = v.object({
@@ -36,7 +37,8 @@ const SignalAnalysisSchema = v.object({
  * @param input.includeGeometry - Whether trench and node geometries are returned.
  * @param input.geometryMode - How trench geometry is shaped; ignored without geometry.
  * @param input.orientGeometry - Whether lines are oriented along the fiber; ignored without geometry.
- * @returns The trace trees, cable infrastructure and statistics.
+ * @param input.startNode - End of the path a fiber trace is read from; `null` uses the backend's default.
+ * @returns The trace trees, cable infrastructure and statistics; a fiber trace also names its start.
  * @throws When the entity is unknown or the backend request fails.
  */
 export const getFiberTrace = query(FiberTraceSchema, async (input): Promise<TraceResult> => {

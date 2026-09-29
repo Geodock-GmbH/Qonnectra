@@ -202,7 +202,7 @@
 			error = err instanceof Error ? err.message : String(err);
 			globalToaster.error({
 				title: m.common_error(),
-				description: 'Failed to load files'
+				description: m.message_error_loading_files()
 			});
 		} finally {
 			isLoading = false;
@@ -252,7 +252,7 @@
 
 			globalToaster.success({
 				title: m.title_success(),
-				description: 'File deleted successfully'
+				description: m.message_success_deleting_file()
 			});
 
 			await loadFiles();
@@ -269,7 +269,7 @@
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: 'Failed to delete file'
+				description: m.message_error_deleting_file()
 			});
 		} finally {
 			deletingFile = null;
@@ -299,7 +299,7 @@
 		if (!editValue.trim()) {
 			globalToaster.warning({
 				title: m.common_error(),
-				description: 'File name cannot be empty'
+				description: m.message_error_empty_file_name()
 			});
 			return;
 		}
@@ -324,7 +324,7 @@
 
 			globalToaster.success({
 				title: m.title_success(),
-				description: 'File renamed successfully'
+				description: m.message_success_renaming_file()
 			});
 
 			await loadFiles();
@@ -342,7 +342,7 @@
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: 'Failed to rename file'
+				description: m.message_error_renaming_file()
 			});
 		}
 	}
@@ -403,7 +403,7 @@
 			{:else}
 				<TreeView {collection}>
 					<TreeView.Label>{m.form_uploaded_files()}</TreeView.Label>
-					<div class="max-h-[60vh] overflow-y-auto overflow-x-hidden">
+					<div class="max-h-[60vh] w-full overflow-y-auto overflow-x-hidden">
 						<TreeView.Tree>
 							{#each collection.rootNode.children || [] as node, index (node.id)}
 								{@render treeNode(node, [index])}
@@ -528,16 +528,16 @@
 
 							{#if uploaded}
 								<span
-									class="text-surface-600-400 hidden shrink-0 items-center gap-1 text-xs sm:flex sm:group-hover:hidden"
+									class="text-surface-600-400 hidden shrink-0 items-center gap-1 text-xs sm:flex pointer-fine:group-hover:hidden"
 								>
 									<IconCalendar class="size-3.5 shrink-0" />
 									{uploaded}
 								</span>
 							{/if}
 
-							<!-- Desktop: hover to reveal actions; occupies the metadata slot so nothing shifts -->
+							<!-- Mouse: hover to reveal actions; occupies the metadata slot so nothing shifts -->
 							<div
-								class="hidden shrink-0 items-center gap-1 opacity-0 transition-opacity sm:flex sm:group-hover:opacity-100"
+								class="hidden shrink-0 items-center gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 pointer-fine:flex"
 							>
 								<button
 									type="button"
@@ -579,9 +579,9 @@
 						{/if}
 					</div>
 
-					<!-- Mobile: tap to expand action buttons below -->
+					<!-- Touch: tap to expand action buttons below -->
 					{#if expandedFileId === node.fileData.uuid && editingFile?.uuid !== node.fileData.uuid}
-						<div class="flex items-center gap-2 px-2 pb-2 pl-9 sm:hidden">
+						<div class="flex items-center gap-2 px-2 pb-2 pl-9 pointer-fine:hidden">
 							<button
 								type="button"
 								onclick={(e) => {

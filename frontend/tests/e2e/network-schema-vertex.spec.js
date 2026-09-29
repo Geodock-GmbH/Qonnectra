@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { loginOrSkip } from './helpers/auth.js';
+import { gotoProjectRoute } from './helpers/routes.js';
 
 /**
  * Prepares the canvas so exactly one cable edge is in edit mode with exactly one
@@ -71,10 +72,12 @@ async function seedEditableVertex(page) {
 			pt.y < pr.bottom - pad;
 
 		/** @param {Element} el @param {string} type @param {{clientX:number,clientY:number,altKey?:boolean,shiftKey?:boolean}} o */
-		const fire = (el, type, o) =>
+		const fire = (el, type, o) => {
+			const EventCtor = type.startsWith('pointer') ? PointerEvent : MouseEvent;
 			el.dispatchEvent(
-				new MouseEvent(type, { bubbles: true, cancelable: true, button: 0, view: window, ...o })
+				new EventCtor(type, { bubbles: true, cancelable: true, button: 0, view: window, ...o })
 			);
+		};
 
 		// The graph mounts asynchronously; wait until edges and labels exist.
 		await waitFor(
@@ -131,7 +134,7 @@ async function seedEditableVertex(page) {
 				const c = edge().querySelector('circle.nopan');
 				if (!c) break;
 				const r = c.getBoundingClientRect();
-				fire(c, 'mousedown', {
+				fire(c, 'pointerdown', {
 					clientX: r.left + r.width / 2,
 					clientY: r.top + r.height / 2,
 					shiftKey: true
@@ -161,12 +164,27 @@ async function seedEditableVertex(page) {
 					return { edgeId, x, y };
 				}
 				// Obstructed: remove and try the next parameter.
-				fire(c, 'mousedown', { clientX: x, clientY: y, shiftKey: true });
+				fire(c, 'pointerdown', { clientX: x, clientY: y, shiftKey: true });
 				await waitFor(() => circles() === 0, 600);
 			}
 		}
 		return null;
 	});
+}
+
+/**
+ * Reads the flow-space position of an edge's single vertex handle. Unlike its
+ * screen position, this does not change when the canvas pans.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} edgeId
+ * @returns {Promise<{ cx: number, cy: number } | null>}
+ */
+async function vertexFlowPosition(page, edgeId) {
+	return page.evaluate((/** @type {string} */ id) => {
+		const c = document.querySelector(`.svelte-flow__edge[data-id="${id}"] circle.nopan`);
+		if (!c) return null;
+		return { cx: Number(c.getAttribute('cx')), cy: Number(c.getAttribute('cy')) };
+	}, edgeId);
 }
 
 /**
@@ -185,7 +203,7 @@ async function vertexCount(page, edgeId) {
 test.describe('Network schema cable vertex handles', () => {
 	test.beforeEach(async ({ page }) => {
 		await loginOrSkip(page, test.skip);
-		await page.goto('/network-schema');
+		await gotoProjectRoute(page, 'network-schema');
 		await page.waitForLoadState('networkidle');
 		await expect(page.locator('.svelte-flow').first()).toBeVisible({ timeout: 15000 });
 	});
@@ -199,10 +217,10 @@ test.describe('Network schema cable vertex handles', () => {
 
 		// The regression this guards: with the canvas selectable in edit mode,
 		// holding Shift arms SvelteFlow's box-selection, whose Pane pointerdown
-		// capture preventDefaults the pointerdown and thereby suppresses the compat
-		// `mousedown` that the vertex delete is wired to. Only REAL hardware input
-		// reproduces that chain — `fireEvent`/`dispatchEvent` deliver mousedown
-		// unconditionally and would pass even while the feature is broken. The fix
+		// capture stops the pointerdown that the vertex delete is wired to from
+		// propagating. Only REAL hardware input reproduces that chain — the Pane
+		// arms on a real Shift keydown, while a dispatched event only carries
+		// `shiftKey` on itself and would pass even while the feature is broken. The fix
 		// is the `nokey` class on the vertex, which opts it out of that capture.
 		await page.keyboard.down('Shift');
 		await page.mouse.move(x, y);
@@ -213,8 +231,64 @@ test.describe('Network schema cable vertex handles', () => {
 		await expect
 			.poll(() => vertexCount(page, edgeId), {
 				message:
-					'Shift+click did not delete the vertex — SvelteFlow selection likely swallowed its mousedown'
+					'Shift+click did not delete the vertex — SvelteFlow selection likely swallowed its pointerdown'
 			})
 			.toBe(0);
+	});
+
+	test.describe('on a touch device', () => {
+		test.skip(({ browserName }) => browserName !== 'chromium', 'Touch emulation needs Chromium');
+		test.use({ hasTouch: true });
+
+		test('a touch drag moves a cable vertex', async ({ page }) => {
+			const vertex = await seedEditableVertex(page);
+			test.skip(
+				vertex === null,
+				'No editable, unobstructed cable vertex available in this dataset'
+			);
+			const { edgeId, x, y } = /** @type {{edgeId:string,x:number,y:number}} */ (vertex);
+
+			const before = await vertexFlowPosition(page, edgeId);
+			expect(before).not.toBeNull();
+
+			// A touch drag emits pointer events but no compat mouse events, so a
+			// vertex wired to mousedown ignores it and the gesture pans the canvas
+			// instead. Real touch input via CDP; a canvas pan would move the circle
+			// on screen too, so the assertion reads its flow-space cx/cy.
+			const cdp = await page.context().newCDPSession(page);
+			const touch = (
+				/** @type {'touchStart' | 'touchMove' | 'touchEnd'} */ type,
+				/** @type {number} */ px,
+				/** @type {number} */ py
+			) =>
+				cdp.send('Input.dispatchTouchEvent', {
+					type,
+					touchPoints: type === 'touchEnd' ? [] : [{ x: px, y: py }]
+				});
+			await touch('touchStart', x, y);
+			for (let step = 1; step <= 8; step++) {
+				await touch('touchMove', x + step * 10, y + step * 8);
+			}
+			await touch('touchEnd', x + 80, y + 64);
+
+			await expect
+				.poll(
+					async () => {
+						const after = await vertexFlowPosition(page, edgeId);
+						return after !== null && (after.cx !== before?.cx || after.cy !== before?.cy);
+					},
+					{ message: 'Touch drag did not move the vertex in flow space' }
+				)
+				.toBe(true);
+
+			// Remove the vertex again so the dataset stays as it was.
+			await page.evaluate((/** @type {string} */ id) => {
+				const c = document.querySelector(`.svelte-flow__edge[data-id="${id}"] circle.nopan`);
+				c?.dispatchEvent(
+					new PointerEvent('pointerdown', { bubbles: true, cancelable: true, shiftKey: true })
+				);
+			}, edgeId);
+			await expect.poll(() => vertexCount(page, edgeId)).toBe(0);
+		});
 	});
 });

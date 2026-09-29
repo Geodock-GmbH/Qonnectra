@@ -1,9 +1,9 @@
 import type OlMap from 'ol/Map.js';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { globalMapView, selectedProject } from '$lib/stores/store';
+import { globalMapView } from '$lib/stores/store';
 
-import { syncProjectScope, syncSelectedProject } from './projectScopeSync';
+import { syncGlobalView, syncMapProject } from './projectScopeSync';
 
 function createMapState(olMap: OlMap | null) {
 	return {
@@ -16,40 +16,48 @@ function createMapState(olMap: OlMap | null) {
 
 const readyMap = {} as OlMap;
 
-let stop: () => void = () => {};
-
-beforeEach(() => {
-	selectedProject.set('project-1');
-	globalMapView.set(false);
-});
-
-afterEach(() => stop());
-
-describe('syncProjectScope', () => {
-	test('should rebuild the tile sources when another project is selected', () => {
+describe('syncMapProject', () => {
+	test('should rebuild the tile sources for the project the URL now names', () => {
 		const mapState = createMapState(readyMap);
-		const onProjectChange = vi.fn();
-		stop = syncProjectScope(mapState, onProjectChange);
+		const onSwitched = vi.fn();
 
-		selectedProject.set('project-2');
+		syncMapProject(mapState, 'project-2', onSwitched);
 
 		expect(mapState.reinitializeForProject).toHaveBeenCalledExactlyOnceWith('project-2');
-		expect(onProjectChange).toHaveBeenCalledOnce();
+		expect(onSwitched).toHaveBeenCalledOnce();
 	});
 
-	test('should leave the map alone while the project is unchanged', () => {
+	test('should leave a map alone that already shows the project', () => {
 		const mapState = createMapState(readyMap);
-		const onProjectChange = vi.fn();
+		const onSwitched = vi.fn();
 
-		stop = syncProjectScope(mapState, onProjectChange);
+		syncMapProject(mapState, 'project-1', onSwitched);
 
 		expect(mapState.reinitializeForProject).not.toHaveBeenCalled();
-		expect(onProjectChange).not.toHaveBeenCalled();
+		expect(onSwitched).not.toHaveBeenCalled();
 	});
+
+	test('should not touch a map that is not ready yet', () => {
+		const mapState = createMapState(null);
+		const onSwitched = vi.fn();
+
+		syncMapProject(mapState, 'project-2', onSwitched);
+
+		expect(mapState.reinitializeForProject).not.toHaveBeenCalled();
+		expect(onSwitched).not.toHaveBeenCalled();
+	});
+});
+
+describe('syncGlobalView', () => {
+	let stop: () => void = () => {};
+
+	beforeEach(() => globalMapView.set(false));
+
+	afterEach(() => stop());
 
 	test('should follow the global view toggle', () => {
 		const mapState = createMapState(readyMap);
-		stop = syncProjectScope(mapState);
+		stop = syncGlobalView(mapState);
 
 		globalMapView.set(true);
 
@@ -58,52 +66,19 @@ describe('syncProjectScope', () => {
 
 	test('should not touch a map that is not ready yet', () => {
 		const mapState = createMapState(null);
-		stop = syncProjectScope(mapState);
-
-		selectedProject.set('project-2');
-		globalMapView.set(true);
-
-		expect(mapState.reinitializeForProject).not.toHaveBeenCalled();
-		expect(mapState.reinitializeForGlobalView).not.toHaveBeenCalled();
-	});
-
-	test('should stop following the stores once stopped', () => {
-		const mapState = createMapState(readyMap);
-		syncProjectScope(mapState)();
-
-		selectedProject.set('project-2');
-
-		expect(mapState.reinitializeForProject).not.toHaveBeenCalled();
-	});
-});
-
-describe('syncSelectedProject', () => {
-	test('should rebuild the tile sources when another project is selected', () => {
-		const mapState = createMapState(readyMap);
-		const onProjectChange = vi.fn();
-		stop = syncSelectedProject(mapState, onProjectChange);
-
-		selectedProject.set('project-2');
-
-		expect(mapState.reinitializeForProject).toHaveBeenCalledExactlyOnceWith('project-2');
-		expect(onProjectChange).toHaveBeenCalledOnce();
-	});
-
-	test('should ignore the global view toggle', () => {
-		const mapState = createMapState(readyMap);
-		stop = syncSelectedProject(mapState);
+		stop = syncGlobalView(mapState);
 
 		globalMapView.set(true);
 
 		expect(mapState.reinitializeForGlobalView).not.toHaveBeenCalled();
 	});
 
-	test('should not touch a map that is not ready yet', () => {
-		const mapState = createMapState(null);
-		stop = syncSelectedProject(mapState);
+	test('should stop following the toggle once stopped', () => {
+		const mapState = createMapState(readyMap);
+		syncGlobalView(mapState)();
 
-		selectedProject.set('project-2');
+		globalMapView.set(true);
 
-		expect(mapState.reinitializeForProject).not.toHaveBeenCalled();
+		expect(mapState.reinitializeForGlobalView).not.toHaveBeenCalledWith(true);
 	});
 });

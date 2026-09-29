@@ -264,3 +264,52 @@ describe('CableFiberSidebar (mobile)', () => {
 		expect(dragDropManager.selectMobileFiber).not.toHaveBeenCalled();
 	});
 });
+
+describe('CableFiberSidebar (refresh on diagram changes)', () => {
+	test('should reload the cables when a cable at this node was created or deleted', async () => {
+		render(Fixture, { nodeUuid: 'node-1' });
+		await screen.findByText('K-Nord');
+		getCablesAtNode.mockClear();
+		getFiberUsageInNode.mockClear();
+
+		window.dispatchEvent(
+			new CustomEvent('cableConnectionChanged', { detail: { nodeIds: ['node-1', 'node-9'] } })
+		);
+
+		await vi.waitFor(() => expect(getCablesAtNode).toHaveBeenCalledWith('node-1'));
+		expect(getFiberUsageInNode).toHaveBeenCalledWith('node-1');
+	});
+
+	test('should ignore cable changes at other nodes', async () => {
+		render(Fixture, { nodeUuid: 'node-1' });
+		await screen.findByText('K-Nord');
+		getCablesAtNode.mockClear();
+
+		window.dispatchEvent(
+			new CustomEvent('cableConnectionChanged', { detail: { nodeIds: ['node-2', 'node-9'] } })
+		);
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		expect(getCablesAtNode).not.toHaveBeenCalled();
+	});
+
+	test('should reload the fiber usage after a fiber splice changed', async () => {
+		render(Fixture, { nodeUuid: 'node-1' });
+		await screen.findByText('K-Nord');
+		getFiberUsageInNode.mockClear();
+
+		window.dispatchEvent(new CustomEvent('fiberSpliceChanged'));
+
+		await vi.waitFor(() => expect(getFiberUsageInNode).toHaveBeenCalledWith('node-1'));
+	});
+
+	test('should reload the residential unit usage after a unit splice changed', async () => {
+		render(Fixture, { nodeUuid: 'node-1' });
+		await screen.findByText('K-Nord');
+		getUsedResidentialUnits.mockClear();
+
+		window.dispatchEvent(new CustomEvent('residentialUnitSpliceChanged'));
+
+		await vi.waitFor(() => expect(getUsedResidentialUnits).toHaveBeenCalledWith('node-1'));
+	});
+});

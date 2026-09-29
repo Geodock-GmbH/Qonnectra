@@ -4,6 +4,7 @@ import type {
 	SlotConfiguration,
 	SlotRow
 } from './NodeStructureContext.svelte';
+import { SvelteMap } from 'svelte/reactivity';
 
 import { m } from '$lib/paraglide/messages';
 
@@ -67,7 +68,7 @@ export class NodeStructureManager {
 
 	dividers: SlotDivider[] = $state([]);
 
-	clipNumbers: Map<number, string> = $state(new Map());
+	readonly clipNumbers = new SvelteMap<number, string>();
 
 	loading: boolean = $state(true);
 
@@ -118,9 +119,10 @@ export class NodeStructureManager {
 	}
 
 	/**
-	 * Compute which slots are occupied
+	 * Occupying structure UUID per slot number
 	 */
-	get occupiedSlots(): Map<number, string> {
+	readonly occupiedSlots: ReadonlyMap<number, string> = $derived.by(() => {
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- derived snapshot, never mutated
 		const occupied = new Map<number, string>();
 		for (const s of this.structures) {
 			for (let i = s.slot_start; i <= s.slot_end; i++) {
@@ -128,14 +130,15 @@ export class NodeStructureManager {
 			}
 		}
 		return occupied;
-	}
+	});
 
 	/**
-	 * Compute divider positions as a Set for fast lookup
+	 * Slot numbers that have a divider after them
 	 */
-	get dividerAfterSlots(): Set<number> {
-		return new Set(this.dividers.map((d) => d.after_slot));
-	}
+	readonly dividerAfterSlots: ReadonlySet<number> = $derived(
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- derived snapshot, never mutated
+		new Set(this.dividers.map((d) => d.after_slot))
+	);
 
 	/**
 	 * Update the shared slot state reference
@@ -155,7 +158,7 @@ export class NodeStructureManager {
 		this.selectedSlotConfigUuid = null;
 		this.structures = [];
 		this.dividers = [];
-		this.clipNumbers = new Map();
+		this.clipNumbers.clear();
 		this.loading = true;
 		this.loadingStructures = false;
 	}
@@ -247,7 +250,7 @@ export class NodeStructureManager {
 
 			if (this.#fetchVersion !== requestVersion) return;
 
-			this.structures = structures as unknown as NodeStructure[];
+			this.structures = structures;
 		} catch (err: unknown) {
 			if (this.#fetchVersion !== requestVersion) return;
 			console.error('Error fetching structures:', err);
@@ -312,7 +315,7 @@ export class NodeStructureManager {
 	 */
 	async fetchClipNumbers(): Promise<void> {
 		if (!this.selectedSlotConfigUuid) {
-			this.clipNumbers = new Map();
+			this.clipNumbers.clear();
 			return;
 		}
 
@@ -325,11 +328,10 @@ export class NodeStructureManager {
 
 			if (this.#fetchVersion !== requestVersion) return;
 
-			const newMap = new Map<number, string>();
+			this.clipNumbers.clear();
 			for (const clip of clips) {
-				newMap.set(clip.slot_number, clip.clip_number);
+				this.clipNumbers.set(clip.slot_number, clip.clip_number);
 			}
-			this.clipNumbers = newMap;
 		} catch (err: unknown) {
 			if (this.#fetchVersion !== requestVersion) return;
 			console.error('Error fetching clip numbers:', err);
@@ -342,7 +344,7 @@ export class NodeStructureManager {
 					stack: err instanceof Error ? err.stack : undefined
 				}
 			});
-			this.clipNumbers = new Map();
+			this.clipNumbers.clear();
 		}
 	}
 
@@ -561,7 +563,7 @@ export class NodeStructureManager {
 				description: m.message_success_deleting_structure()
 			});
 			return true;
-		} catch (err: unknown) {
+		} catch {
 			this.structures = previousStructures;
 			globalToaster.error({
 				title: m.common_error(),
@@ -643,9 +645,8 @@ export class NodeStructureManager {
 		const newClipNumber = clipNumber.trim();
 		if (!newClipNumber) return;
 
-		const previousClipNumbers = new Map(this.clipNumbers);
+		const previousClipNumber = this.clipNumbers.get(slotNumber);
 		this.clipNumbers.set(slotNumber, newClipNumber);
-		this.clipNumbers = new Map(this.clipNumbers);
 
 		try {
 			await upsertSlotClipNumber({
@@ -664,7 +665,11 @@ export class NodeStructureManager {
 					stack: err instanceof Error ? err.stack : undefined
 				}
 			});
-			this.clipNumbers = previousClipNumbers;
+			if (previousClipNumber === undefined) {
+				this.clipNumbers.delete(slotNumber);
+			} else {
+				this.clipNumbers.set(slotNumber, previousClipNumber);
+			}
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_saving_clip_number()
@@ -725,7 +730,7 @@ export class NodeStructureManager {
 		this.selectedSlotConfigUuid = null;
 		this.structures = [];
 		this.dividers = [];
-		this.clipNumbers = new Map();
+		this.clipNumbers.clear();
 		this.loading = false;
 		this.loadingStructures = false;
 		this.#sharedSlotState = null;

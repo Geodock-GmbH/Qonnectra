@@ -16,6 +16,7 @@ import {
 } from '$lib/remote/network-schema/micropipes.remote';
 import { getNodeDetails, saveNodeGeometry } from '$lib/remote/network-schema/nodes.remote';
 import { saveCableGeometry as saveCableGeometryCommand } from '$lib/remote/network-schema/paths.remote';
+import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
 
 export interface NodeProperties {
 	uuid: string;
@@ -223,8 +224,13 @@ export class NetworkSchemaState {
 	 * The drag end saves from this buffer instead of `edge.data.cable.diagram_path`,
 	 * which may not have round-tripped through state yet when the drag finishes.
 	 */
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity -- deliberately non-reactive drag buffer
 	#dragWaypoints: Map<string, Waypoint[]> = new Map();
 
+	/**
+	 * Creates the schema state, initialized right away when page data is given.
+	 * @param initialData - The page data to initialize from, or null to call `initialize` later.
+	 */
 	constructor(initialData: NetworkSchemaInitData | null = null) {
 		if (initialData) {
 			this.initialize(initialData);
@@ -512,7 +518,7 @@ export class NetworkSchemaState {
 
 			globalToaster.error({
 				title: m.common_error(),
-				description: `${(error as Error).message}`
+				description: remoteErrorMessage(error) ?? m.message_error_updating_node()
 			});
 		}
 	}
@@ -1208,6 +1214,31 @@ export class NetworkSchemaState {
 	formatMicroductLabel(microduct: MicroductCandidate | null): string {
 		if (!microduct) return '';
 		return `${microduct.conduit_name} #${microduct.number} ${microduct.color}`;
+	}
+
+	/**
+	 * Reload a cable after a change to it: its record, which updates every
+	 * drawer card awaiting it, then its edge's micropipe coloring.
+	 * @param uuid - Cable UUID
+	 */
+	async refreshCable(uuid: string): Promise<void> {
+		try {
+			await this.loadCableDetails(uuid);
+		} catch (error: unknown) {
+			console.error('Error refreshing cable data:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error refreshing cable data',
+				extraData: {
+					from: 'NetworkSchemaState.refreshCable',
+					cableId: uuid,
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
+			return;
+		}
+		await this.refreshEdgeMicropipes(uuid);
 	}
 
 	/**

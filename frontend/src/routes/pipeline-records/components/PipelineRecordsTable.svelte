@@ -2,18 +2,12 @@
 	import type { PipelineRecordRow } from '$lib/remote/pipeline-records/record-data';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
-	import { Pagination } from '@skeletonlabs/skeleton-svelte';
-	import {
-		IconArrowLeft,
-		IconArrowRight,
-		IconChevronDown,
-		IconChevronUp,
-		IconSelector
-	} from '@tabler/icons-svelte';
+	import { IconChevronDown, IconChevronUp, IconSelector } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
+
+	import ListPagination from '$lib/components/ListPagination.svelte';
 
 	interface PaginationInfo {
 		totalCount: number;
@@ -107,12 +101,6 @@
 
 	function updateFilter(columnKey: ColumnKey, value: string) {
 		filters[columnKey] = value;
-	}
-
-	function goToPage(newPage: number) {
-		const query = new URLSearchParams(page.url.searchParams);
-		query.set('page', String(newPage));
-		goto(resolve(`/pipeline-records?${query}`));
 	}
 
 	/**
@@ -300,39 +288,11 @@
 		</div>
 	</div>
 
-	<!-- Fixed pagination at bottom -->
 	<div class="shrink-0 pt-4">
-		<div class="flex items-center justify-between gap-4">
-			<span class="text-sm text-surface-600-400" data-testid="pagination-count">
-				{pagination.totalCount}
-				{m.common_results({ count: pagination.totalCount })}
-			</span>
-			<Pagination
-				count={pagination.totalCount}
-				pageSize={pagination.pageSize}
-				page={pagination.page}
-				onPageChange={(e) => goToPage(e.page)}
-			>
-				<Pagination.PrevTrigger>
-					<IconArrowLeft class="size-4" />
-				</Pagination.PrevTrigger>
-				<Pagination.Context>
-					{#snippet children(paginationCtx)}
-						{#each paginationCtx().pages as pageItem, index (pageItem)}
-							{#if pageItem.type === 'page'}
-								<Pagination.Item {...pageItem}>
-									{pageItem.value}
-								</Pagination.Item>
-							{:else}
-								<Pagination.Ellipsis {index}>…</Pagination.Ellipsis>
-							{/if}
-						{/each}
-					{/snippet}
-				</Pagination.Context>
-				<Pagination.NextTrigger>
-					<IconArrowRight class="size-4" />
-				</Pagination.NextTrigger>
-			</Pagination>
-		</div>
+		<ListPagination
+			totalCount={pagination.totalCount}
+			pageSize={pagination.pageSize}
+			page={pagination.page}
+		/>
 	</div>
 </div>

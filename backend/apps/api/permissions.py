@@ -4,8 +4,51 @@ Provide DRF permission classes that check :model:`api.ModelPermission`
 and helper functions for retrieving effective user permissions.
 """
 
+from collections import defaultdict
+
 from django.core.cache import cache
 from rest_framework.permissions import BasePermission
+
+
+LEVEL_ORDER = ["none", "view", "edit", "full"]
+
+WILDCARD = "*"
+
+
+def resolve_model_levels(user):
+    """Return the effective access level per model name for a user's roles.
+
+    Within one role a model's own :model:`api.ModelPermission` row overrides
+    that role's ``*`` row; across roles the highest level wins.
+
+    Args:
+        user: Django User instance.
+
+    Returns:
+        dict[str, str]: A level for every model named by any of the user's
+            roles, plus a ``*`` entry that applies to every other model.
+    """
+    from .models import ModelPermission
+
+    per_role = defaultdict(dict)
+    rows = ModelPermission.objects.filter(group__user=user).values_list(
+        "group_id", "model_name", "access_level"
+    )
+    for group_id, model_name, access_level in rows:
+        per_role[group_id][model_name] = access_level
+
+    names = {name for levels in per_role.values() for name in levels} | {WILDCARD}
+    return {
+        name: max(
+            (
+                levels.get(name, levels.get(WILDCARD, "none"))
+                for levels in per_role.values()
+            ),
+            key=LEVEL_ORDER.index,
+            default="none",
+        )
+        for name in names
+    }
 
 
 class RoleBasedPermission(BasePermission):
@@ -16,6 +59,11 @@ class RoleBasedPermission(BasePermission):
     - view: GET, HEAD, OPTIONS
     - edit: GET, HEAD, OPTIONS, POST, PUT, PATCH
     - full: All methods including DELETE
+
+    The model comes from the view's queryset, or from ``permission_model`` on
+    views without one. A view can require a different level for an action whose
+    HTTP method misstates what it does through ``action_access_levels``, e.g. a
+    POST that deletes (``full``) or a POST that only reads (``view``).
 
     Superusers bypass all checks.
     Users with no group get 'none' access by default.
@@ -29,14 +77,15 @@ class RoleBasedPermission(BasePermission):
     }
 
     def has_permission(self, request, view) -> bool:  # pyright: ignore[reportIncompatibleMethodOverride]
-        """Check if the request method is allowed for the user's access level.
+        """Check if the request is allowed for the user's access level.
 
         Args:
             request: DRF request object.
             view: The DRF view being accessed.
 
         Returns:
-            bool: True if the user has permission for the requested method.
+            bool: True if the user has permission for the requested method,
+                or for the level the view requires for this action.
         """
         user = request.user
 
@@ -51,19 +100,26 @@ class RoleBasedPermission(BasePermission):
             return True
 
         access_level = self._get_access_level(user, model_name)
-        allowed_methods = self.ACCESS_LEVELS.get(access_level, [])
+        required = getattr(view, "action_access_levels", {}).get(
+            getattr(view, "action", None)
+        )
+        if required:
+            return LEVEL_ORDER.index(access_level) >= LEVEL_ORDER.index(required)
 
-        return request.method in allowed_methods
+        return request.method in self.ACCESS_LEVELS.get(access_level, [])
 
     def _get_model_name(self, view):
         """Extract lowercase model name from a ViewSet or view.
 
         Args:
-            view: DRF view, typically a ModelViewSet with a queryset.
+            view: DRF view: a ModelViewSet with a queryset, or a view that
+                names its model in ``permission_model``.
 
         Returns:
             str | None: Lowercase model name, or None if not determinable.
         """
+        if getattr(view, "permission_model", None):
+            return view.permission_model
         if hasattr(view, "queryset") and view.queryset is not None:
             return view.queryset.model._meta.model_name
         if hasattr(view, "get_queryset"):
@@ -76,7 +132,7 @@ class RoleBasedPermission(BasePermission):
         return None
 
     def _get_access_level(self, user, model_name):
-        """Return the highest access level for a user on a model, with caching.
+        """Return the effective access level for a user on a model, with caching.
 
         Args:
             user: Django User instance.
@@ -86,51 +142,22 @@ class RoleBasedPermission(BasePermission):
             str: Access level string ('none', 'view', 'edit', or 'full').
         """
         cache_key = f"user_permissions:{user.pk}"
-        permissions = cache.get(cache_key)
+        levels = cache.get(cache_key)
 
-        if permissions is None:
-            permissions = self._load_permissions(user)
-            cache.set(cache_key, permissions, timeout=300)
+        if levels is None:
+            levels = resolve_model_levels(user)
+            cache.set(cache_key, levels, timeout=300)
 
-        return permissions.get(model_name, "none")
-
-    def _load_permissions(self, user):
-        """Load all :model:`api.ModelPermission` entries for a user's groups.
-
-        When a user belongs to multiple groups, the highest access level
-        wins for each model.
-
-        Args:
-            user: Django User instance.
-
-        Returns:
-            dict[str, str]: Mapping of model name to highest access level.
-        """
-        from .models import ModelPermission
-
-        group_ids = list(user.groups.values_list("id", flat=True))
-        if not group_ids:
-            return {}
-
-        perms = ModelPermission.objects.filter(group_id__in=group_ids)
-
-        result = {}
-        level_order = ["none", "view", "edit", "full"]
-
-        for perm in perms:
-            current = result.get(perm.model_name, "none")
-            if level_order.index(perm.access_level) > level_order.index(current):
-                result[perm.model_name] = perm.access_level
-
-        return result
+        return levels.get(model_name, levels.get(WILDCARD, "none"))
 
 
 def get_user_permissions(user):
     """Return effective permissions for a user across models and routes.
 
     Aggregate :model:`api.ModelPermission` and :model:`api.RoutePermission`
-    entries from all groups the user belongs to. Highest access level wins
-    for models; True wins over False for routes.
+    entries from all groups the user belongs to (see
+    ``resolve_model_levels`` for models; True wins over False for routes).
+    A user without any group may open no page at all.
 
     Args:
         user: Django User instance.
@@ -139,12 +166,12 @@ def get_user_permissions(user):
         dict: Contains 'models' (dict[str, str]), 'routes' (dict[str, bool]),
             and 'is_superuser' (bool). Superusers get wildcard full access.
     """
-    from .models import ModelPermission, RoutePermission
+    from .models import RoutePermission
 
     if user.is_superuser:
         return {
-            "models": {"*": "full"},
-            "routes": {"*": True},
+            "models": {WILDCARD: "full"},
+            "routes": {WILDCARD: True},
             "is_superuser": True,
         }
 
@@ -152,18 +179,9 @@ def get_user_permissions(user):
     if not group_ids:
         return {
             "models": {},
-            "routes": {},
+            "routes": {"/*": False},
             "is_superuser": False,
         }
-
-    model_perms = ModelPermission.objects.filter(group_id__in=group_ids)
-    models = {}
-    level_order = ["none", "view", "edit", "full"]
-
-    for perm in model_perms:
-        current = models.get(perm.model_name, "none")
-        if level_order.index(perm.access_level) > level_order.index(current):
-            models[perm.model_name] = perm.access_level
 
     route_perms = RoutePermission.objects.filter(group_id__in=group_ids)
     routes = {}
@@ -175,7 +193,7 @@ def get_user_permissions(user):
             routes[perm.route_pattern] = False
 
     return {
-        "models": models,
+        "models": resolve_model_levels(user),
         "routes": routes,
         "is_superuser": False,
     }

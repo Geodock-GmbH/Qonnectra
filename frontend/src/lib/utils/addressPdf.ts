@@ -113,6 +113,13 @@ const PAGE_WIDTH = 210;
 const PAGE_HEIGHT = 297;
 const MARGIN = 20;
 const CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN;
+const MAP_WIDTH = 78;
+const MAP_HEIGHT = MAP_WIDTH * 0.85;
+const MAP_PADDING = 2;
+
+/** Height-to-width ratio of the map image inside its frame; captures are cropped to it. */
+export const MAP_IMAGE_ASPECT_RATIO =
+	(MAP_HEIGHT - 2 * MAP_PADDING) / (MAP_WIDTH - 2 * MAP_PADDING);
 
 const COLORS: Record<string, [number, number, number]> = {
 	slate900: [15, 23, 42],
@@ -201,7 +208,7 @@ function buildAddressPage(
 	y += 8;
 
 	const hasMap = !!mapImage;
-	const mapColWidth = hasMap ? 78 : 0;
+	const mapColWidth = hasMap ? MAP_WIDTH : 0;
 	const dataColWidth = hasMap ? CONTENT_WIDTH - mapColWidth - 12 : CONTENT_WIDTH;
 	const mapX = hasMap ? MARGIN + dataColWidth + 12 : 0;
 
@@ -561,8 +568,7 @@ function drawMapSection(
 		wmsAttributions?: string[];
 	}
 ): number {
-	const aspectRatio = 0.85;
-	const height = width * aspectRatio;
+	const height = MAP_HEIGHT;
 
 	doc.setFillColor(...COLORS.slate200);
 	doc.roundedRect(x + 1.5, y + 1.5, width, height, 2, 2, 'F');
@@ -570,7 +576,14 @@ function drawMapSection(
 	doc.setFillColor(...COLORS.white);
 	doc.roundedRect(x, y, width, height, 2, 2, 'F');
 
-	doc.addImage(image, 'PNG', x + 2, y + 2, width - 4, height - 4);
+	doc.addImage(
+		image,
+		'PNG',
+		x + MAP_PADDING,
+		y + MAP_PADDING,
+		width - 2 * MAP_PADDING,
+		height - 2 * MAP_PADDING
+	);
 
 	doc.setDrawColor(...COLORS.emerald500);
 	doc.setLineWidth(0.8);
@@ -1016,7 +1029,6 @@ function addPageNumbers(doc: jsPDF) {
 		doc.setTextColor(...COLORS.emerald600);
 		doc.text(m.Qonnectra(), MARGIN, PAGE_HEIGHT - 8);
 
-		const qWidth = doc.getTextWidth(m.Qonnectra());
 		doc.setFont('helvetica', 'normal');
 		doc.setTextColor(...COLORS.slate400);
 

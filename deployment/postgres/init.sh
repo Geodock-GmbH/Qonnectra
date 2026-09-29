@@ -25,7 +25,6 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
 EOSQL
 
 # Create QGIS user if credentials are provided
-# This user has read-write access to tables but cannot modify schema or extensions
 if [ -n "$QGIS_DB_USER" ] && [ -n "$QGIS_DB_PASSWORD" ]; then
     echo "Creating QGIS database user: $QGIS_DB_USER"
     psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
@@ -47,22 +46,6 @@ if [ -n "$QGIS_DB_USER" ] && [ -n "$QGIS_DB_PASSWORD" ]; then
 
         -- Grant usage on public schema
         GRANT USAGE ON SCHEMA public TO "$QGIS_DB_USER";
-
-        -- Grant read-write access to all existing tables
-        GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO "$QGIS_DB_USER";
-
-        -- Grant usage on sequences (needed for INSERT with auto-increment)
-        GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO "$QGIS_DB_USER";
-
-        -- Set default privileges for future tables created by the main user
-        ALTER DEFAULT PRIVILEGES FOR ROLE "$POSTGRES_USER" IN SCHEMA public
-            GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO "$QGIS_DB_USER";
-        ALTER DEFAULT PRIVILEGES FOR ROLE "$POSTGRES_USER" IN SCHEMA public
-            GRANT USAGE, SELECT ON SEQUENCES TO "$QGIS_DB_USER";
-        
-        -- Revoke access on model and route permissions
-        REVOKE ALL ON model_permission FROM "$QGIS_DB_USER";
-        REVOKE ALL ON route_permission FROM "$QGIS_DB_USER";
 EOSQL
     echo "QGIS user created successfully"
 else

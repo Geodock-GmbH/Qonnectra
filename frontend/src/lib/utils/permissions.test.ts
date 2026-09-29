@@ -33,6 +33,17 @@ describe('canAccessModel', () => {
 		const permissions: Permissions = { is_superuser: false, models: {}, routes: {} };
 		expect(canAccessModel(permissions, 'trench', 'view')).toBe(false);
 	});
+
+	it('falls back to the wildcard level for models without their own entry', () => {
+		const permissions: Permissions = {
+			is_superuser: false,
+			models: { '*': 'view', cable: 'none' },
+			routes: {}
+		};
+		expect(canAccessModel(permissions, 'trench', 'view')).toBe(true);
+		expect(canAccessModel(permissions, 'trench', 'edit')).toBe(false);
+		expect(canAccessModel(permissions, 'cable', 'view')).toBe(false);
+	});
 });
 
 describe('canView', () => {
@@ -96,12 +107,60 @@ describe('canDelete', () => {
 });
 
 describe('canAccessRoute', () => {
-	it('returns false for undefined permissions', () => {
-		expect(canAccessRoute(undefined, '/admin/logs')).toBe(false);
+	it('allows everything when the permissions could not be loaded', () => {
+		expect(canAccessRoute(undefined, '/admin/logs')).toBe(true);
+		expect(canAccessRoute(null, '/admin/logs')).toBe(true);
+	});
+
+	it('lets an exact row cover its sub-routes', () => {
+		const permissions: Permissions = {
+			is_superuser: false,
+			models: {},
+			routes: { '/valuation': false }
+		};
+		expect(canAccessRoute(permissions, '/valuation')).toBe(false);
+		expect(canAccessRoute(permissions, '/valuation/areas')).toBe(false);
+		expect(canAccessRoute(permissions, '/valuations')).toBe(true);
 	});
 
 	it('returns true for superuser', () => {
 		const permissions: Permissions = { is_superuser: true, models: {}, routes: {} };
+		expect(canAccessRoute(permissions, '/admin/logs')).toBe(true);
+	});
+
+	it('lets the most specific pattern win, whatever the row order', () => {
+		const denyFirst: Permissions = {
+			is_superuser: false,
+			models: {},
+			routes: { '/*': false, '/address': true }
+		};
+		const allowFirst: Permissions = {
+			is_superuser: false,
+			models: {},
+			routes: { '/address': true, '/*': false }
+		};
+		for (const permissions of [denyFirst, allowFirst]) {
+			expect(canAccessRoute(permissions, '/address/unit')).toBe(true);
+			expect(canAccessRoute(permissions, '/valuation')).toBe(false);
+		}
+	});
+
+	it('lets a narrower deny beat a broader allow', () => {
+		const permissions: Permissions = {
+			is_superuser: false,
+			models: {},
+			routes: { '/*': true, '/network-schema': false }
+		};
+		expect(canAccessRoute(permissions, '/network-schema/node')).toBe(false);
+		expect(canAccessRoute(permissions, '/map')).toBe(true);
+	});
+
+	it('lets allowing win between equally specific patterns', () => {
+		const permissions: Permissions = {
+			is_superuser: false,
+			models: {},
+			routes: { '/admin/*': false, '/admin': true }
+		};
 		expect(canAccessRoute(permissions, '/admin/logs')).toBe(true);
 	});
 

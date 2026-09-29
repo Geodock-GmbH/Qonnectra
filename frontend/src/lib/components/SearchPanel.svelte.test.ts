@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { globalMapView, selectedProject } from '$lib/stores/store';
+import { globalMapView } from '$lib/stores/store';
 import { globalToaster } from '$lib/stores/toaster';
 import { searchFeatures } from '$lib/remote/map/feature-search.remote';
 
@@ -13,18 +13,8 @@ vi.mock('$app/environment', () => ({
 	browser: true
 }));
 
-const pageStore = vi.hoisted(() => {
-	const value = { data: { srid: 25832, proj4Def: '+proj=utm +zone=32' }, params: {} };
-	return {
-		subscribe(run: (value: unknown) => void) {
-			run(value);
-			return () => {};
-		}
-	};
-});
-
-vi.mock('$app/stores', () => ({
-	page: pageStore
+vi.mock('$app/state', () => ({
+	page: { data: { srid: 25832, proj4Def: '+proj=utm +zone=32' }, params: {} }
 }));
 
 vi.mock('$lib/paraglide/messages', () => ({
@@ -78,7 +68,6 @@ async function performSearch(query: string) {
 }
 
 beforeEach(() => {
-	selectedProject.set('7');
 	globalMapView.set(false);
 	vi.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -95,7 +84,7 @@ describe('SearchPanel', () => {
 			searchResult('Hauptstraße 5 (Adresse)', 'address', 'addr-1'),
 			searchResult('T-42 (Graben)', 'trench', 'trench-1')
 		]);
-		render(SearchPanel);
+		render(SearchPanel, { projectId: '7' });
 
 		await performSearch('haupt');
 
@@ -110,7 +99,7 @@ describe('SearchPanel', () => {
 	test('should search without a project in global map view', async () => {
 		mockSearchResults([]);
 		globalMapView.set(true);
-		render(SearchPanel);
+		render(SearchPanel, { projectId: '7' });
 
 		await performSearch('haupt');
 
@@ -120,7 +109,7 @@ describe('SearchPanel', () => {
 	});
 
 	test('should not search for an empty query', async () => {
-		render(SearchPanel);
+		render(SearchPanel, { projectId: '7' });
 		const user = userEvent.setup();
 
 		await user.type(screen.getByTestId('search-input'), '{Enter}');
@@ -132,7 +121,7 @@ describe('SearchPanel', () => {
 	test('should toast an error and notify the parent when the search fails', async () => {
 		vi.mocked(searchFeatures).mockRejectedValue(new Error('offline') as never);
 		const onSearchError = vi.fn();
-		render(SearchPanel, { onSearchError });
+		render(SearchPanel, { projectId: '7', onSearchError });
 
 		await performSearch('haupt');
 
@@ -148,7 +137,7 @@ describe('SearchPanel', () => {
 			)
 		]);
 		const user = userEvent.setup();
-		render(SearchPanel);
+		render(SearchPanel, { projectId: '7' });
 
 		await performSearch('knoten');
 		await screen.findByText('Knoten-0');
@@ -162,7 +151,7 @@ describe('SearchPanel', () => {
 
 	test('should clear results via the exported clearSearch method', async () => {
 		mockSearchResults([searchResult('PoP-1 (Knoten)', 'node', 'node-1')]);
-		const { component } = render(SearchPanel);
+		const { component } = render(SearchPanel, { projectId: '7' });
 		await performSearch('pop');
 		await screen.findByText('PoP-1');
 

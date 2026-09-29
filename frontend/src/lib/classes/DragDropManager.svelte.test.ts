@@ -363,7 +363,7 @@ describe('mobile tap-to-place', () => {
 
 	test('should clear the mobile selection when leaving mobile mode', () => {
 		const manager = new DragDropManager();
-		manager.selectMobileItem({ type: 'component_type' });
+		manager.selectMobileComponent(componentType);
 
 		manager.handleResponsiveChange(true);
 		expect(manager.mobileSelectedItem).not.toBeNull();
@@ -377,7 +377,7 @@ describe('cleanup', () => {
 	test('should reset all state', () => {
 		const manager = new DragDropManager();
 		manager.startComponentDrag(componentType);
-		manager.selectMobileItem({ type: 'component_type' });
+		manager.selectMobileComponent(componentType);
 		manager.updateDropPreview(1, 24, new Map());
 
 		manager.cleanup();

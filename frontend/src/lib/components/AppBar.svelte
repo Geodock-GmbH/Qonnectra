@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { AppBar } from '@skeletonlabs/skeleton-svelte';
 	import { IconBook, IconLogin, IconLogout, IconWorld } from '@tabler/icons-svelte';
@@ -7,8 +7,10 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { globalMapView, selectedProject } from '$lib/stores/store';
+	import { globalMapView } from '$lib/stores/store';
+	import { stopSessionKeepAlive } from '$lib/utils/sessionKeepAlive';
 	import { tooltip } from '$lib/utils/tooltip';
+	import { MAP_ROUTE_ID, VALUATION_ROUTE_ID } from '$lib/config/routes';
 	import { logout } from '$lib/remote/auth/logout.remote';
 
 	import LightSwitch from './LightSwitch.svelte';
@@ -17,31 +19,28 @@
 
 	let { data } = $props();
 
+	/** Toggles the global map view; the project never leaves the URL, so nothing else changes. */
 	function toggleGlobalMapView() {
-		if ($globalMapView) {
-			if (browser) {
-				const cookieProject = document.cookie
-					.split('; ')
-					.find((row) => row.startsWith('selected-project='))
-					?.split('=')[1];
-				if (cookieProject) {
-					selectedProject.set(cookieProject);
-				}
-			}
-			globalMapView.set(false);
-		} else {
-			globalMapView.set(true);
-		}
+		globalMapView.set(!$globalMapView);
 	}
 
 	/**
-	 * Read from the layout data instead of `userStore`: the store is only filled by
-	 * an effect after hydration, so gating on it renders the signed-in toolbar late
-	 * and in a separate batch, where `isMapRoute` could stick to a stale `false`.
+	 * Read from the layout data so the signed-in toolbar is in the server render
+	 * and in the same batch as `isMapRoute`, instead of one render late.
 	 */
 	let isAuthenticated = $derived(data.user?.isAuthenticated ?? false);
 
-	let isMapRoute = $derived(['/map', '/valuation'].some((p) => page.url.pathname.startsWith(p)));
+	let isMapRoute = $derived(page.route.id === MAP_ROUTE_ID || page.route.id === VALUATION_ROUTE_ID);
+
+	/**
+	 * Stops the keep-alive before the session ends: the root layout only notices
+	 * the logout once the login page has settled, and a tick in between would
+	 * report the logout as an expired session.
+	 */
+	const logoutForm = logout.enhance(async ({ submit }) => {
+		stopSessionKeepAlive();
+		await submit();
+	});
 </script>
 
 <div>
@@ -95,6 +94,7 @@
 
 					<!-- Documentation link - hidden on mobile -->
 					{#if env.PUBLIC_DOCUMENTATION_URL}
+						<!-- eslint-disable svelte/no-navigation-without-resolve -- external documentation URL -->
 						<a
 							href={env.PUBLIC_DOCUMENTATION_URL}
 							aria-label={m.tooltip_documentation()}
@@ -105,6 +105,7 @@
 						>
 							<IconBook class="size-5" />
 						</a>
+						<!-- eslint-enable svelte/no-navigation-without-resolve -->
 					{/if}
 
 					<!-- GitHub link - hidden on mobile -->
@@ -135,7 +136,7 @@
 
 					<!-- Login/Logout -->
 					{#if isAuthenticated}
-						<form {...logout}>
+						<form {...logoutForm}>
 							<button
 								type="submit"
 								class="btn-icon hover:preset-tonal"
@@ -146,7 +147,7 @@
 							</button>
 						</form>
 					{:else}
-						<a href="/login">
+						<a href={resolve('/login')}>
 							<button
 								class="btn-icon hover:preset-tonal"
 								aria-label={m.tooltip_login()}

@@ -32,11 +32,9 @@
 		onStructureDelete?: (uuid: string) => void;
 	} = $props();
 
-	const structures = $derived(context?.structures ?? []);
 	const selectedStructure = $derived(context?.selectedStructure ?? null);
 	const isDragging = $derived(context?.isDragging ?? false);
 	const draggedItem = $derived(context?.draggedItem ?? null);
-	const dropPreviewSlots = $derived(context?.dropPreviewSlots ?? []);
 	const componentRanges = $derived(context?.componentRanges ?? []);
 	const occupiedSlots = $derived(context?.occupiedSlots ?? new Map());
 	const mobileSelectedItem = $derived(context?.mobileSelectedItem ?? null);
@@ -239,7 +237,7 @@
 										class="grid place-items-center size-8 rounded-md bg-error-500 hover:bg-error-600 text-white transition-colors shrink-0"
 										onclick={(e) => {
 											e.stopPropagation();
-											row.structure && onStructureDelete(row.structure.uuid);
+											if (row.structure) onStructureDelete(row.structure.uuid);
 										}}
 										onpointerdown={(e) => e.stopPropagation()}
 										aria-label={m.common_delete?.() || 'Delete'}

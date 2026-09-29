@@ -2,16 +2,12 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { drawerStore } from '$lib/stores/drawer';
+import { drawerWidth } from '$lib/stores/store';
 
 import Drawer from './Drawer.svelte';
 
 vi.mock('$app/environment', () => ({
 	browser: true
-}));
-
-vi.mock('$app/navigation', () => ({
-	beforeNavigate: vi.fn()
 }));
 
 vi.mock('$lib/paraglide/messages', () => ({
@@ -24,66 +20,61 @@ vi.mock('$lib/paraglide/messages', () => ({
 }));
 
 beforeEach(() => {
-	drawerStore.close();
-	drawerStore.setTitle('');
+	drawerWidth.set(400);
 });
 
 describe('Drawer', () => {
 	test('should render nothing while closed', () => {
-		const { container } = render(Drawer);
+		const { container } = render(Drawer, { open: false, onclose: vi.fn() });
 
 		expect(container.querySelector('[data-drawer]')).toBeNull();
 	});
 
-	test('should open with the store title', async () => {
-		render(Drawer);
+	test('should show the title while open', () => {
+		render(Drawer, { open: true, title: 'Grabendetails', onclose: vi.fn() });
 
-		drawerStore.open({ title: 'Grabendetails' });
-
-		expect(await screen.findByText('Grabendetails')).toBeInTheDocument();
+		expect(screen.getByText('Grabendetails')).toBeInTheDocument();
 		expect(document.querySelector('[data-drawer]')).not.toBeNull();
 	});
 
-	test('should fall back to a default title', async () => {
-		render(Drawer);
+	test('should fall back to a default title', () => {
+		render(Drawer, { open: true, onclose: vi.fn() });
 
-		drawerStore.open({});
-
-		expect(await screen.findByText('Details')).toBeInTheDocument();
+		expect(screen.getByText('Details')).toBeInTheDocument();
 	});
 
-	test('should close via the close button', async () => {
+	test('should report a close via the close button, never closing itself', async () => {
 		const user = userEvent.setup();
-		render(Drawer);
-		drawerStore.open({ title: 'Grabendetails' });
-		await screen.findByText('Grabendetails');
+		const onclose = vi.fn();
+		render(Drawer, { open: true, title: 'Grabendetails', onclose });
 
 		await user.click(screen.getByRole('button', { name: 'tooltip_close_drawer' }));
 
-		let open = true;
-		const unsubscribe = drawerStore.subscribe((state) => (open = state.open));
-		unsubscribe();
-		expect(open).toBe(false);
+		expect(onclose).toHaveBeenCalledOnce();
+		expect(document.querySelector('[data-drawer]')).not.toBeNull();
 	});
 
-	test('should close on Escape', async () => {
-		render(Drawer);
-		drawerStore.open({ title: 'Grabendetails' });
-		await screen.findByText('Grabendetails');
+	test('should report a close on Escape', () => {
+		const onclose = vi.fn();
+		render(Drawer, { open: true, title: 'Grabendetails', onclose });
 
-		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
 
-		let open = true;
-		const unsubscribe = drawerStore.subscribe((state) => (open = state.open));
-		unsubscribe();
-		expect(open).toBe(false);
+		expect(onclose).toHaveBeenCalledOnce();
 	});
 
-	test('should apply the store width to the desktop drawer', async () => {
-		render(Drawer);
+	test('should ignore Escape while closed', () => {
+		const onclose = vi.fn();
+		render(Drawer, { open: false, onclose });
 
-		drawerStore.open({ title: 'Breit', width: 555 });
-		await screen.findByText('Breit');
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+		expect(onclose).not.toHaveBeenCalled();
+	});
+
+	test('should apply the persisted width to the desktop drawer', () => {
+		drawerWidth.set(555);
+		render(Drawer, { open: true, title: 'Breit', onclose: vi.fn() });
 
 		const drawer = document.querySelector('[data-drawer]') as HTMLElement;
 		expect(drawer.getAttribute('style')).toContain('width: 555px');

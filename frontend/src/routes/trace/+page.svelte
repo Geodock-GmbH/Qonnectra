@@ -23,7 +23,7 @@
 	 */
 	function handleSelect(result: TraceSearchResult) {
 		if (search.activeType === 'fiber') {
-			search.selectedCable = result;
+			search.pickCable(result.uuid);
 			return;
 		}
 		goto(resolve(search.tracePath(search.activeType, result.uuid)));
@@ -34,8 +34,10 @@
 <TraceSearchOptions />
 
 <div class="rounded-xl border border-surface-200-800 p-3 sm:p-6">
-	{#if search.selectedCable}
-		<FiberPicker cable={search.selectedCable} />
+	{#if search.selectedCableUuid}
+		{#key search.selectedCableUuid}
+			<FiberPicker cableUuid={search.selectedCableUuid} />
+		{/key}
 	{:else}
 		{#if search.activeType === 'fiber'}
 			<div class="mb-2 text-sm text-surface-600-400">{m.trace_select_cable_first()}</div>

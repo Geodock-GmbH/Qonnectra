@@ -1,0 +1,149 @@
+<script lang="ts">
+	import type { SearchPanelRef } from '$lib/classes/MapInteractionManager.svelte';
+	import type OlMap from 'ol/Map.js';
+	import { onMount } from 'svelte';
+	import { page } from '$app/state';
+
+	import { m } from '$lib/paraglide/messages';
+
+	import Map from '$lib/components/Map.svelte';
+	import MapHint from '$lib/components/MapHint.svelte';
+	import { syncLayerStyles } from '$lib/map/layerStyleSync';
+	import { syncMapProject } from '$lib/map/projectScopeSync';
+	import { selectUrlFeature } from '$lib/map/urlFeatureSelection';
+	import { trenchColorSelected } from '$lib/stores/store';
+	import { onFeatureChange, queryFeature } from '$lib/utils/urlState';
+	import { onProjectChange, routeProjectId } from '$lib/context/project';
+	import { getLayerStyleAttributes } from '$lib/remote/map/layers.remote';
+
+	import {
+		getHouseConnectionInteraction,
+		getHouseConnectionMapManagers
+	} from './houseConnectionContext';
+
+	import 'ol/ol.css';
+
+	let { alias }: { alias: Record<string, string> } = $props();
+
+	const { mapState, selectionManager, popupManager, interactionManager } =
+		getHouseConnectionMapManagers();
+	const { trenchHighlights } = getHouseConnectionInteraction();
+
+	let mapRef: ReturnType<typeof Map> | null = null;
+
+	// The search panel mounts after the map is ready, so its highlight layer is
+	// looked up at the moment a highlight has to be cleared.
+	const searchPanel: SearchPanelRef = {
+		getHighlightLayer: () =>
+			(mapRef?.getSearchPanelRef() as SearchPanelRef | undefined)?.getHighlightLayer?.()
+	};
+
+	/** Only trenches open the drawer here. */
+	const DRAWER_KINDS = ['trench'] as const;
+
+	const drawerOpen = $derived(queryFeature(page.url, DRAWER_KINDS) !== null);
+
+	/**
+	 * Mirrors the trench named in the URL onto the map selection. The URL is
+	 * the source: a click already selected its trench, a shared link or the
+	 * back button selects (and zooms to) the trench now.
+	 */
+	function followUrlFeature() {
+		const { srid, proj4Def } = page.data;
+		void selectUrlFeature({
+			map: mapState.olMap,
+			selectionManager,
+			feature: queryFeature(page.url, DRAWER_KINDS),
+			hash: page.url.hash,
+			lookupProjectId: routeProjectId(),
+			storage: srid && proj4Def ? { srid, proj4Def } : null
+		});
+	}
+
+	onFeatureChange(followUrlFeature);
+
+	/**
+	 * Initializes selection layers, the linked-trench overlay, popup and
+	 * interaction handlers when the map is ready, then applies the trench
+	 * the URL already names.
+	 * @param detail - Map ready event with the OpenLayers map instance
+	 */
+	function handleMapReady({ map }: { map: OlMap }) {
+		mapState.initializeSelectionLayers(map, () => selectionManager.getSelectionStore());
+
+		mapState
+			.getSelectionLayers()
+			.forEach((layer) => selectionManager.registerSelectionLayer(layer));
+
+		trenchHighlights.attach(map, mapState.vectorTileLayer?.getSource());
+		popupManager.initialize(map);
+		interactionManager.initialize(map, mapState.getLayerReferences(), searchPanel);
+		followUrlFeature();
+	}
+
+	onProjectChange((projectId) =>
+		syncMapProject(mapState, projectId, () => selectionManager.clearSelection())
+	);
+
+	onMount(() => {
+		const stopStyleSync = syncLayerStyles(mapState);
+		mapState.refreshTileSources();
+
+		return () => {
+			stopStyleSync();
+			trenchHighlights.detach();
+		};
+	});
+
+	const attributes = $derived(await getLayerStyleAttributes());
+</script>
+
+<div class="map-wrapper border-2 rounded-lg border-surface-200-800 h-full w-full">
+	<Map
+		className="rounded-lg overflow-hidden"
+		showSearchPanel={true}
+		layers={mapState.getLayers()}
+		projectId={mapState.selectedProject}
+		viewInUrl={true}
+		nodeTypes={attributes.nodeTypes}
+		surfaces={attributes.surfaces}
+		constructionTypes={attributes.constructionTypes}
+		areaTypes={attributes.areaTypes}
+		onready={handleMapReady}
+		searchPanelProps={{ trenchColorSelected: $trenchColorSelected, alias }}
+		bind:this={mapRef}
+	/>
+	<div id="popup" class="ol-popup bg-primary-500 rounded-lg border-2 border-primary-600">
+		<!-- svelte-ignore a11y_invalid_attribute -->
+		<a href="#" id="popup-closer" class="ol-popup-closer" aria-label="Close popup"></a>
+		<div id="popup-content"></div>
+	</div>
+</div>
+<MapHint message={m.message_map_hint_reveal_drawer()} visible={!drawerOpen} />
+
+<style>
+	.ol-popup {
+		position: absolute;
+		padding: 8px;
+		transform: translate(-50%, -100%);
+		pointer-events: auto;
+		min-width: 180px;
+		z-index: 10;
+	}
+	.ol-popup-closer {
+		position: absolute;
+		top: 4px;
+		right: 8px;
+		text-decoration: none;
+		font-weight: bold;
+		cursor: pointer;
+		color: #fff;
+	}
+
+	#popup-content {
+		padding: 5px;
+		color: #fff;
+		max-height: 200px;
+		overflow-y: auto;
+	}
+</style>

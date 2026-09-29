@@ -28,7 +28,6 @@ from django.db import connection, transaction
 from django.db.models import Avg, Count, F, Q, Sum, Value
 from django.db.models.functions import TruncMonth
 from django.http import FileResponse, HttpResponse, StreamingHttpResponse
-from django.utils import timezone
 from django.utils.encoding import iri_to_uri
 from django.utils.translation import gettext_lazy as _
 from drf_spectacular.types import OpenApiTypes
@@ -75,7 +74,6 @@ from .models import (
     Cable,
     CableLabel,
     CableTypeColorMapping,
-    CanvasSyncStatus,
     Conduit,
     Container,
     ContainerType,
@@ -188,9 +186,9 @@ from .services import (
     GEOPACKAGE_LAYER_CONFIG,
     SpatialIntersectError,
     auto_link_cable_micropipes,
-    cable_trench_geometry,
+    cable_trench_connections,
     calculate_valuation,
-    conduit_trench_geometry,
+    conduit_trench_connections,
     export_features,
     feature_file_object_ids_for_project,
     generate_conduit_import_template,
@@ -198,9 +196,11 @@ from .services import (
     generate_node_structure_excel,
     import_conduits_from_excel,
     link_cable_to_chosen_microduct,
+    merge_trench_geoms,
     parse_project_id_list,
     spatial_intersect,
     trace_address,
+    trench_funding_summary,
 )
 from .wms_service import WMSServiceError, fetch_wms_layers, scan_wms_capabilities
 
@@ -2821,12 +2821,16 @@ class NodeViewSet(viewsets.ModelViewSet):
                 pipe-branch allowed types.
             include_excluded: If ``'true'``, bypass NetworkSchemaSettings
                 exclusions (for search).
+            child_view_for: UUID of a parent node; return only that node
+                and its direct children (requires ``project``).
             minimal: If ``'true'``, return only uuid and name
                 (no geometry/relations).
 
-        If project settings are configured, excluded node types are
+        If the project has settings, excluded node types are
         automatically filtered out unless an explicit ``exclude_group``
-        or ``include_excluded`` parameter is provided.
+        or ``include_excluded`` parameter is provided. The
+        ``settings_configured`` metadata reports the admin's
+        ``configured`` tick.
 
         Args:
             request: DRF request with the query params above.
@@ -2870,12 +2874,10 @@ class NodeViewSet(viewsets.ModelViewSet):
         if project_id:
             queryset = queryset.filter(project=project_id)
 
-            # Handle child view mode: return parent node + its direct children
             if child_view_for:
                 queryset = queryset.filter(
                     Q(uuid=child_view_for) | Q(parent_node_id=child_view_for)
                 )
-                # Get child view enabled types for this project
                 settings = NetworkSchemaSettings.get_settings_for_project(project_id)
                 if settings is not None:
                     child_view_enabled_type_ids = list(
@@ -2884,18 +2886,15 @@ class NodeViewSet(viewsets.ModelViewSet):
                         )
                     )
 
-            # Apply pipe-branch settings if requested
             if use_pipe_branch_settings == "true":
                 allowed_type_ids = PipeBranchSettings.get_allowed_type_ids(project_id)
                 if allowed_type_ids is not None:
                     pipe_branch_configured = True
-                    if allowed_type_ids:  # If list is not empty
+                    if allowed_type_ids:
                         queryset = queryset.filter(node_type_id__in=allowed_type_ids)
                     else:
-                        # Empty list means no types allowed, return empty
+                        # A configured but empty allow-list permits no node type
                         queryset = queryset.none()
-            # Apply project-specific exclusions if no explicit exclude_group provided
-            # and not using pipe_branch_settings, child_view_for, or include_excluded
             elif (
                 exclude_group is None
                 and not child_view_for
@@ -2903,7 +2902,7 @@ class NodeViewSet(viewsets.ModelViewSet):
             ):
                 settings = NetworkSchemaSettings.get_settings_for_project(project_id)
                 if settings is not None:
-                    settings_configured = True
+                    settings_configured = settings.configured
                     excluded_type_ids = list(
                         settings.excluded_node_types.values_list("id", flat=True)
                     )
@@ -2922,7 +2921,6 @@ class NodeViewSet(viewsets.ModelViewSet):
         if group:
             queryset = queryset.filter(node_type__group=group)
         if exclude_group:
-            # Explicit exclude_group overrides project settings
             queryset = queryset.exclude(node_type__group=exclude_group)
         if search_term:
             trigram_qs = trigram_name_search(queryset, search_term, field="name")
@@ -2948,7 +2946,6 @@ class NodeViewSet(viewsets.ModelViewSet):
         serializer = NodeSerializer(queryset, many=True)
         data = serializer.data
 
-        # Add metadata about settings configuration to the GeoJSON response
         if isinstance(data, dict) and data.get("type") == "FeatureCollection":
             data["metadata"] = {
                 "settings_configured": settings_configured,
@@ -2957,7 +2954,6 @@ class NodeViewSet(viewsets.ModelViewSet):
                 "child_view_enabled_node_type_ids": child_view_enabled_type_ids,
             }
         elif isinstance(data, list):
-            # Wrap in FeatureCollection format with metadata
             data = {
                 "type": "FeatureCollection",
                 "features": data,
@@ -3102,334 +3098,6 @@ class NodeViewSet(viewsets.ModelViewSet):
         )
 
 
-class NodeCanvasCoordinatesView(APIView):
-    """
-    Multi-user safe API view to calculate and store canvas coordinates for nodes.
-
-    Uses CanvasSyncStatus model to prevent concurrent sync operations and
-    ensure consistent results across multiple users.
-    """
-
-    permission_classes = [IsAuthenticated]
-
-    @extend_schema(
-        parameters=[
-            OpenApiParameter(
-                "project_id",
-                int,
-                OpenApiParameter.QUERY,
-                required=False,
-                description="Filter node stats by project.",
-            ),
-            OpenApiParameter(
-                "flag_id",
-                int,
-                OpenApiParameter.QUERY,
-                required=False,
-                description="Filter node stats by flag.",
-            ),
-        ],
-        responses={
-            200: inline_serializer(
-                name="CanvasSyncStatus",
-                fields={
-                    "total_nodes": serializers.IntegerField(),
-                    "nodes_with_canvas": serializers.IntegerField(),
-                    "nodes_missing_canvas": serializers.IntegerField(),
-                    "sync_needed": serializers.BooleanField(),
-                    "sync_in_progress": serializers.BooleanField(),
-                    "sync_status": serializers.CharField(),
-                    "sync_started_at": serializers.DateTimeField(allow_null=True),
-                    "sync_progress": serializers.FloatField(),
-                    "error_message": serializers.CharField(allow_null=True),
-                },
-            ),
-        },
-    )
-    def get(self, request, format=None):
-        """
-        Check the status of canvas coordinates and sync operations.
-
-        Returns:
-        {
-            "total_nodes": int,
-            "nodes_with_canvas": int,
-            "nodes_missing_canvas": int,
-            "sync_needed": bool,
-            "sync_in_progress": bool,
-            "sync_status": str,
-            "sync_started_at": datetime,
-            "sync_progress": float
-        }
-        """
-        project_id = request.query_params.get("project_id")
-        flag_id = request.query_params.get("flag_id")
-
-        # Clean up stale sync operations first
-        CanvasSyncStatus.cleanup_stale_syncs()
-
-        # Generate sync key
-        sync_key = CanvasSyncStatus.get_sync_key(project_id, flag_id)
-
-        # Get or create sync status
-        sync_status, created = CanvasSyncStatus.objects.get_or_create(
-            sync_key=sync_key, defaults={"status": "IDLE", "started_by": request.user}
-        )
-
-        # Get node statistics
-        queryset = Node.objects.filter(geom__isnull=False)
-
-        if project_id:
-            queryset = queryset.filter(project=project_id)
-        if flag_id:
-            queryset = queryset.filter(flag=flag_id)
-
-        total_nodes = queryset.count()
-        nodes_with_canvas = queryset.filter(
-            canvas_x__isnull=False, canvas_y__isnull=False
-        ).count()
-        nodes_missing_canvas = total_nodes - nodes_with_canvas
-        sync_needed = nodes_missing_canvas > 0
-        sync_in_progress = sync_status.status == "IN_PROGRESS"
-
-        # Calculate progress if sync is in progress
-        progress = 0.0
-        if sync_in_progress and total_nodes > 0:
-            progress = (sync_status.nodes_processed / total_nodes) * 100
-
-        return Response(
-            {
-                "total_nodes": total_nodes,
-                "nodes_with_canvas": nodes_with_canvas,
-                "nodes_missing_canvas": nodes_missing_canvas,
-                "sync_needed": sync_needed,
-                "sync_in_progress": sync_in_progress,
-                "sync_status": sync_status.status,
-                "sync_started_at": sync_status.started_at,
-                "sync_progress": progress,
-                "error_message": sync_status.error_message
-                if sync_status.status == "FAILED"
-                else None,
-            }
-        )
-
-    @extend_schema(
-        request=inline_serializer(
-            name="CanvasSyncRequest",
-            fields={
-                "project_id": serializers.IntegerField(required=False),
-                "flag_id": serializers.IntegerField(required=False),
-                "scale": serializers.FloatField(
-                    required=False, help_text="Scale factor (default 1.0)."
-                ),
-            },
-        ),
-        responses={
-            200: OpenApiResponse(
-                OpenApiTypes.OBJECT, description="Sync result summary."
-            ),
-            409: OpenApiResponse(description="A sync is already in progress."),
-            500: OpenApiResponse(description="Sync failed to start."),
-        },
-    )
-    def post(self, request, format=None):
-        """
-        Calculate and store canvas coordinates with concurrency control.
-
-        Expected request body:
-        {
-            "project_id": int,  # Optional: filter by project
-            "flag_id": int,     # Optional: filter by flag
-            "scale": float      # Optional: scale factor (default: 1.0)
-        }
-        """
-        project_id = request.data.get("project_id")
-        flag_id = request.data.get("flag_id")
-        scale = request.data.get("scale", 1.0)
-
-        # Generate sync key
-        sync_key = CanvasSyncStatus.get_sync_key(project_id, flag_id)
-
-        try:
-            with transaction.atomic():
-                # Try to acquire sync lock atomically
-                sync_status = (
-                    CanvasSyncStatus.objects.select_for_update()
-                    .filter(sync_key=sync_key)
-                    .first()
-                )
-
-                if not sync_status:
-                    sync_status = CanvasSyncStatus.objects.create(
-                        sync_key=sync_key,
-                        status="IN_PROGRESS",
-                        started_by=request.user,
-                        started_at=timezone.now(),
-                        last_heartbeat=timezone.now(),
-                        scale=scale,
-                    )
-                else:
-                    # Check if sync is already in progress
-                    if (
-                        sync_status.status == "IN_PROGRESS"
-                        and not sync_status.is_stale()
-                    ):
-                        return Response(
-                            {
-                                "message": "Canvas coordinate sync already in progress",
-                                "sync_started_by": sync_status.started_by.username
-                                if sync_status.started_by
-                                else None,
-                                "sync_started_at": sync_status.started_at,
-                                "estimated_completion": None,  # Could add time estimation
-                            },
-                            status=409,
-                        )  # Conflict
-
-                    # Update sync status to IN_PROGRESS
-                    sync_status.status = "IN_PROGRESS"
-                    sync_status.started_by = request.user
-                    sync_status.started_at = timezone.now()
-                    sync_status.last_heartbeat = timezone.now()
-                    sync_status.scale = scale
-                    sync_status.nodes_processed = 0
-                    sync_status.error_message = None
-                    sync_status.save()
-
-            # Now perform the sync operation outside the lock transaction
-            return self._perform_sync(sync_status, project_id, flag_id, scale)
-
-        except Exception as e:
-            # Clean up sync status on error
-            try:
-                sync_status = CanvasSyncStatus.objects.get(sync_key=sync_key)
-                sync_status.status = "FAILED"
-                sync_status.completed_at = timezone.now()
-                sync_status.error_message = str(e)
-                sync_status.save()
-            except CanvasSyncStatus.DoesNotExist:
-                pass
-
-            return Response(
-                {"error": "Failed to start canvas coordinate sync", "message": str(e)},
-                status=500,
-            )
-
-    def _perform_sync(self, sync_status, project_id, flag_id, scale):
-        """
-        Perform the actual canvas coordinate synchronization.
-
-        Only calculates positions for nodes missing canvas coordinates,
-        preserving user-positioned nodes. The bounding box is calculated
-        from ALL nodes.
-        """
-        try:
-            # Get ALL nodes with geometry for bounding box calculation
-            all_queryset = Node.objects.filter(geom__isnull=False)
-
-            if project_id:
-                all_queryset = all_queryset.filter(project=project_id)
-            if flag_id:
-                all_queryset = all_queryset.filter(flag=flag_id)
-
-            all_nodes = list(all_queryset)
-
-            if not all_nodes:
-                sync_status.status = "COMPLETED"
-                sync_status.completed_at = timezone.now()
-                sync_status.save()
-                return Response({"message": "No nodes found with geometry"}, status=400)
-
-            # Extract coordinates from ALL nodes for bounding box
-            all_coordinates = []
-            for node in all_nodes:
-                if node.geom:
-                    coords = node.geom.coords
-                    all_coordinates.append(
-                        {"x": coords[0], "y": coords[1], "node": node}
-                    )
-
-            if not all_coordinates:
-                sync_status.status = "COMPLETED"
-                sync_status.completed_at = timezone.now()
-                sync_status.save()
-                return Response({"message": "No valid coordinates found"}, status=400)
-
-            # Calculate bounding box from ALL nodes
-            min_x = min(coord["x"] for coord in all_coordinates)
-            max_x = max(coord["x"] for coord in all_coordinates)
-            min_y = min(coord["y"] for coord in all_coordinates)
-            max_y = max(coord["y"] for coord in all_coordinates)
-
-            # Calculate center
-            center_x = (min_x + max_x) / 2
-            center_y = (min_y + max_y) / 2
-
-            # Store calculated values in sync status
-            sync_status.center_x = center_x
-            sync_status.center_y = center_y
-            sync_status.save()
-
-            # Only update nodes MISSING canvas coordinates, preserving user-positioned nodes
-            batch_size = 500
-            nodes_to_update = []
-
-            for coord_data in all_coordinates:
-                node = coord_data["node"]
-
-                # Skip nodes that already have canvas coordinates
-                if node.canvas_x is not None and node.canvas_y is not None:
-                    continue
-
-                geo_x = coord_data["x"]
-                geo_y = coord_data["y"]
-
-                # Transform to canvas coordinates
-                node.canvas_x = (geo_x - center_x) * scale
-                node.canvas_y = -(geo_y - center_y) * scale  # Flip Y axis
-                nodes_to_update.append(node)
-
-            # Perform bulk update in batches
-            updated_count = 0
-            for i in range(0, len(nodes_to_update), batch_size):
-                batch = nodes_to_update[i : i + batch_size]
-                Node.objects.bulk_update(batch, ["canvas_x", "canvas_y"])
-                updated_count += len(batch)
-
-                # Update progress and heartbeat after each batch
-                sync_status.nodes_processed = updated_count
-                sync_status.update_heartbeat()
-
-            # Mark sync as completed
-            sync_status.status = "COMPLETED"
-            sync_status.completed_at = timezone.now()
-            sync_status.nodes_processed = updated_count
-            sync_status.save()
-
-            return Response(
-                {
-                    "message": f"Successfully updated canvas coordinates for {updated_count} nodes",
-                    "updated_count": updated_count,
-                    "scale": scale,
-                    "center": {"x": center_x, "y": center_y},
-                    "bounds": {
-                        "min_x": min_x,
-                        "max_x": max_x,
-                        "min_y": min_y,
-                        "max_y": max_y,
-                    },
-                }
-            )
-
-        except Exception as e:
-            # Mark sync as failed
-            sync_status.status = "FAILED"
-            sync_status.completed_at = timezone.now()
-            sync_status.error_message = str(e)
-            sync_status.save()
-            raise
-
-
 class OlNodeTileViewSet(APIView):
     """Serve MVT vector tiles for :model:`api.OlNode`."""
 
@@ -3476,6 +3144,7 @@ class OlNodeTileViewSet(APIView):
                     n.project,
                     n.warranty,
                     n.date,
+                    n.funding_status,
                     c2.company,
                     f.flag,
                     c3.company,
@@ -3722,8 +3391,10 @@ class ExportFeaturesView(APIView):
     id for deterministic mapping and the human-readable label/contact columns.
 
     ``cable`` and ``conduit`` carry no geometry of their own; their geometry is
-    merged from the connected trenches via ``_merge_trench_geoms`` — the one
-    capability the CRUD endpoints lack.
+    merged from the connected trenches via ``merge_trench_geoms`` — the one
+    capability the CRUD endpoints lack. The same trenches feed a
+    ``trench_funding`` property with the counts of funded, unfunded and
+    unknown trenches.
     """
 
     permission_classes = [IsAuthenticated]
@@ -3733,29 +3404,44 @@ class ExportFeaturesView(APIView):
         "area": AreaSerializer,
     }
 
-    # Relation-derived layers: (properties serializer, geometry resolver). Their
-    # geometry is merged from connected trenches rather than a ``geom`` column.
+    # Relation-derived layers: (properties serializer, trench connection
+    # resolver). Their geometry is merged from connected trenches rather than a
+    # ``geom`` column.
     _merged_layers = {
-        "conduit": (ConduitSerializer, conduit_trench_geometry),
-        "cable": (CableSerializer, cable_trench_geometry),
+        "conduit": (ConduitSerializer, conduit_trench_connections),
+        "cable": (CableSerializer, cable_trench_connections),
     }
 
     def _merged_geometry_collection(self, name, queryset, request):
         """Build a FeatureCollection for a relation-derived (cable/conduit) layer.
 
-        Properties come from the CRUD serializer (nested FK objects); geometry
-        is merged from the object's connected trenches.
+        Properties come from the CRUD serializer (nested FK objects) plus a
+        ``trench_funding`` summary; geometry is merged from the same connected
+        trenches, so counts and geometry always describe one trench set.
+
+        Args:
+            name: Layer name, a key of ``_merged_layers`` (``cable``/``conduit``).
+            queryset: Features of that layer with their trench chain prefetched.
+            request: The current request, passed to the serializer context.
+
+        Returns:
+            dict: GeoJSON ``FeatureCollection`` whose features carry the merged
+                ``MultiLineString`` geometry (or ``None``) and the properties.
         """
-        serializer_class, geometry_of = self._merged_layers[name]
-        features = [
-            {
-                "type": "Feature",
-                "id": str(obj.uuid),
-                "geometry": geometry_of(obj),
-                "properties": serializer_class(obj, context={"request": request}).data,
-            }
-            for obj in queryset
-        ]
+        serializer_class, trench_connections_of = self._merged_layers[name]
+        features = []
+        for obj in queryset:
+            connections = trench_connections_of(obj)
+            properties = serializer_class(obj, context={"request": request}).data
+            properties["trench_funding"] = trench_funding_summary(connections)
+            features.append(
+                {
+                    "type": "Feature",
+                    "id": str(obj.uuid),
+                    "geometry": merge_trench_geoms(connections),
+                    "properties": properties,
+                }
+            )
         return {"type": "FeatureCollection", "features": features}
 
     @extend_schema(
@@ -3887,7 +3573,8 @@ class ConduitImportView(APIView):
     API view to handle the import of conduits from an Excel file.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
+    permission_model = "conduit"
     parser_classes = (MultiPartParser, FormParser)
 
     MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -5742,6 +5429,7 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
 
     request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
+    action_access_levels = {"clear_port": "full"}
     queryset = FiberSplice.objects.all()
     serializer_class = FiberSpliceSerializer
     lookup_field = "uuid"
@@ -6763,7 +6451,8 @@ class MicropipesByConduitsView(APIView):
 class CableMicropipeConnectionsView(APIView):
     """Manage cable-micropipe connections."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
+    permission_model = "microductcableconnection"
 
     @extend_schema(
         request=inline_serializer(
@@ -6851,7 +6540,8 @@ class CableMicropipeConnectionsView(APIView):
 class CableAutoLinkMicropipeView(APIView):
     """Auto-link a cable to microducts matched via its end-node addresses."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
+    permission_model = "microductcableconnection"
 
     @extend_schema(
         request=inline_serializer(
@@ -7039,6 +6729,7 @@ class WMSSourceViewSet(viewsets.ModelViewSet):
 
     request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
+    action_access_levels = {"scan_capabilities": "view"}
 
     def get_serializer_class(self):  # type: ignore[override]
         if self.action in ["create", "update", "partial_update"]:
@@ -8679,6 +8370,10 @@ class FiberTraceView(APIView):
         address_id: UUID of an address (traces fibers via linked nodes/RUs)
         residential_unit_id: UUID of a residential unit (traces connected fibers)
 
+    Query Parameters (optional, fiber_id only):
+        start_node_id: UUID of the end of the path to read it from
+            (default: the node the path comes from)
+
     Geometry Parameters (optional):
         include_geometry: "true" to include trench geometry (default: "false")
         geometry_mode: "segments" for individual trenches, "merged" for combined
@@ -8695,6 +8390,14 @@ class FiberTraceView(APIView):
                 OpenApiParameter.QUERY,
                 required=False,
                 description="Trace a single fiber (mutually exclusive with the other *_id params).",
+            ),
+            OpenApiParameter(
+                "start_node_id",
+                str,
+                OpenApiParameter.QUERY,
+                required=False,
+                description="End of the path to read a fiber trace from "
+                "(default: the node the path comes from). Only with fiber_id.",
             ),
             OpenApiParameter(
                 "cable_id",
@@ -8773,6 +8476,7 @@ class FiberTraceView(APIView):
         node_id = request.query_params.get("node_id")
         address_id = request.query_params.get("address_id")
         residential_unit_id = request.query_params.get("residential_unit_id")
+        start_node_id = request.query_params.get("start_node_id")
         include_geometry = (
             request.query_params.get("include_geometry", "").lower() == "true"
         )
@@ -8787,6 +8491,20 @@ class FiberTraceView(APIView):
                 {"error": "geometry_mode must be 'segments', 'merged', or 'routed'"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        if start_node_id:
+            if not fiber_id:
+                return Response(
+                    {"error": "start_node_id only applies to fiber_id"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                UUIDType(start_node_id)
+            except ValueError:
+                return Response(
+                    {"error": "Invalid start_node_id UUID format"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         params = [fiber_id, cable_id, node_id, address_id, residential_unit_id]
         param_count = sum(1 for p in params if p)
@@ -8824,7 +8542,11 @@ class FiberTraceView(APIView):
         try:
             if fiber_id:
                 result = trace_fiber(
-                    fiber_id, include_geometry, geometry_mode, orient_geometry
+                    fiber_id,
+                    include_geometry,
+                    geometry_mode,
+                    orient_geometry,
+                    start_node_id=start_node_id,
                 )
             elif cable_id:
                 result = trace_cable(

@@ -2,30 +2,13 @@ import path from 'path';
 import { expect, test } from '@playwright/test';
 import dotenv from 'dotenv';
 
+/** @typedef {import('./helpers/api.js').ListedFeature} ListedFeature */
+
+import { firstFeature } from './helpers/api.js';
+import { loginOrSkip } from './helpers/auth.js';
+import { gotoProjectRoute, projectIdFromUrl, projectPath } from './helpers/routes.js';
+
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
-
-const USERNAME = process.env.E2E_TEST_USERNAME;
-const PASSWORD = process.env.E2E_TEST_PASSWORD;
-
-test.skip(!USERNAME || !PASSWORD, 'E2E_TEST_USERNAME and E2E_TEST_PASSWORD must be set in .env');
-
-/**
- * @param {import('@playwright/test').Page} page
- * @returns {Promise<boolean>}
- */
-async function performLogin(page) {
-	await page.goto('/login');
-	await page.locator('input[name="username"]').fill(/** @type {string} */ (USERNAME));
-	await page.locator('input[name="password"]').fill(/** @type {string} */ (PASSWORD));
-	await page.locator('button[type="submit"]').click();
-
-	try {
-		await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 10000 });
-		return true;
-	} catch {
-		return false;
-	}
-}
 
 /**
  * @returns {Record<string, any>}
@@ -126,7 +109,7 @@ function createMockSimulationResult() {
  * @param {Record<string, any>} result
  */
 async function injectSimulationResult(page, result) {
-	await page.goto('/fault-simulation/1');
+	await gotoProjectRoute(page, 'fault-simulation');
 	await page.waitForLoadState('networkidle');
 
 	await page.waitForFunction(() => '__e2eFaultSim' in window, null, { timeout: 10000 });
@@ -153,8 +136,7 @@ test.describe('Fault Simulation CSV Export', () => {
 	test.describe.configure({ mode: 'serial' });
 
 	test.beforeEach(async ({ page }) => {
-		const loggedIn = await performLogin(page);
-		expect(loggedIn).toBe(true);
+		await loginOrSkip(page, test.skip);
 	});
 
 	test('CSV export button is visible after simulation and triggers download', async ({ page }) => {
@@ -256,5 +238,52 @@ test.describe('Fault Simulation CSV Export', () => {
 
 		await expect(page.getByText(/affected addresses|betroffene adressen/i)).toBeVisible();
 		await expect(page.getByRole('link', { name: 'ADDR-001' })).toBeVisible();
+	});
+});
+
+test.describe('Fault simulation damage in the URL', () => {
+	test.beforeEach(async ({ page }) => {
+		await loginOrSkip(page, test.skip);
+		await gotoProjectRoute(page, 'fault-simulation');
+		await page.waitForLoadState('networkidle');
+	});
+
+	test('a URL naming a damage location runs the simulation and shows its report', async ({
+		page
+	}) => {
+		const id = /** @type {string} */ (projectIdFromUrl(page.url()));
+		const trench = await firstFeature(page, 'trench', id);
+		test.skip(!trench?.firstCoordinate, 'Needs a trench with a geometry in the project');
+		const [x, y] = /** @type {number[]} */ (trench?.firstCoordinate);
+
+		await page.goto(
+			projectPath(id, 'fault-simulation', { damage: `${Math.round(x)},${Math.round(y)}` })
+		);
+
+		// The simulation may run during SSR or in the browser; either way the
+		// report names the damaged trench, or the backend refused the point.
+		await expect(
+			page
+				.getByText(/** @type {ListedFeature} */ (trench).label)
+				.first()
+				.or(page.getByRole('alert'))
+		).toBeVisible({ timeout: 20000 });
+	});
+
+	test('a malformed damage value shows the map without a simulation or an error', async ({
+		page
+	}) => {
+		const id = /** @type {string} */ (projectIdFromUrl(page.url()));
+		/** @type {string[]} */
+		const simulationRequests = [];
+		page.on('request', (req) => {
+			if (req.url().includes('simulateFault')) simulationRequests.push(req.url());
+		});
+
+		await page.goto(projectPath(id, 'fault-simulation', { damage: 'abc' }));
+
+		await expect(page.locator('.ol-viewport').first()).toBeVisible({ timeout: 15000 });
+		await expect(page.getByRole('alert')).toHaveCount(0);
+		expect(simulationRequests).toHaveLength(0);
 	});
 });

@@ -1,3 +1,4 @@
+import { error } from '@sveltejs/kit';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalToaster } from '$lib/stores/toaster';
@@ -26,7 +27,8 @@ vi.mock('$lib/paraglide/messages', () => ({
 		common_error: () => 'Fehler',
 		title_success: () => 'Erfolg',
 		message_created_connections: () => 'Verbindungen erstellt',
-		message_connection_deleted_successfully: () => 'Verbindung gelöscht'
+		message_connection_deleted_successfully: () => 'Verbindung gelöscht',
+		message_error_creating_connection: () => 'Fehler beim Erstellen der Verbindung'
 	}
 }));
 
@@ -45,6 +47,18 @@ beforeEach(() => {
 	createMicropipeConnections.mockResolvedValue(undefined);
 	deleteMicropipeConnections.mockResolvedValue(undefined);
 });
+
+/**
+ * Builds a Kit HttpError the way a remote function's `error()` call does.
+ */
+function httpError(status: number, message: string): unknown {
+	try {
+		error(status, message);
+	} catch (e) {
+		return e;
+	}
+	return null;
+}
 
 afterEach(() => {
 	vi.restoreAllMocks();
@@ -83,6 +97,17 @@ describe('initialize', () => {
 		await vi.waitFor(() => expect(getLinkedTrenchesForCable).toHaveBeenCalled());
 
 		expect(manager.linkedTrenchIds.size).toBe(0);
+	});
+
+	test('should report every change of the linked trenches so the map can redraw', async () => {
+		getLinkedTrenchesForCable.mockResolvedValue(['t1']);
+		const seen: string[][] = [];
+		const manager = new CableMicropipeManager({
+			onLinkedTrenchesChange: () => seen.push([...manager.linkedTrenchIds])
+		});
+
+		manager.initialize('cable-1', 'K-Nord');
+		await vi.waitFor(() => expect(seen).toEqual([[], ['t1']]));
 	});
 });
 
@@ -252,6 +277,36 @@ describe('saveLinkage', () => {
 			expect.objectContaining({ description: 'Belegt' })
 		);
 		expect(manager.step).toBe(2);
+	});
+
+	test('should toast the backend detail carried by a remote HttpError', async () => {
+		createMicropipeConnections.mockRejectedValue(httpError(409, 'Mikrorohr bereits belegt'));
+		const manager = new CableMicropipeManager();
+		manager.cableId = 'cable-1';
+		manager.toggleConduit('c1');
+		manager.selectedMicropipe = { number: 3, color_name: 'blau' };
+		manager.step = 2;
+
+		await manager.saveLinkage();
+
+		expect(globalToaster.error).toHaveBeenCalledWith(
+			expect.objectContaining({ description: 'Mikrorohr bereits belegt' })
+		);
+	});
+
+	test('should fall back to a generic message when the rejection carries none', async () => {
+		createMicropipeConnections.mockRejectedValue(new Error(''));
+		const manager = new CableMicropipeManager();
+		manager.cableId = 'cable-1';
+		manager.toggleConduit('c1');
+		manager.selectedMicropipe = { number: 3, color_name: 'blau' };
+		manager.step = 2;
+
+		await manager.saveLinkage();
+
+		expect(globalToaster.error).toHaveBeenCalledWith(
+			expect.objectContaining({ description: 'Fehler beim Erstellen der Verbindung' })
+		);
 	});
 });
 

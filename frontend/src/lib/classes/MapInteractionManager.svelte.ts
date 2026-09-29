@@ -1,6 +1,6 @@
 import type { MapPopupManager } from './MapPopupManager.svelte';
 import type { MapSelectionManager } from './MapSelectionManager.svelte';
-import type { DrawerComponent, DrawerStore } from '$lib/stores/drawer';
+import type { MapFeatureKind } from '$lib/map/featureDetails';
 import type { Feature } from 'ol';
 import type { Coordinate } from 'ol/coordinate';
 import type LayerBase from 'ol/layer/Layer';
@@ -10,13 +10,8 @@ import type OlMap from 'ol/Map';
 import type MapBrowserEvent from 'ol/MapBrowserEvent';
 import type { Pixel } from 'ol/pixel';
 import type RenderFeature from 'ol/render/Feature';
-import type { Component } from 'svelte';
 
-import {
-	detectFeatureType,
-	formatFeatureProperties,
-	getFeatureTitle
-} from '$lib/utils/featureUtils';
+import { detectFeatureType } from '$lib/utils/featureUtils';
 
 interface SelectableLayersConfig {
 	trench: boolean;
@@ -41,18 +36,29 @@ export interface SearchPanelRef {
 	getHighlightLayer?: () => VectorLayer | undefined;
 }
 
+export interface MapInteractionOptions {
+	/** Which layers respond to clicks; the rest are left to the popup. */
+	selectableLayers?: Partial<SelectableLayersConfig> | null;
+	/**
+	 * Called when a feature of a known kind was clicked. The page turns this
+	 * into the URL, which is what opens the drawer; the manager never
+	 * navigates itself.
+	 */
+	onFeatureSelected?: (kind: MapFeatureKind, uuid: string) => void;
+	/** Called when empty map was clicked, so the page can close the drawer. */
+	onSelectionCleared?: () => void;
+}
+
 /**
  * Manages user interactions with the map including click events, feature selection,
- * and coordination with selection and popup managers.
+ * and coordination with the selection and popup managers. Which feature is
+ * open lives in the URL; this class only reports what was clicked.
  */
 export class MapInteractionManager {
 	olMap: OlMap | null = $state(null);
 	layers: LayerReferences = $state({});
 	selectionManager: MapSelectionManager | null = $state(null);
 	popupManager: MapPopupManager | null = $state(null);
-	drawerStore: DrawerStore | null = $state(null);
-	drawerComponent: DrawerComponent | null = $state(null);
-	alias: Record<string, string> = $state({});
 	searchPanelRef: SearchPanelRef | null = $state(null);
 	selectableLayersConfig: SelectableLayersConfig = $state({
 		trench: true,
@@ -60,45 +66,28 @@ export class MapInteractionManager {
 		node: true,
 		area: true
 	});
-	additionalDrawerProps: Record<string, unknown> = $state({});
+	onFeatureSelected: ((kind: MapFeatureKind, uuid: string) => void) | undefined;
+	onSelectionCleared: (() => void) | undefined;
 
 	/**
 	 * Creates a new MapInteractionManager instance.
 	 * @param selectionManager - Manages feature selection state
 	 * @param popupManager - Manages map popups
-	 * @param drawerStore - Drawer store for opening feature details
-	 * @param drawerComponent - Component to render in drawer
-	 * @param alias - Field name alias mapping (English -> Localized)
-	 * @param selectableLayersConfig - Layer click behavior configuration
-	 * @param additionalDrawerProps - Additional props passed to drawer component
+	 * @param options - Selectable layers and the selection callbacks
 	 */
 	constructor(
 		selectionManager: MapSelectionManager,
 		popupManager: MapPopupManager,
-		drawerStore: DrawerStore | null,
-		drawerComponent: DrawerComponent | null,
-		alias: Record<string, string> = {},
-		selectableLayersConfig: SelectableLayersConfig | null = null,
-		additionalDrawerProps: Record<string, unknown> = {}
+		options: MapInteractionOptions = {}
 	) {
 		this.selectionManager = selectionManager;
 		this.popupManager = popupManager;
-		this.drawerStore = drawerStore;
-		this.drawerComponent = drawerComponent;
-		this.alias = alias;
-		this.additionalDrawerProps = additionalDrawerProps;
+		this.onFeatureSelected = options.onFeatureSelected;
+		this.onSelectionCleared = options.onSelectionCleared;
 
-		if (selectableLayersConfig) {
-			this.selectableLayersConfig = { ...this.selectableLayersConfig, ...selectableLayersConfig };
+		if (options.selectableLayers) {
+			this.selectableLayersConfig = { ...this.selectableLayersConfig, ...options.selectableLayers };
 		}
-	}
-
-	/**
-	 * Sets additional props to pass to the drawer component.
-	 * @param props - Props object to merge with drawer props
-	 */
-	setAdditionalDrawerProps(props: Record<string, unknown>): void {
-		this.additionalDrawerProps = props;
 	}
 
 	/**
@@ -202,7 +191,8 @@ export class MapInteractionManager {
 	}
 
 	/**
-	 * Handles click on a map feature by selecting it and opening drawer or popup.
+	 * Handles a click on a map feature: selects it and reports its kind and
+	 * uuid, or shows the popup for a feature of unknown kind.
 	 * @param feature - Clicked feature
 	 * @param coordinate - Map coordinates [x, y]
 	 * @param layer - Layer containing the feature
@@ -214,52 +204,34 @@ export class MapInteractionManager {
 	): void {
 		const featureId = feature.getId();
 
-		if (featureId) {
-			if (layer && !this.isLayerSelectable(layer)) {
-				this.handleEmptyClick();
-				return;
-			}
-
-			this.selectionManager?.selectFeature(featureId, feature);
-
-			const featureType = detectFeatureType(feature, layer ?? undefined);
-			const rawProperties = feature.getProperties();
-
-			if (featureType && this.drawerStore && this.drawerComponent) {
-				const properties = formatFeatureProperties(rawProperties, featureType);
-
-				const title = getFeatureTitle(feature, featureType);
-
-				this.drawerStore.open({
-					title,
-					component: this.drawerComponent,
-					props: {
-						featureData: properties,
-						featureType,
-						featureId,
-						alias: this.alias,
-						featureProjectId: rawProperties.project ? String(rawProperties.project) : null,
-						...this.additionalDrawerProps
-					}
-				});
-			} else {
-				this.popupManager?.show(coordinate, feature);
-			}
-		} else {
+		if (!featureId) {
 			this.handleEmptyClick();
+			return;
+		}
+
+		if (layer && !this.isLayerSelectable(layer)) {
+			this.handleEmptyClick();
+			return;
+		}
+
+		this.selectionManager?.selectFeature(featureId, feature);
+
+		const kind = detectFeatureType(feature, layer ?? undefined);
+		if (kind) {
+			this.onFeatureSelected?.(kind, String(featureId));
+		} else {
+			this.popupManager?.show(coordinate, feature);
 		}
 	}
 
 	/**
-	 * Handles click on empty map area by clearing selection and closing drawer/popup.
+	 * Handles a click on empty map by clearing the selection and the popup
+	 * and reporting the cleared selection.
 	 */
 	handleEmptyClick(): void {
 		this.selectionManager?.clearSelection();
 		this.popupManager?.hide();
-
-		if (this.drawerStore) {
-			this.drawerStore.close();
-		}
+		this.onSelectionCleared?.();
 	}
 
 	/**

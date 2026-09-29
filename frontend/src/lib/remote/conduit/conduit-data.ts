@@ -33,10 +33,15 @@ export interface ConduitRecord {
 	constructor?: CompanyRef | null;
 	manufacturer?: CompanyRef | null;
 	flag?: FlagRef | null;
+	funding_status?: boolean | null;
 	project?: { id?: number; project?: string } | null;
 }
 
-/** One row of the paginated conduit list, flattened for table display. */
+/**
+ * One row of the paginated conduit list, flattened for table display. The
+ * funding status stays a raw flag (`null` = unknown) so the table can label
+ * it in the viewer's language.
+ */
 export interface ConduitListRow {
 	value: string;
 	name: string;
@@ -49,6 +54,7 @@ export interface ConduitListRow {
 	manufacturer: string;
 	date: string;
 	flag: string;
+	funding_status: boolean | null;
 }
 
 /** A page of conduit rows plus the backend's pagination envelope. */
@@ -69,6 +75,8 @@ export interface ConduitFields {
 	constructor_id?: number;
 	manufacturer_id?: number;
 	flag_id?: number;
+	/** `null` means unknown; left out, the field is not touched. */
+	funding_status?: boolean | null;
 }
 
 /** What the backend reports for an Excel import. */
@@ -86,7 +94,7 @@ const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.s
 
 /**
  * Maps one lightweight list serializer item to a table row, defaulting
- * missing text fields to empty strings.
+ * missing text fields to empty strings and a missing funding status to unknown.
  * @param item - A result row of `conduit/all/`.
  * @returns The flattened table row.
  */
@@ -103,7 +111,8 @@ export function mapConduitListRow(item: Record<string, unknown>): ConduitListRow
 		constructor: text('constructor'),
 		manufacturer: text('manufacturer'),
 		date: text('date'),
-		flag: text('flag')
+		flag: text('flag'),
+		funding_status: typeof item.funding_status === 'boolean' ? item.funding_status : null
 	};
 }
 
@@ -143,13 +152,14 @@ export function buildConduitCreateBody(
 	if (fields.outer_conduit) body.outer_conduit = fields.outer_conduit;
 	Object.assign(body, referenceIds(fields));
 	if (fields.date) body.date = fields.date;
+	if (fields.funding_status != null) body.funding_status = fields.funding_status;
 	return body;
 }
 
 /**
  * Builds the PATCH body for an existing conduit. `outer_conduit` is always
- * sent so clearing the textarea clears the field; unset references are
- * left untouched.
+ * sent so clearing the textarea clears the field, and a `null` funding
+ * status clears the flag; unset references are left untouched.
  * @param fields - The form values.
  * @returns The PATCH body for `conduit/<uuid>/`.
  */
@@ -159,6 +169,7 @@ export function buildConduitPatch(fields: ConduitFields): Record<string, unknown
 	body.outer_conduit = fields.outer_conduit ?? '';
 	Object.assign(body, referenceIds(fields));
 	if (fields.date) body.date = fields.date;
+	if (fields.funding_status !== undefined) body.funding_status = fields.funding_status;
 	return body;
 }
 

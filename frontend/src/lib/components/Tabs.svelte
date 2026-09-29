@@ -12,7 +12,9 @@
 
 	interface Props {
 		tabs: TabItem[];
+		/** The selected tab; a value not in `tabs` shows the first tab instead. */
 		value?: string;
+		/** Called only when the user picks a tab, never on a list change. */
 		onValueChange?: (value: string) => void;
 		children?: Snippet;
 		class?: string;
@@ -31,23 +33,11 @@
 	let isMobile = $derived((innerWidth.current ?? 0) < 768);
 	let effectiveOrientation = $derived(isMobile ? 'horizontal' : orientation);
 
-	/** Reset to first tab when the tab list composition changes */
-	let prevTabsKey = $state('');
-
-	$effect(() => {
-		const tabValues = tabs.map((t) => t.value);
-		const tabsKey = tabValues.join(',');
-
-		if (tabValues.length === 0) return;
-
-		if (tabsKey !== prevTabsKey) {
-			if (prevTabsKey !== '') {
-				value = tabValues[0];
-				onValueChange(tabValues[0]);
-			}
-			prevTabsKey = tabsKey;
-		}
-	});
+	// A value the current list does not offer (a stale URL, a list that
+	// resolved late) shows the first tab without rewriting anything.
+	const effectiveValue = $derived(
+		tabs.some((tab) => tab.value === value) ? value : (tabs[0]?.value ?? '')
+	);
 
 	function handleValueChange(e: { value: string }) {
 		value = e.value;
@@ -56,7 +46,11 @@
 </script>
 
 <div class="custom-tabs-root">
-	<SkeletonTabs {value} onValueChange={handleValueChange} orientation={effectiveOrientation}>
+	<SkeletonTabs
+		value={effectiveValue}
+		onValueChange={handleValueChange}
+		orientation={effectiveOrientation}
+	>
 		<div
 			class="tabs-wrapper {effectiveOrientation === 'horizontal'
 				? 'tabs-horizontal'

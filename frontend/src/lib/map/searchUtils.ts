@@ -159,7 +159,7 @@ export async function zoomToMultipleFeatures(
 		import('ol/extent')
 	]);
 
-	let combinedExtent = createEmpty();
+	const combinedExtent = createEmpty();
 	geometries.forEach((geometry) => {
 		extend(combinedExtent, geometry.getExtent());
 	});

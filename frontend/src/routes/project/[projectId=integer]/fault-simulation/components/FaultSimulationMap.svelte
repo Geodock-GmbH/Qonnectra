@@ -1,0 +1,263 @@
+<script lang="ts">
+	import type { MapBrowserEvent } from 'ol';
+	import type { Coordinate } from 'ol/coordinate.js';
+	import type OlMap from 'ol/Map.js';
+	import type RenderFeature from 'ol/render/Feature.js';
+	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
+	import { page } from '$app/state';
+	import LineString from 'ol/geom/LineString.js';
+
+	import 'ol/ol.css';
+
+	import { transform } from 'ol/proj.js';
+
+	import { m } from '$lib/paraglide/messages';
+
+	import { MapState } from '$lib/classes/MapState.svelte';
+	import Map from '$lib/components/Map.svelte';
+	import MapHint from '$lib/components/MapHint.svelte';
+	import { syncLayerStyles } from '$lib/map/layerStyleSync';
+	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
+	import { syncMapProject } from '$lib/map/projectScopeSync';
+	import { trenchColorSelected } from '$lib/stores/store';
+	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
+	import { onQueryChange } from '$lib/utils/urlState';
+	import { onProjectChange } from '$lib/context/project';
+	import { getLayerStyleAttributes } from '$lib/remote/map/layers.remote';
+	import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
+
+	import FaultSimulationPopUp from './FaultSimulationPopUp.svelte';
+	import { getFaultSimulationState } from './FaultSimulationState.svelte';
+
+	let { projectId }: { projectId: string } = $props();
+
+	const simulation = getFaultSimulationState();
+
+	// The map is built once; a later project switch goes through `onProjectChange`.
+	// svelte-ignore state_referenced_locally
+	const mapState = new MapState(projectId, get(trenchColorSelected), {
+		trench: true,
+		address: true,
+		node: true,
+		area: true
+	});
+	const layersInitialized = mapState.initializeLayers();
+
+	let olMap = $state.raw<OlMap | null>(null);
+	let popupPixel = $state({ x: 0, y: 0 });
+
+	/**
+	 * The damage location from the URL, or else the one picked on the map,
+	 * in the map's view projection, for anchoring the popup.
+	 */
+	const damageMapCoordinate: Coordinate | null = $derived.by(() => {
+		const point = simulation.damagePoint ?? simulation.picked?.point;
+		const { srid, proj4Def } = page.data;
+		if (!point || !olMap) return null;
+		if (!srid || !proj4Def) return point;
+		registerStorageProjection(srid, proj4Def);
+		return transform(point, storageProjection(srid), olMap.getView().getProjection());
+	});
+
+	/**
+	 * Moves the popup to the damage location's current position on screen.
+	 */
+	function updatePopupPixel(): void {
+		if (!olMap || !damageMapCoordinate) return;
+		const pixel = olMap.getPixelFromCoordinate(damageMapCoordinate);
+		if (pixel) {
+			popupPixel = { x: Math.round(pixel[0]), y: Math.round(pixel[1]) };
+		}
+	}
+
+	/**
+	 * @param point - A damage location.
+	 * @returns A comparable text form of the location.
+	 */
+	function formatPoint(point: [number, number]): string {
+		return point.join(',');
+	}
+
+	/**
+	 * Mirrors the damage in the URL onto the map overlay: the marker at once,
+	 * the affected features once the simulation of that location resolved.
+	 * A failed simulation is reported and leaves only the marker.
+	 */
+	async function followDamage(): Promise<void> {
+		const point = simulation.damagePoint;
+		simulation.overlay.clear();
+		if (!point || !olMap || !damageMapCoordinate) return;
+
+		simulation.overlay.showDamagePoint(damageMapCoordinate);
+		updatePopupPixel();
+		const query = simulation.query;
+		if (!query) return;
+		try {
+			const result = await query;
+			// The location may have changed while the simulation ran.
+			const current = simulation.damagePoint;
+			if (!current || formatPoint(current) !== formatPoint(point)) return;
+			simulation.overlay.showResult(result);
+		} catch (err) {
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Simulation error',
+				extraData: {
+					from: 'FaultSimulationMap.followDamage',
+					error: remoteErrorMessage(err) ?? String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
+			globalToaster.error({
+				title: m.message_fault_simulation_error(),
+				description: remoteErrorMessage(err) ?? m.message_fault_simulation_error()
+			});
+		}
+	}
+
+	onQueryChange('damage', followDamage);
+
+	/**
+	 * Adds the simulation overlay to the map, applies the damage the URL
+	 * already names and keeps the popup anchored while the map moves.
+	 * @param event - Map ready event containing the OL map instance
+	 */
+	function handleMapReady({ map }: { map: OlMap }): void {
+		olMap = map;
+		const { srid, proj4Def } = page.data;
+		simulation.overlay.attach(map, srid && proj4Def ? { srid, proj4Def } : null);
+		map.on('postrender', updatePopupPixel);
+		void followDamage();
+	}
+
+	/**
+	 * Handles map clicks: the point on the clicked trench nearest the click
+	 * becomes the picked damage location, which the popup offers to simulate.
+	 * A click beside every trench drops the pick.
+	 * @param evt - The map browser click event
+	 */
+	function handleMapClick(evt: MapBrowserEvent<PointerEvent>): void {
+		if (!olMap || !simulation.canSelectDamagePoint) return;
+
+		const feature = olMap.forEachFeatureAtPixel(evt.pixel, (f) => f, {
+			hitTolerance: 10,
+			layerFilter: (layer) => layer === mapState.vectorTileLayer
+		});
+
+		if (!feature) {
+			simulation.picked = null;
+			simulation.overlay.clear();
+			return;
+		}
+
+		const { srid, proj4Def } = page.data;
+		if (srid && proj4Def) {
+			registerStorageProjection(srid, proj4Def);
+		}
+
+		const renderGeom = feature.getGeometry() as RenderFeature | undefined;
+		let snappedCoord = evt.coordinate;
+		if (renderGeom) {
+			const flatCoords = renderGeom.getFlatCoordinates();
+			const coords = [];
+			for (let i = 0; i < flatCoords.length; i += 2) {
+				coords.push([flatCoords[i], flatCoords[i + 1]]);
+			}
+			if (coords.length >= 2) {
+				snappedCoord = new LineString(coords).getClosestPoint(evt.coordinate);
+			}
+		}
+
+		const storageCoord = srid
+			? transform(snappedCoord, olMap.getView().getProjection(), storageProjection(srid))
+			: snappedCoord;
+
+		const properties = feature.getProperties();
+		simulation.picked = {
+			point: [storageCoord[0], storageCoord[1]],
+			trench: {
+				id_trench: properties.id_trench ?? '—',
+				construction_type: properties.construction_type ?? null
+			}
+		};
+		simulation.overlay.showDamagePoint(snappedCoord);
+		updatePopupPixel();
+	}
+
+	onProjectChange((nextProjectId) =>
+		syncMapProject(mapState, nextProjectId, () => simulation.reset())
+	);
+
+	onMount(() => {
+		const stopStyleSync = syncLayerStyles(mapState);
+
+		return () => {
+			stopStyleSync();
+			olMap?.un('postrender', updatePopupPixel);
+			simulation.overlay.detach();
+			mapState.cleanup();
+		};
+	});
+
+	const attributes = $derived(await getLayerStyleAttributes());
+</script>
+
+{#if layersInitialized}
+	<div class="map-wrapper border-2 rounded-lg border-surface-200-800 h-full w-full relative">
+		<Map
+			className="rounded-lg overflow-hidden"
+			layers={mapState.getLayers()}
+			projectId={mapState.selectedProject}
+			viewInUrl={true}
+			showLayerVisibilityTree={true}
+			showSearchPanel={true}
+			onready={handleMapReady}
+			onclick={handleMapClick}
+			nodeTypes={attributes.nodeTypes}
+			surfaces={attributes.surfaces}
+			constructionTypes={attributes.constructionTypes}
+			areaTypes={attributes.areaTypes}
+		/>
+
+		<MapHint
+			message={m.message_fault_select_trench()}
+			visible={!simulation.damagePoint && !simulation.simulationResult}
+		/>
+
+		{#if (simulation.damagePoint || simulation.picked) && !simulation.simulationResult}
+			<div class="fault-popup" style:left="{popupPixel.x}px" style:top="{popupPixel.y}px">
+				<FaultSimulationPopUp />
+				<div class="fault-popup-arrow"></div>
+			</div>
+		{/if}
+	</div>
+{:else}
+	<div class="p-4 text-yellow-700 bg-yellow-100 border border-yellow-400 rounded">
+		<p>{m.message_error_could_not_load_map_tiles()}</p>
+	</div>
+{/if}
+
+<style>
+	.fault-popup {
+		position: absolute;
+		z-index: 10;
+		pointer-events: auto;
+		transform: translate(-50%, calc(-100% - 16px));
+	}
+
+	.fault-popup-arrow {
+		position: absolute;
+		bottom: -8px;
+		left: 50%;
+		transform: translateX(-50%);
+		border-left: 8px solid transparent;
+		border-right: 8px solid transparent;
+		border-top: 8px solid rgb(var(--color-surface-200));
+	}
+
+	:global(.dark) .fault-popup-arrow {
+		border-top-color: rgb(var(--color-surface-800));
+	}
+</style>

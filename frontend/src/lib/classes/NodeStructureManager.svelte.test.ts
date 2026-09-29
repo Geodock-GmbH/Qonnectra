@@ -493,7 +493,7 @@ describe('saveClipNumber', () => {
 
 	test('should roll back on failure', async () => {
 		const manager = await readyManager();
-		manager.clipNumbers = new Map([[2, 'Alt']]);
+		manager.clipNumbers.set(2, 'Alt');
 		remote.upsertSlotClipNumber.mockRejectedValue(new Error('nein'));
 
 		await manager.saveClipNumber(2, 'Neu');
@@ -508,7 +508,8 @@ describe('computeSlotRows', () => {
 		const manager = await readyManager();
 		manager.structures = [structure('s1', 2, 3)];
 		manager.dividers = [{ uuid: 'd1', slot_configuration: 'cfg-1', after_slot: 3 }];
-		manager.clipNumbers = new Map([[1, 'K-1']]);
+		manager.clipNumbers.clear();
+		manager.clipNumbers.set(1, 'K-1');
 
 		const rows = manager.computeSlotRows();
 

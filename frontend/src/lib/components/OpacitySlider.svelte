@@ -10,7 +10,7 @@
 		maxOpacity = 1,
 		stepOpacity = 0.01,
 		opacity = 1,
-		onChange = (value: number) => {},
+		onChange = () => {},
 		compact = false
 	}: {
 		minOpacity?: number;
@@ -21,17 +21,13 @@
 		compact?: boolean;
 	} = $props();
 
-	let sliderValue = $state<number[]>([1]);
+	let sliderValue = $derived([opacity]);
 
 	function handleSkeletonSliderChange(detail: { value: number[] }) {
 		const newOpacityValue = detail.value[0];
 		sliderValue = [newOpacityValue];
 		onChange(newOpacityValue);
 	}
-
-	$effect(() => {
-		sliderValue = [opacity];
-	});
 
 	let displayPercentage = $derived(Math.round(sliderValue[0] * 100));
 </script>

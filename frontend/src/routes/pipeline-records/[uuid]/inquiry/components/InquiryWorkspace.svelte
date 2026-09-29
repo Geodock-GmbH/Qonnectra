@@ -14,9 +14,11 @@
 	import MapHint from '$lib/components/MapHint.svelte';
 	import { syncLayerStyles } from '$lib/map/layerStyleSync';
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
-	import { selectedProject, trenchColorSelected } from '$lib/stores/store';
+	import { trenchColorSelected } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { defaultProject } from '$lib/utils/rememberedProject';
 	import { tooltip } from '$lib/utils/tooltip';
+	import { getRememberedProject } from '$lib/context/rememberedProject.svelte';
 	import { getLayerStyleAttributes } from '$lib/remote/map/layers.remote';
 	import {
 		createInquiryArea,
@@ -33,7 +35,12 @@
 
 	let { recordUuid }: { recordUuid: string } = $props();
 
-	const mapState = new MapState(get(selectedProject), get(trenchColorSelected), {
+	// A global page: the map defaults to the remembered project.
+	const remembered = getRememberedProject();
+	// svelte-ignore state_referenced_locally
+	const mapProject = defaultProject(remembered.id, page.data.projects ?? [])?.value ?? '';
+
+	const mapState = new MapState(mapProject, get(trenchColorSelected), {
 		trench: true,
 		address: true,
 		node: true,
@@ -202,6 +209,7 @@
 			<Map
 				className="rounded-lg overflow-hidden h-full w-full"
 				layers={mapState.getLayers()}
+				projectId={mapState.selectedProject}
 				showLayerVisibilityTree={true}
 				showSearchPanel={true}
 				onready={handleMapReady}

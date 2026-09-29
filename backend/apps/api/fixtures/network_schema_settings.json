@@ -3,7 +3,8 @@
         "model": "api.networkschemasettings",
         "pk": 1,
         "fields": {
-            "project_id": 1
+            "project_id": 1,
+            "configured": true
         }
     }
 ]

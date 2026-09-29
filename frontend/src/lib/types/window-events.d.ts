@@ -1,7 +1,7 @@
 /**
  * Ambient typings for the app's custom `window` events.
  *
- * Augmenting `WindowEventMap` lets `window.addEventListener('micropipeLinkageChanged', h)`
+ * Augmenting `WindowEventMap` lets `window.addEventListener('cableConnectionChanged', h)`
  * infer `h`'s event as the matching `CustomEvent<Detail>` — no untyped window
  * cast and no loosely-typed handler needed. Keep each entry in sync with the
  * corresponding `window.dispatchEvent(new CustomEvent(...))` call site.
@@ -21,15 +21,29 @@ declare global {
 	}
 
 	interface WindowEventMap {
-		micropipeLinkageChanged: CustomEvent<{
-			cableId: string;
-			connections: import('$lib/classes/NetworkSchemaState.svelte').MicropipeConnection[];
-		}>;
 		/**
 		 * Broadcast of the node IDs affected by a cable create/delete so the fiber
 		 * sidebar can refresh its cache.
 		 */
 		cableConnectionChanged: CustomEvent<{ nodeIds: string[] }>;
+		/** A fiber splice was created or removed; fiber usage indicators are stale. */
+		fiberSpliceChanged: CustomEvent<null>;
+		/** A residential unit splice was created or removed; unit usage indicators are stale. */
+		residentialUnitSpliceChanged: CustomEvent<null>;
+	}
+}
+
+/**
+ * The same events as `<svelte:window>` attributes. Svelte event attributes are
+ * case sensitive, so `oncableConnectionChanged` listens to `cableConnectionChanged`.
+ */
+declare module 'svelte/elements' {
+	interface SvelteWindowAttributes {
+		oncableConnectionChanged?: (event: WindowEventMap['cableConnectionChanged']) => void;
+		onfiberSpliceChanged?: (event: WindowEventMap['fiberSpliceChanged']) => void;
+		onresidentialUnitSpliceChanged?: (
+			event: WindowEventMap['residentialUnitSpliceChanged']
+		) => void;
 	}
 }
 

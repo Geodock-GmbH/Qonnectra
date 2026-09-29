@@ -40,7 +40,8 @@ const ConduitFieldsSchema = {
 	owner_id: v.optional(v.number()),
 	constructor_id: v.optional(v.number()),
 	manufacturer_id: v.optional(v.number()),
-	flag_id: v.optional(v.number())
+	flag_id: v.optional(v.number()),
+	funding_status: v.optional(v.nullable(v.boolean()))
 };
 
 const CreateConduitSchema = v.object({

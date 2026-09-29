@@ -2,17 +2,18 @@
 	import type { LayoutData } from './$types';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
+	import { afterNavigate } from '$app/navigation';
 	import { Toast } from '@skeletonlabs/skeleton-svelte';
 
 	import AppBar from '$lib/components/AppBar.svelte';
-	import LoadingOverlay from '$lib/components/LoadingOverlay.svelte';
 	import MobileNav from '$lib/components/MobileNav.svelte';
+	import NavigationProgress from '$lib/components/NavigationProgress.svelte';
 	import Sidebar from '$lib/components/SideBar.svelte';
 	import { setupNavigationCancellation } from '$lib/map/navigationCancellation.js';
-	import { updateUserStore } from '$lib/stores/auth';
-	import { selectedProject, theme } from '$lib/stores/store';
+	import { theme } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { startHeartbeat, stopHeartbeat } from '$lib/utils/tokenHeartbeat.svelte';
+	import { stopSessionKeepAlive, syncSessionKeepAlive } from '$lib/utils/sessionKeepAlive';
+	import { setRememberedProject } from '$lib/context/rememberedProject.svelte';
 
 	import '../app.css';
 
@@ -22,21 +23,17 @@
 		setupNavigationCancellation();
 	}
 
-	onMount(() => {
-		if (data.user?.isAuthenticated) {
-			startHeartbeat();
-			return () => stopHeartbeat();
-		}
-	});
+	// Fires on hydration and after every navigation, once `data` reflects it.
+	afterNavigate(() => syncSessionKeepAlive(data.user?.isAuthenticated ?? false));
+	onMount(() => stopSessionKeepAlive);
+	onMount(() =>
+		theme.subscribe((names) => {
+			document.documentElement.setAttribute('data-theme', names.join(' '));
+		})
+	);
 
-	$effect(() => updateUserStore(data.user));
 	// svelte-ignore state_referenced_locally
-	if (data.selectedProject) {
-		selectedProject.set(data.selectedProject);
-	}
-	$effect(() => {
-		document.documentElement.setAttribute('data-theme', $theme.join(' '));
-	});
+	setRememberedProject(data.rememberedProject);
 </script>
 
 <div class="flex h-screen">
@@ -52,7 +49,7 @@
 
 <MobileNav />
 
-<LoadingOverlay />
+<NavigationProgress />
 
 <Toast.Group toaster={globalToaster}>
 	{#snippet children(toast)}

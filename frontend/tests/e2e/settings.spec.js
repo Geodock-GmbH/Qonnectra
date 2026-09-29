@@ -23,9 +23,19 @@ test.describe('Settings page', () => {
 		await page.waitForLoadState('networkidle');
 	});
 
+	test('the remembered theme is applied to the page after a reload', async ({ page }) => {
+		// The server always renders the default theme; the stored choice replaces it on load.
+		await page.evaluate(() => window.localStorage.setItem('theme', JSON.stringify(['cerberus'])));
+		await page.reload();
+
+		await expect(page.locator('html')).toHaveAttribute('data-theme', 'cerberus');
+	});
+
 	test('shows the logged-in username in the user section', async ({ page }) => {
 		// The account section renders the real authenticated user, not a placeholder.
-		await expect(page.getByText(/** @type {string} */ (TEST_USERNAME))).toBeVisible();
+		await expect(
+			page.getByText(/** @type {string} */ (TEST_USERNAME), { exact: true })
+		).toBeVisible();
 	});
 
 	test('renders the map style controls with named color inputs', async ({ page }) => {

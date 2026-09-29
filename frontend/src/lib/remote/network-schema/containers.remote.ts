@@ -1,8 +1,10 @@
+import type { NodeStructure } from '$lib/classes/NodeStructureContext.svelte';
 import type { Hierarchy } from '$lib/components/node-structure/containerItemTypes';
 import { command, query } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';
 
+import { failFromResponse } from '$lib/remote/shared/backend-error';
 import { djangoHeaders } from '$lib/remote/shared/remote-auth';
 
 const CreateContainerSchema = v.object({
@@ -46,9 +48,7 @@ export const getContainerTypes = query(async (): Promise<{ id: number; name: str
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		throw new Error(`HTTP ${response.status}: Failed to load container types`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to load container types');
 
 	return (await response.json()) as { id: number; name: string }[];
 });
@@ -65,10 +65,7 @@ export const getContainerHierarchy = query(v.pipe(v.string(), v.nonEmpty()), asy
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to fetch hierarchy`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to fetch hierarchy');
 
 	return (await response.json()) as Hierarchy;
 });
@@ -86,12 +83,9 @@ export const getNodeStructures = query(v.pipe(v.string(), v.nonEmpty()), async (
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to fetch node structures`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to fetch node structures');
 
-	return (await response.json()) as Record<string, unknown>[];
+	return (await response.json()) as NodeStructure[];
 });
 
 /**
@@ -119,10 +113,7 @@ export const createContainer = command(CreateContainerSchema, async (input) => {
 		body: JSON.stringify(requestBody)
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to create container`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to create container');
 
 	return (await response.json()) as Record<string, unknown>;
 });
@@ -138,10 +129,7 @@ export const deleteContainer = command(v.pipe(v.string(), v.nonEmpty()), async (
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to delete container`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to delete container');
 });
 
 /**
@@ -158,10 +146,7 @@ export const updateContainerName = command(UpdateContainerNameSchema, async (inp
 		body: JSON.stringify({ name: input.name || null })
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to update container name`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to update container name');
 
 	return (await response.json()) as Record<string, unknown>;
 });
@@ -188,12 +173,7 @@ export const moveItem = command(MoveItemSchema, async (input) => {
 		body: JSON.stringify(body)
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(
-			errorData.detail || errorData.error || `HTTP ${response.status}: Failed to move item`
-		);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to move item');
 });
 
 /**
@@ -210,9 +190,7 @@ export const toggleContainerExpanded = command(
 			method: 'GET',
 			headers: djangoHeaders()
 		});
-		if (!getResponse.ok) {
-			throw new Error(`HTTP ${getResponse.status}: Container not found`);
-		}
+		if (!getResponse.ok) await failFromResponse(getResponse, 'Container not found');
 		const container = (await getResponse.json()) as { is_expanded?: boolean };
 
 		const response = await fetch(`${API_URL}container/${containerUuid}/`, {
@@ -220,9 +198,7 @@ export const toggleContainerExpanded = command(
 			headers,
 			body: JSON.stringify({ is_expanded: !container.is_expanded })
 		});
-		if (!response.ok) {
-			throw new Error(`HTTP ${response.status}: Failed to update container`);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to update container');
 	}
 );
 
@@ -245,12 +221,7 @@ export const createSlotConfiguration = command(CreateSlotConfigSchema, async (in
 		})
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(
-			errorData.detail || `HTTP ${response.status}: Failed to create slot configuration`
-		);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to create slot configuration');
 
 	return (await response.json()) as Record<string, unknown>;
 });
@@ -274,12 +245,7 @@ export const updateSlotConfiguration = command(UpdateSlotConfigSchema, async (in
 		body: JSON.stringify(requestBody)
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(
-			errorData.detail || `HTTP ${response.status}: Failed to update slot configuration`
-		);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to update slot configuration');
 
 	return (await response.json()) as Record<string, unknown>;
 });
@@ -297,12 +263,7 @@ export const deleteSlotConfiguration = command(
 			headers: djangoHeaders()
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(
-				errorData.detail || `HTTP ${response.status}: Failed to delete slot configuration`
-			);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to delete slot configuration');
 	}
 );
 
@@ -317,9 +278,7 @@ export const exportNodeExcel = command(v.pipe(v.string(), v.nonEmpty()), async (
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		throw new Error(`HTTP ${response.status}: Export failed`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Export failed');
 
 	const arrayBuffer = await response.arrayBuffer();
 	const base64 = Buffer.from(arrayBuffer).toString('base64');

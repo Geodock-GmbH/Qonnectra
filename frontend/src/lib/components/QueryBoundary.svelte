@@ -3,6 +3,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { ensureFreshSession } from '$lib/utils/sessionKeepAlive';
 	import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
 
 	let {
@@ -27,12 +28,20 @@
 {/snippet}
 
 {#snippet failed(error: unknown, reset: () => void)}
+	<!-- The failure may be an expired token: refresh the session before retrying. -->
 	<div
 		class={['card preset-filled-error-500 p-4 flex items-center justify-between gap-4', className]}
 		role="alert"
 	>
 		<p>{remoteErrorMessage(error) ?? m.message_error_loading_data()}</p>
-		<button type="button" class="btn preset-outlined shrink-0" onclick={reset}>
+		<button
+			type="button"
+			class="btn preset-outlined shrink-0"
+			onclick={async () => {
+				await ensureFreshSession();
+				reset();
+			}}
+		>
 			{m.common_retry()}
 		</button>
 	</div>

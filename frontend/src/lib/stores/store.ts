@@ -12,26 +12,11 @@ import {
 import { persisted } from './persisted';
 import { session } from './session';
 
-/** Default center coordinates */
-const defaultCenter: [number, number] = [0, 0];
-
-/** Default zoom level */
-const defaultZoom = 2;
-
 /** Default flag value */
 const defaultFlagValue = ['1'];
 
 /** Whether the sidebar is expanded */
 export const sidebarExpanded = persisted('isSidebarExpanded', true);
-
-/** Selected project */
-export const selectedProject: Writable<string> = writable('1');
-
-/** Map center */
-export const mapCenter: Writable<number[]> = persisted('mapCenter', defaultCenter);
-
-/** Map zoom */
-export const mapZoom: Writable<number> = persisted('mapZoom', defaultZoom);
 
 /** Default trench color hex code */
 export const trenchColor = persisted('trenchColor', DEFAULT_TRENCH_COLOR);
@@ -84,6 +69,23 @@ export const networkSchemaChildViewport: Writable<{ x: number; y: number; zoom: 
 		y: 0,
 		zoom: 1
 	});
+
+/** A floating panel's position and size in viewport pixels. */
+export interface FloatingPanelRect {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}
+
+/**
+ * Last rect of each floating panel that names a storage key. It depends on the
+ * screen, so it stays per device and is not part of the synced settings.
+ */
+export const floatingPanelRects: Writable<Record<string, FloatingPanelRect>> = persisted(
+	'floatingPanelRects',
+	{}
+);
 
 /** Whether to show all projects on map */
 export const globalMapView = persisted('globalMapView', false);

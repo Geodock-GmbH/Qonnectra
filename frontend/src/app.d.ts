@@ -1,7 +1,22 @@
 declare global {
 	namespace App {
 		interface Locals {
-			user: import('$lib/stores/auth').UserData;
+			user: import('$lib/types/user').UserData;
+		}
+
+		interface PageData {
+			/** Loaded by the root layout; absent only when that load failed. */
+			user?: import('$lib/types/user').UserData;
+		}
+
+		interface PageState {
+			/** Valuation selection that is page-only, not in the URL; gone on reload. */
+			valuation?: {
+				/** Areas mode entered without a pick yet. */
+				pickingAreas?: boolean;
+				/** A selection too long for the URL. */
+				localAreas?: string[];
+			};
 		}
 	}
 }

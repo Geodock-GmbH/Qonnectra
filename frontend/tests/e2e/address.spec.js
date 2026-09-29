@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 
-import { loginOrSkip } from './helpers/auth.js';
+import { firstFeature } from './helpers/api.js';
+import { API_URL, loginOrSkip } from './helpers/auth.js';
+import { getProjectId, gotoProjectRoute, projectPath } from './helpers/routes.js';
 
 /**
  * Desktop address rows (the md:block table body).
@@ -13,9 +15,7 @@ function desktopRows(page) {
 test.describe('Address list page', () => {
 	test.beforeEach(async ({ page }) => {
 		await loginOrSkip(page, test.skip);
-		// Bare /address redirects to /address/<active project id>.
-		await page.goto('/address');
-		await page.waitForURL(/\/address\/[^/]+$/, { timeout: 10000 });
+		await gotoProjectRoute(page, 'address');
 		await page.waitForLoadState('networkidle');
 	});
 
@@ -37,7 +37,7 @@ test.describe('Address list page', () => {
 		await search.press('Enter');
 
 		await expect(page).toHaveURL(/[?&]search=teststreet-xyz/);
-		await expect(page).toHaveURL(/[?&]page=1/);
+		await expect(page).not.toHaveURL(/[?&]page=/);
 	});
 
 	/**
@@ -86,8 +86,7 @@ test.describe('Address list page', () => {
 		test.skip(rowCount < 1, 'No address rows available to open');
 
 		await desktopRows(page).first().click();
-		// Detail route is /address/<projectId>/<uuid>.
-		await page.waitForURL(/\/address\/[^/]+\/[0-9a-f-]{36}/, { timeout: 10000 });
+		await page.waitForURL(/\/project\/\d+\/address\/[0-9a-f-]{36}$/, { timeout: 10000 });
 	});
 
 	test('mobile viewport shows the card list with a search box', async ({ page }) => {
@@ -95,5 +94,148 @@ test.describe('Address list page', () => {
 
 		// The mobile layout swaps the table for cards and its own search field.
 		await expect(page.locator('input[name="mobile-search"]')).toBeVisible();
+	});
+});
+
+/**
+ * The product of `opacity` over an element and its ancestors: what a user
+ * actually sees. Playwright counts `opacity: 0` as visible, so a hidden-by-
+ * opacity button would pass `toBeVisible` on its own.
+ * @param {import('@playwright/test').Locator} locator
+ * @returns {Promise<number>}
+ */
+function effectiveOpacity(locator) {
+	return locator.evaluate((el) => {
+		let opacity = 1;
+		for (let node = /** @type {Element | null} */ (el); node; node = node.parentElement) {
+			opacity *= Number(getComputedStyle(node).opacity);
+		}
+		return opacity;
+	});
+}
+
+/**
+ * Attachments on the address detail page: a long-named file is uploaded
+ * through the real form, then deleted through the file explorer's actions.
+ */
+test.describe('Address detail attachments', () => {
+	// Unique per worker: parallel workers upload to the same address, and a
+	// shared name would let one worker's delete remove another worker's file.
+	const stem = `e2e-attachment-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-with-a-deliberately-long-name-that-has-to-truncate`;
+	const fileName = `${stem}.txt`;
+	/** @type {string | null} */
+	let addressUuid = null;
+
+	test.beforeEach(async ({ page }) => {
+		await loginOrSkip(page, test.skip);
+		const projectId = await getProjectId(page);
+		const address = await firstFeature(page, 'address', projectId);
+		test.skip(!address, 'Needs at least one address in the project');
+		addressUuid = /** @type {import('./helpers/api.js').ListedFeature} */ (address).uuid;
+
+		await page.goto(projectPath(projectId, `address/${addressUuid}`));
+		// The cards above load asynchronously and shift the attachments card down.
+		await page.waitForLoadState('networkidle');
+		const card = attachmentsCard(page);
+		await card.locator('input[type="file"]').setInputFiles({
+			name: fileName,
+			mimeType: 'text/plain',
+			buffer: Buffer.from('e2e attachment')
+		});
+		const uploaded = page.waitForResponse(
+			(r) => r.request().method() === 'POST' && r.url().endsWith('/feature-files/')
+		);
+		await card.getByRole('button', { name: /^(upload 1 file|1 datei hochladen)$/i }).click();
+		const response = await uploaded;
+		expect(response.ok(), `upload: ${response.status()} ${await response.text()}`).toBe(true);
+
+		const row = fileRow(page);
+		const branch = card
+			.locator('[data-scope="tree-view"][data-part="branch"]')
+			.filter({ hasText: stem });
+		await expect(branch).toHaveCount(1, { timeout: 15000 });
+		if (!(await row.isVisible())) await branch.locator('[data-part="branch-control"]').click();
+		await expect(row).toBeVisible();
+	});
+
+	test.afterEach(async ({ page }) => {
+		if (!addressUuid) return;
+		const response = await page.request.get(
+			`${API_URL}feature-files/?object_id=${addressUuid}&page_size=100`
+		);
+		if (!response.ok()) return;
+		const payload = await response.json();
+		const files = Array.isArray(payload) ? payload : (payload.results ?? []);
+		for (const file of files) {
+			if (String(file.file_name).startsWith(stem)) {
+				await page.request.delete(`${API_URL}feature-files/${file.uuid}/`);
+			}
+		}
+	});
+
+	/**
+	 * @param {import('@playwright/test').Page} page
+	 */
+	function attachmentsCard(page) {
+		return page
+			.locator('.card')
+			.filter({ has: page.getByRole('heading', { name: /^(attachments|anhänge)$/i }) });
+	}
+
+	/**
+	 * @param {import('@playwright/test').Page} page
+	 */
+	function fileRow(page) {
+		return attachmentsCard(page)
+			.locator('[data-scope="tree-view"][data-part="item"]')
+			.filter({ hasText: stem });
+	}
+
+	/**
+	 * Confirms the open delete dialog and waits for the row to disappear.
+	 * @param {import('@playwright/test').Page} page
+	 */
+	async function confirmDeletion(page) {
+		const dialog = page.getByRole('dialog');
+		await expect(dialog).toBeVisible();
+		await dialog.getByRole('button', { name: /^(delete|löschen)$/i }).click();
+		await expect(fileRow(page)).toHaveCount(0);
+	}
+
+	test('a long file name stays inside the card and its delete action is clickable', async ({
+		page
+	}) => {
+		const row = fileRow(page);
+		const cardBox = await attachmentsCard(page).boundingBox();
+		const rowBox = await row.boundingBox();
+		if (!cardBox || !rowBox) throw new Error('Attachments card or file row is not rendered');
+		expect(rowBox.x + rowBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width);
+
+		await row.hover();
+		const remove = row.getByRole('button', { name: /^(delete file|datei löschen)$/i });
+		await expect.poll(() => effectiveOpacity(remove)).toBe(1);
+		// A neighbouring column painted over the button would intercept this click.
+		await remove.click();
+		await confirmDeletion(page);
+	});
+
+	test.describe('on a touch device', () => {
+		test.skip(({ browserName }) => browserName !== 'chromium', 'Touch emulation needs Chromium');
+		test.use({ viewport: { width: 800, height: 1000 }, hasTouch: true, isMobile: true });
+
+		test('tapping a file reveals actions that delete it', async ({ page }) => {
+			expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true);
+
+			const row = fileRow(page);
+			await row.getByText(stem).tap();
+
+			const remove = row
+				.getByRole('button', { name: /^(delete file|datei löschen)$/i })
+				.filter({ visible: true });
+			await expect(remove).toHaveCount(1);
+			await expect.poll(() => effectiveOpacity(remove)).toBe(1);
+			await remove.tap();
+			await confirmDeletion(page);
+		});
 	});
 });

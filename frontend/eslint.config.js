@@ -2,7 +2,11 @@ import svelte from 'eslint-plugin-svelte';
 import tseslint from 'typescript-eslint';
 
 /**
- * Minimal flat ESLint config enforcing the `any` ban.
+ * Flat ESLint config: the typescript-eslint and Svelte recommended rules, plus
+ * the `any` ban, typed navigation and the `$app/state` runes over the legacy
+ * `$app/stores`. Unused names prefixed with `_` are allowed (omitted rest keys,
+ * dependency reads in effects). `.svelte` and `.svelte.ts` files are parsed as
+ * TypeScript.
  *
  * ```
  * npm run lint:ts
@@ -34,11 +38,28 @@ export default tseslint.config(
 			}
 		},
 		rules: {
-			'@typescript-eslint/no-explicit-any': 'error'
+			'@typescript-eslint/no-explicit-any': 'error',
+			'@typescript-eslint/no-unused-vars': [
+				'error',
+				{ argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }
+			],
+			'svelte/no-navigation-without-resolve': 'error',
+			// Runes read `page` from `$app/state`; the store form is legacy.
+			'no-restricted-imports': [
+				'error',
+				{
+					paths: [
+						{
+							name: '$app/stores',
+							message: 'Use `$app/state` (page, navigating, updated) instead of the legacy stores.'
+						}
+					]
+				}
+			]
 		}
 	},
 	{
-		files: ['**/*.svelte'],
+		files: ['**/*.svelte', '**/*.svelte.ts'],
 		languageOptions: {
 			parserOptions: {
 				parser: tseslint.parser

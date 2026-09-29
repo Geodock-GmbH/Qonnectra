@@ -1,9 +1,10 @@
-import { get } from 'svelte/store';
+import { goto } from '$app/navigation';
 import { render, screen } from '@testing-library/svelte';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { selectedProject } from '$lib/stores/store';
 import { globalToaster } from '$lib/stores/toaster';
+import { pageStub } from '$lib/test-utils/pageStub';
 
 import ProjectCombobox from './ProjectCombobox.svelte';
 
@@ -15,25 +16,16 @@ vi.mock('$app/navigation', () => ({
 	goto: vi.fn()
 }));
 
-const pageStore = vi.hoisted(() => {
-	type PageValue = { params: Record<string, string>; url: URL };
-	let value: PageValue = { params: {}, url: new URL('http://localhost/dashboard') };
-	const subscribers = new Set<(value: PageValue) => void>();
-	return {
-		set(next: PageValue) {
-			value = next;
-			subscribers.forEach((run) => run(value));
-		},
-		subscribe(run: (value: PageValue) => void) {
-			subscribers.add(run);
-			run(value);
-			return () => subscribers.delete(run);
-		}
-	};
-});
+const appState = vi.hoisted(() => ({
+	page: {
+		route: { id: null as string | null },
+		params: {} as Record<string, string>,
+		url: new URL('http://localhost/trace')
+	}
+}));
 
-vi.mock('$app/stores', () => ({
-	page: pageStore
+vi.mock('$app/state', () => ({
+	page: appState.page
 }));
 
 vi.mock('$lib/paraglide/messages', () => ({
@@ -52,14 +44,32 @@ vi.mock('$lib/stores/toaster', () => ({
 }));
 
 const projects = [
-	{ label: 'Ausbau Nord', value: '7' },
-	{ label: 'Ausbau Süd', value: '8' }
+	{ label: 'Ausbau Nord', value: '5' },
+	{ label: 'Ausbau Süd', value: '9' }
 ];
 
+/**
+ * Puts the mocked page on a route.
+ * @param routeId - The route id.
+ * @param params - The route params.
+ * @param url - The page URL.
+ */
+function setPage(routeId: string | null, params: Record<string, string>, url: string) {
+	Object.assign(appState.page, pageStub({ routeId, params, url }));
+}
+
+/** Opens the picker and chooses the project with the given label. */
+async function choose(label: string) {
+	const user = userEvent.setup();
+	await user.click(screen.getByRole('button'));
+	await user.click(await screen.findByText(label));
+}
+
 beforeEach(() => {
-	selectedProject.set('7');
-	pageStore.set({ params: {}, url: new URL('http://localhost/dashboard') });
+	setPage(null, {}, 'http://localhost/trace');
+	document.cookie = 'last-project=; path=/; max-age=0';
 	vi.mocked(globalToaster.error).mockClear();
+	vi.mocked(goto).mockClear();
 });
 
 describe('ProjectCombobox', () => {
@@ -84,32 +94,50 @@ describe('ProjectCombobox', () => {
 		expect(screen.getByText('message_error_fetching_projects_no_projects')).toBeInTheDocument();
 	});
 
-	test('should render the combobox with the selected project', () => {
+	test('should show the project named in the URL', () => {
+		setPage(
+			'/project/[projectId=integer]/map',
+			{ projectId: '9' },
+			'http://localhost/project/9/map'
+		);
 		render(ProjectCombobox, { projects });
 
-		expect(screen.getByRole('combobox')).toBeInTheDocument();
+		expect(screen.getByRole('combobox')).toHaveValue('Ausbau Süd');
 	});
 
-	test('should sync the selected project from the URL parameter', async () => {
+	test('should switch to the same page in the new project, dropping child identifiers', async () => {
+		setPage(
+			'/project/[projectId=integer]/address/[uuid]',
+			{ projectId: '5', uuid: 'abc' },
+			'http://localhost/project/5/address/abc?page=2'
+		);
 		render(ProjectCombobox, { projects });
 
-		pageStore.set({ params: { projectId: '8' }, url: new URL('http://localhost/map/8') });
-		await Promise.resolve();
+		await choose('Ausbau Süd');
 
-		expect(get(selectedProject)).toBe('8');
+		expect(goto).toHaveBeenCalledWith('/project/9/address');
 	});
 
-	test('should keep a newly selected project while the URL still names the previous one', async () => {
-		pageStore.set({ params: { projectId: '7' }, url: new URL('http://localhost/map/7') });
+	test('should keep the flag when switching project on the dashboard', async () => {
+		setPage(
+			'/project/[projectId=integer]/dashboard/[[flagId]]',
+			{ projectId: '5', flagId: '3' },
+			'http://localhost/project/5/dashboard/3'
+		);
 		render(ProjectCombobox, { projects });
-		await Promise.resolve();
-		const seen: string[] = [];
-		const unsubscribe = selectedProject.subscribe((project) => seen.push(project));
 
-		selectedProject.set('8');
-		await new Promise((resolve) => setTimeout(resolve, 0));
-		unsubscribe();
+		await choose('Ausbau Süd');
 
-		expect(seen).toEqual(['7', '8']);
+		expect(goto).toHaveBeenCalledWith('/project/9/dashboard/3');
+	});
+
+	test('should only remember the project on a global page, without navigating', async () => {
+		setPage('/trace', {}, 'http://localhost/trace');
+		render(ProjectCombobox, { projects });
+
+		await choose('Ausbau Süd');
+
+		expect(goto).not.toHaveBeenCalled();
+		expect(document.cookie).toContain('last-project=9');
 	});
 });

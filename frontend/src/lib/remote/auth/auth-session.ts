@@ -34,22 +34,6 @@ export function clearAuthCookies(cookies: Cookies) {
 }
 
 /**
- * Sets the default `selected-project` cookie unless the user already has one.
- * @param cookies - The request's cookie jar.
- * @param secure - Whether the cookie must be `Secure`.
- */
-export function ensureSelectedProjectCookie(cookies: Cookies, secure: boolean) {
-	if (cookies.get('selected-project')) return;
-	cookies.set('selected-project', '1', {
-		path: '/',
-		maxAge: 60 * 60 * 24 * 365,
-		httpOnly: false,
-		secure,
-		sameSite: 'lax'
-	});
-}
-
-/**
  * Builds the headers for the backend logout call: JSON content type plus the
  * CSRF token and refresh-token cookie when present.
  * @param cookies - The request's cookie jar.

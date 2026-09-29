@@ -24,7 +24,8 @@ describe('conduitFormDefaults', () => {
 			conduitName: 'DA 50',
 			conduitType: ['3'],
 			constructor: ['7'],
-			date: '2026-01-01'
+			date: '2026-01-01',
+			fundingStatus: false
 		};
 
 		saveConduitFormDefaults(values);
@@ -40,6 +41,12 @@ describe('conduitFormDefaults', () => {
 			...emptyConduitFormDefaults(),
 			conduitName: 'Rohr'
 		});
+	});
+
+	test('should treat a non-boolean stored funding status as unknown', () => {
+		localStorage.setItem(STORAGE_KEY, JSON.stringify({ fundingStatus: 'true' }));
+
+		expect(loadConduitFormDefaults().fundingStatus).toBeNull();
 	});
 
 	test('should fall back to empty values for malformed stored JSON', () => {

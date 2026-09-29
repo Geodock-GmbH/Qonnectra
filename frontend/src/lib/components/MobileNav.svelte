@@ -3,18 +3,34 @@
 	import { slide } from 'svelte/transition';
 	import { page } from '$app/state';
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
-	import { IconBook, IconDotsVertical, IconLanguage } from '@tabler/icons-svelte';
+	import {
+		IconBook,
+		IconChevronDown,
+		IconChevronRight,
+		IconDotsVertical,
+		IconLanguage
+	} from '@tabler/icons-svelte';
 	import { env } from '$env/dynamic/public';
 
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale, setLocale } from '$lib/paraglide/runtime';
 
-	import { userStore } from '$lib/stores/auth';
-	import { canAccessRoute } from '$lib/utils/permissions';
+	import { SidebarNavState } from '$lib/classes/SidebarNavState.svelte';
 	import { tooltip } from '$lib/utils/tooltip';
-	import { footerLinks, navGroups } from '$lib/config/navLinks';
+	import { isActive, navHref } from '$lib/config/navLinks';
+	import { getRememberedProject } from '$lib/context/rememberedProject.svelte';
+
+	import SidebarCustomizeControls from './SidebarCustomizeControls.svelte';
+	import SideBarLink from './SideBarLink.svelte';
+
+	const nav = new SidebarNavState();
 
 	let currentLocale = $derived(getLocale());
+
+	const remembered = getRememberedProject();
+
+	/** The project links point at: the URL's project, or the remembered one on a global page. */
+	const projectId = $derived(page.params.projectId ?? remembered.id);
 
 	/**
 	 * @param locale - Target locale code
@@ -25,39 +41,27 @@
 
 	let showMoreMenu = $state(false);
 
+	/** Closes the "More" sheet, e.g. once one of its links is followed. */
 	function closeMoreMenu() {
 		showMoreMenu = false;
 	}
 
+	/** Opens or closes the "More" sheet from the bottom bar. */
 	function toggleMoreMenu() {
 		showMoreMenu = !showMoreMenu;
 	}
 
 	/**
-	 * Content groups filtered to the routes the current user may access. The
-	 * mobile navigation shows every permitted route regardless of the desktop
-	 * sidebar customization.
+	 * Groups flagged `pinnedToBar` supply the bottom bar and always show every
+	 * permitted route; the rest live in the "More" menu and follow the sidebar
+	 * customization (hidden routes, collapsed groups).
 	 */
-	const permittedGroups = $derived(
-		navGroups
-			.map((group) => ({
-				...group,
-				links: group.links.filter((link) => canAccessRoute($userStore.permissions, link.href))
-			}))
-			.filter((group) => group.links.length > 0)
-	);
-
-	const permittedFooterLinks = $derived(
-		footerLinks.filter((link) => canAccessRoute($userStore.permissions, link.href))
-	);
-
-	/** Groups flagged `pinnedToBar` supply the bottom bar; the rest live in the "More" menu. */
 	const barLinks = $derived(
-		permittedGroups.filter((group) => group.pinnedToBar).flatMap((group) => group.links)
+		nav.permittedGroups.filter((group) => group.pinnedToBar).flatMap((group) => group.links)
 	);
-	const moreGroups = $derived(permittedGroups.filter((group) => !group.pinnedToBar));
+	const moreGroups = $derived(nav.permittedGroups.filter((group) => !group.pinnedToBar));
 
-	const hasMoreContent = $derived(moreGroups.length > 0 || permittedFooterLinks.length > 0);
+	const hasMoreContent = $derived(moreGroups.length > 0 || nav.permittedFooterLinks.length > 0);
 
 	let totalTiles = $derived(barLinks.length + (hasMoreContent ? 1 : 0));
 
@@ -69,19 +73,29 @@
 		const baseClass = 'btn hover:preset-tonal flex-col items-center gap-1';
 		return isSelected ? `${baseClass} preset-filled` : baseClass;
 	}
+
+	/**
+	 * @param isSelected - Whether the link points at the current page
+	 * @returns CSS class string for a link in the "More" menu
+	 */
+	function getMenuLinkClass(isSelected: boolean): string {
+		const baseClass =
+			'flex flex-1 items-center gap-3 p-2 rounded-lg text-surface-900-100 hover:bg-surface-100-800 transition-colors';
+		return isSelected ? `${baseClass} preset-tonal` : baseClass;
+	}
 </script>
 
-<!-- Mobile Navigation Bar -->
 <div
 	class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface-50-900 border-t-2 border-surface-200-800"
 >
 	<Navigation layout="bar">
 		<Navigation.Menu class="grid gap-2" style="grid-template-columns: repeat({totalTiles}, 1fr);">
-			{#each barLinks as link (link.href)}
+			{#each barLinks as link (link.id)}
 				{@const Icon = link.icon}
-				{@const isSelected = link.pathMatch(page.url.pathname)}
+				{@const isSelected = isActive(link, page.route.id)}
+				<!-- eslint-disable svelte/no-navigation-without-resolve -- href comes from navHref(), which resolves the typed route id -->
 				<a
-					href={link.href}
+					href={navHref(link, projectId)}
 					class={getAnchorClass(isSelected)}
 					aria-label={link.label()}
 					{@attach tooltip(link.label())}
@@ -89,6 +103,7 @@
 					<Icon size={24} class="text-surface-700-300" />
 					<span class="text-[10px]">{link.label()}</span>
 				</a>
+				<!-- eslint-enable svelte/no-navigation-without-resolve -->
 			{/each}
 
 			{#if hasMoreContent}
@@ -107,9 +122,7 @@
 	</Navigation>
 </div>
 
-<!-- More Menu Popup -->
 {#if showMoreMenu}
-	<!-- Backdrop -->
 	<div
 		class="fixed inset-0 bg-black/50 z-40 md:hidden"
 		role="button"
@@ -122,42 +135,62 @@
 		}}
 	></div>
 
-	<!-- Popup Menu -->
 	<div
 		class="fixed bottom-20 left-4 right-4 z-50 bg-surface-200-800 rounded-t-lg border-2 border-surface-200-800 shadow-lg md:hidden max-h-[70vh] overflow-y-auto overscroll-contain"
 		in:slide={{ duration: 200, easing: quintOut }}
 	>
 		<div class="p-4 space-y-4">
-			<h3 class="text-lg font-semibold text-surface-900-100">{m.form_more_sites()}</h3>
+			<div class="flex items-center gap-2">
+				<h3 class="text-lg font-semibold text-surface-900-100 flex-1">{m.form_more_sites()}</h3>
+				<SidebarCustomizeControls {nav} />
+			</div>
 
 			{#each moreGroups as group (group.id)}
-				<section>
-					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-700-300 mb-2">
-						{group.label()}
-					</h4>
-					<div class="space-y-1">
-						{#each group.links as link (link.href)}
-							{@const Icon = link.icon}
-							<a
-								href={link.href}
-								class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-100-800 transition-colors"
-								onclick={closeMoreMenu}
-							>
-								<Icon size={20} class="text-surface-700-300" />
-								<span class="text-surface-900-100">{link.label()}</span>
-							</a>
-						{/each}
-					</div>
-				</section>
+				{@const collapsed = nav.isCollapsed(group.id)}
+				{@const visibleLinks = nav.visibleLinks(group)}
+				{#if visibleLinks.length > 0}
+					<section>
+						<button
+							type="button"
+							class="flex w-full items-center justify-between py-1 mb-1 rounded text-xs font-semibold uppercase tracking-wide text-surface-700-300 hover:preset-tonal"
+							aria-expanded={!collapsed}
+							onclick={() => nav.toggleGroup(group.id)}
+						>
+							{group.label()}
+							{#if collapsed}
+								<IconChevronRight class="size-4" />
+							{:else}
+								<IconChevronDown class="size-4" />
+							{/if}
+						</button>
+						{#if !collapsed}
+							<div class="space-y-1">
+								{#each visibleLinks as link (link.id)}
+									<SideBarLink
+										{link}
+										{projectId}
+										anchorClass={getMenuLinkClass}
+										iconClass="size-5"
+										customizing={nav.customizing}
+										hidden={nav.isHidden(link.id)}
+										onToggleHidden={(routeId) => nav.toggleRoute(routeId)}
+										onclick={closeMoreMenu}
+									/>
+								{/each}
+							</div>
+						{/if}
+					</section>
+				{/if}
 			{/each}
 
-			{#if permittedFooterLinks.length > 0 || env.PUBLIC_DOCUMENTATION_URL}
+			{#if nav.permittedFooterLinks.length > 0 || env.PUBLIC_DOCUMENTATION_URL}
 				<section>
 					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-700-300 mb-2">
 						{m.nav_category_system()}
 					</h4>
 					<div class="space-y-1">
 						{#if env.PUBLIC_DOCUMENTATION_URL}
+							<!-- eslint-disable svelte/no-navigation-without-resolve -- external documentation URL -->
 							<a
 								href={env.PUBLIC_DOCUMENTATION_URL}
 								target="_blank"
@@ -168,17 +201,20 @@
 								<IconBook size={20} class="text-surface-700-300" />
 								<span class="text-surface-900-100">{m.nav_documentation()}</span>
 							</a>
+							<!-- eslint-enable svelte/no-navigation-without-resolve -->
 						{/if}
-						{#each permittedFooterLinks as link (link.href)}
+						{#each nav.permittedFooterLinks as link (link.id)}
 							{@const Icon = link.icon}
+							<!-- eslint-disable svelte/no-navigation-without-resolve -- href comes from navHref(), which resolves the typed route id -->
 							<a
-								href={link.href}
+								href={navHref(link, projectId)}
 								class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-100-800 transition-colors"
 								onclick={closeMoreMenu}
 							>
 								<Icon size={20} class="text-surface-700-300" />
 								<span class="text-surface-900-100">{link.label()}</span>
 							</a>
+							<!-- eslint-enable svelte/no-navigation-without-resolve -->
 						{/each}
 					</div>
 				</section>

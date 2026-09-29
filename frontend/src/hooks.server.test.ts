@@ -1,7 +1,9 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { handleAuth, handleProjectRedirect, PUBLIC_ROUTES } from './hooks.server.js';
+import { clearSessionCache, endSession } from '$lib/server/session';
+
+import { handleAuth, PUBLIC_ROUTES } from './hooks.server.js';
 
 vi.mock('$env/static/private', () => ({
 	API_URL: 'http://localhost:8000/'
@@ -12,7 +14,12 @@ vi.mock('@sveltejs/kit', () => ({
 		const redirectError = new Error('redirect') as Error & { status: number; location: string };
 		redirectError.status = status;
 		redirectError.location = location;
-		return redirectError;
+		throw redirectError;
+	},
+	error: (status: number, message: string) => {
+		const httpError = new Error(message) as Error & { status: number };
+		httpError.status = status;
+		throw httpError;
 	},
 	sequence:
 		(...handlers: unknown[]) =>
@@ -31,58 +38,37 @@ vi.mock('$lib/paraglide/server', () => ({
 	paraglideMiddleware: vi.fn()
 }));
 
-vi.mock('set-cookie-parser', () => ({
-	default: {
-		parse: (headers: string[]) =>
-			headers.map((h) => {
-				const [pair, ...attrs] = h.split(';').map((s) => s.trim());
-				const [name, value] = pair.split('=');
-				const attrMap = Object.fromEntries(
-					attrs.map((a) => {
-						const [k, v] = a.split('=');
-						return [k.toLowerCase(), v ?? true];
-					})
-				);
-				return {
-					name,
-					value,
-					path: attrMap['path'],
-					httpOnly: 'httponly' in attrMap,
-					secure: 'secure' in attrMap,
-					sameSite: attrMap['samesite'],
-					domain: attrMap['domain']
-				};
-			})
-	}
-}));
-
 /**
- * Builds a mock RequestEvent with cookie storage, a stubbed fetch and a URL.
+ * Builds a mock RequestEvent with cookie storage, a stubbed fetch, a URL and a route id.
  */
 function makeEvent({
-	pathname = '/map',
+	pathname = '/project/7/map',
+	routeId = '/project/[projectId=integer]/map',
 	search = '',
 	cookies = {},
-	protocol = 'http:'
+	protocol = 'http:',
+	isRemoteRequest = false
 }: {
 	pathname?: string;
+	routeId?: string | null;
 	search?: string;
 	cookies?: Record<string, string>;
 	protocol?: string;
+	isRemoteRequest?: boolean;
 } = {}) {
 	const store: Record<string, string> = { ...cookies };
-	const setCalls: { name: string; value: string; options: Record<string, unknown> }[] = [];
 	const deleteCalls: string[] = [];
 
 	const event = {
 		url: new URL(`${protocol === 'https:' ? 'https' : 'http'}://localhost${pathname}${search}`),
+		route: { id: routeId },
+		isRemoteRequest,
 		locals: {} as Record<string, unknown>,
 		fetch: vi.fn(),
 		cookies: {
 			get: vi.fn((name: string) => store[name]),
-			set: vi.fn((name: string, value: string, options: Record<string, unknown>) => {
+			set: vi.fn((name: string, value: string) => {
 				store[name] = value;
-				setCalls.push({ name, value, options });
 			}),
 			delete: vi.fn((name: string) => {
 				delete store[name];
@@ -91,34 +77,89 @@ function makeEvent({
 		}
 	} as unknown as RequestEvent;
 
-	return { event, setCalls, deleteCalls, store };
+	return { event, deleteCalls, store };
 }
 
 const resolve = vi.fn(
 	(event: RequestEvent) => `resolved:${event.url.pathname}`
 ) as unknown as Parameters<typeof handleAuth>[0]['resolve'];
 
-function okJson(data: unknown) {
+function okJson(data: unknown): Response {
 	return {
 		ok: true,
 		status: 200,
 		json: () => Promise.resolve(data),
-		text: () => Promise.resolve(JSON.stringify(data))
-	};
+		text: () => Promise.resolve(JSON.stringify(data)),
+		headers: { getSetCookie: () => [] }
+	} as unknown as Response;
 }
 
-function statusResponse(status: number, body: unknown = {}) {
+function statusResponse(status: number, setCookies: string[] = []): Response {
 	return {
 		ok: status >= 200 && status < 300,
 		status,
-		json: () => Promise.resolve(body),
-		text: () => Promise.resolve(JSON.stringify(body)),
-		headers: { getSetCookie: () => [] }
+		json: () => Promise.resolve({}),
+		text: () => Promise.resolve(''),
+		headers: { getSetCookie: () => setCookies }
+	} as unknown as Response;
+}
+
+const projectRows = [
+	{ id: 7, project: 'Nord' },
+	{ id: 9, project: 'Süd' }
+];
+
+/**
+ * Answers Django's endpoints from per-endpoint queues; the last entry of a
+ * queue repeats once the queue is exhausted. Defaults to a valid user with
+ * empty permissions, two projects and a refused refresh.
+ */
+function mockDjango(
+	event: RequestEvent,
+	queues: {
+		user?: (Response | Error)[];
+		permissions?: (Response | Error)[];
+		refresh?: Response[];
+		projects?: Response[];
+	}
+) {
+	const remaining = {
+		user: [...(queues.user ?? [okJson({ username: 'malte' })])],
+		permissions: [...(queues.permissions ?? [okJson({ routes: {}, is_superuser: false })])],
+		refresh: [...(queues.refresh ?? [statusResponse(401)])],
+		projects: [...(queues.projects ?? [okJson({ results: projectRows })])]
+	};
+	vi.mocked(event.fetch).mockImplementation((input) => {
+		const url = String(input);
+		const key = url.includes('auth/user/')
+			? 'user'
+			: url.includes('auth/permissions/')
+				? 'permissions'
+				: url.includes('projects/')
+					? 'projects'
+					: 'refresh';
+		const queue = remaining[key];
+		const next = queue.length > 1 ? queue.shift() : queue[0];
+		return next instanceof Error ? Promise.reject(next) : Promise.resolve(next as Response);
+	});
+}
+
+/** Number of fetches that hit the given Django endpoint. */
+function callsTo(event: RequestEvent, endpoint: string): number {
+	return vi.mocked(event.fetch).mock.calls.filter(([url]) => String(url).includes(endpoint)).length;
+}
+
+/** Runs the hook and returns the redirect or error it threw. */
+async function thrownBy(event: RequestEvent) {
+	return (await handleAuth({ event, resolve }).catch((e: unknown) => e)) as Error & {
+		status: number;
+		location?: string;
 	};
 }
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	clearSessionCache();
 	vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
@@ -132,15 +173,13 @@ describe('PUBLIC_ROUTES', () => {
 	});
 });
 
-describe('handleAuth', () => {
+describe('handleAuth: session', () => {
 	test('populates authenticated user and permissions on a valid token', async () => {
-		const { event } = makeEvent({
-			pathname: '/map',
-			cookies: { 'api-access-token': 'good-token' }
+		const { event } = makeEvent({ cookies: { 'api-access-token': 'good-token' } });
+		mockDjango(event, {
+			user: [okJson({ username: 'malte', is_staff: true })],
+			permissions: [okJson({ routes: {}, is_superuser: false })]
 		});
-		vi.mocked(event.fetch)
-			.mockResolvedValueOnce(okJson({ username: 'malte', is_staff: true }) as unknown as Response)
-			.mockResolvedValueOnce(okJson({ routes: {}, is_superuser: false }) as unknown as Response);
 
 		const result = await handleAuth({ event, resolve });
 
@@ -149,298 +188,311 @@ describe('handleAuth', () => {
 		expect(user.username).toBe('malte');
 		expect(user.isAdmin).toBe(true);
 		expect(user.permissions).toEqual({ routes: {}, is_superuser: false });
-		expect(result).toBe('resolved:/map');
+		expect(result).toBe('resolved:/project/7/map');
 	});
 
-	test('sends the access token as a Cookie header when validating the user', async () => {
-		const { event } = makeEvent({
-			pathname: '/map',
-			cookies: { 'api-access-token': 'abc123' }
-		});
-		vi.mocked(event.fetch)
-			.mockResolvedValueOnce(okJson({ username: 'x' }) as unknown as Response)
-			.mockResolvedValueOnce(okJson({ routes: {}, is_superuser: false }) as unknown as Response);
+	test('sends the access token as a Cookie header to both auth endpoints', async () => {
+		const { event } = makeEvent({ cookies: { 'api-access-token': 'abc123' } });
+		mockDjango(event, {});
 
 		await handleAuth({ event, resolve });
 
-		const firstCall = vi.mocked(event.fetch).mock.calls[0];
-		expect(firstCall[0]).toContain('auth/user/');
-		const headers = (firstCall[1] as { headers: Headers }).headers;
-		expect(headers.get('Cookie')).toBe('api-access-token=abc123');
+		const calls = vi.mocked(event.fetch).mock.calls;
+		expect(calls.map(([url]) => String(url))).toEqual([
+			'http://localhost:8000/auth/user/',
+			'http://localhost:8000/auth/permissions/'
+		]);
+		for (const [, init] of calls) {
+			expect((init as { headers: Record<string, string> }).headers.Cookie).toBe(
+				'api-access-token=abc123'
+			);
+		}
+	});
+
+	test('answers a second request with the same token from the session cache', async () => {
+		const first = makeEvent({ cookies: { 'api-access-token': 'same' } });
+		mockDjango(first.event, {});
+		await handleAuth({ event: first.event, resolve });
+
+		const second = makeEvent({
+			pathname: '/_app/remote/abc/getConduitList',
+			routeId: null,
+			cookies: { 'api-access-token': 'same' }
+		});
+		mockDjango(second.event, {});
+		await handleAuth({ event: second.event, resolve });
+
+		expect(callsTo(first.event, 'auth/user/') + callsTo(second.event, 'auth/user/')).toBe(1);
+		expect(
+			callsTo(first.event, 'auth/permissions/') + callsTo(second.event, 'auth/permissions/')
+		).toBe(1);
+	});
+
+	test('fetches again after the session was ended by a logout', async () => {
+		const first = makeEvent({ cookies: { 'api-access-token': 'bye' } });
+		mockDjango(first.event, {});
+		await handleAuth({ event: first.event, resolve });
+
+		endSession(first.event.cookies);
+
+		const second = makeEvent({ cookies: { 'api-access-token': 'bye' } });
+		mockDjango(second.event, {});
+		await handleAuth({ event: second.event, resolve });
+
+		expect(callsTo(second.event, 'auth/user/')).toBe(1);
 	});
 
 	test('refreshes the token on a 401 and retries the user fetch', async () => {
 		const { event } = makeEvent({
-			pathname: '/map',
 			cookies: { 'api-access-token': 'stale', 'api-refresh-token': 'refresh-me' }
 		});
-		vi.mocked(event.fetch)
-			// initial user fetch -> 401
-			.mockResolvedValueOnce(statusResponse(401) as unknown as Response)
-			// token refresh -> ok with a fresh access cookie
-			.mockResolvedValueOnce({
-				ok: true,
-				status: 200,
-				headers: {
-					getSetCookie: () => ['api-access-token=fresh; Path=/; HttpOnly']
-				}
-			} as unknown as Response)
-			// retried user fetch -> ok
-			.mockResolvedValueOnce(okJson({ username: 'malte' }) as unknown as Response)
-			// permissions fetch
-			.mockResolvedValueOnce(okJson({ routes: {}, is_superuser: false }) as unknown as Response);
+		mockDjango(event, {
+			user: [statusResponse(401), okJson({ username: 'malte' })],
+			permissions: [statusResponse(401), okJson({ routes: {}, is_superuser: false })],
+			refresh: [statusResponse(200, ['api-access-token=fresh; Path=/; HttpOnly'])]
+		});
 
 		await handleAuth({ event, resolve });
 
-		const user = event.locals.user as unknown as Record<string, unknown>;
-		expect(user.isAuthenticated).toBe(true);
-		// the refresh set the new access token cookie
+		expect((event.locals.user as unknown as Record<string, unknown>).isAuthenticated).toBe(true);
 		expect(event.cookies.set).toHaveBeenCalledWith(
 			'api-access-token',
 			'fresh',
 			expect.objectContaining({ path: '/' })
 		);
-		// retried fetch used the fresh token
-		const retryCall = vi.mocked(event.fetch).mock.calls[2];
-		expect((retryCall[1] as { headers: Headers }).headers.get('Cookie')).toBe(
-			'api-access-token=fresh'
+	});
+
+	test('does not ask Django at all when the request carries no token', async () => {
+		const { event } = makeEvent({ pathname: '/login', routeId: '/login', cookies: {} });
+		mockDjango(event, {});
+
+		await handleAuth({ event, resolve });
+
+		expect(event.fetch).not.toHaveBeenCalled();
+		expect((event.locals.user as unknown as Record<string, unknown>).isAuthenticated).toBe(false);
+	});
+});
+
+describe('handleAuth: unauthenticated', () => {
+	test('redirects to /login preserving path and query', async () => {
+		const { event } = makeEvent({
+			pathname: '/project/7/conduit',
+			routeId: '/project/[projectId=integer]/conduit',
+			search: '?search=x&page=2',
+			cookies: {}
+		});
+		mockDjango(event, {});
+
+		const err = await thrownBy(event);
+
+		expect(err.status).toBe(303);
+		expect(err.location).toBe(
+			`/login?redirectTo=${encodeURIComponent('/project/7/conduit?search=x&page=2')}`
 		);
 	});
 
-	test('clears cookies and marks unauthenticated when refresh fails', async () => {
-		const { event } = makeEvent({
-			pathname: '/login',
-			cookies: { 'api-access-token': 'stale', 'api-refresh-token': 'bad' }
+	test('allows public routes and remote function endpoints without redirect', async () => {
+		const login = makeEvent({ pathname: '/login', routeId: '/login', cookies: {} });
+		mockDjango(login.event, {});
+		expect(await handleAuth({ event: login.event, resolve })).toBe('resolved:/login');
+
+		// SvelteKit hands a remote call the URL of the page that made it, not
+		// the internal `/_app/remote/…` path.
+		const remote = makeEvent({
+			pathname: '/project/7/map',
+			search: '?feature=trench%3Aabc',
+			routeId: null,
+			cookies: {},
+			isRemoteRequest: true
 		});
-		vi.mocked(event.fetch)
-			.mockResolvedValueOnce(statusResponse(401) as unknown as Response)
-			// refresh -> not ok
-			.mockResolvedValueOnce(statusResponse(401) as unknown as Response);
-
-		await handleAuth({ event, resolve });
-
-		expect((event.locals.user as unknown as Record<string, unknown>).isAuthenticated).toBe(false);
-		expect(event.cookies.delete).toHaveBeenCalledWith('api-access-token', { path: '/' });
-		expect(event.cookies.delete).toHaveBeenCalledWith('api-refresh-token', { path: '/' });
+		mockDjango(remote.event, {});
+		expect(await handleAuth({ event: remote.event, resolve })).toBe('resolved:/project/7/map');
 	});
+});
 
-	test('does not attempt refresh when there is no refresh token', async () => {
+describe('handleAuth: landing', () => {
+	test('sends an authenticated user on /login to the remembered project map', async () => {
 		const { event } = makeEvent({
 			pathname: '/login',
-			cookies: { 'api-access-token': 'stale' }
+			routeId: '/login',
+			cookies: { 'api-access-token': 'good', 'last-project': '9' }
 		});
-		vi.mocked(event.fetch).mockResolvedValueOnce(statusResponse(401) as unknown as Response);
+		mockDjango(event, {});
 
-		await handleAuth({ event, resolve });
-
-		// only the single user fetch happened; no refresh POST
-		expect(event.fetch).toHaveBeenCalledTimes(1);
-		expect((event.locals.user as unknown as Record<string, unknown>).isAuthenticated).toBe(false);
-	});
-
-	test('marks unauthenticated when the user fetch throws (network error)', async () => {
-		const { event } = makeEvent({
-			pathname: '/login',
-			cookies: {}
-		});
-		vi.mocked(event.fetch).mockRejectedValueOnce(new Error('boom'));
-
-		await handleAuth({ event, resolve });
-
-		expect((event.locals.user as unknown as Record<string, unknown>).isAuthenticated).toBe(false);
-		expect(event.cookies.delete).toHaveBeenCalledWith('api-access-token', { path: '/' });
-	});
-
-	test('redirects an authenticated user away from /login to /map', async () => {
-		const { event } = makeEvent({
-			pathname: '/login',
-			cookies: { 'api-access-token': 'good' }
-		});
-		vi.mocked(event.fetch)
-			.mockResolvedValueOnce(okJson({ username: 'malte' }) as unknown as Response)
-			.mockResolvedValueOnce(okJson({ routes: {}, is_superuser: false }) as unknown as Response);
-
-		const err = (await handleAuth({ event, resolve }).catch((e: unknown) => e)) as Error & {
-			status: number;
-			location: string;
-		};
+		const err = await thrownBy(event);
 
 		expect(err.status).toBe(303);
-		expect(err.location).toBe('/map');
+		expect(err.location).toBe('/project/9/map');
 	});
 
-	test('redirects the root path / to /map for authenticated users', async () => {
+	test('sends the root path to the first project when nothing valid is remembered', async () => {
 		const { event } = makeEvent({
 			pathname: '/',
-			cookies: { 'api-access-token': 'good' }
+			routeId: null,
+			cookies: { 'api-access-token': 'good', 'last-project': '42' }
 		});
-		vi.mocked(event.fetch)
-			.mockResolvedValueOnce(okJson({ username: 'malte' }) as unknown as Response)
-			.mockResolvedValueOnce(okJson({ routes: {}, is_superuser: false }) as unknown as Response);
+		mockDjango(event, {});
 
-		const err = (await handleAuth({ event, resolve }).catch((e: unknown) => e)) as Error & {
-			location: string;
-		};
+		const err = await thrownBy(event);
 
-		expect(err.location).toBe('/map');
+		expect(err.location).toBe('/project/7/map');
+		expect(callsTo(event, 'projects/')).toBe(1);
 	});
 
-	test('redirects an unauthenticated user to /login preserving the target path', async () => {
+	test('sends a user without projects to the settings page', async () => {
 		const { event } = makeEvent({
-			pathname: '/network-schema',
-			search: '?foo=bar',
-			cookies: {}
+			pathname: '/',
+			routeId: null,
+			cookies: { 'api-access-token': 'good' }
 		});
-		vi.mocked(event.fetch).mockResolvedValueOnce(statusResponse(401) as unknown as Response);
+		mockDjango(event, { projects: [okJson({ results: [] })] });
 
-		const err = (await handleAuth({ event, resolve }).catch((e: unknown) => e)) as Error & {
-			status: number;
-			location: string;
-		};
+		expect((await thrownBy(event)).location).toBe('/settings');
+	});
+
+	test('does not fetch projects on an ordinary page request', async () => {
+		const { event } = makeEvent({ cookies: { 'api-access-token': 'good' } });
+		mockDjango(event, {});
+
+		await handleAuth({ event, resolve });
+
+		expect(callsTo(event, 'projects/')).toBe(0);
+	});
+});
+
+describe('handleAuth: permissions', () => {
+	test('denies a project page by its permission key, not its pathname', async () => {
+		const { event } = makeEvent({
+			pathname: '/project/5/valuation',
+			routeId: '/project/[projectId=integer]/valuation',
+			cookies: { 'api-access-token': 'good' }
+		});
+		mockDjango(event, {
+			permissions: [okJson({ routes: { '/valuation': false }, is_superuser: false })]
+		});
+
+		const err = await thrownBy(event);
 
 		expect(err.status).toBe(303);
-		expect(err.location).toBe(`/login?redirectTo=${encodeURIComponent('/network-schema?foo=bar')}`);
+		expect(err.location).toBe('/project/7/map');
 	});
 
-	test('allows unauthenticated access to public routes without redirect', async () => {
-		const { event } = makeEvent({ pathname: '/login', cookies: {} });
-		vi.mocked(event.fetch).mockResolvedValueOnce(statusResponse(401) as unknown as Response);
-
-		const result = await handleAuth({ event, resolve });
-
-		expect(result).toBe('resolved:/login');
-	});
-
-	test('allows unauthenticated access to remote function endpoints', async () => {
-		const { event } = makeEvent({ pathname: '/_app/remote/abc123/login', cookies: {} });
-		vi.mocked(event.fetch).mockResolvedValueOnce(statusResponse(401) as unknown as Response);
-
-		const result = await handleAuth({ event, resolve });
-
-		expect(result).toBe('resolved:/_app/remote/abc123/login');
-	});
-
-	test('redirects to /map when permissions deny the requested route', async () => {
+	test('lets an exact row cover its sub-routes', async () => {
 		const { event } = makeEvent({
-			pathname: '/admin/settings',
+			pathname: '/project/5/network-schema/node/77',
+			routeId: '/project/[projectId=integer]/network-schema/node/[nodeId]',
 			cookies: { 'api-access-token': 'good' }
 		});
-		vi.mocked(event.fetch)
-			.mockResolvedValueOnce(okJson({ username: 'malte' }) as unknown as Response)
-			.mockResolvedValueOnce(
-				okJson({
-					routes: { '/admin/settings': false },
-					is_superuser: false
-				}) as unknown as Response
-			);
+		mockDjango(event, {
+			permissions: [okJson({ routes: { '/network-schema': false }, is_superuser: false })]
+		});
 
-		const err = (await handleAuth({ event, resolve }).catch((e: unknown) => e)) as Error & {
-			location: string;
-		};
+		expect((await thrownBy(event)).location).toBe('/project/7/map');
+	});
 
-		expect(err.location).toBe('/map');
+	test('sends a user denied the map to the first page they may open', async () => {
+		const { event } = makeEvent({
+			pathname: '/project/7/map',
+			routeId: '/project/[projectId=integer]/map',
+			cookies: { 'api-access-token': 'good', 'last-project': '7' }
+		});
+		mockDjango(event, {
+			permissions: [okJson({ routes: { '/map': false }, is_superuser: false })]
+		});
+
+		const err = await thrownBy(event);
+
+		expect(err.status).toBe(303);
+		expect(err.location).toBe('/project/7/dashboard');
+	});
+
+	test('lands a user denied the map on an allowed page after login', async () => {
+		const { event } = makeEvent({
+			pathname: '/login',
+			routeId: '/login',
+			cookies: { 'api-access-token': 'good', 'last-project': '7' }
+		});
+		mockDjango(event, {
+			permissions: [okJson({ routes: { '/*': false, '/address': true }, is_superuser: false })]
+		});
+
+		expect((await thrownBy(event)).location).toBe('/project/7/address');
+	});
+
+	test('sends a user who may open no page to the no-access notice', async () => {
+		const { event } = makeEvent({
+			pathname: '/project/7/map',
+			routeId: '/project/[projectId=integer]/map',
+			cookies: { 'api-access-token': 'good', 'last-project': '7' }
+		});
+		mockDjango(event, {
+			permissions: [okJson({ routes: { '/*': false }, is_superuser: false })]
+		});
+
+		const err = await thrownBy(event);
+
+		expect(err.status).toBe(303);
+		expect(err.location).toBe('/no-access');
+	});
+
+	test('shows the no-access notice although every route is denied', async () => {
+		const { event } = makeEvent({
+			pathname: '/no-access',
+			routeId: '/no-access',
+			cookies: { 'api-access-token': 'good' }
+		});
+		mockDjango(event, {
+			permissions: [okJson({ routes: { '/*': false }, is_superuser: false })]
+		});
+
+		expect(await handleAuth({ event, resolve })).toBe('resolved:/no-access');
+	});
+
+	test('still sends a signed-out visitor of the no-access notice to the login', async () => {
+		const { event } = makeEvent({ pathname: '/no-access', routeId: '/no-access' });
+		mockDjango(event, {});
+
+		const err = await thrownBy(event);
+
+		expect(err.location).toBe('/login?redirectTo=%2Fno-access');
 	});
 
 	test('allows a superuser to access any route', async () => {
 		const { event } = makeEvent({
-			pathname: '/admin/settings',
+			pathname: '/admin/logs',
+			routeId: '/admin/logs',
 			cookies: { 'api-access-token': 'good' }
 		});
-		vi.mocked(event.fetch)
-			.mockResolvedValueOnce(okJson({ username: 'root' }) as unknown as Response)
-			.mockResolvedValueOnce(
-				okJson({
-					routes: { '/admin/settings': false },
-					is_superuser: true
-				}) as unknown as Response
-			);
+		mockDjango(event, {
+			user: [okJson({ username: 'root' })],
+			permissions: [okJson({ routes: { '/admin/logs': false }, is_superuser: true })]
+		});
 
-		const result = await handleAuth({ event, resolve });
-
-		expect(result).toBe('resolved:/admin/settings');
+		expect(await handleAuth({ event, resolve })).toBe('resolved:/admin/logs');
 	});
 
 	test('honours wildcard route permissions (/admin/*)', async () => {
 		const { event } = makeEvent({
 			pathname: '/admin/logs',
+			routeId: '/admin/logs',
 			cookies: { 'api-access-token': 'good' }
 		});
-		vi.mocked(event.fetch)
-			.mockResolvedValueOnce(okJson({ username: 'malte' }) as unknown as Response)
-			.mockResolvedValueOnce(
-				okJson({
-					routes: { '/admin/*': false },
-					is_superuser: false
-				}) as unknown as Response
-			);
+		mockDjango(event, {
+			permissions: [okJson({ routes: { '/admin/*': false }, is_superuser: false })]
+		});
 
-		const err = (await handleAuth({ event, resolve }).catch((e: unknown) => e)) as Error & {
-			location: string;
-		};
-
-		expect(err.location).toBe('/map');
+		expect((await thrownBy(event)).location).toBe('/project/7/map');
 	});
 
-	test('still authenticates when the permissions fetch fails', async () => {
-		const { event } = makeEvent({
-			pathname: '/map',
-			cookies: { 'api-access-token': 'good' }
-		});
-		vi.mocked(event.fetch)
-			.mockResolvedValueOnce(okJson({ username: 'malte' }) as unknown as Response)
-			.mockRejectedValueOnce(new Error('perm boom'));
+	test('still authenticates and allows the page when the permissions fetch fails', async () => {
+		const { event } = makeEvent({ cookies: { 'api-access-token': 'good' } });
+		mockDjango(event, { permissions: [new Error('perm boom')] });
 
 		const result = await handleAuth({ event, resolve });
 
 		const user = event.locals.user as unknown as Record<string, unknown>;
 		expect(user.isAuthenticated).toBe(true);
-		expect(user.permissions).toBeNull();
-		expect(result).toBe('resolved:/map');
-	});
-});
-
-describe('handleProjectRedirect', () => {
-	test('redirects a bare project route to include the selected project slug', async () => {
-		const { event } = makeEvent({
-			pathname: '/trench',
-			cookies: { 'selected-project': 'my-project' }
-		});
-
-		const err = (await handleProjectRedirect({ event, resolve }).catch(
-			(e: unknown) => e
-		)) as Error & { status: number; location: string };
-
-		expect(err.status).toBe(303);
-		expect(err.location).toBe('/trench/my-project');
-	});
-
-	test('does not redirect when no project is selected', async () => {
-		const { event } = makeEvent({ pathname: '/trench', cookies: {} });
-
-		const result = await handleProjectRedirect({ event, resolve });
-
-		expect(result).toBe('resolved:/trench');
-	});
-
-	test('does not redirect a route that already has a slug', async () => {
-		const { event } = makeEvent({
-			pathname: '/trench/my-project',
-			cookies: { 'selected-project': 'my-project' }
-		});
-
-		const result = await handleProjectRedirect({ event, resolve });
-
-		expect(result).toBe('resolved:/trench/my-project');
-	});
-
-	test('does not redirect non-project routes', async () => {
-		const { event } = makeEvent({
-			pathname: '/settings',
-			cookies: { 'selected-project': 'my-project' }
-		});
-
-		const result = await handleProjectRedirect({ event, resolve });
-
-		expect(result).toBe('resolved:/settings');
+		expect(user.permissions).toBeUndefined();
+		expect(result).toBe('resolved:/project/7/map');
 	});
 });

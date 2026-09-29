@@ -1,5 +1,6 @@
-import { invalidateAll } from '$app/navigation';
 import { PUBLIC_API_URL } from '$env/static/public';
+
+import { ensureFreshSession } from './sessionKeepAlive';
 
 export interface WMSLayer {
 	/** Layer UUID. */
@@ -48,7 +49,7 @@ export async function fetchWMSSources(projectId: string | number): Promise<WMSSo
 	const response = await fetch(url, { credentials: 'include' });
 
 	if (response.status === 401) {
-		await invalidateAll();
+		await ensureFreshSession();
 		const retry = await fetch(url, { credentials: 'include' });
 		if (!retry.ok) {
 			throw new Error(`Failed to fetch WMS sources: ${retry.statusText}`);
@@ -94,7 +95,7 @@ export function getWMSProxyUrl(sourceId: string, token?: string): string {
  * Fetches a short-lived access token for WMS tile requests.
  * Browser image requests don't include cookies due to SameSite restrictions,
  * so this token is passed as a query parameter instead.
- * On 401, triggers a server-side token refresh and retries once.
+ * On 401, refreshes the session once and retries.
  * @throws If the request fails.
  */
 export async function fetchWMSAccessToken(): Promise<string> {
@@ -103,7 +104,7 @@ export async function fetchWMSAccessToken(): Promise<string> {
 	});
 
 	if (response.status === 401) {
-		await invalidateAll();
+		await ensureFreshSession();
 		const retry = await fetch(`${PUBLIC_API_URL}wms-sources/access_token/`, {
 			credentials: 'include'
 		});

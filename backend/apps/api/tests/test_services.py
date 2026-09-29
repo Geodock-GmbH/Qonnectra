@@ -32,7 +32,7 @@ from apps.api.services import (
     rename_feature_folder,
     repackage_qgz,
 )
-from django.utils.translation import activate
+from django.utils.translation import activate, gettext
 
 from .factories import (
     AddressFactory,
@@ -394,6 +394,72 @@ class TestImportConduitsFromExcel:
         assert "warnings" in result
         assert any("ignored" in str(w).lower() for w in result["warnings"])
 
+    def _funding_status_workbook(self, values):
+        """Build an import file with one conduit per funding status value."""
+        ProjectFactory(project="FundingProject")
+        FlagFactory(flag="FundingFlag")
+        ConduitTypeFactory(conduit_type="FundingType")
+
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        headers = ["Name", "Type", "Project", "Flag", "Funding Status"]
+        for col, header in enumerate(headers, start=1):
+            sheet.cell(row=1, column=col, value=header)
+        for row, value in enumerate(values, start=2):
+            cells = [f"F-{row}", "FundingType", "FundingProject", "FundingFlag", value]
+            for col, cell in enumerate(cells, start=1):
+                sheet.cell(row=row, column=col, value=cell)
+
+        file_buffer = io.BytesIO()
+        workbook.save(file_buffer)
+        file_buffer.seek(0)
+        return file_buffer
+
+    def test_import_reads_funding_status(self, db):
+        """Yes/no answers, Excel booleans and empty cells map to the flag."""
+        activate("en")
+        values = ["Yes", "no", "Ja", "Nein", True, False, None]
+
+        result = import_conduits_from_excel(self._funding_status_workbook(values))
+
+        assert result["success"] is True
+        flags = [
+            Conduit.objects.get(name=f"F-{row}").funding_status
+            for row in range(2, 2 + len(values))
+        ]
+        assert flags == [True, False, True, False, True, False, None]
+
+    def test_import_accepts_translated_funding_status(self, db):
+        """The German template's dropdown values import under a German locale."""
+        activate("de")
+        values = ["Ja", "Nein"]
+        workbook = openpyxl.load_workbook(self._funding_status_workbook(values))
+        sheet = workbook.active
+        for col, header in enumerate(
+            ["Name", "Type", "Project", "Flag", "Funding Status"], start=1
+        ):
+            sheet.cell(row=1, column=col, value=gettext(header))
+        file_buffer = io.BytesIO()
+        workbook.save(file_buffer)
+        file_buffer.seek(0)
+
+        result = import_conduits_from_excel(file_buffer)
+
+        activate("en")
+        assert result.get("success") is True, result
+        assert Conduit.objects.get(name="F-2").funding_status is True
+        assert Conduit.objects.get(name="F-3").funding_status is False
+
+    def test_import_rejects_unknown_funding_status(self, db):
+        """An unrecognised answer is a row error, not a silent unknown."""
+        activate("en")
+
+        result = import_conduits_from_excel(self._funding_status_workbook(["maybe"]))
+
+        assert result["success"] is False
+        assert any("funding status" in str(err).lower() for err in result["errors"])
+        assert not Conduit.objects.filter(name="F-2").exists()
+
 
 @pytest.mark.django_db
 class TestGenerateConduitImportTemplate:
@@ -431,8 +497,9 @@ class TestGenerateConduitImportTemplate:
             "Date",
             "Project",
             "Flag",
+            "Funding Status",
         ]
-        actual_headers = [sheet.cell(row=1, column=i).value for i in range(1, 12)]
+        actual_headers = [sheet.cell(row=1, column=i).value for i in range(1, 13)]
 
         assert actual_headers == expected_headers
 
@@ -481,6 +548,7 @@ class TestConduitImportTemplateDropdowns:
         assert company.company in column_values["Owner"]
         assert project.project in column_values["Project"]
         assert flag.flag in column_values["Flag"]
+        assert column_values["Funding Status"] == {"Yes", "No"}
 
     def test_lookup_sheet_is_hidden(self):
         """The lookup sheet is hidden so it does not distract the user."""
@@ -510,8 +578,8 @@ class TestConduitImportTemplateDropdowns:
                 validated_columns.add(cell_range.min_col)
 
         # Type(2), Status(4), Network Level(5), Owner(6), Constructor(7),
-        # Manufacturer(8), Project(10), Flag(11)
-        assert {2, 4, 5, 6, 7, 8, 10, 11} <= validated_columns
+        # Manufacturer(8), Project(10), Flag(11), Funding Status(12)
+        assert {2, 4, 5, 6, 7, 8, 10, 11, 12} <= validated_columns
 
     def test_dropdowns_survive_large_value_lists(self):
         """Long value lists must not blow the 255-char inline validation limit."""

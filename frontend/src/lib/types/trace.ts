@@ -202,20 +202,32 @@ export interface BreakPoint {
 	at_node?: EndpointNode;
 }
 
-/** A selectable signal source (cable start/end). */
-export interface SignalSource {
+/**
+ * A cable end on the traced path that can be picked: the node a signal is
+ * fed in at, or the end a fiber trace is read from.
+ */
+export interface CableEndOption {
 	id: string;
 	name: string;
+	type?: string;
+	/** Whether the node starts or ends the cable it was collected from. */
 	direction: string;
+	/** Whether the backend picks this end when the URL names none. */
 	is_default: boolean;
+}
+
+/** Which end a fiber trace is read from, and which ends there are. */
+export interface TraceStart {
+	node: CableEndOption | null;
+	available_nodes: CableEndOption[];
 }
 
 /** Signal-propagation analysis over a fiber trace. */
 export interface SignalAnalysisData {
 	total_breaks?: number;
 	break_points?: BreakPoint[];
-	available_sources?: SignalSource[];
-	source_node?: EndpointNode;
+	available_sources?: CableEndOption[];
+	source_node?: CableEndOption | null;
 }
 
 /** Counts of lit/dark entities affected by a signal analysis. */
@@ -270,4 +282,6 @@ export interface TraceResult {
 	trace_tree?: FiberPathNode | null;
 	entry_point?: TraceEntryPoint;
 	statistics?: TraceStatistics;
+	/** Set on fiber traces only. */
+	start?: TraceStart;
 }

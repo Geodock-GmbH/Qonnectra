@@ -2,6 +2,8 @@ import path from 'path';
 import { expect, test } from '@playwright/test';
 import dotenv from 'dotenv';
 
+import { loginOrSkip } from './helpers/auth.js';
+
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 const TEST_USERNAME = process.env.E2E_TEST_USERNAME;
@@ -37,31 +39,6 @@ async function deleteRecordsMatching(request, marker) {
 }
 
 /**
- * Performs a real backend login so requests carry valid auth cookies.
- * @param {import('@playwright/test').Page} page
- * @returns {Promise<boolean>} Whether login succeeded.
- */
-async function performLogin(page) {
-	if (!TEST_USERNAME || !TEST_PASSWORD) {
-		return false;
-	}
-
-	await page.goto('/login');
-	await page.locator('input[name="username"]').fill(TEST_USERNAME);
-	await page.locator('input[name="password"]').fill(TEST_PASSWORD);
-	await page.locator('button[type="submit"]').click();
-
-	try {
-		await page.waitForFunction(() => !window.location.pathname.includes('/login'), {
-			timeout: 10000
-		});
-		return true;
-	} catch {
-		return false;
-	}
-}
-
-/**
  * Opens the pipeline-record detail page for the row containing the given text.
  * Searches for the marker first so the row is guaranteed onto page 1 regardless
  * of how many records the DB already holds (server-side search + pagination).
@@ -90,20 +67,14 @@ test.describe.configure({ mode: 'serial' });
 
 test.describe('Pipeline Records CRUD', () => {
 	// A unique marker so parallel/reused DBs don't collide and cleanup is precise.
-	const ORG = `E2E Org ${Date.now()}`;
+	// The random part matters: workers loading this file in the same millisecond
+	// (one per browser) would otherwise share a marker and delete each other's records.
+	const ORG = `E2E Org ${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 	const ORG_EDITED = `${ORG} EDITED`;
 	const CONTACT = 'E2E Contact';
 
 	test.beforeEach(async ({ page }) => {
-		test.skip(
-			!TEST_USERNAME || !TEST_PASSWORD,
-			'E2E_TEST_USERNAME and E2E_TEST_PASSWORD must be set in .env'
-		);
-
-		const loginSucceeded = await performLogin(page);
-		if (!loginSucceeded) {
-			test.skip(true, 'Login failed - test credentials may be invalid');
-		}
+		await loginOrSkip(page, test.skip);
 
 		await page.goto('/pipeline-records');
 		await page.waitForLoadState('networkidle');
@@ -200,6 +171,10 @@ test.describe('Pipeline Records CRUD', () => {
 
 		await page.locator('input[name="organisation"]').fill(ORG_EDITED);
 		await page.getByRole('button', { name: /save|speichern/i }).click();
+		// Leaving before the save answered would abort it.
+		await expect(
+			page.getByText(/pipeline record updated|datensatz erfolgreich aktualisiert/i).first()
+		).toBeVisible({ timeout: 10000 });
 
 		// Go back to the list, search for the edited marker, and confirm it persisted.
 		await page.goto('/pipeline-records');

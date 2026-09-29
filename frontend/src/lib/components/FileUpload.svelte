@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { FileUpload } from '@skeletonlabs/skeleton-svelte';
 	import { IconFile, IconUpload } from '@tabler/icons-svelte';
 	import { PUBLIC_API_URL } from '$env/static/public';
@@ -20,15 +21,20 @@
 
 	let { featureType, featureId, onUploadComplete }: FileUploadProps = $props();
 
-	let uploadedFiles = $state<Array<Record<string, unknown>>>([]);
 	let isUploading = $state(false);
-	let isLoadingFiles = $state(false);
-	let contentTypeError = $state<string | null>(null);
+	let loadError = $state<string | null>(null);
 
 	let contentTypesLoaded = $state(false);
 	let maxFileSize = $state(50 * 1024 * 1024);
 
 	const contentTypeId = $derived(contentTypesLoaded ? getContentTypeId(featureType) : null);
+
+	const contentTypeError = $derived(
+		loadError ??
+			(contentTypesLoaded && !contentTypeId
+				? m.message_error_invalid_feature_type({ featureType })
+				: null)
+	);
 
 	/**
 	 * Load content types from the API
@@ -48,61 +54,12 @@
 					stack: error instanceof Error ? error.stack : undefined
 				}
 			});
-			contentTypeError = 'Failed to load content types';
-		}
-	}
-
-	/**
-	 * Validate contentTypeId whenever it changes
-	 */
-	$effect(() => {
-		if (contentTypesLoaded && !contentTypeId) {
-			console.warn(`No ContentType ID found for feature type: ${featureType}`);
-			contentTypeError = `Invalid feature type: ${featureType}`;
-		} else if (contentTypesLoaded && contentTypeId) {
-			contentTypeError = null;
-		}
-	});
-
-	/**
-	 * Load existing files for this feature
-	 */
-	async function loadFiles() {
-		if (!featureId) return;
-
-		isLoadingFiles = true;
-		try {
-			const response = await fetch(`${PUBLIC_API_URL}feature-files/?object_id=${featureId}`, {
-				credentials: 'include'
-			});
-
-			if (!response.ok) {
-				throw new Error(`Failed to load files: ${response.status}`);
-			}
-
-			uploadedFiles = await response.json();
-		} catch (error) {
-			console.error('Error loading files:', error);
-			void logToBackendClient({
-				level: 'ERROR',
-				message: 'Error loading files',
-				extraData: {
-					from: 'FileUpload.loadFiles',
-					error: error instanceof Error ? error.message : String(error),
-					stack: error instanceof Error ? error.stack : undefined
-				}
-			});
-			globalToaster.error({
-				title: m.common_error(),
-				description: 'Failed to load files'
-			});
-		} finally {
-			isLoadingFiles = false;
+			loadError = m.message_error_loading_content_types();
 		}
 	}
 
 	function retryLoadContentTypes() {
-		contentTypeError = null;
+		loadError = null;
 		contentTypesLoaded = false;
 		loadContentTypes();
 	}
@@ -119,7 +76,7 @@
 		if (selectedFiles.length === 0) {
 			globalToaster.warning({
 				title: m.common_error(),
-				description: 'Please select files to upload'
+				description: m.message_error_no_files_selected()
 			});
 			return;
 		}
@@ -127,7 +84,7 @@
 		if (!contentTypeId) {
 			globalToaster.error({
 				title: m.common_error(),
-				description: 'Invalid feature type'
+				description: m.message_error_invalid_feature_type({ featureType })
 			});
 			return;
 		}
@@ -150,7 +107,9 @@
 
 				if (!response.ok) {
 					const errorData = await response.json().catch(() => ({}));
-					throw new Error(errorData.detail || `Failed to upload ${file.name}`);
+					throw new Error(
+						errorData.detail || m.message_error_uploading_file({ fileName: file.name })
+					);
 				}
 			}
 
@@ -160,7 +119,6 @@
 			});
 
 			fileUploadApi.clearFiles();
-			await loadFiles();
 
 			if (onUploadComplete) {
 				onUploadComplete();
@@ -178,37 +136,27 @@
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: error instanceof Error ? error.message : 'Failed to upload files'
+				description: error instanceof Error ? error.message : m.message_error_uploading_files()
 			});
 		} finally {
 			isUploading = false;
 		}
 	}
 
-	$effect(() => {
-		if (featureId && featureType && !contentTypesLoaded) {
-			loadContentTypes();
-		}
-	});
-
-	$effect(() => {
-		if (featureId && featureType && contentTypesLoaded) {
-			loadFiles();
-		}
-	});
+	onMount(loadContentTypes);
 </script>
 
 <div class="flex flex-col gap-4 p-4">
 	<!-- Loading State -->
 	{#if !contentTypesLoaded && !contentTypeError}
 		<div class="text-center py-8 text-surface-500">
-			<p>Loading...</p>
+			<p>{m.common_loading()}</p>
 		</div>
 	{:else if contentTypeError}
 		<div class="text-center py-8 text-error-500 space-y-2">
-			<p>Unable to load file upload. {contentTypeError}</p>
+			<p>{m.message_error_file_upload_unavailable({ error: contentTypeError })}</p>
 			<button type="button" onclick={retryLoadContentTypes} class="btn preset-filled-primary-500">
-				Retry
+				{m.common_retry()}
 			</button>
 		</div>
 	{:else}
@@ -254,12 +202,13 @@
 									class="btn preset-filled-primary-500 w-full"
 								>
 									{#if isUploading}
-										<span>Uploading...</span>
+										<span>{m.common_uploading()}</span>
 									{:else}
 										<IconUpload size={16} />
 										<span
-											>Upload {fileUpload().acceptedFiles.length}x
-											{m.form_files({ count: fileUpload().acceptedFiles.length })}</span
+											>{m.action_upload_file_count({
+												count: fileUpload().acceptedFiles.length
+											})}</span
 										>
 									{/if}
 								</button>

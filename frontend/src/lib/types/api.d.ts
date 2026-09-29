@@ -1544,47 +1544,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/canvas-coordinates/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Check the status of canvas coordinates and sync operations.
-         *
-         *     Returns:
-         *     {
-         *         "total_nodes": int,
-         *         "nodes_with_canvas": int,
-         *         "nodes_missing_canvas": int,
-         *         "sync_needed": bool,
-         *         "sync_in_progress": bool,
-         *         "sync_status": str,
-         *         "sync_started_at": datetime,
-         *         "sync_progress": float
-         *     }
-         */
-        get: operations["canvas_coordinates_retrieve"];
-        put?: never;
-        /**
-         * @description Calculate and store canvas coordinates with concurrency control.
-         *
-         *     Expected request body:
-         *     {
-         *         "project_id": int,  # Optional: filter by project
-         *         "flag_id": int,     # Optional: filter by flag
-         *         "scale": float      # Optional: scale factor (default: 1.0)
-         *     }
-         */
-        post: operations["canvas_coordinates_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/conduit/": {
         parameters: {
             query?: never;
@@ -3529,12 +3488,16 @@ export interface paths {
          *             pipe-branch allowed types.
          *         include_excluded: If ``'true'``, bypass NetworkSchemaSettings
          *             exclusions (for search).
+         *         child_view_for: UUID of a parent node; return only that node
+         *             and its direct children (requires ``project``).
          *         minimal: If ``'true'``, return only uuid and name
          *             (no geometry/relations).
          *
-         *     If project settings are configured, excluded node types are
+         *     If the project has settings, excluded node types are
          *     automatically filtered out unless an explicit ``exclude_group``
-         *     or ``include_excluded`` parameter is provided.
+         *     or ``include_excluded`` parameter is provided. The
+         *     ``settings_configured`` metadata reports the admin's
+         *     ``configured`` tick.
          *
          *     Args:
          *         request: DRF request with the query params above.
@@ -5448,6 +5411,8 @@ export interface components {
             diagram_path?: unknown;
             readonly uuid_node_start_name: string;
             readonly uuid_node_end_name: string;
+            /** Förderstatus */
+            funding_status?: boolean | null;
             /**
              * Startknoten
              * Format: uuid
@@ -5550,28 +5515,6 @@ export interface components {
              */
             layer?: components["schemas"]["LayerEnum"];
         };
-        CanvasSyncRequest: {
-            project_id?: number;
-            flag_id?: number;
-            /**
-             * Format: double
-             * @description Scale factor (default 1.0).
-             */
-            scale?: number;
-        };
-        CanvasSyncStatus: {
-            total_nodes: number;
-            nodes_with_canvas: number;
-            nodes_missing_canvas: number;
-            sync_needed: boolean;
-            sync_in_progress: boolean;
-            sync_status: string;
-            /** Format: date-time */
-            sync_started_at: string | null;
-            /** Format: double */
-            sync_progress: number;
-            error_message: string | null;
-        };
         /**
          * @description Serialize :model:`api.Conduit` with nested attribute objects.
          *
@@ -5612,6 +5555,8 @@ export interface components {
             outer_conduit?: string;
             /** Format: date */
             date?: string;
+            /** Förderstatus */
+            funding_status?: boolean | null;
         };
         /** @description Serializer for conduits returned when selecting by trenches. */
         ConduitForTrenchSelection: {
@@ -6275,6 +6220,8 @@ export interface components {
                 project_id?: number;
                 /** Kennzeichen */
                 flag_id?: number;
+                /** Förderstatus */
+                funding_status?: boolean | null;
             };
         };
         NodeList: {
@@ -6816,6 +6763,8 @@ export interface components {
             diagram_path?: unknown;
             readonly uuid_node_start_name?: string;
             readonly uuid_node_end_name?: string;
+            /** Förderstatus */
+            funding_status?: boolean | null;
             /**
              * Startknoten
              * Format: uuid
@@ -6908,6 +6857,8 @@ export interface components {
             outer_conduit?: string;
             /** Format: date */
             date?: string;
+            /** Förderstatus */
+            funding_status?: boolean | null;
         };
         /** @description Serialize :model:`api.Container` instances with nested type and display name. */
         PatchedContainer: {
@@ -7325,6 +7276,8 @@ export interface components {
                 project_id?: number;
                 /** Kennzeichen */
                 flag_id?: number;
+                /** Förderstatus */
+                funding_status?: boolean | null;
             };
         };
         /** @description Serialize :model:`api.NodeSlotClipNumber` clip number assignments. */
@@ -10581,72 +10534,6 @@ export interface operations {
             };
         };
     };
-    canvas_coordinates_retrieve: {
-        parameters: {
-            query?: {
-                /** @description Filter node stats by flag. */
-                flag_id?: number;
-                /** @description Filter node stats by project. */
-                project_id?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CanvasSyncStatus"];
-                };
-            };
-        };
-    };
-    canvas_coordinates_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["CanvasSyncRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["CanvasSyncRequest"];
-                "multipart/form-data": components["schemas"]["CanvasSyncRequest"];
-            };
-        };
-        responses: {
-            /** @description Sync result summary. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description A sync is already in progress. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Sync failed to start. */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     conduit_list: {
         parameters: {
             query?: {
@@ -11847,6 +11734,8 @@ export interface operations {
                 orient_geometry?: boolean;
                 /** @description Trace fibers connected to a residential unit. */
                 residential_unit_id?: string;
+                /** @description End of the path to read a fiber trace from (default: the node the path comes from). Only with fiber_id. */
+                start_node_id?: string;
             };
             header?: never;
             path?: never;

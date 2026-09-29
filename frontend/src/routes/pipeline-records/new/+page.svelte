@@ -7,9 +7,13 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
-	import { selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { createPipelineRecord } from '$lib/remote/pipeline-records/records.remote';
+	import { defaultProject } from '$lib/utils/rememberedProject';
+	import { getRememberedProject } from '$lib/context/rememberedProject.svelte';
+	import {
+		createPipelineRecord,
+		getPipelineRecordList
+	} from '$lib/remote/pipeline-records/records.remote';
 	import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
 
 	import { PipelineRecordDraft } from '../components/PipelineRecordDraft.svelte';
@@ -21,11 +25,14 @@
 
 	const projects: { label: string; value: string }[] = $derived(page.data.projects ?? []);
 
-	// The record is created in the app's active project, falling back to the
-	// first one when the stored selection is no longer active.
-	const activeProject = $derived(
-		projects.find((project) => project.value === $selectedProject) ?? projects[0]
-	);
+	const remembered = getRememberedProject();
+
+	/**
+	 * The project the record is created in, defaulting to the remembered one.
+	 * Live, so picking another project in the app bar changes it without a
+	 * navigation.
+	 */
+	const activeProject = $derived(defaultProject(remembered.id, projects));
 
 	/** Creates the record in the active project and opens its detail page. */
 	async function handleCreate() {
@@ -36,7 +43,7 @@
 			const created = await createPipelineRecord({
 				projectId: Number(activeProject.value),
 				...draft.toInput()
-			});
+			}).updates(getPipelineRecordList);
 			globalToaster.success({
 				title: m.title_success(),
 				description: m.message_pipeline_record_created()

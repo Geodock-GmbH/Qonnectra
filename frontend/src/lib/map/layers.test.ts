@@ -25,8 +25,8 @@ vi.mock('$env/static/public', () => ({
 	PUBLIC_API_URL: 'http://mock-api.test/'
 }));
 
-vi.mock('$app/navigation', () => ({
-	invalidateAll: vi.fn(() => Promise.resolve())
+vi.mock('$lib/utils/sessionKeepAlive', () => ({
+	ensureFreshSession: vi.fn(() => Promise.resolve(true))
 }));
 
 vi.mock('./tileLoadingManager', () => ({

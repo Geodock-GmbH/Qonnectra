@@ -80,6 +80,46 @@ describe('FibersStatusTable', () => {
 		expect(screen.getAllByText(/label_fiber_healthy/).length).toBeGreaterThanOrEqual(1);
 	});
 
+	test("should preselect each fiber's saved status", async () => {
+		const user = userEvent.setup();
+		render(FibersStatusTable, {
+			loading: false,
+			error: null,
+			fibers,
+			statusOptions: [{ id: 1, fiber_status: 'defekt' }],
+			onStatusChange: vi.fn(),
+			getColorHex
+		});
+
+		for (const bundle of screen.getAllByRole('button')) await user.click(bundle);
+
+		const [healthy, defective] = screen.getAllByTestId('combobox-stub');
+		expect(healthy).toHaveValue('healthy');
+		expect(defective).toHaveValue('1');
+	});
+
+	test('should follow a status change saved by the parent', async () => {
+		const user = userEvent.setup();
+		const props = {
+			loading: false,
+			error: null,
+			fibers,
+			statusOptions: [{ id: 1, fiber_status: 'defekt' }],
+			onStatusChange: vi.fn(),
+			getColorHex
+		};
+		const { rerender } = render(FibersStatusTable, props);
+		await user.click(screen.getAllByRole('button')[0]);
+		expect(screen.getByTestId('combobox-stub')).toHaveValue('healthy');
+
+		await rerender({
+			...props,
+			fibers: [{ ...fibers[0], fiber_status: { id: 1, fiber_status: 'defekt' } }, fibers[1]]
+		});
+
+		expect(screen.getByTestId('combobox-stub')).toHaveValue('1');
+	});
+
 	test('should pass a numeric status id to onStatusChange, not the combobox string', async () => {
 		const user = userEvent.setup();
 		const onStatusChange = vi.fn();

@@ -1,45 +1,71 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { onMount } from 'svelte';
 	import { cubicOut } from 'svelte/easing';
-	import { innerWidth } from 'svelte/reactivity/window';
+	import { innerHeight, innerWidth } from 'svelte/reactivity/window';
+	import { get } from 'svelte/store';
 	import { fade, fly } from 'svelte/transition';
-	import { beforeNavigate } from '$app/navigation';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import { PanelResizeManager } from '$lib/classes/PanelResizeManager.svelte.js';
-	import { drawerStore } from '$lib/stores/drawer';
-	import { drawerSnap } from '$lib/stores/store';
+	import { drawerSnap, drawerWidth } from '$lib/stores/store';
 	import { tooltip } from '$lib/utils/tooltip';
 
 	interface Props {
-		children?: import('svelte').Snippet;
+		/** Whether the drawer is shown. The URL decides; the drawer only reports a close. */
+		open: boolean;
+		/** Header text; empty shows a generic label until the content knows its entity. */
+		title?: string;
+		/** Called when the user closes the drawer: X, Escape, backdrop or a dismiss drag. */
+		onclose: () => void;
+		children?: Snippet;
 		class?: string;
 	}
 
-	let { children = undefined, class: className = '' }: Props = $props();
+	let { open, title = '', onclose, children = undefined, class: className = '' }: Props = $props();
+
+	const MIN_WIDTH = 200;
+	const MAX_WIDTH_RATIO = 0.8;
 
 	let drawerElement = $state<HTMLDivElement | undefined>();
 
 	const resizer = new PanelResizeManager({
-		defaultWidth: 400,
-		minWidth: 200,
-		maxWidthRatio: 0.8,
+		defaultWidth: get(drawerWidth),
+		minWidth: MIN_WIDTH,
+		maxWidthRatio: MAX_WIDTH_RATIO,
 		side: 'right',
-		onResize: (width) => drawerStore.setWidth(width)
-	});
-
-	let drawerOpen = $derived($drawerStore.open);
-	let drawerTitle = $derived($drawerStore.title);
-	let drawerWidth = $derived($drawerStore.width);
-	let DrawerComponent = $derived($drawerStore.component);
-	let drawerProps = $derived($drawerStore.props);
-
-	$effect(() => {
-		resizer.width = drawerWidth;
+		onResize: (width) => setWidth(width)
 	});
 
 	let isMobile = $derived((innerWidth.current ?? 0) < 768);
+
+	/**
+	 * Persists the drawer width, clamped to the viewport, and keeps the
+	 * resizer's starting point in step with it.
+	 * @param width - The requested width in pixels.
+	 */
+	function setWidth(width: number) {
+		const maxWidth = Math.floor(window.innerWidth * MAX_WIDTH_RATIO);
+		const clamped = Math.max(MIN_WIDTH, Math.min(width, maxWidth));
+		drawerWidth.set(clamped);
+		resizer.width = clamped;
+	}
+
+	/** Shrinks the desktop drawer when the viewport no longer fits it. */
+	function handleWindowResize() {
+		if (isMobile) return;
+		const maxWidth = Math.floor(window.innerWidth * MAX_WIDTH_RATIO);
+		if ($drawerWidth > maxWidth) setWidth(maxWidth);
+	}
+
+	/**
+	 * Closes the drawer on Escape.
+	 * @param event - The keyboard event.
+	 */
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape' && open) onclose();
+	}
 
 	// --- Mobile bottom sheet state ---
 	let isDraggingSheet = $state(false);
@@ -52,9 +78,13 @@
 	const SNAP_FULL = 95;
 	const SNAP_THRESHOLD = 0.25;
 
-	/** Height in pixels for a given snap vh value */
+	/**
+	 * Height in pixels for a given snap vh value. Reads the reactive window
+	 * size rather than `window` itself, because this runs during SSR too,
+	 * where the mobile sheet is rendered before any viewport is known.
+	 */
 	function snapToPixels(snapVh: number): number {
-		return (snapVh / 100) * window.innerHeight;
+		return (snapVh / 100) * (innerHeight.current ?? 0);
 	}
 
 	/** Current snap height in pixels */
@@ -62,25 +92,6 @@
 
 	/** The height to render: during drag use live value, otherwise use snap */
 	let sheetHeight = $derived(isDraggingSheet ? dragHeight : snapHeight);
-
-	/**
-	 * Closes the drawer by updating the drawer store state
-	 */
-	function handleClose() {
-		drawerStore.close();
-	}
-
-	/**
-	 * Handles keyboard shortcuts for the drawer
-	 * @param event
-	 */
-	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape' && drawerOpen) {
-			handleClose();
-		}
-	}
-
-	// --- Mobile sheet drag handlers ---
 
 	/**
 	 * Initiates the mobile sheet drag
@@ -129,7 +140,7 @@
 		const dismissThreshold = halfPx * (1 - SNAP_THRESHOLD);
 
 		if (dragHeight < dismissThreshold) {
-			handleClose();
+			onclose();
 		} else if (dragHeight < midpoint) {
 			$drawerSnap = 'half';
 		} else {
@@ -150,42 +161,19 @@
 		document.body.style.userSelect = '';
 	}
 
-	/**
-	 * Reactive effect that adjusts drawer width when viewport changes (desktop only)
-	 */
-	$effect(() => {
-		if (isMobile) return;
-		const maxWidth = Math.floor((innerWidth.current ?? 0) * 0.8);
-		if (drawerWidth > maxWidth) {
-			drawerStore.setWidth(maxWidth);
-		}
-	});
-
-	beforeNavigate(() => {
-		if (drawerOpen) {
-			handleClose();
-		}
-	});
-
-	onMount(() => {
-		document.addEventListener('keydown', handleKeydown);
-		const cleanupResizer = resizer.listen();
-
-		return () => {
-			document.removeEventListener('keydown', handleKeydown);
-			cleanupResizer();
-		};
-	});
+	onMount(() => resizer.listen());
 </script>
 
-{#if drawerOpen}
+<svelte:window onkeydown={handleKeydown} onresize={handleWindowResize} />
+
+{#if open}
 	{#if isMobile}
 		<!-- Mobile: Bottom Sheet -->
 		<!-- Backdrop -->
 		<button
 			class="fixed inset-0 bg-black/40 z-40"
 			transition:fade={{ duration: 200 }}
-			onclick={handleClose}
+			onclick={onclose}
 			aria-label={m.tooltip_close_drawer()}
 		></button>
 
@@ -227,10 +215,10 @@
 					id="drawer-title"
 					class="text-lg font-semibold text-surface-900-50 overflow-hidden text-ellipsis"
 				>
-					{drawerTitle || 'Details'}
+					{title || 'Details'}
 				</h2>
 				<button
-					onclick={handleClose}
+					onclick={onclose}
 					class="p-2 rounded-lg hover:bg-surface-200-800 transition-colors text-surface-600-400 hover:text-surface-900-50"
 					aria-label={m.tooltip_close_drawer()}
 					{@attach tooltip(m.tooltip_close_drawer())}
@@ -248,23 +236,19 @@
 
 			<!-- Content -->
 			<div class="flex-1 min-h-0 p-4 pb-20 flex flex-col overflow-y-auto">
-				{#if DrawerComponent}
-					<DrawerComponent {...drawerProps} />
-				{:else}
-					{@render children?.()}
-				{/if}
+				{@render children?.()}
 			</div>
 		</div>
 	{:else}
 		<!-- Desktop: Right Side Drawer -->
 		<div
 			bind:this={drawerElement}
-			transition:fly={{ x: drawerWidth, duration: 300, easing: cubicOut }}
+			transition:fly={{ x: $drawerWidth, duration: 300, easing: cubicOut }}
 			class="absolute top-0 right-0 h-full border-2 rounded-lg border-surface-200-800 bg-surface-50-950 shadow-xl flex flex-col z-50 {className}"
 			class:transition={!resizer.isResizing}
 			class:duration-500={!resizer.isResizing}
 			class:ease-in-out={!resizer.isResizing}
-			style="width: {drawerWidth}px; max-width: 80vw;"
+			style="width: {$drawerWidth}px; max-width: 80vw;"
 			aria-labelledby="drawer-title"
 			data-drawer
 		>
@@ -274,10 +258,10 @@
 					id="drawer-title"
 					class="text-lg font-semibold text-surface-900-50 overflow-hidden text-ellipsis"
 				>
-					{drawerTitle || 'Details'}
+					{title || 'Details'}
 				</h2>
 				<button
-					onclick={handleClose}
+					onclick={onclose}
 					class="p-2 rounded-lg hover:bg-surface-200-800 transition-colors text-surface-600-400 hover:text-surface-900-50"
 					aria-label={m.tooltip_close_drawer()}
 					{@attach tooltip(m.tooltip_close_drawer())}
@@ -295,11 +279,7 @@
 
 			<!-- Content -->
 			<div class="flex-1 min-h-0 p-4 flex flex-col">
-				{#if DrawerComponent}
-					<DrawerComponent {...drawerProps} />
-				{:else}
-					{@render children?.()}
-				{/if}
+				{@render children?.()}
 			</div>
 
 			<!-- Resize Handle -->

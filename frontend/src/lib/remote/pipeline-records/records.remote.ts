@@ -1,5 +1,5 @@
 import type { PipelineRecord, PipelineRecordListPage } from './record-data';
-import { command, query } from '$app/server';
+import { command, query, requested } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';
 
@@ -35,6 +35,13 @@ const UpdateRecordSchema = v.object({
 	uuid: UuidSchema,
 	...RecordFieldsSchema
 });
+
+/**
+ * How many `getPipelineRecordList` instances a write may refresh in one
+ * flight. Generous because the client keeps every page or search it showed
+ * until garbage collection, and an instance over the limit is sent back failed.
+ */
+const LIST_REFRESH_LIMIT = 10;
 
 /**
  * Fetch one page of pipeline records, optionally filtered by a search term.
@@ -75,7 +82,9 @@ export const getPipelineRecord = query(UuidSchema, async (uuid): Promise<Pipelin
 });
 
 /**
- * Create a pipeline record in a project. The caller navigates to it afterwards.
+ * Create a pipeline record in a project and refresh the list instances the
+ * caller requested via `.updates(getPipelineRecordList)`. The caller navigates
+ * to it afterwards.
  * @param input.projectId - Project the record belongs to.
  * @returns The created record.
  * @throws When the backend rejects the record.
@@ -91,13 +100,15 @@ export const createPipelineRecord = command(
 		});
 		if (!response.ok) await failFromResponse(response, 'Failed to create pipeline record');
 
+		await requested(getPipelineRecordList, LIST_REFRESH_LIMIT).refreshAll();
 		return normalizeRecord(await response.json());
 	}
 );
 
 /**
- * PATCH a pipeline record's editable fields and push the result into
- * `getPipelineRecord`. The project is fixed once the record exists.
+ * PATCH a pipeline record's editable fields, push the result into
+ * `getPipelineRecord` and refresh the requested `getPipelineRecordList`
+ * instances. The project is fixed once the record exists.
  * @param input.uuid - Pipeline record UUID.
  * @returns The updated record.
  * @throws When the backend rejects the update.
@@ -115,12 +126,14 @@ export const updatePipelineRecord = command(
 
 		const updated = normalizeRecord(await response.json());
 		getPipelineRecord(uuid).set(updated);
+		await requested(getPipelineRecordList, LIST_REFRESH_LIMIT).refreshAll();
 		return updated;
 	}
 );
 
 /**
- * Delete a pipeline record. The caller navigates away afterwards.
+ * Delete a pipeline record and refresh the requested `getPipelineRecordList`
+ * instances. The caller navigates away afterwards.
  * @param uuid - Pipeline record UUID.
  * @throws When the backend rejects the delete.
  */
@@ -130,4 +143,6 @@ export const deletePipelineRecord = command(UuidSchema, async (uuid) => {
 		headers: djangoHeaders()
 	});
 	if (!response.ok) await failFromResponse(response, 'Failed to delete pipeline record');
+
+	await requested(getPipelineRecordList, LIST_REFRESH_LIMIT).refreshAll();
 });

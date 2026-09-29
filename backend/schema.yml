@@ -2580,87 +2580,6 @@ paths:
                 additionalProperties: {}
           description: Map of cable UUID -> list of connected micropipes ({number,
             color_hex, color_name}), for network-schema edge coloring.
-  /api/v1/canvas-coordinates/:
-    get:
-      operationId: canvas_coordinates_retrieve
-      description: |-
-        Check the status of canvas coordinates and sync operations.
-
-        Returns:
-        {
-            "total_nodes": int,
-            "nodes_with_canvas": int,
-            "nodes_missing_canvas": int,
-            "sync_needed": bool,
-            "sync_in_progress": bool,
-            "sync_status": str,
-            "sync_started_at": datetime,
-            "sync_progress": float
-        }
-      parameters:
-      - in: query
-        name: flag_id
-        schema:
-          type: integer
-        description: Filter node stats by flag.
-      - in: query
-        name: project_id
-        schema:
-          type: integer
-        description: Filter node stats by project.
-      tags:
-      - canvas-coordinates
-      security:
-      - jwtHeaderAuth: []
-      - jwtCookieAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CanvasSyncStatus'
-          description: ''
-    post:
-      operationId: canvas_coordinates_create
-      description: |-
-        Calculate and store canvas coordinates with concurrency control.
-
-        Expected request body:
-        {
-            "project_id": int,  # Optional: filter by project
-            "flag_id": int,     # Optional: filter by flag
-            "scale": float      # Optional: scale factor (default: 1.0)
-        }
-      tags:
-      - canvas-coordinates
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CanvasSyncRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/CanvasSyncRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/CanvasSyncRequest'
-      security:
-      - jwtHeaderAuth: []
-      - jwtCookieAuth: []
-      - jwtAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: {}
-          description: Sync result summary.
-        '409':
-          description: A sync is already in progress.
-        '500':
-          description: Sync failed to start.
   /api/v1/conduit/:
     get:
       operationId: conduit_list
@@ -4282,6 +4201,12 @@ paths:
         schema:
           type: string
         description: Trace fibers connected to a residential unit.
+      - in: query
+        name: start_node_id
+        schema:
+          type: string
+        description: 'End of the path to read a fiber trace from (default: the node
+          the path comes from). Only with fiber_id.'
       tags:
       - fiber-trace
       security:
@@ -6801,12 +6726,16 @@ paths:
                 pipe-branch allowed types.
             include_excluded: If ``'true'``, bypass NetworkSchemaSettings
                 exclusions (for search).
+            child_view_for: UUID of a parent node; return only that node
+                and its direct children (requires ``project``).
             minimal: If ``'true'``, return only uuid and name
                 (no geometry/relations).
 
-        If project settings are configured, excluded node types are
+        If the project has settings, excluded node types are
         automatically filtered out unless an explicit ``exclude_group``
-        or ``include_excluded`` parameter is provided.
+        or ``include_excluded`` parameter is provided. The
+        ``settings_configured`` metadata reports the admin's
+        ``configured`` tick.
 
         Args:
             request: DRF request with the query params above.
@@ -10497,6 +10426,10 @@ components:
         uuid_node_end_name:
           type: string
           readOnly: true
+        funding_status:
+          type: boolean
+          nullable: true
+          title: Förderstatus
         uuid_node_start:
           type: string
           format: uuid
@@ -10687,52 +10620,6 @@ components:
       - color
       - position
       - position_type
-    CanvasSyncRequest:
-      type: object
-      properties:
-        project_id:
-          type: integer
-        flag_id:
-          type: integer
-        scale:
-          type: number
-          format: double
-          description: Scale factor (default 1.0).
-    CanvasSyncStatus:
-      type: object
-      properties:
-        total_nodes:
-          type: integer
-        nodes_with_canvas:
-          type: integer
-        nodes_missing_canvas:
-          type: integer
-        sync_needed:
-          type: boolean
-        sync_in_progress:
-          type: boolean
-        sync_status:
-          type: string
-        sync_started_at:
-          type: string
-          format: date-time
-          nullable: true
-        sync_progress:
-          type: number
-          format: double
-        error_message:
-          type: string
-          nullable: true
-      required:
-      - error_message
-      - nodes_missing_canvas
-      - nodes_with_canvas
-      - sync_in_progress
-      - sync_needed
-      - sync_progress
-      - sync_started_at
-      - sync_status
-      - total_nodes
     Conduit:
       type: object
       description: |-
@@ -10819,6 +10706,10 @@ components:
         date:
           type: string
           format: date
+        funding_status:
+          type: boolean
+          nullable: true
+          title: Förderstatus
       required:
       - conduit_type
       - conduit_type_id
@@ -12010,6 +11901,10 @@ components:
               type: integer
               writeOnly: true
               title: Kennzeichen
+            funding_status:
+              type: boolean
+              nullable: true
+              title: Förderstatus
     NodeList:
       type: object
       properties:
@@ -12912,6 +12807,10 @@ components:
         uuid_node_end_name:
           type: string
           readOnly: true
+        funding_status:
+          type: boolean
+          nullable: true
+          title: Förderstatus
         uuid_node_start:
           type: string
           format: uuid
@@ -13059,6 +12958,10 @@ components:
         date:
           type: string
           format: date
+        funding_status:
+          type: boolean
+          nullable: true
+          title: Förderstatus
     PatchedContainer:
       type: object
       description: Serialize :model:`api.Container` instances with nested type and
@@ -13688,6 +13591,10 @@ components:
               type: integer
               writeOnly: true
               title: Kennzeichen
+            funding_status:
+              type: boolean
+              nullable: true
+              title: Förderstatus
     PatchedNodeSlotClipNumber:
       type: object
       description: Serialize :model:`api.NodeSlotClipNumber` clip number assignments.

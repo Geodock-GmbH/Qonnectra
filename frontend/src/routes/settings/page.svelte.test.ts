@@ -4,7 +4,6 @@ import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { updateUserStore } from '$lib/stores/auth';
 import {
 	areaTypeStyles,
 	nodeTypeStyles,
@@ -15,11 +14,18 @@ import {
 import { globalToaster } from '$lib/stores/toaster';
 import { getLayerStyleAttributes } from '$lib/remote/map/layers.remote';
 import { getSavedSettings, saveSettings } from '$lib/remote/settings/user-settings.remote';
+import { pageStub } from '$lib/test-utils/pageStub';
 
 import SettingsPage from './+page.svelte';
 
 vi.mock('$app/environment', () => ({
 	browser: true
+}));
+
+const appState = vi.hoisted(() => ({ page: {} as Record<string, unknown> }));
+
+vi.mock('$app/state', () => ({
+	page: appState.page
 }));
 
 vi.mock('$lib/paraglide/messages', () => ({
@@ -47,6 +53,9 @@ const attributes = {
 
 /**
  * Builds a Kit HttpError the way a remote function's `error()` call does.
+ * @param status - HTTP status the remote function would fail with.
+ * @param message - Message the boundary is expected to show.
+ * @returns The thrown HttpError, as a rejected remote call would surface it.
  */
 function httpError(status: number, message: string): unknown {
 	try {
@@ -68,7 +77,14 @@ async function findCard(name: string): Promise<HTMLElement> {
 
 beforeEach(() => {
 	localStorage.clear();
-	updateUserStore({ isAuthenticated: true, username: 'malte' });
+	Object.assign(
+		appState.page,
+		pageStub({
+			routeId: '/settings',
+			url: 'http://localhost/settings',
+			data: { user: { isAuthenticated: true, username: 'malte', email: 'malte@example.com' } }
+		})
+	);
 	nodeTypeStyles.set({});
 	trenchSurfaceStyles.set({});
 	trenchConstructionTypeStyles.set({});
@@ -86,6 +102,7 @@ describe('settings page', () => {
 
 		expect(screen.getByText('User Settings')).toBeInTheDocument();
 		expect(screen.getByText('malte')).toBeInTheDocument();
+		expect(screen.getByText('malte@example.com')).toBeInTheDocument();
 		expect(await screen.findByRole('heading', { name: 'POP' })).toBeInTheDocument();
 		expect(await screen.findByRole('heading', { name: 'Ausbau' })).toBeInTheDocument();
 	});

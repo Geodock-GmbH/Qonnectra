@@ -1,25 +1,26 @@
 import { describe, expect, test } from 'vitest';
 
-import { logFiltersToSearchParams, readLogFilters } from './logs-data';
+import {
+	DEFAULT_LOG_FILTERS,
+	logFiltersToQuery,
+	logFiltersToSearchParams,
+	readLogFilters
+} from './logs-data';
+
+function logsUrl(search = ''): URL {
+	return new URL(`http://localhost/admin/logs${search}`);
+}
 
 describe('readLogFilters', () => {
 	test('defaults every filter and the page', () => {
-		expect(readLogFilters(new URLSearchParams())).toEqual({
-			level: '',
-			source: '',
-			search: '',
-			dateFrom: '',
-			dateTo: '',
-			project: '',
-			page: 1
-		});
+		expect(readLogFilters(logsUrl())).toEqual(DEFAULT_LOG_FILTERS);
 	});
 
 	test('reads all parameters', () => {
 		expect(
 			readLogFilters(
-				new URLSearchParams(
-					'level=ERROR&source=backend&search=test&date_from=2026-01-01&date_to=2026-01-31&project=1&page=2'
+				logsUrl(
+					'?level=ERROR&source=backend&search=test&date_from=2026-01-01&date_to=2026-01-31&project=1&page=2'
 				)
 			)
 		).toEqual({
@@ -33,22 +34,29 @@ describe('readLogFilters', () => {
 		});
 	});
 
-	test('falls back to page 1 for a non-numeric page', () => {
-		expect(readLogFilters(new URLSearchParams('page=abc')).page).toBe(1);
+	test('falls back to page 1 for a non-numeric or non-positive page', () => {
+		expect(readLogFilters(logsUrl('?page=abc')).page).toBe(1);
+		expect(readLogFilters(logsUrl('?page=0')).page).toBe(1);
+	});
+});
+
+describe('logFiltersToQuery', () => {
+	test('names every filter so empty ones get deleted from the URL', () => {
+		expect(logFiltersToQuery({ ...DEFAULT_LOG_FILTERS, level: 'ERROR', page: 3 })).toEqual({
+			level: 'ERROR',
+			source: '',
+			search: '',
+			date_from: '',
+			date_to: '',
+			project: '',
+			page: 3
+		});
 	});
 });
 
 describe('logFiltersToSearchParams', () => {
 	test('omits empty filters and always sets the page', () => {
-		const params = logFiltersToSearchParams({
-			level: 'ERROR',
-			source: '',
-			search: '',
-			dateFrom: '',
-			dateTo: '',
-			project: '',
-			page: 3
-		});
+		const params = logFiltersToSearchParams({ ...DEFAULT_LOG_FILTERS, level: 'ERROR', page: 3 });
 
 		expect(params.toString()).toBe('level=ERROR&page=3');
 	});
@@ -64,6 +72,6 @@ describe('logFiltersToSearchParams', () => {
 			page: 2
 		};
 
-		expect(readLogFilters(logFiltersToSearchParams(filters))).toEqual(filters);
+		expect(readLogFilters(logsUrl(`?${logFiltersToSearchParams(filters)}`))).toEqual(filters);
 	});
 });

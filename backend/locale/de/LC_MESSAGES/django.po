@@ -186,6 +186,52 @@ msgstr "Wertermittlungssätze"
 msgid "Excluded Node Types"
 msgstr "Ausgeschlossene Netzknotentypen"
 
+#: apps/api/models.py
+msgid "Configured"
+msgstr "Konfiguriert"
+
+#: apps/api/models.py
+msgid ""
+"Tick once the excluded node types are set up. Until then the network schema "
+"warns that every node, including house connections, is shown."
+msgstr ""
+"Setzen, sobald die ausgeschlossenen Netzknotentypen eingerichtet sind. Bis "
+"dahin warnt das Netzschema, dass alle Netzknoten inklusive Hausanschlüsse "
+"angezeigt werden."
+
+#: apps/api/models.py
+msgid "Canvas Scale"
+msgstr "Canvas Maßstab"
+
+#: apps/api/models.py
+msgid ""
+"Canvas units per metre for placing nodes on the network schema. Can only be "
+"changed while no node of the project is placed."
+msgstr ""
+"Canvas-Einheiten pro Meter für die Platzierung der Netzknoten im Netzschema. "
+"Kann nur geändert werden, solange noch kein Netzknoten des Projekts platziert "
+"ist."
+
+#: apps/api/models.py
+msgid "Canvas Center X"
+msgstr "Canvas Mittelpunkt X"
+
+#: apps/api/models.py
+msgid "Canvas Center Y"
+msgstr "Canvas Mittelpunkt Y"
+
+#: apps/api/models.py
+msgid "Geo X coordinate at the canvas origin, taken from the first placed node."
+msgstr ""
+"Geo-X-Koordinate im Canvas-Ursprung, übernommen vom ersten platzierten "
+"Netzknoten."
+
+#: apps/api/models.py
+msgid "Geo Y coordinate at the canvas origin, taken from the first placed node."
+msgstr ""
+"Geo-Y-Koordinate im Canvas-Ursprung, übernommen vom ersten platzierten "
+"Netzknoten."
+
 #: apps/api/admin.py:783 apps/api/admin.py:801 apps/api/admin.py:854
 #: apps/api/admin.py:867 apps/api/admin.py:891
 msgid "None"
@@ -1467,14 +1513,6 @@ msgstr "Mikrorohr-Verbindung"
 msgid "Microduct Connections"
 msgstr "Mikrorohr-Verbindungen"
 
-#: apps/api/models.py:2275
-msgid "Canvas Sync Status"
-msgstr "Canvas Sync Status"
-
-#: apps/api/models.py:2276
-msgid "Canvas Sync Statuses"
-msgstr "Canvas Sync Status"
-
 #: apps/api/models.py:2348 apps/api/serializers.py:1371
 #: apps/api/serializers.py:1499
 msgid "Cable Name"
@@ -2426,6 +2464,21 @@ msgstr "Zeile %(row)d: Name ist erforderlich."
 msgid "Row %(row)d: Conduit with name '%(name)s' already exists."
 msgstr "Zeile %(row)d: Rohr mit Namen '%(name)s' existiert bereits."
 
+#: apps/api/services.py
+#, python-format
+msgid "Row %(row)d: Invalid funding status '%(value)s'. Use '%(yes)s' or '%(no)s'."
+msgstr ""
+"Zeile %(row)d: Ungültiger Förderstatus '%(value)s'. Verwenden Sie '%(yes)s' "
+"oder '%(no)s'."
+
+#: apps/api/services.py
+msgid "Yes"
+msgstr "Ja"
+
+#: apps/api/services.py
+msgid "No"
+msgstr "Nein"
+
 #: apps/api/services.py:330
 #, python-format
 msgid "Failed to save to database: %(error)s"
@@ -2708,3 +2761,23 @@ msgstr "Konvertieren und Herunterladen"
 
 #~ msgid "Component structure is required for component entries."
 #~ msgstr "Komponentenstruktur ist für Komponenteneinträge erforderlich."
+
+#: apps/api/admin.py
+msgid "* (every model without its own row)"
+msgstr "* (jedes Modell ohne eigene Zeile)"
+
+#: apps/api/admin.py
+msgid "A page key such as \"/valuation\" or \"/network-schema/node\", or a pattern ending in \"/*\" such as \"/admin/*\" or \"/*\" for every page."
+msgstr "Ein Seitenschlüssel wie \"/valuation\" oder \"/network-schema/node\", oder ein Muster mit \"/*\" am Ende wie \"/admin/*\" oder \"/*\" für alle Seiten."
+
+#: apps/api/admin.py
+msgid "Use a lowercase page key starting with \"/\", optionally ending in \"/*\"."
+msgstr "Verwenden Sie einen kleingeschriebenen Seitenschlüssel, der mit \"/\" beginnt und optional mit \"/*\" endet."
+
+#: apps/api/admin.py
+msgid "Copy permissions from"
+msgstr "Berechtigungen übernehmen von"
+
+#: apps/api/admin.py
+msgid "Start with all model and route permissions of this group. Rows entered below take precedence."
+msgstr "Startet mit allen Modell- und Route-Berechtigungen dieser Gruppe. Unten eingetragene Zeilen haben Vorrang."

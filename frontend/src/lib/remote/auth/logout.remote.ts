@@ -2,7 +2,9 @@ import { redirect } from '@sveltejs/kit';
 import { form, getRequestEvent } from '$app/server';
 import { API_URL } from '$env/static/private';
 
-import { clearAuthCookies, forwardSetCookies, logoutHeaders } from './auth-session';
+import { endSession } from '$lib/server/session';
+
+import { forwardSetCookies, logoutHeaders } from './auth-session';
 
 /**
  * Ends the backend session and clears the auth cookies, then redirects to
@@ -23,6 +25,6 @@ export const logout = form(async () => {
 		// Backend unreachable: fall through to the local cookie cleanup.
 	}
 
-	clearAuthCookies(cookies);
+	endSession(cookies);
 	redirect(303, '/login');
 });

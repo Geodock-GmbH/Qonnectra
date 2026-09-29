@@ -53,8 +53,6 @@
 
 	let isOpen = $state(false);
 
-	let isHydrating = $state(!browser);
-
 	const collection = $derived(
 		useListCollection({
 			items: data,
@@ -96,12 +94,6 @@
 	};
 
 	$effect(() => {
-		if (isOpen) {
-			items = data;
-		}
-	});
-
-	$effect(() => {
 		if (error && browser) {
 			globalToaster.error({
 				title: error || m.common_error(),
@@ -110,24 +102,23 @@
 		}
 	});
 
-	$effect(() => {
-		if (browser) {
-			isHydrating = false;
-		}
-	});
-
 	function handleValueChange(e: { value: string[] }) {
 		value = e.value;
 		onValueChange(e);
 	}
 
+	/**
+	 * Tracks the open state; opening shows the full list again after an earlier search.
+	 */
 	function handleOpenChange(e: { open: boolean }) {
 		isOpen = e.open;
+		if (isOpen) items = data;
 	}
 </script>
 
 <!-- Loading / Error / Empty States -->
-{#if loading || isHydrating}
+<!-- The server renders a placeholder; the widget only exists in the browser. -->
+{#if loading || !browser}
 	<div class="placeholder animate-pulse {placeholderSize}"></div>
 {:else if error}
 	<div class="alert variant-filled-error text-sm sm:text-base">{error}</div>

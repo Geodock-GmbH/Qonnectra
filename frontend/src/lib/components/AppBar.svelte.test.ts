@@ -3,9 +3,15 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { globalMapView, selectedProject } from '$lib/stores/store';
+import { globalMapView } from '$lib/stores/store';
+import { stopSessionKeepAlive } from '$lib/utils/sessionKeepAlive';
+import { logout } from '$lib/remote/auth/logout.remote';
 
 import AppBar from './AppBar.svelte';
+
+vi.mock('$lib/utils/sessionKeepAlive', () => ({
+	stopSessionKeepAlive: vi.fn()
+}));
 
 vi.mock('$app/environment', () => ({
 	browser: true
@@ -16,7 +22,11 @@ vi.mock('$app/navigation', () => ({
 }));
 
 const appState = vi.hoisted(() => ({
-	page: { url: new URL('http://localhost/dashboard'), params: {} as Record<string, string> }
+	page: {
+		route: { id: '/project/[projectId=integer]/dashboard/[[flagId]]' as string | null },
+		url: new URL('http://localhost/project/7/dashboard'),
+		params: { projectId: '7' } as Record<string, string>
+	}
 }));
 
 vi.mock('$app/state', () => ({
@@ -64,9 +74,7 @@ const authenticatedData = { ...data, user: { isAuthenticated: true, username: 'm
 
 beforeEach(() => {
 	globalMapView.set(false);
-	selectedProject.set('7');
 	appState.page.url = new URL('http://localhost/dashboard');
-	document.cookie = 'selected-project=7; path=/';
 });
 
 describe('AppBar', () => {
@@ -85,6 +93,21 @@ describe('AppBar', () => {
 		expect(screen.getByPlaceholderText('form_project')).toBeInTheDocument();
 	});
 
+	test('should stop the session keep-alive before logging out', async () => {
+		render(AppBar, { data: authenticatedData });
+		const [[submitLogout]] = vi.mocked(logout.enhance).mock.calls;
+		const order: string[] = [];
+		vi.mocked(stopSessionKeepAlive).mockImplementation(() => order.push('stop'));
+		const submit = vi.fn(async () => {
+			order.push('submit');
+			return true;
+		});
+
+		await submitLogout({ submit } as unknown as Parameters<typeof submitLogout>[0]);
+
+		expect(order).toEqual(['stop', 'submit']);
+	});
+
 	test('should display the app version and documentation link', () => {
 		render(AppBar, { data });
 
@@ -96,29 +119,27 @@ describe('AppBar', () => {
 	});
 
 	test('should only show the global view toggle on map routes', () => {
-		appState.page.url = new URL('http://localhost/dashboard');
+		appState.page.route.id = '/project/[projectId=integer]/dashboard/[[flagId]]';
 		const { unmount } = render(AppBar, { data: authenticatedData });
 		expect(
 			screen.queryByRole('button', { name: 'tooltip_view_all_projects' })
 		).not.toBeInTheDocument();
 		unmount();
 
-		appState.page.url = new URL('http://localhost/map/7');
+		appState.page.route.id = '/project/[projectId=integer]/map';
 		render(AppBar, { data: authenticatedData });
 		expect(screen.getByRole('button', { name: 'tooltip_view_all_projects' })).toBeInTheDocument();
 	});
 
-	test('should toggle global map view and restore the cookie project when leaving', async () => {
+	test('should toggle the global map view', async () => {
 		const user = userEvent.setup();
-		appState.page.url = new URL('http://localhost/map/7');
+		appState.page.route.id = '/project/[projectId=integer]/map';
 		render(AppBar, { data: authenticatedData });
 
 		await user.click(screen.getByRole('button', { name: 'tooltip_view_all_projects' }));
 		expect(get(globalMapView)).toBe(true);
 
-		selectedProject.set('99');
 		await user.click(screen.getByRole('button', { name: 'tooltip_view_current_project' }));
 		expect(get(globalMapView)).toBe(false);
-		expect(get(selectedProject)).toBe('7');
 	});
 });

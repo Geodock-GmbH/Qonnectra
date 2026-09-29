@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { ComponentType } from '$lib/classes/DragDropManager.svelte';
 	import { getContext, onMount } from 'svelte';
+	import { SvelteMap } from 'svelte/reactivity';
 	import {
 		IconChevronLeft,
 		IconChevronRight,
@@ -43,7 +44,7 @@
 	let collapsed = $state(false);
 
 	/** Track quantity per component type ID */
-	let quantities = $state(new Map<number, number>());
+	const quantities = new SvelteMap<number, number>();
 
 	/**
 	 * Get quantity for a component type (default 1)
@@ -59,7 +60,6 @@
 		const current = getQuantity(ctId);
 		const newValue = Math.max(1, Math.min(99, current + delta));
 		quantities.set(ctId, newValue);
-		quantities = new Map(quantities);
 	}
 
 	/**
@@ -70,7 +70,6 @@
 		if (isNaN(numValue)) return;
 		const clampedValue = Math.max(1, Math.min(99, numValue));
 		quantities.set(ctId, clampedValue);
-		quantities = new Map(quantities);
 	}
 
 	function handleDragStart(e: DragEvent, componentType: ComponentType) {

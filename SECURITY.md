@@ -70,7 +70,7 @@ QGIS Server endpoints are protected via Django forward authentication. The `?MAP
 Secrets (database passwords, `DJANGO_SECRET_KEY`, `FIELD_ENCRYPTION_KEY`) are passed via environment variables from a `.env` file that must not be committed to version control. Sensitive database fields (e.g., WMS passwords) are encrypted at rest using `FIELD_ENCRYPTION_KEY`.
 
 **Database users**
-Two database users exist: the main application user with full privileges, and a restricted QGIS user (`QGIS_DB_USER`) with limited read-write access for WFS/WMS operations.
+Two database users exist: the main application user with full privileges, and a restricted QGIS user (`QGIS_DB_USER`) used by QGIS Server and by QGIS Desktop over WireGuard. The QGIS user can read and write the GIS data tables but cannot change the schema and has no access to the user, session, token and permission tables; the backend re-applies these grants after every migration.
 
 ---
 

@@ -8,33 +8,23 @@
 
 	import QueryBoundary from '$lib/components/QueryBoundary.svelte';
 	import SearchInput from '$lib/components/SearchInput.svelte';
+	import { DEFAULT_PAGE_SIZE, queryInt, queryString, setQuery } from '$lib/utils/urlState';
 	import { getPipelineRecordList } from '$lib/remote/pipeline-records/records.remote';
 
 	import PipelineRecordsTable from './components/PipelineRecordsTable.svelte';
 
-	const searchTerm = $derived(page.url.searchParams.get('search') ?? '');
-	const currentPage = $derived(Number(page.url.searchParams.get('page')) || 1);
-	const pageSize = $derived(Number(page.url.searchParams.get('page_size')) || 50);
+	const searchTerm = $derived(queryString(page.url, 'search'));
+	const currentPage = $derived(queryInt(page.url, 'page', 1, { min: 1 }));
+	const pageSize = $derived(queryInt(page.url, 'page_size', DEFAULT_PAGE_SIZE, { min: 1 }));
 
 	// Follows the URL (back/forward, reload) but stays editable until submitted.
 	let searchInput = $derived(searchTerm);
 
 	/**
-	 * Navigates to page 1 with the current search input as a query parameter.
+	 * Applies the search input and returns to the first page.
 	 */
 	function performSearch() {
-		const query = new URLSearchParams(page.url.searchParams);
-		if (searchInput !== '') {
-			query.set('search', searchInput);
-		} else {
-			query.delete('search');
-		}
-		query.set('page', '1');
-		goto(resolve(`/pipeline-records?${query}`), {
-			keepFocus: true,
-			noScroll: true,
-			replaceState: true
-		});
+		setQuery({ search: searchInput, page: 1 });
 	}
 </script>
 
@@ -47,7 +37,7 @@
 		<table class="table table-card caption-bottom w-full overflow-scroll">
 			<thead>
 				<tr>
-					{#each { length: 5 } as _, i (i)}
+					{#each { length: 5 }, i (i)}
 						<td>
 							<div class="h-4 bg-surface-500 rounded animate-pulse w-3/4"></div>
 						</td>

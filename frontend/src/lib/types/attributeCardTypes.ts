@@ -66,6 +66,7 @@ export interface CableDrawerProps {
 	handle_end?: string | null;
 	uuid_node_start?: string | null;
 	uuid_node_end?: string | null;
+	funding_status?: boolean | null;
 	[key: string]: unknown;
 }
 
@@ -83,5 +84,6 @@ export interface NodeDrawerProps {
 	warranty?: string | null;
 	date?: string | null;
 	parent_node?: FkRef | null;
+	funding_status?: boolean | null;
 	[key: string]: unknown;
 }

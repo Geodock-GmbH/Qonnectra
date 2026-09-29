@@ -38,14 +38,23 @@ export interface GeoJSONFeatureCollection {
 export type TraceEntryPath = `/trace/${string}/${string}`;
 
 /**
- * Builds the path of the trace page for an entity. Entry types are spelled
- * with hyphens in the URL.
+ * Spells an entry type the way the URL does: with hyphens instead of
+ * underscores, both as a route segment and as the landing's `type` value.
+ * @param type - Entity type the trace starts from.
+ * @returns The URL slug, e.g. `residential-unit`.
+ */
+export function traceEntrySlug(type: TraceEntryType): string {
+	return type.replaceAll('_', '-');
+}
+
+/**
+ * Builds the path of the trace page for an entity.
  * @param type - Entity type the trace starts from.
  * @param id - Entity UUID.
  * @returns The app-relative path.
  */
 export function traceEntryPath(type: TraceEntryType, id: string): TraceEntryPath {
-	return `/trace/${type.replaceAll('_', '-')}/${id}`;
+	return `/trace/${traceEntrySlug(type)}/${id}`;
 }
 
 /**
@@ -54,7 +63,7 @@ export function traceEntryPath(type: TraceEntryType, id: string): TraceEntryPath
  * @returns The entry type, or `null` when the segment names none.
  */
 export function traceEntryTypeFromSlug(slug: string): TraceEntryType | null {
-	return TRACE_ENTRY_TYPES.find((type) => type.replaceAll('_', '-') === slug) ?? null;
+	return TRACE_ENTRY_TYPES.find((type) => traceEntrySlug(type) === slug) ?? null;
 }
 
 /**

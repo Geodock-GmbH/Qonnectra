@@ -1,6 +1,5 @@
 import type { MapPopupManager } from './MapPopupManager.svelte';
 import type { MapSelectionManager } from './MapSelectionManager.svelte';
-import type { DrawerStore } from '$lib/stores/drawer';
 import type { Feature } from 'ol';
 import type OlMap from 'ol/Map';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
@@ -19,11 +18,6 @@ class FakeSelectionManager {
 class FakePopupManager {
 	show = vi.fn();
 	hide = vi.fn();
-}
-
-class FakeDrawerStore {
-	open = vi.fn();
-	close = vi.fn();
 }
 
 class FakeMap {
@@ -45,8 +39,6 @@ class FakeMap {
 	);
 }
 
-const drawerComponent = (() => {}) as never;
-
 function makeFeature(id: string | undefined, properties: Record<string, unknown> = {}): Feature {
 	return {
 		getId: () => id,
@@ -58,14 +50,12 @@ function makeFeature(id: string | undefined, properties: Record<string, unknown>
 function setup(configOverrides: Record<string, boolean> | null = null) {
 	const selectionManager = new FakeSelectionManager();
 	const popupManager = new FakePopupManager();
-	const drawerStore = new FakeDrawerStore();
+	const onFeatureSelected = vi.fn();
+	const onSelectionCleared = vi.fn();
 	const manager = new MapInteractionManager(
 		selectionManager as unknown as MapSelectionManager,
 		popupManager as unknown as MapPopupManager,
-		drawerStore as unknown as DrawerStore,
-		drawerComponent,
-		{ name: 'Name' },
-		configOverrides as never
+		{ selectableLayers: configOverrides, onFeatureSelected, onSelectionCleared }
 	);
 	const map = new FakeMap();
 	const layers = {
@@ -74,7 +64,15 @@ function setup(configOverrides: Record<string, boolean> | null = null) {
 		nodeLayer: new FakeLayer() as never,
 		areaLayer: new FakeLayer() as never
 	};
-	return { manager, selectionManager, popupManager, drawerStore, map, layers };
+	return {
+		manager,
+		selectionManager,
+		popupManager,
+		onFeatureSelected,
+		onSelectionCleared,
+		map,
+		layers
+	};
 }
 
 beforeEach(() => {
@@ -149,44 +147,30 @@ describe('isLayerSelectable', () => {
 });
 
 describe('handleFeatureClick', () => {
-	test('should select the feature and open the drawer with formatted props', () => {
-		const { manager, selectionManager, drawerStore, map, layers } = setup();
+	test('should select the feature and report its kind and uuid, never navigating itself', () => {
+		const { manager, selectionManager, onFeatureSelected, map, layers } = setup();
 		manager.initialize(map as unknown as OlMap, layers);
-		const feature = makeFeature('t1', {
-			id_trench: 'T-42',
-			geometry: {},
-			project: 7
-		});
+		const feature = makeFeature('t1', { id_trench: 'T-42', geometry: {}, project: 7 });
 
 		manager.handleFeatureClick(feature, [10, 20], layers.vectorTileLayer);
 
 		expect(selectionManager.selectFeature).toHaveBeenCalledWith('t1', feature);
-		expect(drawerStore.open).toHaveBeenCalledWith({
-			title: 'T-42',
-			component: drawerComponent,
-			props: expect.objectContaining({
-				featureType: 'trench',
-				featureId: 't1',
-				featureData: { id_trench: 'T-42', project: 7 },
-				alias: { name: 'Name' },
-				featureProjectId: '7'
-			})
-		});
+		expect(onFeatureSelected).toHaveBeenCalledExactlyOnceWith('trench', 't1');
 	});
 
 	test('should fall back to the popup when the feature type is unknown', () => {
-		const { manager, popupManager, drawerStore, map, layers } = setup();
+		const { manager, popupManager, onFeatureSelected, map, layers } = setup();
 		manager.initialize(map as unknown as OlMap, layers);
 		const feature = makeFeature('x1', { something: 'else' });
 
 		manager.handleFeatureClick(feature, [10, 20], null);
 
 		expect(popupManager.show).toHaveBeenCalledWith([10, 20], feature);
-		expect(drawerStore.open).not.toHaveBeenCalled();
+		expect(onFeatureSelected).not.toHaveBeenCalled();
 	});
 
 	test('should treat clicks on non-selectable layers as empty clicks', () => {
-		const { manager, selectionManager, drawerStore, map, layers } = setup({
+		const { manager, selectionManager, onSelectionCleared, map, layers } = setup({
 			trench: false,
 			address: true,
 			node: true,
@@ -197,7 +181,7 @@ describe('handleFeatureClick', () => {
 		manager.handleFeatureClick(makeFeature('t1'), [0, 0], layers.vectorTileLayer);
 
 		expect(selectionManager.clearSelection).toHaveBeenCalled();
-		expect(drawerStore.close).toHaveBeenCalled();
+		expect(onSelectionCleared).toHaveBeenCalledOnce();
 		expect(selectionManager.selectFeature).not.toHaveBeenCalled();
 	});
 
@@ -224,14 +208,14 @@ describe('handleMapClick', () => {
 	});
 
 	test('should clear everything when clicking empty space', () => {
-		const { manager, selectionManager, popupManager, drawerStore, map, layers } = setup();
+		const { manager, selectionManager, popupManager, onSelectionCleared, map, layers } = setup();
 		manager.initialize(map as unknown as OlMap, layers);
 
 		map.listeners.click({ pixel: [0, 0], coordinate: [1, 2] });
 
 		expect(selectionManager.clearSelection).toHaveBeenCalled();
 		expect(popupManager.hide).toHaveBeenCalled();
-		expect(drawerStore.close).toHaveBeenCalled();
+		expect(onSelectionCleared).toHaveBeenCalledOnce();
 	});
 
 	test('should clear the search highlight on every click', () => {

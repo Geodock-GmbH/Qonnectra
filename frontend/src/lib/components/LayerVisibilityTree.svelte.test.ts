@@ -115,6 +115,23 @@ describe('LayerVisibilityTree', () => {
 		expect(styles.Muffe).toMatchObject({ visible: true, size: 12 });
 	});
 
+	test('should list node types that share a name', async () => {
+		const user = userEvent.setup();
+		const { nodeLayer } = makeLayers();
+
+		render(LayerVisibilityTree, {
+			layers: [nodeLayer] as never,
+			nodeTypes: [
+				{ id: 1, node_type: 'Muffe' },
+				{ id: 2, node_type: 'Muffe' }
+			]
+		});
+
+		await user.click(screen.getAllByRole('button', { name: 'tooltip_expand' })[0]);
+
+		expect(screen.getAllByText('Muffe')).toHaveLength(2);
+	});
+
 	test('should toggle the basemap theme', async () => {
 		const user = userEvent.setup();
 		render(LayerVisibilityTree, { layers: [] });

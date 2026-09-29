@@ -1,4 +1,5 @@
 import type { FiberColor } from '$lib/types/nodeData';
+import { SvelteSet } from 'svelte/reactivity';
 
 import { m } from '$lib/paraglide/messages';
 
@@ -15,6 +16,7 @@ import {
 	upsertMergedSplice
 } from '$lib/remote/network-schema/fiber-splices.remote';
 import { getFiberColors, getFibersForCable } from '$lib/remote/network-schema/fibers.remote';
+import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
 
 export interface FiberDetails {
 	uuid: string;
@@ -180,7 +182,7 @@ export class FiberSpliceManager {
 	bulkOperationInProgress: boolean = $state(false);
 
 	/** Currently selected port keys for merging (format: "portNumber-side") */
-	selectedForMerge: Set<string> = $state(new Set());
+	readonly selectedForMerge = new SvelteSet<string>();
 
 	/** Whether merge selection mode is active */
 	mergeSelectionMode: boolean = $state(false);
@@ -236,7 +238,9 @@ export class FiberSpliceManager {
 		const baseRows = this.portRows;
 		if (baseRows.length === 0) return [];
 
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local grouping, not state
 		const mergeGroupsA = new Map<string, number[]>();
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local grouping, not state
 		const mergeGroupsB = new Map<string, number[]>();
 
 		for (const splice of this.fiberSplices) {
@@ -318,13 +322,9 @@ export class FiberSpliceManager {
 	 * Selects a structure and loads its ports and splices, or deselects if already selected.
 	 * Blocks switching while a bulk operation is in progress.
 	 * @param structure
-	 * @param isMobile - Whether mobile mode is active
 	 * @returns True if structure was selected, false if deselected or blocked
 	 */
-	async selectStructure(
-		structure: NodeStructure | null,
-		isMobile: boolean = false
-	): Promise<boolean> {
+	async selectStructure(structure: NodeStructure | null): Promise<boolean> {
 		if (this.bulkOperationInProgress) {
 			globalToaster.warning({
 				title: m.common_warning?.() || 'Warning',
@@ -467,10 +467,7 @@ export class FiberSpliceManager {
 
 		globalToaster.warning({
 			title: m.common_warning?.() || 'Warning',
-			description:
-				(
-					m as unknown as Record<string, (() => string) | undefined>
-				).message_unsupported_drop_type?.() || 'Unsupported drop type'
+			description: m.message_unsupported_drop_type()
 		});
 		return false;
 	}
@@ -639,7 +636,7 @@ export class FiberSpliceManager {
 			globalToaster.error({
 				title: m.common_error(),
 				description:
-					(err as Error).message ||
+					remoteErrorMessage(err) ||
 					m.message_error_connecting_fiber?.() ||
 					'Failed to connect fiber'
 			});
@@ -663,9 +660,7 @@ export class FiberSpliceManager {
 		if (fibers.length === 0) {
 			globalToaster.warning({
 				title: m.common_warning?.() || 'Warning',
-				description:
-					(m as unknown as Record<string, (() => string) | undefined>).message_bundle_empty?.() ||
-					'Bundle contains no fibers'
+				description: m.message_bundle_empty()
 			});
 			return false;
 		}
@@ -679,10 +674,7 @@ export class FiberSpliceManager {
 		if (availablePorts.length === 0) {
 			globalToaster.warning({
 				title: m.common_warning?.() || 'Warning',
-				description:
-					(
-						m as unknown as Record<string, (() => string) | undefined>
-					).message_no_available_ports?.() || 'No available ports'
+				description: m.message_no_available_ports()
 			});
 			return false;
 		}
@@ -796,7 +788,7 @@ export class FiberSpliceManager {
 			globalToaster.error({
 				title: m.common_error(),
 				description:
-					(err as Error).message ||
+					remoteErrorMessage(err) ||
 					m.message_error_connecting_fiber?.() ||
 					'Failed to connect fibers'
 			});
@@ -809,7 +801,7 @@ export class FiberSpliceManager {
 	 */
 	async #fetchFibersForCable(cableUuid: string): Promise<BundleFiber[]> {
 		try {
-			return (await getFibersForCable(cableUuid)) as unknown as BundleFiber[];
+			return await getFibersForCable(cableUuid);
 		} catch (err: unknown) {
 			console.error('Error fetching fibers for cable:', err);
 			void logToBackendClient({
@@ -933,6 +925,7 @@ export class FiberSpliceManager {
 				fiber_uuid: string;
 				cable_uuid: string;
 			}[] = [];
+			// eslint-disable-next-line svelte/prefer-svelte-reactivity -- loop bookkeeping, not state
 			const processedMergeGroups = new Set<string>();
 
 			for (const portNumber of availablePorts) {
@@ -1117,7 +1110,7 @@ export class FiberSpliceManager {
 			this.fiberSplices = previousSplices;
 			globalToaster.error({
 				title: m.common_error(),
-				description: (err as Error).message || 'Failed to connect residential unit'
+				description: remoteErrorMessage(err) || 'Failed to connect residential unit'
 			});
 			return false;
 		}
@@ -1153,10 +1146,7 @@ export class FiberSpliceManager {
 		if (availablePorts.length === 0) {
 			globalToaster.warning({
 				title: m.common_warning?.() || 'Warning',
-				description:
-					(
-						m as unknown as Record<string, (() => string) | undefined>
-					).message_no_available_ports?.() || 'No available ports'
+				description: m.message_no_available_ports()
 			});
 			return false;
 		}
@@ -1232,7 +1222,7 @@ export class FiberSpliceManager {
 			this.bulkOperationInProgress = false;
 			globalToaster.error({
 				title: m.common_error(),
-				description: (err as Error).message || 'Failed to connect residential units'
+				description: remoteErrorMessage(err) || 'Failed to connect residential units'
 			});
 			return false;
 		}
@@ -1381,7 +1371,7 @@ export class FiberSpliceManager {
 			this.fiberSplices = previousSplices;
 			globalToaster.error({
 				title: m.common_error(),
-				description: (err as Error).message || 'Failed to clear fiber'
+				description: remoteErrorMessage(err) || 'Failed to clear fiber'
 			});
 		}
 	}
@@ -1410,7 +1400,7 @@ export class FiberSpliceManager {
 	toggleMergeSelectionMode(): void {
 		this.mergeSelectionMode = !this.mergeSelectionMode;
 		if (!this.mergeSelectionMode) {
-			this.selectedForMerge = new Set();
+			this.selectedForMerge.clear();
 		}
 	}
 
@@ -1420,7 +1410,7 @@ export class FiberSpliceManager {
 	setMergeSide(side: Side): void {
 		if (side !== this.mergeSide) {
 			this.mergeSide = side;
-			this.selectedForMerge = new Set();
+			this.selectedForMerge.clear();
 		}
 	}
 
@@ -1429,20 +1419,18 @@ export class FiberSpliceManager {
 	 */
 	togglePortSelection(portNumber: number, side: Side): void {
 		const key = `${portNumber}-${side}`;
-		const newSet = new Set(this.selectedForMerge);
-		if (newSet.has(key)) {
-			newSet.delete(key);
+		if (this.selectedForMerge.has(key)) {
+			this.selectedForMerge.delete(key);
 		} else {
-			newSet.add(key);
+			this.selectedForMerge.add(key);
 		}
-		this.selectedForMerge = newSet;
 	}
 
 	/**
 	 * Clears all port selections for the merge operation.
 	 */
 	clearMergeSelection(): void {
-		this.selectedForMerge = new Set();
+		this.selectedForMerge.clear();
 	}
 
 	/**
@@ -1480,11 +1468,7 @@ export class FiberSpliceManager {
 			if (portNumbers[i] !== portNumbers[i - 1] + 1) {
 				globalToaster.warning({
 					title: m.common_warning?.() || 'Warning',
-					description:
-						(
-							m as unknown as Record<string, (() => string) | undefined>
-						).message_ports_must_be_consecutive?.() ||
-						'Ports must be consecutive (e.g., 1-2-3, not 1-3)'
+					description: m.message_ports_must_be_consecutive()
 				});
 				return false;
 			}
@@ -1498,7 +1482,7 @@ export class FiberSpliceManager {
 			});
 
 			await this.fetchFiberSplices(this.selectedStructure!.uuid);
-			this.selectedForMerge = new Set();
+			this.selectedForMerge.clear();
 			this.mergeSelectionMode = false;
 
 			globalToaster.success({
@@ -1522,7 +1506,7 @@ export class FiberSpliceManager {
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: (err as Error).message || 'Failed to merge ports'
+				description: remoteErrorMessage(err) || 'Failed to merge ports'
 			});
 			return false;
 		}
@@ -1573,7 +1557,7 @@ export class FiberSpliceManager {
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: (err as Error).message || 'Failed to unmerge ports'
+				description: remoteErrorMessage(err) || 'Failed to unmerge ports'
 			});
 			return false;
 		}
@@ -1658,7 +1642,7 @@ export class FiberSpliceManager {
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: (err as Error).message || 'Failed to connect fibers'
+				description: remoteErrorMessage(err) || 'Failed to connect fibers'
 			});
 			return false;
 		}
@@ -1673,7 +1657,7 @@ export class FiberSpliceManager {
 		this.fiberSplices = [];
 		this.fiberColors = [];
 		this.loadingPorts = false;
-		this.selectedForMerge = new Set();
+		this.selectedForMerge.clear();
 		this.mergeSelectionMode = false;
 	}
 

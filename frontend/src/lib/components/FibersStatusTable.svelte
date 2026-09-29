@@ -1,10 +1,12 @@
 <script lang="ts">
 	import type { Fiber } from '$lib/classes/CableFiberDataManager.svelte.js';
+	import { SvelteSet } from 'svelte/reactivity';
 	import { IconChevronDown, IconChevronRight } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
+	import { groupFibersByBundle } from '$lib/utils/fiberBundles';
 
 	interface Props {
 		/** Array of fiber objects */
@@ -32,38 +34,20 @@
 
 	const HEALTHY_VALUE = 'healthy';
 
-	let statusValues = $state<Record<string, Array<string | number>>>({});
-
 	/** Expanded bundle numbers */
-	let expandedBundles = $state<Set<number>>(new Set());
+	const expandedBundles = new SvelteSet<number>();
 
-	$effect(() => {
-		const newValues: Record<string, Array<string | number>> = {};
-		for (const fiber of fibers) {
-			newValues[fiber.uuid] =
-				fiber.fiber_status?.id != null ? [fiber.fiber_status.id] : [HEALTHY_VALUE];
-		}
-		statusValues = newValues;
-	});
+	/**
+	 * The combobox selection for a fiber: its status id, or the healthy option.
+	 */
+	function statusValue(fiber: Fiber): Array<string | number> {
+		return fiber.fiber_status?.id != null ? [fiber.fiber_status.id] : [HEALTHY_VALUE];
+	}
 
 	/**
 	 * Group fibers by bundle number
 	 */
-	const bundleGroups = $derived.by(() => {
-		const groups = new Map();
-		for (const fiber of fibers) {
-			const bundleKey = fiber.bundle_number;
-			if (!groups.has(bundleKey)) {
-				groups.set(bundleKey, {
-					bundleNumber: fiber.bundle_number,
-					bundleColor: fiber.bundle_color,
-					fibers: []
-				});
-			}
-			groups.get(bundleKey).fibers.push(fiber);
-		}
-		return Array.from(groups.values()).sort((a, b) => a.bundleNumber - b.bundleNumber);
-	});
+	const bundleGroups = $derived(groupFibersByBundle(fibers));
 
 	const statusComboboxData = $derived([
 		{ value: HEALTHY_VALUE, label: m.label_fiber_healthy() },
@@ -79,7 +63,6 @@
 		} else {
 			expandedBundles.add(bundleNumber);
 		}
-		expandedBundles = new Set(expandedBundles);
 	}
 
 	/**
@@ -186,7 +169,7 @@
 										<td>
 											<GenericCombobox
 												data={statusComboboxData}
-												bind:value={statusValues[fiber.uuid]}
+												value={statusValue(fiber)}
 												onValueChange={(e: { value: Array<string | number> }) =>
 													handleComboboxChange(fiber, e)}
 												placeholder={m.form_status()}

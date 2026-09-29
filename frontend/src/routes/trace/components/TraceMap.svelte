@@ -518,7 +518,10 @@
 	}
 </script>
 
-<div class="map-container rounded-xl border border-surface-200-800 overflow-hidden">
+<div
+	class="map-container rounded-xl border border-surface-200-800 overflow-hidden"
+	data-testid="trace-map"
+>
 	<div bind:this={container} class="map" {@attach drawTrace} {@attach focusSelection}></div>
 </div>
 

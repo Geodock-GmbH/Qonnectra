@@ -21,7 +21,7 @@
 	 * @param e - The combobox's value change.
 	 */
 	function handleGeometryModeChange(e: { value: string[] }) {
-		search.geometryMode = GEOMETRY_MODES.find((mode) => mode === e.value[0]) ?? 'segments';
+		search.setGeometryMode(GEOMETRY_MODES.find((mode) => mode === e.value[0]) ?? 'segments');
 	}
 </script>
 
@@ -30,7 +30,8 @@
 		<label class="flex cursor-pointer items-center gap-2">
 			<input
 				type="checkbox"
-				bind:checked={search.globalSearch}
+				checked={search.globalSearch}
+				onchange={(e) => search.setGlobalSearch(e.currentTarget.checked)}
 				class="h-4 w-4 rounded border-surface-300 text-primary-500 focus:ring-primary-500"
 			/>
 			<span class="text-sm font-medium text-surface-900-100">{m.trace_search_global()}</span>
@@ -39,7 +40,8 @@
 		<label class="flex cursor-pointer items-center gap-2">
 			<input
 				type="checkbox"
-				bind:checked={search.includeGeometry}
+				checked={search.includeGeometry}
+				onchange={(e) => search.setIncludeGeometry(e.currentTarget.checked)}
 				class="h-4 w-4 rounded border-surface-300 text-primary-500 focus:ring-primary-500"
 			/>
 			<span class="text-sm font-medium text-surface-900-100">{m.trace_include_geometry()}</span>
@@ -59,7 +61,8 @@
 			<label class="flex cursor-pointer items-center gap-2" transition:slide={{ duration: 150 }}>
 				<input
 					type="checkbox"
-					bind:checked={search.orientGeometry}
+					checked={search.orientGeometry}
+					onchange={(e) => search.setOrientGeometry(e.currentTarget.checked)}
 					class="h-4 w-4 rounded border-surface-300 text-primary-500 focus:ring-primary-500"
 				/>
 				<span class="text-sm text-surface-900-100">{m.trace_orient_geometry()}</span>

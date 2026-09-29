@@ -4,9 +4,12 @@ import logging
 import os
 
 from django import forms
+from django.apps import apps as django_apps
 from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.admin.widgets import FilteredSelectMultiple
+from django.contrib.auth.admin import GroupAdmin as DjangoGroupAdmin
+from django.contrib.auth.models import Group
 from django.contrib.contenttypes.models import ContentType
 from django.db import models, transaction
 from django.db.models import Case, Exists, IntegerField, OuterRef, Q, Value, When
@@ -717,14 +720,81 @@ class AttributesFiberStatusAdmin(admin.ModelAdmin):
     list_display = ("id", "fiber_status")
 
 
+def canvas_readonly_fields(project_id):
+    """Return the network schema canvas fields an admin may not edit.
+
+    The canvas center is set by the project's first placed node. The scale
+    is locked once a node is placed, because nodes placed later at another
+    scale would no longer line up with the existing schema.
+
+    Args:
+        project_id: Primary key of the :model:`api.Projects` row, or None on
+            an add form.
+
+    Returns:
+        list[str]: Read-only field names.
+    """
+    fields = ["canvas_center_x", "canvas_center_y"]
+    if (
+        project_id is not None
+        and Node.objects.filter(project_id=project_id, canvas_x__isnull=False).exists()
+    ):
+        fields.append("canvas_scale")
+    return fields
+
+
+def _configured_schema_settings(project):
+    """Return the project's network schema settings once an admin ticked them.
+
+    Args:
+        project: :model:`api.Projects` instance.
+
+    Returns:
+        NetworkSchemaSettings | None: The settings, or None when missing or
+            not yet marked as configured.
+    """
+    try:
+        settings = project.network_schema_settings
+    except NetworkSchemaSettings.DoesNotExist:
+        return None
+    return settings if settings.configured else None
+
+
+def _schema_not_configured_badge():
+    """Return the red "Not configured" badge for the project list.
+
+    Returns:
+        SafeString: HTML badge markup.
+    """
+    return format_html(
+        '<span style="color: #dc3545;">⚠ {}</span>',
+        _("Not configured"),
+    )
+
+
 class NetworkSchemaSettingsInline(admin.StackedInline):
-    """Inline admin for Network Schema Settings within Project admin."""
+    """Inline admin for :model:`api.NetworkSchemaSettings` within the project admin.
+
+    The canvas center is always read-only; the scale locks once a node is placed.
+    """
 
     model = NetworkSchemaSettings
     can_delete = False
     verbose_name = _("Network Schema Settings")
     verbose_name_plural = _("Network Schema Settings")
     filter_horizontal = ("excluded_node_types", "child_view_enabled_node_types")
+
+    def get_readonly_fields(self, request, obj=None):
+        """Return the canvas fields to lock for the project being edited.
+
+        Args:
+            request: Current admin request.
+            obj: Parent :model:`api.Projects` instance, or None on the add form.
+
+        Returns:
+            list[str]: Read-only field names.
+        """
+        return canvas_readonly_fields(obj.pk if obj else None)
 
 
 class PipeBranchSettingsInline(admin.StackedInline):
@@ -771,39 +841,49 @@ class ProjectsAdmin(SimpleHistoryAdmin):
 
     @admin.display(description=_("Excluded Node Types"))
     def excluded_types_display(self, obj):
-        """Return a comma-separated preview of excluded node types."""
-        try:
-            settings = obj.network_schema_settings
-            count = settings.excluded_node_types.count()
-            if count > 0:
-                types = settings.excluded_node_types.all()[:3]
-                names = [t.node_type for t in types]
-                suffix = f"... (+{count - 3})" if count > 3 else ""
-                return ", ".join(names) + suffix
-            return _("None")
-        except NetworkSchemaSettings.DoesNotExist:
-            return format_html(
-                '<span style="color: #dc3545;">⚠ {}</span>',
-                _("Not configured"),
-            )
+        """Return a comma-separated preview of the project's excluded node types.
+
+        Args:
+            obj: :model:`api.Projects` instance of the list row.
+
+        Returns:
+            str | SafeString: Up to three type names with a ``(+n)`` suffix,
+                "None", or the "Not configured" badge while the settings are
+                missing or not ticked as configured.
+        """
+        settings = _configured_schema_settings(obj)
+        if settings is None:
+            return _schema_not_configured_badge()
+        count = settings.excluded_node_types.count()
+        if count > 0:
+            types = settings.excluded_node_types.all()[:3]
+            names = [t.node_type for t in types]
+            suffix = f"... (+{count - 3})" if count > 3 else ""
+            return ", ".join(names) + suffix
+        return _("None")
 
     @admin.display(description=_("Child View Types"))
     def child_view_types_display(self, obj):
-        """Return a comma-separated preview of child-view-enabled node types."""
-        try:
-            settings = obj.network_schema_settings
-            count = settings.child_view_enabled_node_types.count()
-            if count > 0:
-                types = settings.child_view_enabled_node_types.all()[:3]
-                names = [t.node_type for t in types]
-                suffix = f"... (+{count - 3})" if count > 3 else ""
-                return ", ".join(names) + suffix
-            return _("None")
-        except NetworkSchemaSettings.DoesNotExist:
-            return format_html(
-                '<span style="color: #dc3545;">⚠ {}</span>',
-                _("Not configured"),
-            )
+        """Return a comma-separated preview of the project's child-view node types.
+
+        Args:
+            obj: :model:`api.Projects` instance of the list row.
+
+        Returns:
+            str | SafeString: Up to three type names with a ``(+n)`` suffix,
+                "None", or the "Not configured" badge while the settings are
+                missing or not ticked as configured.
+        """
+        settings = _configured_schema_settings(obj)
+        if settings is None:
+            return _schema_not_configured_badge()
+        count = settings.child_view_enabled_node_types.count()
+        if count > 0:
+            types = settings.child_view_enabled_node_types.all()[:3]
+            names = [t.node_type for t in types]
+            suffix = f"... (+{count - 3})" if count > 3 else ""
+            return ", ".join(names) + suffix
+        return _("None")
 
     @admin.display(description=_("Pipe Branch Types"))
     def allowed_pipe_branch_types_display(self, obj):
@@ -826,10 +906,15 @@ class ProjectsAdmin(SimpleHistoryAdmin):
 
 @admin.register(NetworkSchemaSettings)
 class NetworkSchemaSettingsAdmin(admin.ModelAdmin):
-    """Standalone admin for Network Schema Settings."""
+    """Standalone admin for :model:`api.NetworkSchemaSettings`.
+
+    The canvas center is always read-only; the scale locks once a node is placed.
+    """
 
     list_display = (
         "project",
+        "configured",
+        "canvas_scale",
         "excluded_count",
         "excluded_types_preview",
         "child_view_count",
@@ -839,6 +924,18 @@ class NetworkSchemaSettingsAdmin(admin.ModelAdmin):
     search_fields = ("project__project",)
     filter_horizontal = ("excluded_node_types", "child_view_enabled_node_types")
     autocomplete_fields = ["project"]
+
+    def get_readonly_fields(self, request, obj=None):
+        """Return the canvas fields to lock for the settings' project.
+
+        Args:
+            request: Current admin request.
+            obj: :model:`api.NetworkSchemaSettings` instance, or None on the add form.
+
+        Returns:
+            list[str]: Read-only field names.
+        """
+        return canvas_readonly_fields(obj.project_id if obj else None)
 
     @admin.display(description=_("Excluded Count"))
     def excluded_count(self, obj):
@@ -2351,10 +2448,62 @@ class WMSSourceAdmin(admin.ModelAdmin):
                 )
 
 
+def permission_model_choices():
+    """Return the model names a :model:`api.ModelPermission` row may name.
+
+    Returns:
+        list[tuple[str, str]]: ``*`` for every model, then each model of the
+            api app by its lowercase name; history models are left out.
+    """
+    names = sorted(
+        model._meta.model_name
+        for model in django_apps.get_app_config("api").get_models()
+        if not model._meta.model_name.startswith("historical")
+    )
+    return [("*", _("* (every model without its own row)"))] + [
+        (name, name) for name in names
+    ]
+
+
+class ModelPermissionForm(forms.ModelForm):
+    """Offers only real model names, so a typo cannot silently grant nothing."""
+
+    model_name = forms.ChoiceField(
+        label=_("Model Name"), choices=permission_model_choices
+    )
+
+    class Meta:
+        model = ModelPermission
+        fields = "__all__"
+
+
+class RoutePermissionForm(forms.ModelForm):
+    """Rejects route patterns that can never match a permission key."""
+
+    route_pattern = forms.RegexField(
+        label=_("Route Pattern"),
+        regex=r"^/(\*|[a-z0-9-]+(/[a-z0-9-]+)*(/\*)?)$",
+        help_text=_(
+            'A page key such as "/valuation" or "/network-schema/node", or a '
+            'pattern ending in "/*" such as "/admin/*" or "/*" for every page.'
+        ),
+        error_messages={
+            "invalid": _(
+                'Use a lowercase page key starting with "/", optionally ending in "/*".'
+            )
+        },
+    )
+
+    class Meta:
+        model = RoutePermission
+        fields = "__all__"
+
+
 @admin.register(ModelPermission)
 class ModelPermissionAdmin(admin.ModelAdmin):
     """Admin for :model:`api.ModelPermission` group-level model access control."""
 
+    form = ModelPermissionForm
     list_display = ["group", "model_name", "access_level"]
     list_filter = ["group", "access_level", "model_name"]
     list_editable = ["access_level"]
@@ -2367,11 +2516,117 @@ class ModelPermissionAdmin(admin.ModelAdmin):
 class RoutePermissionAdmin(admin.ModelAdmin):
     """Admin for :model:`api.RoutePermission` group-level route access control."""
 
+    form = RoutePermissionForm
     list_display = ["group", "route_pattern", "allowed"]
     list_filter = ["group", "allowed"]
     list_editable = ["allowed"]
     search_fields = ["route_pattern", "group__name"]
     ordering = ["group__name", "route_pattern"]
+
+
+def copy_group_permissions(source, target):
+    """Copy every model and route permission row of one group onto another.
+
+    Rows the target already has are kept, so levels entered while creating
+    the group win over the copied ones.
+
+    Args:
+        source: :model:`auth.Group` whose rows are copied.
+        target: :model:`auth.Group` that receives the missing rows.
+    """
+    for row in ModelPermission.objects.filter(group=source):
+        ModelPermission.objects.get_or_create(
+            group=target,
+            model_name=row.model_name,
+            defaults={"access_level": row.access_level},
+        )
+    for row in RoutePermission.objects.filter(group=source):
+        RoutePermission.objects.get_or_create(
+            group=target,
+            route_pattern=row.route_pattern,
+            defaults={"allowed": row.allowed},
+        )
+
+
+class ModelPermissionInline(admin.TabularInline):
+    """The model access levels of a role, edited on the role's page."""
+
+    model = ModelPermission
+    form = ModelPermissionForm
+    extra = 0
+    ordering = ["model_name"]
+
+
+class RoutePermissionInline(admin.TabularInline):
+    """The route rules of a role, edited on the role's page."""
+
+    model = RoutePermission
+    form = RoutePermissionForm
+    extra = 0
+    ordering = ["route_pattern"]
+
+
+class GroupCreateForm(forms.ModelForm):
+    """Group form for a new role that can start from an existing role's permissions."""
+
+    copy_permissions_from = forms.ModelChoiceField(
+        label=_("Copy permissions from"),
+        queryset=Group.objects.order_by("name"),
+        required=False,
+        help_text=_(
+            "Start with all model and route permissions of this group. "
+            "Rows entered below take precedence."
+        ),
+    )
+
+    class Meta:
+        model = Group
+        fields = "__all__"
+
+
+admin.site.unregister(Group)
+
+
+@admin.register(Group)
+class RoleAdmin(DjangoGroupAdmin):
+    """Admin for :model:`auth.Group` roles with their permission rows inline.
+
+    Shows the role's :model:`api.ModelPermission` and
+    :model:`api.RoutePermission` rows on its own page, and lets a new role
+    copy the rows of an existing one.
+    """
+
+    inlines = [ModelPermissionInline, RoutePermissionInline]
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        """Return the create form with the copy option for a new role.
+
+        Args:
+            request: The admin request.
+            obj: The role being edited, or None when adding one.
+            change: Whether an existing role is being changed.
+            **kwargs: Passed on to ``ModelAdmin.get_form``.
+
+        Returns:
+            type[forms.ModelForm]: The form class for this request.
+        """
+        if obj is None:
+            kwargs["form"] = GroupCreateForm
+        return super().get_form(request, obj, change=change, **kwargs)
+
+    def save_related(self, request, form, formsets, change):
+        """Save the inline rows, then copy the chosen role's remaining rows.
+
+        Args:
+            request: The admin request.
+            form: The bound group form.
+            formsets: The inline formsets.
+            change: Whether an existing role was changed.
+        """
+        super().save_related(request, form, formsets, change)
+        source = form.cleaned_data.get("copy_permissions_from")
+        if source:
+            copy_group_permissions(source, form.instance)
 
 
 @admin.register(UserSettings)

@@ -1,13 +1,18 @@
 import { isHttpError } from '@sveltejs/kit';
 
+import { m } from '$lib/paraglide/messages';
+
 /**
  * Reads the message from an error thrown by a remote function call. Kit
  * `HttpError`s (raised server-side via `error()` / `failFromResponse`) carry
- * it in `body.message`; other errors expose `message` directly.
+ * it in `body.message`; other errors expose `message` directly. A 403 always
+ * reads as a missing role permission in the user's language, since Django
+ * only answers 403 when the role's access level forbids the action.
  * @param err - The rejection value of a remote function call.
  * @returns The message, or `null` when none is available.
  */
 export function remoteErrorMessage(err: unknown): string | null {
+	if (isHttpError(err) && err.status === 403) return m.message_error_permission_denied();
 	if (isHttpError(err)) return err.body?.message || null;
 	if (err instanceof Error) return err.message || null;
 	return null;

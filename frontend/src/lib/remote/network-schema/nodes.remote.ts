@@ -2,6 +2,7 @@ import { command, query } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';
 
+import { failFromResponse } from '$lib/remote/shared/backend-error';
 import { djangoHeaders } from '$lib/remote/shared/remote-auth';
 
 import { fetchNodeDependencies } from './node-dependencies';
@@ -32,7 +33,8 @@ const UpdateNodeSchema = v.object({
 	flagId: v.optional(v.number()),
 	warranty: v.optional(v.string()),
 	date: v.optional(v.string()),
-	parentNodeId: v.optional(v.string())
+	parentNodeId: v.optional(v.string()),
+	fundingStatus: v.optional(v.nullable(v.boolean()))
 });
 
 /**
@@ -47,9 +49,7 @@ export const getNodeDetails = query(v.pipe(v.string(), v.nonEmpty()), async (uui
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		throw new Error(`HTTP ${response.status}: Failed to load node details`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to load node details');
 
 	return (await response.json()) as Record<string, unknown>;
 });
@@ -78,12 +78,7 @@ export const saveNodeGeometry = command(
 			body: JSON.stringify(updatePayload)
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(
-				errorData.detail || `HTTP ${response.status}: Failed to update node position`
-			);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to update node position');
 
 		return (await response.json()) as Record<string, unknown>;
 	}
@@ -104,6 +99,7 @@ export const getNodeDependencies = query(NodeDependenciesSchema, async ({ nodeId
  * Update a node's attributes. Only provided fields are sent; `parentNodeId` is
  * always written (an empty value clears the parent).
  * @param input.nodeId - Node UUID to update.
+ * @param input.fundingStatus - Funding flag; `null` clears it, omitted leaves it untouched.
  * @returns The updated node record.
  * @throws When the backend rejects the update.
  */
@@ -121,6 +117,7 @@ export const updateNode = command(UpdateNodeSchema, async (input) => {
 	if (input.flagId != null) requestBody.flag_id = input.flagId;
 	if (input.date) requestBody.date = input.date;
 	if (input.warranty) requestBody.warranty = input.warranty;
+	if (input.fundingStatus !== undefined) requestBody.funding_status = input.fundingStatus;
 	requestBody.parent_node_id = input.parentNodeId || null;
 
 	const response = await fetch(`${API_URL}node/${input.nodeId}/`, {
@@ -129,10 +126,7 @@ export const updateNode = command(UpdateNodeSchema, async (input) => {
 		body: JSON.stringify(requestBody)
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to update node`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to update node');
 
 	return (await response.json()) as Record<string, unknown>;
 });
@@ -148,8 +142,5 @@ export const deleteNode = command(v.pipe(v.string(), v.nonEmpty()), async (nodeI
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to delete node`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to delete node');
 });

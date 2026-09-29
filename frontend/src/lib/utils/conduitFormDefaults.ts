@@ -15,6 +15,7 @@ export interface ConduitFormDefaults {
 	manufacturer: string[];
 	date: string;
 	flag: string[];
+	fundingStatus: boolean | null;
 }
 
 /**
@@ -32,7 +33,8 @@ export function emptyConduitFormDefaults(): ConduitFormDefaults {
 		constructor: [],
 		manufacturer: [],
 		date: '',
-		flag: []
+		flag: [],
+		fundingStatus: null
 	};
 }
 
@@ -66,7 +68,11 @@ export function loadConduitFormDefaults(): ConduitFormDefaults {
 			constructor: list('constructor'),
 			manufacturer: list('manufacturer'),
 			date: text('date'),
-			flag: list('flag')
+			flag: list('flag'),
+			fundingStatus:
+				Object.hasOwn(parsed, 'fundingStatus') && typeof parsed.fundingStatus === 'boolean'
+					? parsed.fundingStatus
+					: null
 		};
 	} catch {
 		return defaults;

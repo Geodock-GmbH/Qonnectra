@@ -1,10 +1,11 @@
 import type { FeatureLike } from 'ol/Feature';
 import type Projection from 'ol/proj/Projection';
 import type VectorTile from 'ol/VectorTile';
-import { invalidateAll } from '$app/navigation';
 import { get as getProjection } from 'ol/proj.js';
 import TileState from 'ol/TileState.js';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
+import { ensureFreshSession } from '$lib/utils/sessionKeepAlive';
 
 import { tileLoadingManager } from './tileLoadingManager';
 import {
@@ -19,8 +20,8 @@ vi.mock('$env/static/public', () => ({
 	PUBLIC_API_URL: 'http://mock-api.test/'
 }));
 
-vi.mock('$app/navigation', () => ({
-	invalidateAll: vi.fn(() => Promise.resolve())
+vi.mock('$lib/utils/sessionKeepAlive', () => ({
+	ensureFreshSession: vi.fn(() => Promise.resolve(true))
 }));
 
 vi.mock('./tileLoadingManager', () => ({
@@ -187,8 +188,25 @@ describe('tile load function', () => {
 		loadTile(createTrenchTileSource('7', undefined), tile, 'http://mock-api.test/tile.mvt');
 
 		await vi.waitFor(() => expect(tile.setFeatures).toHaveBeenCalled());
-		expect(invalidateAll).toHaveBeenCalledTimes(1);
+		expect(ensureFreshSession).toHaveBeenCalledTimes(1);
 		expect(fetchMock).toHaveBeenCalledTimes(2);
+		// Features were set, so the tile is LOADED: it never sits in EMPTY or
+		// LOADING, which would hold a tile-queue slot forever.
+		expect(tile.setState).not.toHaveBeenCalledWith(TileState.EMPTY);
+	});
+
+	test('should end a tile in ERROR when the retry after 401 fails', async () => {
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+		fetchMock
+			.mockResolvedValueOnce({ ok: false, status: 401 })
+			.mockResolvedValueOnce({ ok: false, status: 401, statusText: 'Unauthorized' });
+		const tile = makeTileStub();
+
+		loadTile(createTrenchTileSource('7', undefined), tile, 'http://mock-api.test/tile.mvt');
+
+		await vi.waitFor(() => expect(tile.setState).toHaveBeenCalledWith(TileState.ERROR));
+		expect(ensureFreshSession).toHaveBeenCalledTimes(1);
+		expect(tile.setState).not.toHaveBeenCalledWith(TileState.EMPTY);
 	});
 
 	test('should mark the tile as errored and notify on fetch failure', async () => {

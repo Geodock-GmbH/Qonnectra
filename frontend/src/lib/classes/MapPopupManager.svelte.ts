@@ -73,9 +73,8 @@ export class MapPopupManager {
 		}
 
 		const properties = feature.getProperties();
-		const html = this.generatePopupContent(properties);
 
-		this.contentElement.innerHTML = html;
+		this.contentElement.replaceChildren(this.generatePopupContent(properties));
 		this.overlay.setPosition(coordinate);
 	}
 
@@ -92,22 +91,25 @@ export class MapPopupManager {
 	}
 
 	/**
-	 * Generates an HTML list of feature properties, skipping geometry and metadata fields.
+	 * Builds a list of feature properties, skipping geometry and metadata fields.
+	 * Keys and values are set as text so user-entered attributes can't inject markup.
 	 * @param properties - Feature properties
-	 * @returns HTML string
+	 * @returns List element
 	 */
-	generatePopupContent(properties: FeatureProperties): string {
-		let html = '<ul>';
+	generatePopupContent(properties: FeatureProperties): HTMLUListElement {
+		const list = document.createElement('ul');
 
 		for (const [key, value] of Object.entries(properties)) {
 			if (typeof value !== 'object' && key !== 'layer' && key !== 'source') {
-				const displayKey = this.alias[key] || key;
-				html += `<li><strong>${displayKey}:</strong> ${value}</li>`;
+				const label = document.createElement('strong');
+				label.textContent = `${this.alias[key] || key}:`;
+				const item = document.createElement('li');
+				item.append(label, ` ${value}`);
+				list.append(item);
 			}
 		}
 
-		html += '</ul>';
-		return html;
+		return list;
 	}
 
 	/**

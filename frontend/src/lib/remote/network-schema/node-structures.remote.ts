@@ -4,6 +4,7 @@ import { command, query } from '$app/server';
 import { API_URL } from '$env/static/private';
 import * as v from 'valibot';
 
+import { failFromResponse } from '$lib/remote/shared/backend-error';
 import { djangoHeaders } from '$lib/remote/shared/remote-auth';
 
 const CreateStructureSchema = v.object({
@@ -55,12 +56,7 @@ export const getSlotConfigurationsForNode = query(
 			headers: djangoHeaders()
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(
-				errorData.detail || `HTTP ${response.status}: Failed to fetch slot configurations`
-			);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to fetch slot configurations');
 
 		return (await response.json()) as SlotConfiguration[];
 	}
@@ -81,10 +77,7 @@ export const getSlotDividers = query(v.pipe(v.string(), v.nonEmpty()), async (sl
 		}
 	);
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to fetch dividers`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to fetch dividers');
 
 	return (await response.json()) as SlotDivider[];
 });
@@ -103,10 +96,7 @@ export const getSlotClipNumbers = query(
 			{ method: 'GET', headers: djangoHeaders() }
 		);
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(errorData.detail || `HTTP ${response.status}: Failed to fetch clip numbers`);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to fetch clip numbers');
 
 		return (await response.json()) as ClipNumberEntry[];
 	}
@@ -143,12 +133,7 @@ export const createNodeStructure = command(
 			body: JSON.stringify(requestBody)
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(
-				errorData.detail || errorData.error || `HTTP ${response.status}: Failed to create structure`
-			);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to create structure');
 
 		return (await response.json()) as NodeStructure;
 	}
@@ -176,10 +161,7 @@ export const bulkCreateNodeStructures = command(
 			})
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(errorData.error || `HTTP ${response.status}: Failed to create structures`);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to create structures');
 
 		const result = (await response.json()) as { created: NodeStructure[]; failed: unknown[] };
 		return { created: result.created, failed: result.failed };
@@ -202,12 +184,7 @@ export const moveNodeStructure = command(
 			body: JSON.stringify({ slot_start: input.slotStart })
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(
-				errorData.detail || errorData.error || `HTTP ${response.status}: Failed to move structure`
-			);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to move structure');
 
 		return (await response.json()) as NodeStructure;
 	}
@@ -226,10 +203,7 @@ export const deleteNodeStructure = command(
 			headers: djangoHeaders()
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(errorData.detail || `HTTP ${response.status}: Failed to delete structure`);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to delete structure');
 	}
 );
 
@@ -252,14 +226,7 @@ export const createSlotDivider = command(
 			})
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(
-				errorData.detail ||
-					errorData.after_slot?.[0] ||
-					`HTTP ${response.status}: Failed to create divider`
-			);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to create divider');
 
 		return (await response.json()) as SlotDivider;
 	}
@@ -276,10 +243,7 @@ export const deleteSlotDivider = command(v.pipe(v.string(), v.nonEmpty()), async
 		headers: djangoHeaders()
 	});
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
-		throw new Error(errorData.detail || `HTTP ${response.status}: Failed to delete divider`);
-	}
+	if (!response.ok) await failFromResponse(response, 'Failed to delete divider');
 });
 
 /**
@@ -303,12 +267,7 @@ export const upsertSlotClipNumber = command(
 			})
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({}));
-			throw new Error(
-				errorData.detail || errorData.error || `HTTP ${response.status}: Failed to save clip number`
-			);
-		}
+		if (!response.ok) await failFromResponse(response, 'Failed to save clip number');
 
 		return (await response.json()) as Record<string, unknown>;
 	}

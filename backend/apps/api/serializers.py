@@ -667,6 +667,7 @@ class ConduitListSerializer(serializers.ModelSerializer):
             "manufacturer",
             "date",
             "flag",
+            "funding_status",
         ]
 
 

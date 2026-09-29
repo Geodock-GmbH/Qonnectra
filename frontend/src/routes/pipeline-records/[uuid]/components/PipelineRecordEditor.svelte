@@ -14,6 +14,7 @@
 	import {
 		deletePipelineRecord,
 		getPipelineRecord,
+		getPipelineRecordList,
 		updatePipelineRecord
 	} from '$lib/remote/pipeline-records/records.remote';
 	import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
@@ -43,7 +44,7 @@
 	async function handleSave() {
 		isSaving = true;
 		try {
-			await updatePipelineRecord({ uuid, ...draft.toInput() });
+			await updatePipelineRecord({ uuid, ...draft.toInput() }).updates(getPipelineRecordList);
 			globalToaster.success({
 				title: m.title_success(),
 				description: m.message_pipeline_record_updated()
@@ -58,11 +59,15 @@
 		}
 	}
 
-	/** Deletes the record and returns to the list. */
+	/**
+	 * Deletes the record and returns to the list. Every cached list page is
+	 * refreshed: a cached page lives until it is garbage-collected, so the
+	 * list could otherwise still show the deleted record.
+	 */
 	async function handleDelete() {
 		isDeleting = true;
 		try {
-			await deletePipelineRecord(uuid);
+			await deletePipelineRecord(uuid).updates(getPipelineRecordList);
 			await goto(resolve('/pipeline-records'));
 		} catch (err) {
 			globalToaster.error({

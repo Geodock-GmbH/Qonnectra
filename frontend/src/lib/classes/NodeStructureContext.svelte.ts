@@ -3,6 +3,7 @@ import { m } from '$lib/paraglide/messages';
 import { globalToaster } from '$lib/stores/toaster';
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
 import { getFiberSplices } from '$lib/remote/network-schema/fiber-splices.remote';
+import { remoteErrorMessage } from '$lib/remote/shared/remote-error';
 
 import { DRAG_DROP_CONTEXT_KEY, DragDropManager } from './DragDropManager.svelte';
 import { FiberSpliceManager } from './FiberSpliceManager.svelte';
@@ -318,10 +319,7 @@ export class NodeStructureContext {
 	 */
 	get mobileActions() {
 		return {
-			onClearSelection: () => this.#dragDropManager.clearMobileSelection(),
-			onFiberSelect: (fiberData: DropData) => {
-				this.#dragDropManager.selectMobileItem(fiberData);
-			}
+			onClearSelection: () => this.#dragDropManager.clearMobileSelection()
 		};
 	}
 
@@ -465,7 +463,7 @@ export class NodeStructureContext {
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: (err as Error)?.message || m.message_error_placing_component()
+				description: remoteErrorMessage(err) ?? m.message_error_placing_component()
 			});
 		}
 
@@ -500,7 +498,7 @@ export class NodeStructureContext {
 		} catch (err: unknown) {
 			globalToaster.error({
 				title: m.common_error(),
-				description: (err as Error)?.message || m.message_error_placing_component()
+				description: remoteErrorMessage(err) ?? m.message_error_placing_component()
 			});
 		}
 
@@ -511,11 +509,7 @@ export class NodeStructureContext {
 	 * Handle structure selection (opens port table)
 	 */
 	async #handleStructureSelect(structure: NodeStructure): Promise<boolean> {
-		const wasSelected = await this.#spliceManager.selectStructure(
-			structure as never,
-			this.isMobile
-		);
-		return wasSelected;
+		return this.#spliceManager.selectStructure(structure as never);
 	}
 
 	/**
@@ -524,7 +518,7 @@ export class NodeStructureContext {
 	async #handleDeleteStructure(structureUuid: string): Promise<DeleteResult> {
 		// Check if the structure has fiber splices before deleting
 		try {
-			const splices = (await getFiberSplices(structureUuid)) as unknown as FiberSplice[];
+			const splices = await getFiberSplices(structureUuid);
 
 			// Count splices that have actual fiber connections
 			const activeSpliceCount = splices.filter(
