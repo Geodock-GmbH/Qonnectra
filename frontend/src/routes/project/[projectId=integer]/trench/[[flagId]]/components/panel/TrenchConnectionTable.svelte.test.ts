@@ -259,7 +259,9 @@ describe('TrenchConnectionTable', () => {
 	});
 
 	test('should report the backend’s reason when a delete is refused', async () => {
-		deleteTrenchConnection.mockImplementation(() => commandFailure(httpError(403, 'Forbidden')));
+		deleteTrenchConnection.mockImplementation(() =>
+			commandFailure(httpError(400, 'Connection is still in use'))
+		);
 		renderTable();
 		await screen.findByRole('button', { name: 'T-1' });
 
@@ -268,7 +270,7 @@ describe('TrenchConnectionTable', () => {
 
 		expect(globalToaster.error).toHaveBeenCalledWith({
 			title: 'message_error_deleting_trench_connection',
-			description: 'Forbidden'
+			description: 'Connection is still in use'
 		});
 		expect(globalToaster.success).not.toHaveBeenCalled();
 	});

@@ -35,10 +35,10 @@ describe('admin logs +page.server.ts', () => {
 		).rejects.toEqual(expect.objectContaining({ status: 303, location: '/project/9/dashboard' }));
 	});
 
-	test('answers 403 for a non-admin who may open no page at all', async () => {
+	test('sends a non-admin who may open no page to the no-access notice', async () => {
 		const permissions = { models: {}, routes: { '/*': false }, is_superuser: false };
 		await expect(load(createLoadArgs({ user: { isAdmin: false, permissions } }))).rejects.toEqual(
-			expect.objectContaining({ status: 403 })
+			expect.objectContaining({ status: 303, location: '/no-access' })
 		);
 	});
 

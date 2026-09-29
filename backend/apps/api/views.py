@@ -3573,7 +3573,8 @@ class ConduitImportView(APIView):
     API view to handle the import of conduits from an Excel file.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
+    permission_model = "conduit"
     parser_classes = (MultiPartParser, FormParser)
 
     MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -5428,6 +5429,7 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
 
     request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
+    action_access_levels = {"clear_port": "full"}
     queryset = FiberSplice.objects.all()
     serializer_class = FiberSpliceSerializer
     lookup_field = "uuid"
@@ -6449,7 +6451,8 @@ class MicropipesByConduitsView(APIView):
 class CableMicropipeConnectionsView(APIView):
     """Manage cable-micropipe connections."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
+    permission_model = "microductcableconnection"
 
     @extend_schema(
         request=inline_serializer(
@@ -6537,7 +6540,8 @@ class CableMicropipeConnectionsView(APIView):
 class CableAutoLinkMicropipeView(APIView):
     """Auto-link a cable to microducts matched via its end-node addresses."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
+    permission_model = "microductcableconnection"
 
     @extend_schema(
         request=inline_serializer(
@@ -6725,6 +6729,7 @@ class WMSSourceViewSet(viewsets.ModelViewSet):
 
     request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
+    action_access_levels = {"scan_capabilities": "view"}
 
     def get_serializer_class(self):  # type: ignore[override]
         if self.action in ["create", "update", "partial_update"]:

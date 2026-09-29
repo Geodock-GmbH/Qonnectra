@@ -1,12 +1,12 @@
 import type { Handle } from '@sveltejs/kit';
-import { error, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 
 import { paraglideMiddleware } from '$lib/paraglide/server';
 
 import { canAccessRoute } from '$lib/utils/permissions';
 import { permissionKeyFor } from '$lib/config/routes';
-import { landingPathFor } from '$lib/server/landing';
+import { landingPathFor, NO_ACCESS_PATH } from '$lib/server/landing';
 import { resolveSession } from '$lib/server/session';
 
 /** Routes accessible without authentication. */
@@ -54,12 +54,13 @@ export async function handleAuth({ event, resolve }: Parameters<Handle>[0]) {
 		redirect(303, redirectToUrl);
 	}
 
+	if (requestedPath === NO_ACCESS_PATH) return resolve(event);
+
 	const permissionKey = permissionKeyFor(event.route.id);
 	const isLandingUrl = requestedPath === '/' || requestedPath.startsWith('/login');
 	if (isLandingUrl || (permissionKey && !canAccessRoute(user.permissions, permissionKey))) {
 		// The landing page is one the user may open, so this never redirects in a loop.
 		const landing = await landingPathFor(event.fetch, event.cookies, user.permissions);
-		if (!landing) error(403, 'Access denied');
 		redirect(303, landing);
 	}
 

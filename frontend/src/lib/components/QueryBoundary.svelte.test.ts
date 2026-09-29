@@ -42,10 +42,17 @@ describe('QueryBoundary', () => {
 	});
 
 	test('should render the backend message of a failed remote call', async () => {
+		const load = vi.fn(() => Promise.reject(httpError(400, 'project: required')));
+		render(QueryBoundaryFixture, { props: { load } });
+
+		expect(await screen.findByRole('alert')).toHaveTextContent('project: required');
+	});
+
+	test('should explain a refused query as a missing role permission', async () => {
 		const load = vi.fn(() => Promise.reject(httpError(403, 'Not allowed')));
 		render(QueryBoundaryFixture, { props: { load } });
 
-		expect(await screen.findByRole('alert')).toHaveTextContent('Not allowed');
+		expect(await screen.findByRole('alert')).toHaveTextContent('message_error_permission_denied');
 	});
 
 	test('should fall back to a generic message for errors without one', async () => {

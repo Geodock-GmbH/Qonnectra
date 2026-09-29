@@ -13,10 +13,12 @@ const LEVEL_ORDER: AccessLevel[] = ['none', 'view', 'edit', 'full'];
 
 /**
  * Checks whether a user has at least the required access level on a model.
- * Superusers and wildcard `*: full` always pass.
+ * Superusers always pass; a model without its own entry takes the `*` level,
+ * as the backend resolves it.
  * @param permissions - The user's permissions object.
  * @param model - Lowercase model name (e.g., 'trench', 'node').
  * @param requiredLevel - Minimum required access level.
+ * @returns Whether the user's level on the model reaches the required one; false without permissions.
  */
 export function canAccessModel(
 	permissions: Permissions | undefined,
@@ -25,9 +27,8 @@ export function canAccessModel(
 ): boolean {
 	if (!permissions) return false;
 	if (permissions.is_superuser) return true;
-	if (permissions.models['*'] === 'full') return true;
 
-	const level = permissions.models[model] || 'none';
+	const level = permissions.models[model] ?? permissions.models['*'] ?? 'none';
 	return LEVEL_ORDER.indexOf(level) >= LEVEL_ORDER.indexOf(requiredLevel);
 }
 
@@ -35,6 +36,7 @@ export function canAccessModel(
  * Checks whether a user can view a model.
  * @param permissions - The user's permissions object.
  * @param model - Lowercase model name.
+ * @returns Whether the user has at least view access.
  */
 export function canView(permissions: Permissions | undefined, model: string): boolean {
 	return canAccessModel(permissions, model, 'view');
@@ -44,6 +46,7 @@ export function canView(permissions: Permissions | undefined, model: string): bo
  * Checks whether a user can edit a model.
  * @param permissions - The user's permissions object.
  * @param model - Lowercase model name.
+ * @returns Whether the user has at least edit access.
  */
 export function canEdit(permissions: Permissions | undefined, model: string): boolean {
 	return canAccessModel(permissions, model, 'edit');
@@ -53,19 +56,32 @@ export function canEdit(permissions: Permissions | undefined, model: string): bo
  * Checks whether a user can delete from a model (requires 'full' access).
  * @param permissions - The user's permissions object.
  * @param model - Lowercase model name.
+ * @returns Whether the user has full access.
  */
 export function canDelete(permissions: Permissions | undefined, model: string): boolean {
 	return canAccessModel(permissions, model, 'full');
 }
 
 /**
+ * The part of the key space a route pattern covers, as a prefix: `/admin/*`
+ * and `/admin` both cover everything beneath `/admin/`, `/*` covers every key.
+ * A longer prefix is a more specific pattern.
+ * @param pattern - A route pattern from the user's permissions.
+ * @returns The prefix a covered key starts with.
+ */
+function coveredPrefix(pattern: string): string {
+	return pattern.endsWith('/*') ? pattern.slice(0, -1) : `${pattern}/`;
+}
+
+/**
  * Checks whether a user may open the page behind a permission key (a route
  * id with the project prefix and parameters stripped, see
- * `permissionKeyFor`). A pattern matches the key when it is equal, when it
- * ends in `/*` and the key starts with that prefix, or when the key lies
- * beneath it (`/valuation` also covers `/valuation/...`). Missing
- * permissions allow: they mean the permissions request failed, and a Django
- * hiccup must not lock everyone out.
+ * `permissionKeyFor`). An exact pattern for the key decides; otherwise the
+ * most specific pattern covering it (ending in `/*`, or a key the page lies
+ * beneath: `/valuation` also covers `/valuation/...`), so `/address` beats
+ * `/*` for `/address/unit`. Between equally specific patterns allowing wins,
+ * as it does across roles. Missing permissions allow: they mean the
+ * permissions request failed, and a Django hiccup must not lock everyone out.
  * @param permissions - The user's permissions, or nothing when they could not be loaded.
  * @param key - The permission key of the page.
  * @returns Whether the page may be opened; unknown keys are allowed.
@@ -77,12 +93,18 @@ export function canAccessRoute(permissions: Permissions | null | undefined, key:
 	if (routes['*'] === true) return true;
 	if (key in routes) return routes[key];
 
-	for (const [pattern, allowed] of Object.entries(routes)) {
-		const covers = pattern.endsWith('/*')
-			? key.startsWith(pattern.slice(0, -1))
-			: key.startsWith(`${pattern}/`);
-		if (covers) return allowed;
+	let decidingLength = -1;
+	let allowed = true;
+	for (const [pattern, patternAllowed] of Object.entries(routes)) {
+		const prefix = coveredPrefix(pattern);
+		if (!key.startsWith(prefix)) continue;
+		if (prefix.length > decidingLength) {
+			decidingLength = prefix.length;
+			allowed = patternAllowed;
+		} else if (prefix.length === decidingLength) {
+			allowed ||= patternAllowed;
+		}
 	}
 
-	return true;
+	return allowed;
 }

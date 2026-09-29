@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { resolveLandingPath } from './landing';
+import { NO_ACCESS_PATH, resolveLandingPath } from './landing';
 
 const projects = [
 	{ value: '7', label: 'Nord' },
@@ -58,11 +58,11 @@ describe('resolveLandingPath with route permissions', () => {
 
 	test('should never land on the admin logs, which bounce non-admins back', () => {
 		const permissions = withRoutes({ '/*': false, '/admin/logs': true });
-		expect(resolveLandingPath(projects, '9', permissions)).toBeNull();
+		expect(resolveLandingPath(projects, '9', permissions)).toBe(NO_ACCESS_PATH);
 	});
 
-	test('should return null when every page is denied', () => {
-		expect(resolveLandingPath(projects, '9', withRoutes({ '/*': false }))).toBeNull();
+	test('should land on the no-access notice when every page is denied', () => {
+		expect(resolveLandingPath(projects, '9', withRoutes({ '/*': false }))).toBe(NO_ACCESS_PATH);
 	});
 
 	test('should ignore route rows for a superuser', () => {

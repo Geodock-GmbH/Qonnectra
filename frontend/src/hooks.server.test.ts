@@ -419,7 +419,7 @@ describe('handleAuth: permissions', () => {
 		expect((await thrownBy(event)).location).toBe('/project/7/address');
 	});
 
-	test('answers 403 when the user may open no page at all', async () => {
+	test('sends a user who may open no page to the no-access notice', async () => {
 		const { event } = makeEvent({
 			pathname: '/project/7/map',
 			routeId: '/project/[projectId=integer]/map',
@@ -431,8 +431,30 @@ describe('handleAuth: permissions', () => {
 
 		const err = await thrownBy(event);
 
-		expect(err.status).toBe(403);
-		expect(err.location).toBeUndefined();
+		expect(err.status).toBe(303);
+		expect(err.location).toBe('/no-access');
+	});
+
+	test('shows the no-access notice although every route is denied', async () => {
+		const { event } = makeEvent({
+			pathname: '/no-access',
+			routeId: '/no-access',
+			cookies: { 'api-access-token': 'good' }
+		});
+		mockDjango(event, {
+			permissions: [okJson({ routes: { '/*': false }, is_superuser: false })]
+		});
+
+		expect(await handleAuth({ event, resolve })).toBe('resolved:/no-access');
+	});
+
+	test('still sends a signed-out visitor of the no-access notice to the login', async () => {
+		const { event } = makeEvent({ pathname: '/no-access', routeId: '/no-access' });
+		mockDjango(event, {});
+
+		const err = await thrownBy(event);
+
+		expect(err.location).toBe('/login?redirectTo=%2Fno-access');
 	});
 
 	test('allows a superuser to access any route', async () => {

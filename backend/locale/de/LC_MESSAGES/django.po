@@ -2761,3 +2761,23 @@ msgstr "Konvertieren und Herunterladen"
 
 #~ msgid "Component structure is required for component entries."
 #~ msgstr "Komponentenstruktur ist für Komponenteneinträge erforderlich."
+
+#: apps/api/admin.py
+msgid "* (every model without its own row)"
+msgstr "* (jedes Modell ohne eigene Zeile)"
+
+#: apps/api/admin.py
+msgid "A page key such as \"/valuation\" or \"/network-schema/node\", or a pattern ending in \"/*\" such as \"/admin/*\" or \"/*\" for every page."
+msgstr "Ein Seitenschlüssel wie \"/valuation\" oder \"/network-schema/node\", oder ein Muster mit \"/*\" am Ende wie \"/admin/*\" oder \"/*\" für alle Seiten."
+
+#: apps/api/admin.py
+msgid "Use a lowercase page key starting with \"/\", optionally ending in \"/*\"."
+msgstr "Verwenden Sie einen kleingeschriebenen Seitenschlüssel, der mit \"/\" beginnt und optional mit \"/*\" endet."
+
+#: apps/api/admin.py
+msgid "Copy permissions from"
+msgstr "Berechtigungen übernehmen von"
+
+#: apps/api/admin.py
+msgid "Start with all model and route permissions of this group. Rows entered below take precedence."
+msgstr "Startet mit allen Modell- und Route-Berechtigungen dieser Gruppe. Unten eingetragene Zeilen haben Vorrang."

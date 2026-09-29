@@ -51,5 +51,5 @@ export const login = form(LoginSchema, async ({ username, _password, redirectTo 
 
 	// Permissions are not loaded yet: the route guard forwards a denied landing page.
 	const target = safeRedirectTarget(redirectTo);
-	redirect(303, target === '/' ? ((await landingPathFor(fetch, cookies)) ?? '/') : target);
+	redirect(303, target === '/' ? await landingPathFor(fetch, cookies) : target);
 });

@@ -417,7 +417,8 @@ def trench_conduit_canvas(db):
 def seed_permission_data(db):
     """Seed permission groups and their ModelPermission/RoutePermission records.
 
-    Replicates the data created by migration 0058_seed_permission_data.
+    Replicates the data created by migrations 0058_seed_permission_data and
+    0078_seed_missing_model_permissions.
     """
     from apps.api.models import ModelPermission, RoutePermission
 
@@ -426,42 +427,73 @@ def seed_permission_data(db):
     viewer_group, _ = Group.objects.get_or_create(name="Viewer")
 
     model_names = [
-        "trench", "conduit", "microduct", "node", "address", "cable",
-        "fiber", "fibersplice", "container", "area", "residentialunit",
-        "featurefiles", "projects", "flags", "wmslayer", "qgisproject",
-        "logentry", "trenchconduitconnection", "trenchconduitcanvas",
-        "microductconnection", "microductcableconnection", "nodestructure",
-        "nodeslotconfiguration", "cablelabel", "containertype",
-        "pipelinerecord", "typeofwork", "requestreason",
+        "trench",
+        "conduit",
+        "microduct",
+        "node",
+        "address",
+        "cable",
+        "fiber",
+        "fibersplice",
+        "container",
+        "area",
+        "residentialunit",
+        "featurefiles",
+        "projects",
+        "flags",
+        "wmslayer",
+        "qgisproject",
+        "logentry",
+        "trenchconduitconnection",
+        "trenchconduitcanvas",
+        "microductconnection",
+        "microductcableconnection",
+        "nodestructure",
+        "nodeslotconfiguration",
+        "cablelabel",
+        "containertype",
+        "pipelinerecord",
+        "typeofwork",
+        "requestreason",
         "pipelineinquiryarea",
+        "nodeslotclipnumber",
+        "nodeslotdivider",
+        "nodetrenchselection",
+        "wmssource",
     ]
 
     for model_name in model_names:
         ModelPermission.objects.get_or_create(
-            group=admin_group, model_name=model_name,
+            group=admin_group,
+            model_name=model_name,
             defaults={"access_level": "full"},
         )
         editor_level = "none" if model_name == "logentry" else "edit"
         ModelPermission.objects.get_or_create(
-            group=editor_group, model_name=model_name,
+            group=editor_group,
+            model_name=model_name,
             defaults={"access_level": editor_level},
         )
         viewer_level = "none" if model_name == "logentry" else "view"
         ModelPermission.objects.get_or_create(
-            group=viewer_group, model_name=model_name,
+            group=viewer_group,
+            model_name=model_name,
             defaults={"access_level": viewer_level},
         )
 
     RoutePermission.objects.get_or_create(
-        group=admin_group, route_pattern="/admin/*",
+        group=admin_group,
+        route_pattern="/admin/*",
         defaults={"allowed": True},
     )
     RoutePermission.objects.get_or_create(
-        group=editor_group, route_pattern="/admin/*",
+        group=editor_group,
+        route_pattern="/admin/*",
         defaults={"allowed": False},
     )
     RoutePermission.objects.get_or_create(
-        group=viewer_group, route_pattern="/admin/*",
+        group=viewer_group,
+        route_pattern="/admin/*",
         defaults={"allowed": False},
     )
 
