@@ -2,8 +2,9 @@
 
 Cover the ``GET /api/v1/export/features/`` endpoint and the underlying
 ``export_features`` service: layer selection, project scoping, the response
-envelope shape, nested-FK serialization, and merged trench geometry on the
-relation-derived cable/conduit layers.
+envelope shape, nested-FK serialization, and merged trench geometry plus the
+trench funding and depth summaries on the relation-derived cable/conduit
+layers.
 """
 
 import pytest
@@ -47,6 +48,11 @@ def user(db):
 
 
 @pytest.fixture
+def anonymous_client():
+    return APIClient()
+
+
+@pytest.fixture
 def authenticated_client(user):
     client = APIClient()
     client.force_authenticate(user=user)
@@ -87,8 +93,8 @@ class TestExportFeaturesView:
     def test_url_reverses_under_v1_namespace(self, url):
         assert url == "/api/v1/export/features/"
 
-    def test_requires_authentication(self, url):
-        response = APIClient().get(url)
+    def test_requires_authentication(self, anonymous_client, url):
+        response = anonymous_client.get(url)
         assert response.status_code in (
             status.HTTP_401_UNAUTHORIZED,
             status.HTTP_403_FORBIDDEN,
@@ -224,6 +230,59 @@ class TestExportFeaturesView:
         assert properties["trench_funding"] == {
             "funded": 1,
             "unfunded": 0,
+            "unknown": 0,
+        }
+
+    def test_conduit_feature_summarizes_trench_depth(self, authenticated_client, url):
+        conduit, _ = _conduit_with_trench()
+        for depth in (90, 60, None):
+            TrenchConduitConnectionFactory(
+                uuid_trench=TrenchFactory(construction_depth=depth),
+                uuid_conduit=conduit,
+            )
+
+        response = authenticated_client.get(url, {"layers": "conduit"})
+
+        properties = response.json()["layers"]["conduit"]["features"][0]["properties"]
+        assert properties["trench_depth"] == {
+            "min": 60,
+            "max": 90,
+            "known": 2,
+            "unknown": 2,
+        }
+
+    def test_trench_depth_range_is_null_when_no_depth_is_known(
+        self, authenticated_client, url
+    ):
+        _conduit_with_trench()
+
+        response = authenticated_client.get(url, {"layers": "conduit"})
+
+        properties = response.json()["layers"]["conduit"]["features"][0]["properties"]
+        assert properties["trench_depth"] == {
+            "min": None,
+            "max": None,
+            "known": 0,
+            "unknown": 1,
+        }
+
+    def test_cable_trench_depth_counts_each_trench_once(
+        self, authenticated_client, url
+    ):
+        cable, conduit, trench = _cable_with_trench()
+        trench.construction_depth = 80
+        trench.save()
+        MicroductCableConnectionFactory(
+            uuid_microduct=MicroductFactory(uuid_conduit=conduit), uuid_cable=cable
+        )
+
+        response = authenticated_client.get(url, {"layers": "cable"})
+
+        properties = response.json()["layers"]["cable"]["features"][0]["properties"]
+        assert properties["trench_depth"] == {
+            "min": 80,
+            "max": 80,
+            "known": 1,
             "unknown": 0,
         }
 

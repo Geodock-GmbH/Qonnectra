@@ -200,6 +200,7 @@ from .services import (
     parse_project_id_list,
     spatial_intersect,
     trace_address,
+    trench_depth_summary,
     trench_funding_summary,
 )
 from .wms_service import WMSServiceError, fetch_wms_layers, scan_wms_capabilities
@@ -3394,7 +3395,8 @@ class ExportFeaturesView(APIView):
     merged from the connected trenches via ``merge_trench_geoms`` — the one
     capability the CRUD endpoints lack. The same trenches feed a
     ``trench_funding`` property with the counts of funded, unfunded and
-    unknown trenches.
+    unknown trenches, and a ``trench_depth`` property with the depth range and
+    the counts of trenches with and without a depth.
     """
 
     permission_classes = [IsAuthenticated]
@@ -3415,9 +3417,10 @@ class ExportFeaturesView(APIView):
     def _merged_geometry_collection(self, name, queryset, request):
         """Build a FeatureCollection for a relation-derived (cable/conduit) layer.
 
-        Properties come from the CRUD serializer (nested FK objects) plus a
-        ``trench_funding`` summary; geometry is merged from the same connected
-        trenches, so counts and geometry always describe one trench set.
+        Properties come from the CRUD serializer (nested FK objects) plus
+        ``trench_funding`` and ``trench_depth`` summaries; geometry is merged
+        from the same connected trenches, so summaries and geometry always
+        describe one trench set.
 
         Args:
             name: Layer name, a key of ``_merged_layers`` (``cable``/``conduit``).
@@ -3434,6 +3437,7 @@ class ExportFeaturesView(APIView):
             connections = trench_connections_of(obj)
             properties = serializer_class(obj, context={"request": request}).data
             properties["trench_funding"] = trench_funding_summary(connections)
+            properties["trench_depth"] = trench_depth_summary(connections)
             features.append(
                 {
                     "type": "Feature",

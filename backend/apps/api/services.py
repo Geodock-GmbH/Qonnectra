@@ -4411,7 +4411,9 @@ def _collect_affected_summary(
         "affected_addresses": set(),
         "affected_residential_units": set(),
     }
-    fed_node_ids = _lit_cable_end_node_ids(trace_tree) | {source_node_id}
+    fed_node_ids = _lit_cable_end_node_ids(trace_tree)
+    if source_node_id:
+        fed_node_ids.add(source_node_id)
 
     def collect_from_node(node):
         if not node:
@@ -5186,6 +5188,32 @@ def trench_funding_summary(trench_connections):
         else:
             summary["unknown"] += 1
     return summary
+
+
+def trench_depth_summary(trench_connections):
+    """Summarize the construction depth of the trenches behind a set of connections.
+
+    Reports raw facts only; picking a depth for the feature from them is left
+    to the consumer.
+
+    Args:
+        trench_connections: Iterable of :model:`api.TrenchConduitConnection`
+            with ``uuid_trench`` pre-selected.
+
+    Returns:
+        dict: ``{"min": int | None, "max": int | None, "known": int,
+            "unknown": int}`` where ``min``/``max`` span the non-null
+            ``construction_depth`` values (``None`` when none is known) and
+            ``known``/``unknown`` count trenches with and without a depth.
+    """
+    depths = [conn.uuid_trench.construction_depth for conn in trench_connections]
+    known = [depth for depth in depths if depth is not None]
+    return {
+        "min": min(known, default=None),
+        "max": max(known, default=None),
+        "known": len(known),
+        "unknown": len(depths) - len(known),
+    }
 
 
 def _fk_str(obj, attr):
