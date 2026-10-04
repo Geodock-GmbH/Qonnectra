@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.9.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.8.0...v1.9.0) (2026-10-04)
+
+
+### Features
+
+* Added trench_depth_summary next to trench_funding_summary for ExportFeaturesView ([579407e](https://github.com/Geodock-GmbH/Qonnectra/commit/579407ec43a33dc2c3b8b9ecf744ae60a0b7c153))
+
+
+### Bug Fixes
+
+* clearAuthCookies now deletes the token cookies on the same domain the backend sets them with. It reads that from USE_COOKIE_DOMAIN_MIDDLEWARE and COOKIE_DOMAIN ([add50e1](https://github.com/Geodock-GmbH/Qonnectra/commit/add50e1496ec838de663e10041e8d86bbd290998))
+
 ## [1.8.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.7.0...v1.8.0) (2026-09-29)
 
 
