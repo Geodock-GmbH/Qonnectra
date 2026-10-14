@@ -69,7 +69,6 @@ services:
       - ./qgis/data:/app/qgis/data
     environment:
       - DEBUG=${DEBUG:-True}
-      - PERF_HEADERS=${PERF_HEADERS:-0}
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
       - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS:-api.localhost,localhost,127.0.0.1}
       - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME}

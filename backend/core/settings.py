@@ -66,6 +66,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "apps.api.middleware.ServerTimingMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
@@ -78,11 +79,6 @@ MIDDLEWARE = [
     "apps.api.middleware.CookieDomainMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
 ]
-
-# Load testing: adds a Server-Timing header with query count and DB time
-PERF_HEADERS = os.getenv("PERF_HEADERS", "0").lower() in ("1", "true", "yes")
-if PERF_HEADERS:
-    MIDDLEWARE.insert(0, "apps.api.middleware.ServerTimingMiddleware")
 
 # Set to True to use the CookieDomainMiddleware
 # This is needed for the cookies to work across subdomains

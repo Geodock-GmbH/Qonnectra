@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Qonnectra load test</title>
+    <link rel="stylesheet" href="static/dashboard.css" />
+    <script type="module" src="static/dashboard.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">Qonnectra <span>Load test</span></div>
+      <nav>
+        <a class="active" href="./">Dashboard</a>
+        <a href="runner/">Runner</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="card status" aria-live="polite">
+        <div class="status-main">
+          <span id="runner-state" class="pill">…</span>
+          <span id="runner-detail" class="muted"></span>
+        </div>
+        <a class="button primary" href="runner/">Open runner</a>
+        <div id="runner-messages" class="messages"></div>
+      </section>
+
+      <div class="grid">
+        <section class="card">
+          <div class="card-head">
+            <h2>Checks</h2>
+            <button id="recheck" class="button ghost" type="button">
+              Check again
+            </button>
+          </div>
+          <ul id="checks" class="checks">
+            <li class="muted">Checking…</li>
+          </ul>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <h2>Test data</h2>
+            <span id="users" class="muted"></span>
+          </div>
+          <p class="muted small">
+            Synthetic street networks in <code>loadtest-NN</code> projects. Real
+            projects are never touched. The editor persona only writes here.
+          </p>
+          <div id="projects"></div>
+          <form id="seed-form" class="seed">
+            <label>
+              Size
+              <select id="preset" name="preset"></select>
+            </label>
+            <label>
+              Projects
+              <input
+                id="project-count"
+                name="projects"
+                type="number"
+                min="1"
+                max="20"
+                value="3"
+              />
+            </label>
+            <button class="button primary" type="submit">Seed</button>
+            <button id="purge" class="button danger" type="button">
+              Purge
+            </button>
+          </form>
+          <div id="job" class="job" hidden>
+            <div class="job-head">
+              <span id="job-label"></span
+              ><span id="job-state" class="pill"></span>
+            </div>
+            <pre id="job-log"></pre>
+          </div>
+        </section>
+      </div>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Runs</h2>
+          <button id="compare" class="button" type="button" disabled>
+            Compare selected
+          </button>
+        </div>
+        <p class="muted small">
+          Tick two runs to compare them: the older one counts as before.
+        </p>
+        <div class="scroll">
+          <table id="runs">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Run</th>
+                <th>Profile</th>
+                <th>Peak users</th>
+                <th>Requests</th>
+                <th>req/s</th>
+                <th>p95 ms</th>
+                <th>Failed</th>
+                <th>Personas</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="9" class="muted">Loading…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card guide">
+        <h2>How a run works</h2>
+        <ol>
+          <li>Seed test data above, or use your existing projects.</li>
+          <li>
+            Open the runner. Pick the <b>Check</b> profile and start: one user
+            per persona runs one session, so you see whether every endpoint
+            answers.
+          </li>
+          <li>
+            Pick <b>Ramp</b>, set the users to the peak you want (it adds 5
+            every 2 minutes) and start. The Server, Django, Top SQL and
+            Connections tabs show the server side live.
+          </li>
+          <li>
+            When the run ends, its report appears under Runs. Compare it with
+            the next one after a change.
+          </li>
+        </ol>
+      </section>
+    </main>
+  </body>
+</html>

@@ -574,11 +574,11 @@ The production compose file is sized for the minimum supported host of 8 CPU cor
 
 ### Deployment variables (`deployment/.env`, Docker only)
 
-| Variable                                                                                                       | Description                                                   |
-| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `DOMAIN_NAME`, `API_DOMAIN`, `APP_DOMAIN`, `ADMIN_DOMAIN`, `FILES_DOMAIN`, `QGIS_DOMAIN`, `TILE_SERVER_DOMAIN` | Domains served by Caddy (production)                          |
-| `API_URL`, `PUBLIC_API_URL`, `PUBLIC_TILE_SERVER_URL`, `PUBLIC_DOCUMENTATION_URL`                              | Frontend variables, passed to the frontend container          |
-| `WIREGUARD_SERVERURL`, `WIREGUARD_PORT`, `WIREGUARD_PEERS`                                                     | WireGuard VPN (see [WireGuard README](wireguard/README.md))   |
+| Variable                                                                                                       | Description                                                 |
+| -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `DOMAIN_NAME`, `API_DOMAIN`, `APP_DOMAIN`, `ADMIN_DOMAIN`, `FILES_DOMAIN`, `QGIS_DOMAIN`, `TILE_SERVER_DOMAIN` | Domains served by Caddy (production)                        |
+| `API_URL`, `PUBLIC_API_URL`, `PUBLIC_TILE_SERVER_URL`, `PUBLIC_DOCUMENTATION_URL`                              | Frontend variables, passed to the frontend container        |
+| `WIREGUARD_SERVERURL`, `WIREGUARD_PORT`, `WIREGUARD_PEERS`                                                     | WireGuard VPN (see [WireGuard README](wireguard/README.md)) |
 
 ### Frontend variables (`frontend/.env`)
 
@@ -758,6 +758,7 @@ Docker volumes hold the persistent data:
    - Apply security updates regularly
    - Configure firewall rules
 6. Scaling: for scaling beyond one host, consider Docker Swarm or Kubernetes
+7. Load testing: `COMPOSE_PROFILES=loadtest` in `.env` adds a load-test UI at `https://<APP_DOMAIN>/loadtest/` for superusers, with synthetic test data and reports. See [loadtest/README.md](../loadtest/README.md)
 
 ## Additional resources
 

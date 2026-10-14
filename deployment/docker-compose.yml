@@ -88,7 +88,6 @@ services:
       - ./qgis/data:/app/qgis/data
     environment:
       - DEBUG=${DEBUG}
-      - PERF_HEADERS=${PERF_HEADERS:-0}
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
       - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
       - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME}
@@ -198,7 +197,6 @@ services:
       - media_volume:/app/media
     environment:
       - DEBUG=${DEBUG}
-      - PERF_HEADERS=${PERF_HEADERS:-0}
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
       - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
       - USE_COOKIE_DOMAIN_MIDDLEWARE=${USE_COOKIE_DOMAIN_MIDDLEWARE}
@@ -403,6 +401,41 @@ services:
         max-size: "10m"
         max-file: "3"
         labels: "service=wireguard"
+
+  # Opt-in load test (see loadtest/README.md): COMPOSE_PROFILES=loadtest in .env,
+  # then the UI is at https://<APP_DOMAIN>/loadtest/ for superusers.
+  loadtest:
+    profiles: ["loadtest"]
+    build:
+      context: ../loadtest
+      additional_contexts:
+        backend: service:backend
+    image: qonnectra/loadtest:latest
+    container_name: qonnectra_loadtest_prod
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ../loadtest/runs:/loadtest/runs
+      # Container CPU/RAM and the nginx and Postgres logs of a run
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    expose:
+      - "8089"
+    depends_on:
+      - backend
+    networks:
+      - qonnectra_network
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=loadtest"
 
   caddy:
     build:

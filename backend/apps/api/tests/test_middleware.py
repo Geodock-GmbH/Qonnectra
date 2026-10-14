@@ -69,23 +69,35 @@ class TestCookieDomainMiddleware:
         assert "api-access-token" not in result.cookies
 
 
+def counting_view(request):
+    """Run two queries, so the header has something to count."""
+    from django.contrib.auth import get_user_model
+
+    user_model = get_user_model()
+    user_model.objects.count()
+    user_model.objects.exists()
+    return HttpResponse()
+
+
 @pytest.mark.django_db
 class TestServerTimingMiddleware:
     """Tests for the load-test Server-Timing header."""
 
-    def test_reports_query_count_and_db_time(self, request_factory):
-        """Verify the header counts every SQL statement the view runs."""
-        from django.contrib.auth import get_user_model
+    def test_reports_query_count_and_db_time_for_the_load_test(self, request_factory):
+        """Verify a request with the load-test key gets every statement counted."""
+        from django.conf import settings
 
-        from apps.api.middleware import ServerTimingMiddleware
+        from apps.api.middleware import (
+            SERVER_TIMING_HEADER,
+            ServerTimingMiddleware,
+            server_timing_key,
+        )
 
-        def view(request):
-            user_model = get_user_model()
-            user_model.objects.count()
-            user_model.objects.exists()
-            return HttpResponse()
-
-        result = ServerTimingMiddleware(view)(request_factory.get("/"))
+        request = request_factory.get(
+            "/",
+            headers={SERVER_TIMING_HEADER: server_timing_key(settings.SECRET_KEY)},
+        )
+        result = ServerTimingMiddleware(counting_view)(request)
 
         parts = dict(
             part.strip().split(";dur=") for part in result["Server-Timing"].split(",")
@@ -94,10 +106,37 @@ class TestServerTimingMiddleware:
         assert float(parts["db"]) >= 0
         assert float(parts["app"]) >= float(parts["db"])
 
-    def test_not_installed_by_default(self, client):
-        """Verify normal responses carry no Server-Timing header."""
+    @pytest.mark.parametrize("sent", [None, "", "wrong-key"])
+    def test_other_requests_get_no_header(self, request_factory, sent):
+        """Verify requests without the right key are not measured."""
+        from apps.api.middleware import SERVER_TIMING_HEADER, ServerTimingMiddleware
+
+        headers = {} if sent is None else {SERVER_TIMING_HEADER: sent}
+        result = ServerTimingMiddleware(counting_view)(
+            request_factory.get("/", headers=headers)
+        )
+
+        assert "Server-Timing" not in result
+
+    def test_installed_for_real_requests(self, client):
+        """Verify the full middleware stack measures a keyed request end to end."""
+        from django.conf import settings
         from django.urls import reverse
 
-        response = client.get(reverse("v1:config"))
+        from apps.api.middleware import SERVER_TIMING_HEADER, server_timing_key
 
-        assert "Server-Timing" not in response
+        plain = client.get(reverse("v1:config"))
+        keyed = client.get(
+            reverse("v1:config"),
+            headers={SERVER_TIMING_HEADER: server_timing_key(settings.SECRET_KEY)},
+        )
+
+        assert "Server-Timing" not in plain
+        assert keyed["Server-Timing"].startswith("app;dur=")
+
+    def test_key_depends_on_secret(self):
+        """Verify the key changes with the secret and is empty without one."""
+        from apps.api.middleware import server_timing_key
+
+        assert server_timing_key("a") != server_timing_key("b")
+        assert server_timing_key("") == ""

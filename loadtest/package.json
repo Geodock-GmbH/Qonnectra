@@ -1,8 +1,0 @@
-{
-	"name": "qonnectra-loadtest",
-	"private": true,
-	"type": "module",
-	"scripts": {
-		"test": "node --test k6/lib/*.test.mjs"
-	}
-}

@@ -1,142 +1,156 @@
 # Load testing
 
-This simulates a team using Qonnectra at the same time and records what the server does meanwhile, so DB load can be traced to endpoints and SQL statements.
+An optional add-on that simulates a team using Qonnectra at once and records what the server does meanwhile, so load can be traced to endpoints, SQL statements and containers. It ships with Qonnectra but only runs when you switch it on.
 
-- **k6** drives the load. It runs in Docker, on the VPS or anywhere else.
-- **Personas** model real use: map users panning and clicking, people searching, planners in the network schema, and optionally editors.
-- **`collect/run.sh`** records container CPU/RAM, Postgres connections and wait events, `pg_stat_statements`, nginx cache status and timings, and slow-query log lines. Then it writes `runs/<run>/report.md`.
-- **`collect/report.py --compare`** puts two runs side by side, so every optimisation is a before/after measurement.
+- **Web UI** at `https://<APP_DOMAIN>/loadtest/`, for Qonnectra superusers only (it uses your app session).
+- **Runner**: [Locust](https://locust.io)'s own UI for starting, watching and stopping a run, with extra live tabs for container CPU, Django query counts, top SQL and Postgres connections.
+- **Dashboard**: setup checks, synthetic test data (seed and purge with one click), and a report per finished run, with before/after comparison.
 
-## What it simulates
+## Switching it on
 
-| persona | share             | what one session does                                                                                                                                                                                                                                                                                                                                                               |
-| ------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| map     | 60–65 %           | SSR load of `/project/{id}/map`, layer style attributes, WMS token + sources. Fits the project extent, then 10–30 gestures 1–4 s apart: pans, zooms and clicks. A click runs `getFeatureDetails` + `getConduitsInTrench`, and sometimes the cable and profile tabs. Vector tiles are fetched for all 4 layers, plus WMS tiles when sources are configured and the zoom is in range. |
-| search  | 15–17 %           | 1–3 debounced `searchFeatures` calls (each fans out to 5 Django searches), then opens a result                                                                                                                                                                                                                                                                                      |
-| schema  | 15–18 %           | SSR load of the network schema (10 parallel Django calls), then node/cable/fiber details and conduit table pages                                                                                                                                                                                                                                                                    |
-| edit    | 10 % (`WRITES=1`) | PATCH a trench, create and delete a conduit. Only in `loadtest-*` projects.                                                                                                                                                                                                                                                                                                         |
-
-Notes on how close this is to a real browser:
-
-- Tiles are computed like OpenLayers does it: 512 px XYZ grid, 1600×900 viewport, a per-source tile cache. A pan only requests the tiles that came into view.
-- `TILE_FACTOR` (default 2) models every vector tile being requested twice. The app creates two tile sources per layer (`MapState.initializeLayers` and `createXLayer`). Calibrate (see below) to confirm the real factor.
-- Each virtual user has its own load-test identity, a regular non-superuser, so permission checks run as for real users.
-- Remote functions are called over SvelteKit's real wire format (`lib/remote.js`). `npm test` checks that format against SvelteKit's own code.
-
-## One-time setup on the VPS
+On the server, in `deployment/.env`:
 
 ```bash
-cd /path/to/qonnectra && git pull
+COMPOSE_PROFILES=loadtest
+```
+
+Then:
+
+```bash
 cd deployment
-
-# 1. Postgres: pg_stat_statements, auto_explain and the slow-query log need a restart
-docker compose up -d db
-
-# 2. Per-endpoint query counts: set PERF_HEADERS=1 in deployment/.env, then
-docker compose up -d --build backend backend-wms
-# 3. nginx log format with request and upstream times
-docker compose up -d nginx
-
-# 4. Load-test users. The tokens are valid for 4 h; rerun when they expire.
-docker exec qonnectra_backend_prod python manage.py create_loadtest_users --count 60 --hours 4 > ../loadtest/tokens.json
-
-# 5. Optional synthetic data in loadtest-01..03 (medium ≈ 500 km street trench, ~25k addresses)
-docker exec qonnectra_backend_prod python manage.py seed_load_data --preset medium
+docker compose up -d --build
 ```
 
-`PERF_HEADERS=1` costs a few microseconds per SQL statement. Turn it off again when you are not measuring.
+This builds the `loadtest` image on top of the backend image and starts it. Caddy already routes `/loadtest` on the app domain to it. Open `https://<APP_DOMAIN>/loadtest/` and check that the **Checks** card is green:
 
-## Running
+| check                   | when it is not green                                                                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Postgres statistics     | The db container was started before `pg_stat_statements` was in `docker-compose.yml`: `docker compose up -d db` (a short DB restart).       |
+| Per-endpoint DB numbers | The backend image predates the Server-Timing middleware: rebuild it.                                                                        |
+| Container stats         | `/var/run/docker.sock` is not mounted. Runs work, but the report has no container numbers.                                                  |
+| App / Tile server       | The URLs come from `APP_DOMAIN` and `PUBLIC_TILE_SERVER_URL`, or the runner's Host and tiles URL fields. Without a tile server, no basemap. |
 
-```bash
-loadtest/collect/run.sh check -e PROJECTS=loadtest     # 1 user per persona, checks that everything answers
-loadtest/collect/run.sh baseline                       # 10 users for 10 min
-loadtest/collect/run.sh ramp -e MAX_USERS=80           # +5 users every 2 min: finds the knee
-loadtest/collect/run.sh ramp -e CACHE=bypass           # same, but every tile misses the nginx cache
-loadtest/collect/run.sh long -e MAX_USERS=60           # 30 users for 30 min: leaks, memory growth
-```
+To switch it off again, remove the line from `.env` and run `docker compose rm -sf loadtest`. Purge the test data first if you seeded any (see below).
 
-Everything after the profile goes to `k6 run`. k6 runs in a container capped at `K6_CPUS=1.5`. Its CPU shows up as `k6` in the container table, so you can tell it apart from the app.
+## A run
 
-To keep the VPS free of k6 entirely, start the sampling on the VPS for the length of the test, and run k6 from another machine at the same time:
+1. **Test data** (optional). Seed `loadtest-NN` projects on the dashboard. The presets set the total street trench length: tiny 2 km, small 50 km, medium 500 km (about 25k addresses), large 2000 km. Each project gets trenches, house connections, conduits, microducts, cables, fibers, nodes, addresses and areas. Real projects are never touched. If the server restores its database every night, the test data is gone the next morning; seed again.
+2. **Check.** Open the runner, pick the **Check** profile and start. One user per persona runs one session, and the run stops by itself. Every request should be green.
+3. **Measure.** Pick **Ramp**, set the number of users to the peak you want and start. Ramp adds 5 users every 2 minutes, which is how you find the point where latency tips over. Watch the Server, Django, Top SQL and Connections tabs.
+4. **Read the report.** When the run ends, it appears under **Runs** on the dashboard. Tick two runs and press **Compare** to see the effect of a change.
 
-```bash
-# on the VPS (a ramp to 80 users takes 32 min)
-EXTERNAL_K6=1950 loadtest/collect/run.sh ramp
-# on the other machine, with the same tokens.json
-cd loadtest/k6 && docker run --rm -v "$PWD/..:/loadtest" -w /loadtest/k6 -e SUMMARY=/loadtest/summary.json \
-  grafana/k6:1.2.0 run -e PROFILE=ramp -e MAX_USERS=80 --out csv=/loadtest/k6.csv.gz main.js
-```
+Load-test users (`loadtest_NNN`, regular non-superusers with full access through their own role) are created automatically at the start of each run, one per virtual user. Their tokens are minted directly, because the login API is throttled.
 
-Afterwards, copy `summary.json` and `k6.csv.gz` into the run directory and rerun `python3 loadtest/collect/report.py <run>`.
+### Profiles
 
-| variable              | default                | effect                                                                             |
-| --------------------- | ---------------------- | ---------------------------------------------------------------------------------- |
-| `PROFILE`             | `check`                | `check`, `baseline`, `ramp`, `long`, `stress`                                      |
-| `PROJECTS`            | `all`                  | `all`, `loadtest` (seeded only), or ids like `1,4`                                 |
-| `MAX_USERS`           | `60`                   | peak users for ramp/stress (long runs half)                                        |
-| `CACHE`               | `on`                   | `bypass` adds a random query parameter to every tile, to measure raw tile SQL cost |
-| `WMS`                 | `1`                    | `0` skips WMS tiles (they go to QGIS or external servers)                          |
-| `WRITES`              | `0`                    | `1` adds the edit persona                                                          |
-| `TILE_FACTOR`         | `2`                    | requests per new tile per layer; set it from the calibration                       |
-| `THINK`               | `1`                    | think-time multiplier; `0.5` = users act twice as fast                             |
-| `VIEW_W` / `VIEW_H`   | `1600` / `900`         | browser viewport                                                                   |
-| `APP_URL` / `API_URL` | from `deployment/.env` | targets                                                                            |
+| profile | what it does                                                                       |
+| ------- | ---------------------------------------------------------------------------------- |
+| Check   | one user per selected persona, one session each, then stop                         |
+| Steady  | ramp up to _users_ at the spawn rate, then hold for the run time (10 min if empty) |
+| Ramp    | +5 users every 2 minutes up to _users_, then stop                                  |
+| Spike   | up to _users_ within 2 minutes, hold 5 minutes, stop                               |
+| Default | Locust's own: _users_ at the spawn rate until you press Stop                       |
+
+### Personas
+
+Untick a persona in the runner to leave it out. The weights are shares of the running users.
+
+| persona    | weight | one session                                                                                                                                                                                                                                                                                                                                 |
+| ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MapUser    | 60     | SSR load of `/project/{id}/map`, layer styles, WMS token and sources, basemap style and TileJSON. Fits the project extent, then 10–30 gestures 1–4 s apart: pans, zooms and clicks. Every view change loads the app's 4 vector tile layers, WMS tiles of enabled layers in zoom range, and basemap tiles. A click opens the feature drawer. |
+| SearchUser | 15     | 1–3 debounced `searchFeatures` calls (each fans out to 5 Django searches), then opens a result.                                                                                                                                                                                                                                             |
+| SchemaUser | 15     | SSR load of the network schema (10 parallel Django calls), then node, cable and fiber details and conduit table pages.                                                                                                                                                                                                                      |
+| EditUser   | 10     | Patches a trench, creates and deletes a conduit. Only ever in seeded `loadtest-*` projects; without any in the run it does a map session instead.                                                                                                                                                                                           |
+
+How close this is to a browser:
+
+- Tiles follow OpenLayers: 512 px XYZ grid, 1600×900 viewport, a per-source tile cache (so a pan only requests what came into view), and at most 16 tile requests in flight per user, like OpenLayers' tile queue.
+- The basemap follows ol-mapbox-style: health check, style, TileJSON, then tiles up to the TileJSON's `maxzoom` and overzoomed beyond it. Labels use web fonts from a CDN, not the tile server, so there are no glyph requests.
+- **Tile factor** (default 2) requests every new feature tile twice, because the app creates two tile sources per layer. Confirm it with the calibration below.
+- Remote functions are called over SvelteKit's wire format. `tests/test_remote.py` checks it against SvelteKit's own code in `frontend/node_modules`.
+
+### Options in the start form
+
+Under **Custom parameters**:
+
+| option      | default                  | effect                                                                  |
+| ----------- | ------------------------ | ----------------------------------------------------------------------- |
+| projects    | `all`                    | `all`, `loadtest` (seeded only), or ids like `1,4`                      |
+| cache       | `on`                     | `bypass` gives every tile its own URL, so nginx's tile cache never hits |
+| wms         | on                       | request WMS tiles of enabled layers                                     |
+| basemap     | on                       | request basemap tiles                                                   |
+| tile factor | `2`                      | requests per new feature tile and layer                                 |
+| think       | `1`                      | multiplier on all pauses; `0.5` = users act twice as fast               |
+| viewport    | `1600x900`               | browser window                                                          |
+| api url     | from `API_DOMAIN`        | Django API base                                                         |
+| tiles url   | `PUBLIC_TILE_SERVER_URL` | tile server; empty skips the basemap                                    |
+
+The **Host** field is the app URL (`https://<APP_DOMAIN>`).
+
+## Reading a report
+
+1. **Timeline.** Find the first minute where `tile p95` passes 1 s or `err %` passes 1 %. The `users` in that row is how many concurrent users this host carries. The CPU columns of the same row show which container was saturated: `db` near 700–800 % means Postgres, `backend` near 600 % means all 6 gunicorn workers are busy.
+2. **Endpoints.** Sorted by total waiting time, which is where users lose time. `queries` per request exposes N+1 serializers. If `app ms` is much higher than `db ms`, the cost is in Python, not SQL. These numbers come from a `Server-Timing` header that Django only adds for requests carrying a key derived from `DJANGO_SECRET_KEY`, so normal users never get it.
+3. **Top SQL.** Each statement's share of all DB time. Tile queries contain `ST_AsMVT`. QGIS Server shows up under its own role.
+4. **Postgres.** Many short-lived connections point to no pooling (`CONN_MAX_AGE`). `LWLock`/`Lock` waits mean contention, `IO` waits mean the data doesn't fit in `shared_buffers`.
+5. **nginx.** Tile cache hit ratio. Compare `urt p95` with `rt p95` to see whether time is spent in Django or in front of it.
+
+Every run is a folder in `loadtest/runs/` on the server (`summary.json`, `report.md`, `report.html`, Locust's `locust.html`, and the nginx and Postgres logs of the run). Add a line to [RESULTS.md](RESULTS.md) for every run worth remembering.
+
+## Load and the server itself
+
+The load generator runs on the same host as Qonnectra. Its container is capped at 1.5 CPUs and shows up as `loadtest` in the container numbers, so you can tell it apart from the app. With think times, 1.5 CPUs carry a few hundred users.
 
 ## Calibration (once, and after map changes)
 
-This records a real Chromium session (open map, pan ×5, zoom, click, search, network schema). It writes `loadtest/calibration.json`, which contains:
-
-- requests per endpoint and phase
-- the measured tile duplication factor per layer
-- whether the remote-function ids k6 uses match the app
-
-Run it from a machine with a browser:
+This drives a real Chromium through the app (open the map, pan ×5, zoom, click, search, network schema) and writes `loadtest/calibration.json` with the requests per endpoint and phase and the measured tile duplication per layer. Run it from a machine with a browser:
 
 ```bash
 cd frontend
-CALIBRATE_URL=https://app.geodock.de PUBLIC_API_URL=https://api.geodock.de/api/v1/ \
+CALIBRATE_URL=https://app.example.com PUBLIC_API_URL=https://api.example.com/api/v1/ \
 E2E_TEST_USERNAME=… E2E_TEST_PASSWORD=… \
 npx playwright test --config tests/calibrate/playwright.config.js
 ```
 
-Set `TILE_FACTOR` to the `factor` it prints for the vector layers. Compare its per-phase counts with a check run's endpoint counts. If they're more than about 20 % apart, adjust the scenario.
+Set the tile factor to the `factor` it prints for the vector layers. Compare its per-phase counts with a Check run's request counts. If they are more than about 20 % apart, adjust the personas.
 
-## Reading report.md
+## Development
 
-1. **Timeline.** Find the first minute where `tile p95` passes 1 s or `err %` passes 1 %. The `users` in that row is how many concurrent users this host carries. The CPU columns in the same row show which container was saturated: `db` near 700–800 % means Postgres, `backend` near 600 % means all 6 gunicorn workers are busy.
-2. **Endpoints.** Sorted by total waiting time, which is where users lose time. `queries` per request exposes N+1 serializers. Compare `db ms` with `app ms`: if app time is much higher than DB time, the cost is in Python (serializers), not SQL.
-3. **Top SQL.** The share of all DB time per statement. Tile queries have `ST_AsMVT` in them. QGIS Server queries appear under its own role.
-4. **Postgres connections and wait events.** Many short-lived connections point to no pooling (`CONN_MAX_AGE`). `LWLock`/`Lock` waits mean contention. `IO` waits mean the data doesn't fit in `shared_buffers`.
-5. **nginx.** Tile cache hit ratio. Compare `urt p95` with `rt p95` to see whether time is spent in Django or in front of it.
+The package is `qonnectra_loadtest/`:
 
-After a change, rerun the same profile and arguments and compare:
+| module                                              | what it holds                                                                 |
+| --------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `locustfile.py`                                     | start-form fields, event hooks                                                |
+| `personas/`, `client.py`, `tiles.py`, `remote.py`   | what the virtual users do and how they send it                                |
+| `shapes.py`                                         | load profiles                                                                 |
+| `run.py`, `recorder.py`, `postgres.py`, `docker.py` | run lifecycle and what is recorded                                            |
+| `report.py`, `analysis.py`                          | the report                                                                    |
+| `web.py`, `auth.py`, `jobs.py`, `static/`           | dashboard, access check, seed and purge jobs                                  |
+| `seeding.py`, `accounts.py`, `__main__.py`          | the Django side: test data and users, run as `python -m qonnectra_loadtest …` |
 
-```bash
-python3 loadtest/collect/report.py --compare loadtest/runs/<before> loadtest/runs/<after>
-```
-
-Add a line to `RESULTS.md` for every run worth remembering.
-
-## Cleanup
+Tests:
 
 ```bash
-docker exec qonnectra_backend_prod python manage.py seed_load_data --purge
-docker exec qonnectra_backend_prod python manage.py create_loadtest_users --purge
-rm loadtest/tokens.json
-# PERF_HEADERS=0 in deployment/.env, then: docker compose up -d backend backend-wms
+cd loadtest && uv run pytest     # Locust side, including full runs against a local stub of Qonnectra
+cd backend && pytest             # also runs loadtest/tests_backend (seeding, users, timing key)
 ```
+
+To run the UI locally against a dev setup, use the backend's environment plus Locust, and point it at your dev servers:
+
+```bash
+cd loadtest
+API_URL=http://localhost:8000/api/v1/ PYTHONPATH=.:../backend \
+uv run --project ../backend --with locust==2.46.7 locust -f qonnectra_loadtest/locustfile.py \
+  --class-picker --web-base-path /loadtest/runner \
+  --host http://localhost:5173 --api-url http://localhost:8000/api/v1/
+```
+
+Then sign in to the app at `localhost:5173` as a superuser and open `http://localhost:8089/loadtest/`. The session cookie carries over because both run on `localhost`. Seeding and the load-test users go to the database in `deployment/.env`.
 
 ## Not covered yet
 
-- Global view (tiles without a project filter) and project switching.
-- Session refresh traffic (`refreshSession` every 7 min, one request per user). The load-test tokens are long-lived instead.
+- The global view (tiles without a project filter) and switching projects.
+- Session refresh traffic (`refreshSession` every 7 minutes, one request per user). The load-test tokens are long-lived instead.
 - Writes go straight to Django, not through SvelteKit remote commands.
-- The basemap tile server (tileserver-gl) and file uploads/WebDAV.
-
-## Tests
-
-```bash
-cd loadtest && npm test                            # k6 helpers: remote wire format, tile math
-python3 -m unittest discover loadtest/collect      # report aggregation
-```
+- File uploads and WebDAV.
+- WMS tiles only for projects that have WMS sources configured; seeded projects have none.
