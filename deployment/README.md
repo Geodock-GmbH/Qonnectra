@@ -422,7 +422,7 @@ docker-compose logs [service_name]
 
 - Image: `lscr.io/linuxserver/wireguard:latest`
 - Port: 51820/udp (configurable via `WIREGUARD_PORT`)
-- Function: VPN access to the database for QGIS Desktop (production only); see the [WireGuard README](wireguard/README.md)
+- Function: VPN access to the database for QGIS Desktop and to VPN-only web hosts (production only); see the [WireGuard README](wireguard/README.md)
 - Memory: 128MB limit, 64MB reserved
 - Configuration:
   - `WIREGUARD_SERVERURL`: server URL (default: auto-detect)
