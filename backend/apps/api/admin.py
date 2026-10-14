@@ -73,6 +73,7 @@ from .models import (
     ValuationCostRate,
     WMSLayer,
     WMSSource,
+    fiber_layout,
 )
 from .services import (
     GEOPACKAGE_LAYER_CONFIG,
@@ -527,10 +528,15 @@ class CableAdmin(SimpleHistoryAdmin):
 
     @admin.action(description=_("Create fibers for selected cables (only if empty)"))
     def create_fibers_for_empty_cables(self, request, queryset):
-        """
-        Create fibers for selected cables that don't have any.
-        Only processes cables with zero fibers - no partial filling.
-        Uses the same logic as the create_fibers_for_cable signal.
+        """Create fibers for the selected cables that have none yet.
+
+        Cables with any fibers are skipped, so nothing is filled partially.
+        The fibers come from the same :func:`fiber_layout` the
+        ``create_fibers_for_cable`` signal uses.
+
+        Args:
+            request: The admin HTTP request, used for the result message.
+            queryset: Selected :model:`api.Cable` rows.
         """
         from django.db.models import Count
 
@@ -550,77 +556,23 @@ class CableAdmin(SimpleHistoryAdmin):
                 skipped_no_mappings += 1
                 continue
 
-            bundle_mappings = (
-                CableTypeColorMapping.objects.filter(
-                    cable_type=cable_type, position_type="bundle"
+            fibers_to_create = [
+                Fiber(
+                    uuid_cable=cable,
+                    active=True,
+                    fiber_status=None,
+                    flag=cable.flag,
+                    project=cable.project,
+                    **fiber,
                 )
-                .select_related("color")
-                .order_by("position")
-            )
-
-            fiber_mappings = (
-                CableTypeColorMapping.objects.filter(
-                    cable_type=cable_type, position_type="fiber"
-                )
-                .select_related("color")
-                .order_by("position")
-            )
-
-            if not bundle_mappings.exists() or not fiber_mappings.exists():
+                for fiber in fiber_layout(cable_type)
+            ]
+            if not fibers_to_create:
                 skipped_no_mappings += 1
                 continue
 
-            bundle_count = cable_type.bundle_count
-            bundle_fiber_count = cable_type.bundle_fiber_count
-
-            if (
-                bundle_mappings.count() < bundle_count
-                or fiber_mappings.count() < bundle_fiber_count
-            ):
-                skipped_no_mappings += 1
-                continue
-
-            fibers_to_create = []
-            fiber_number_absolute = 1
-            for bundle_number in range(1, bundle_count + 1):
-                bundle_mapping = bundle_mappings.filter(position=bundle_number).first()
-                bundle_color = (
-                    bundle_mapping.color.name_de
-                    if bundle_mapping
-                    else f"Bundle {bundle_number}"
-                )
-
-                for fiber_in_bundle in range(1, bundle_fiber_count + 1):
-                    fiber_mapping = fiber_mappings.filter(
-                        position=fiber_in_bundle
-                    ).first()
-                    fiber_color = (
-                        fiber_mapping.color.name_de
-                        if fiber_mapping
-                        else f"Fiber {fiber_in_bundle}"
-                    )
-                    layer = fiber_mapping.layer if fiber_mapping else "inner"
-
-                    fibers_to_create.append(
-                        Fiber(
-                            uuid_cable=cable,
-                            bundle_number=bundle_number,
-                            bundle_color=bundle_color,
-                            fiber_number_absolute=fiber_number_absolute,
-                            fiber_number_in_bundle=fiber_in_bundle,
-                            fiber_color=fiber_color,
-                            active=True,
-                            fiber_status=None,
-                            flag=cable.flag,
-                            project=cable.project,
-                            layer=layer,
-                        )
-                    )
-                    fiber_number_absolute += 1
-
-            if fibers_to_create:
-                Fiber.objects.bulk_create(fibers_to_create)
-                created_count += 1
+            Fiber.objects.bulk_create(fibers_to_create)
+            created_count += 1
 
         self.message_user(
             request,

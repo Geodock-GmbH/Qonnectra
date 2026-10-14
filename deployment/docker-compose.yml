@@ -51,6 +51,13 @@ services:
       -c max_parallel_workers=4
       -c max_parallel_workers_per_gather=2
       -c max_parallel_maintenance_workers=2
+      -c shared_preload_libraries=pg_stat_statements,auto_explain
+      -c pg_stat_statements.track=all
+      -c track_io_timing=on
+      -c log_min_duration_statement=500
+      -c auto_explain.log_min_duration=1000
+      -c auto_explain.log_format=json
+      -c log_lock_waits=on
     logging:
       driver: "json-file"
       options:
@@ -81,6 +88,7 @@ services:
       - ./qgis/data:/app/qgis/data
     environment:
       - DEBUG=${DEBUG}
+      - PERF_HEADERS=${PERF_HEADERS:-0}
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
       - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
       - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME}
@@ -190,6 +198,7 @@ services:
       - media_volume:/app/media
     environment:
       - DEBUG=${DEBUG}
+      - PERF_HEADERS=${PERF_HEADERS:-0}
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
       - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
       - USE_COOKIE_DOMAIN_MIDDLEWARE=${USE_COOKIE_DOMAIN_MIDDLEWARE}

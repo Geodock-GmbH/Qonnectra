@@ -22,6 +22,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     CREATE EXTENSION IF NOT EXISTS pgrouting;
     CREATE EXTENSION IF NOT EXISTS dblink;
     CREATE EXTENSION IF NOT EXISTS pgcrypto;
+    CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 EOSQL
 
 # Create QGIS user if credentials are provided

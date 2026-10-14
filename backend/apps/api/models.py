@@ -2182,27 +2182,36 @@ class Microduct(models.Model):
         return self.uuid_conduit.name + "-" + str(self.number)
 
 
+def microduct_layout(conduit_type) -> list[tuple[int, str]]:
+    """Return ``(number, color)`` for each microduct a conduit of this type gets.
+
+    Args:
+        conduit_type: :model:`api.AttributesConduitType` instance.
+
+    Returns:
+        list[tuple[int, str]]: One entry per :model:`api.ConduitTypeColorMapping`,
+            ordered by position.
+    """
+    mappings = (
+        ConduitTypeColorMapping.objects.filter(conduit_type=conduit_type)
+        .select_related("color")
+        .order_by("position")
+    )
+    return [(mapping.position, mapping.color.name_de) for mapping in mappings]
+
+
 @receiver(post_save, sender=Conduit)
 def create_microducts_for_conduit(sender, instance, created, **kwargs):
     """Create microducts from :model:`api.ConduitTypeColorMapping` when a conduit is created."""
     if created and instance.conduit_type:
-        color_mappings = (
-            ConduitTypeColorMapping.objects.filter(conduit_type=instance.conduit_type)
-            .select_related("color")
-            .order_by("position")
-        )
-
-        if color_mappings.exists():
-            for mapping in color_mappings:
-                try:
-                    Microduct.objects.create(
-                        uuid_conduit=instance,
-                        number=mapping.position,
-                        color=mapping.color.name_de,
-                    )
-                except Exception as e:
-                    print(f"Error creating microduct for conduit {instance.name}: {e}")
-                    continue
+        for number, color in microduct_layout(instance.conduit_type):
+            try:
+                Microduct.objects.create(
+                    uuid_conduit=instance, number=number, color=color
+                )
+            except Exception as e:
+                print(f"Error creating microduct for conduit {instance.name}: {e}")
+                continue
 
 
 class MicroductConnection(models.Model):
@@ -2937,14 +2946,17 @@ class Fiber(models.Model):
         return f"{self.uuid_cable.name} - {self.bundle_number} - {self.fiber_number_absolute}"
 
 
-@receiver(post_save, sender=Cable)
-def create_fibers_for_cable(sender, instance, created, **kwargs):
-    """Create fibers from :model:`api.CableTypeColorMapping` when a cable is created."""
-    if not created:
-        return
+def fiber_layout(cable_type) -> list[dict]:
+    """Return the field values of every fiber a cable of this type gets.
 
-    cable_type = instance.cable_type
+    Args:
+        cable_type: :model:`api.AttributesCableType` instance.
 
+    Returns:
+        list[dict]: Bundle/fiber numbers, colors and layer per fiber, or an
+            empty list when the :model:`api.CableTypeColorMapping` rows do not
+            cover the type's bundle and fiber counts.
+    """
     bundle_mappings = (
         CableTypeColorMapping.objects.filter(
             cable_type=cable_type, position_type="bundle"
@@ -2962,18 +2974,18 @@ def create_fibers_for_cable(sender, instance, created, **kwargs):
     )
 
     if not bundle_mappings.exists() or not fiber_mappings.exists():
-        return
+        return []
 
     bundle_count = cable_type.bundle_count
     bundle_fiber_count = cable_type.bundle_fiber_count
 
     if bundle_mappings.count() < bundle_count:
-        return
+        return []
 
     if fiber_mappings.count() < bundle_fiber_count:
-        return
+        return []
 
-    fibers_to_create = []
+    layout = []
     fiber_number_absolute = 1
     for bundle_number in range(1, bundle_count + 1):
         bundle_mapping = bundle_mappings.filter(position=bundle_number).first()
@@ -2990,24 +3002,40 @@ def create_fibers_for_cable(sender, instance, created, **kwargs):
                 if fiber_mapping
                 else f"Fiber {fiber_in_bundle}"
             )
-            layer = fiber_mapping.layer if fiber_mapping else _("Inner")
+            layer = fiber_mapping.layer if fiber_mapping else "inner"
 
-            fiber = Fiber(
-                uuid_cable=instance,
-                bundle_number=bundle_number,
-                bundle_color=bundle_color,
-                fiber_number_absolute=fiber_number_absolute,
-                fiber_number_in_bundle=fiber_in_bundle,
-                fiber_color=fiber_color,
-                active=True,
-                fiber_status=None,
-                flag=instance.flag,
-                project=instance.project,
-                layer=layer,
+            layout.append(
+                {
+                    "bundle_number": bundle_number,
+                    "bundle_color": bundle_color,
+                    "fiber_number_absolute": fiber_number_absolute,
+                    "fiber_number_in_bundle": fiber_in_bundle,
+                    "fiber_color": fiber_color,
+                    "layer": layer,
+                }
             )
-            fibers_to_create.append(fiber)
             fiber_number_absolute += 1
 
+    return layout
+
+
+@receiver(post_save, sender=Cable)
+def create_fibers_for_cable(sender, instance, created, **kwargs):
+    """Create fibers from :model:`api.CableTypeColorMapping` when a cable is created."""
+    if not created:
+        return
+
+    fibers_to_create = [
+        Fiber(
+            uuid_cable=instance,
+            active=True,
+            fiber_status=None,
+            flag=instance.flag,
+            project=instance.project,
+            **fiber,
+        )
+        for fiber in fiber_layout(instance.cable_type)
+    ]
     if fibers_to_create:
         Fiber.objects.bulk_create(fibers_to_create)
 

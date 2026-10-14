@@ -5,6 +5,7 @@ import math
 import pytest
 from apps.api.management.commands.warm_wms_cache import lat_lon_to_tile, tile_to_bbox
 from apps.api.management.commands.parse_pg_errors import Command as ParsePgErrorsCommand
+from apps.api.management.commands.parse_pg_errors import continues_error_block
 from apps.api.models import LogEntry
 
 
@@ -156,3 +157,34 @@ class TestProcessErrorBlock:
         assert "SELECT *" in entry.extra_data["statement"]
         assert "FROM table1" in entry.extra_data["statement"]
         assert "WHERE id = 1" in entry.extra_data["statement"]
+
+
+class TestContinuesErrorBlock:
+    """Tests for which prefixed log lines extend a buffered ERROR block."""
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            "DETAIL:  Key (id)=(1) already exists.",
+            "HINT:  No function matches.",
+            "STATEMENT:  SELECT 1",
+            "CONTEXT:  PL/pgSQL function x()",
+            "QUERY:  SELECT 2",
+        ],
+    )
+    def test_error_parts_continue_block(self, line):
+        """Verify DETAIL/HINT/STATEMENT/CONTEXT/QUERY lines stay in the block."""
+        assert continues_error_block(line)
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            "LOG:  duration: 812.204 ms  statement: SELECT 1",
+            'LOG:  duration: 1204.1 ms  plan: {"Query Text": "SELECT 1"}',
+            "LOG:  process 42 still waiting for ShareLock",
+            "WARNING:  there is no transaction in progress",
+        ],
+    )
+    def test_other_severities_end_block(self, line):
+        """Verify slow-query and auto_explain LOG lines do not join the block."""
+        assert not continues_error_block(line)

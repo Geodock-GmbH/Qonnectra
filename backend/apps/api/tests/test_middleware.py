@@ -67,3 +67,37 @@ class TestCookieDomainMiddleware:
 
         assert result.status_code == 200
         assert "api-access-token" not in result.cookies
+
+
+@pytest.mark.django_db
+class TestServerTimingMiddleware:
+    """Tests for the load-test Server-Timing header."""
+
+    def test_reports_query_count_and_db_time(self, request_factory):
+        """Verify the header counts every SQL statement the view runs."""
+        from django.contrib.auth import get_user_model
+
+        from apps.api.middleware import ServerTimingMiddleware
+
+        def view(request):
+            user_model = get_user_model()
+            user_model.objects.count()
+            user_model.objects.exists()
+            return HttpResponse()
+
+        result = ServerTimingMiddleware(view)(request_factory.get("/"))
+
+        parts = dict(
+            part.strip().split(";dur=") for part in result["Server-Timing"].split(",")
+        )
+        assert parts["q"] == "2"
+        assert float(parts["db"]) >= 0
+        assert float(parts["app"]) >= float(parts["db"])
+
+    def test_not_installed_by_default(self, client):
+        """Verify normal responses carry no Server-Timing header."""
+        from django.urls import reverse
+
+        response = client.get(reverse("v1:config"))
+
+        assert "Server-Timing" not in response

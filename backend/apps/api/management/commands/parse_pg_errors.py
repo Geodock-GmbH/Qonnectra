@@ -34,8 +34,27 @@ from django.core.management.base import BaseCommand
 
 logger = logging.getLogger(__name__)
 
+ERROR_BLOCK_PARTS = ("DETAIL:", "HINT:", "STATEMENT:", "CONTEXT:", "QUERY:")
+
+
+def continues_error_block(line_content: str) -> bool:
+    """Return whether a prefixed log line belongs to the buffered ERROR block.
+
+    Slow-statement and auto_explain ``LOG:`` lines from the same backend
+    PID must end the block, or their text would leak into the statement.
+
+    Args:
+        line_content: Log line with the PostgreSQL line prefix stripped.
+
+    Returns:
+        bool: True for DETAIL/HINT/STATEMENT/CONTEXT/QUERY lines.
+    """
+    return line_content.startswith(ERROR_BLOCK_PARTS)
+
 
 class Command(BaseCommand):
+    """Tail the PostgreSQL container log and store ERROR blocks as :model:`api.LogEntry` rows."""
+
     help = "Parse PostgreSQL errors from Docker logs and create LogEntry records"
 
     def __init__(self, *args, **kwargs):
@@ -257,8 +276,11 @@ class Command(BaseCommand):
                                     error_buffer, current_timestamp
                                 )
                             error_buffer = [line_content]
-                        elif error_buffer:
+                        elif error_buffer and continues_error_block(line_content):
                             error_buffer.append(line_content)
+                        elif error_buffer:
+                            self._process_error_block(error_buffer, current_timestamp)
+                            error_buffer = []
 
                     elif error_buffer and line.strip():
                         error_buffer.append(line)
