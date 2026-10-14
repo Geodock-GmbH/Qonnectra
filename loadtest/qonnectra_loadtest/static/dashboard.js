@@ -20,6 +20,12 @@ const $ = (/** @type {string} */ id) =>
  */
 
 /**
+ * @typedef {object} CheckAction
+ * @property {string} state - Target state of the Postgres statistics, `on` or `off`.
+ * @property {string} label - Button text.
+ */
+
+/**
  * @typedef {object} Job
  * @property {string} label - What the job does, e.g. `Seed small`.
  * @property {string} state - `running`, `done` or `failed`.
@@ -133,7 +139,10 @@ function renderJob(job) {
   const log = $("job-log");
   log.textContent = job.lines.join("\n") || "…";
   log.scrollTop = log.scrollHeight;
-  if (lastJobState === "running" && job.state !== "running") loadData(true);
+  if (lastJobState === "running" && job.state !== "running") {
+    loadData(true);
+    loadChecks(true);
+  }
   lastJobState = job.state;
 }
 
@@ -153,6 +162,37 @@ async function pollStatus() {
 }
 
 /**
+ * Creates the button that switches the Postgres statistics after a confirmation.
+ * @param {CheckAction} action - Target state and button text from the check.
+ * @returns {HTMLButtonElement} The detached button.
+ */
+function statisticsButton(action) {
+  const button = /** @type {HTMLButtonElement} */ (
+    el("button", action.label, "button check-action")
+  );
+  button.type = "button";
+  button.addEventListener("click", async () => {
+    if (
+      !confirm(
+        "This restarts the database container: Qonnectra is unavailable for a few seconds. Continue?",
+      )
+    )
+      return;
+    try {
+      renderJob(
+        await api("api/postgres-statistics", {
+          method: "POST",
+          body: JSON.stringify({ state: action.state }),
+        }),
+      );
+    } catch (error) {
+      alert(String(error));
+    }
+  });
+  return button;
+}
+
+/**
  * Loads and shows the setup checks.
  * @param {boolean} [fresh] - Recompute instead of using the cached result.
  */
@@ -165,6 +205,7 @@ async function loadChecks(fresh = false) {
         const item = el("li");
         item.append(el("span", "", `dot ${check.state}`), el("b", check.name));
         item.append(el("span", check.detail, "check-detail"));
+        if (check.action) item.append(statisticsButton(check.action));
         return item;
       }),
     );

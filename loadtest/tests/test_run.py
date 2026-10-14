@@ -210,12 +210,16 @@ def test_a_run_that_cannot_prepare_stops_with_a_message(stub, offline_server_sid
     assert list(offline_server_side.runs.iterdir()) == []
 
 
-def test_bypass_gives_every_tile_position_its_own_url(stub, offline_server_side):
-    """Verify cache=bypass defeats nginx's tile cache key across positions."""
+def test_bypass_gives_every_tile_request_its_own_url(stub, offline_server_side):
+    """Verify cache=bypass defeats nginx's tile cache key, duplicates included.
+
+    nginx locks the cache per key, so a repeated URL would be a cache hit.
+    """
     _, runner = start_run(stub, Check(), cache="bypass")
     wait_until_stopped(runner)
 
     trench_tiles = [p for p in stub.paths if "ol_trench_tiles" in p]
     assert trench_tiles and all("&_lt=" in p for p in trench_tiles)
-    positions = {p.split("?")[0] for p in trench_tiles}
-    assert len(set(trench_tiles)) == len(positions)
+    assert len(set(trench_tiles)) == len(trench_tiles)
+    positions = {p.split("&_lt=")[0] for p in trench_tiles}
+    assert len(trench_tiles) == 2 * len(positions)

@@ -74,6 +74,19 @@ def stats() -> list[tuple[str, float, float]]:
     return rows
 
 
+def restart_service(service: str) -> bool:
+    """Restart the container of a compose service.
+
+    Args:
+        service: Service part of the name, e.g. ``db``.
+
+    Returns:
+        bool: False when the container is missing or the restart failed.
+    """
+    container = find_container(service, container_names())
+    return bool(container) and _docker("restart", container, timeout=120) is not None
+
+
 def logs(container: str, since: str, until: str) -> list[str]:
     """Return a container's log lines between two times.
 

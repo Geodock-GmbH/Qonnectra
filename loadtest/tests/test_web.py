@@ -5,12 +5,13 @@ from types import SimpleNamespace
 
 import locust
 import pytest
+import requests
 from locust.argument_parser import parse_options
 from locust.env import Environment
 
 import qonnectra_loadtest.locustfile  # noqa: F401  (registers the start-form fields)
 
-from qonnectra_loadtest import auth, run, web
+from qonnectra_loadtest import auth, jobs, run, web
 from qonnectra_loadtest.auth import Verdict
 from qonnectra_loadtest.personas import MapUser
 from tests.test_report import SUMMARY
@@ -218,3 +219,65 @@ def test_runner_page_offers_the_live_tabs(ui):
     ]
     tables = {table["key"]: table["data"] for table in stats["extended_stats"]}
     assert tables["server"][0]["name"] == "db"
+
+
+def postgres_check(ui, monkeypatch, libraries: list[str], changeable: bool) -> dict:
+    """Return the Postgres row of the checks for a given preload state."""
+    monkeypatch.setattr(ui.run.postgres, "preload", lambda: (libraries, changeable))
+    monkeypatch.setattr(ui.run.postgres, "statements_ready", lambda: True)
+    monkeypatch.setattr(web.docker, "available", lambda: False)
+
+    def offline(*_args, **_kwargs):
+        """Fail like an unreachable host, so the other checks end fast."""
+        raise requests.ConnectionError("offline")
+
+    monkeypatch.setattr(web.requests, "get", offline)
+    monkeypatch.setattr(web.requests, "head", offline)
+    checks = ui.client.get("/loadtest/api/checks?fresh=1").get_json()
+    return next(row for row in checks if row["name"] == "Postgres statistics")
+
+
+def test_postgres_check_offers_the_matching_switch(ui, monkeypatch):
+    """Verify the check offers Switch on when off, Switch off when on."""
+    off = postgres_check(ui, monkeypatch, [], True)
+    on = postgres_check(ui, monkeypatch, ["pg_stat_statements", "auto_explain"], True)
+
+    assert off["state"] == "warn" and off["action"]["state"] == "on"
+    assert on["state"] == "ok" and on["action"]["state"] == "off"
+
+
+def test_postgres_check_has_no_switch_for_a_command_line_preload(ui, monkeypatch):
+    """Verify no switch is offered where ALTER SYSTEM cannot win."""
+    row = postgres_check(ui, monkeypatch, ["pg_stat_statements"], False)
+
+    assert row["state"] == "ok" and "action" not in row
+
+
+def test_postgres_switch_runs_as_a_job(ui, monkeypatch):
+    """Verify the switch starts the CLI job, and only with a valid state when idle."""
+    started = []
+    monkeypatch.setattr(jobs.Jobs, "_run", lambda self, job: started.append(job.args))
+
+    accepted = ui.client.post("/loadtest/api/postgres-statistics", json={"state": "on"})
+    invalid = ui.client.post(
+        "/loadtest/api/postgres-statistics", json={"state": "restart"}
+    )
+
+    assert accepted.status_code == 202
+    assert accepted.get_json()["label"] == "Postgres statistics on"
+    assert started == [["postgres-statistics", "on"]]
+    assert invalid.status_code == 400
+
+
+def test_postgres_switch_is_refused_while_a_test_runs(ui, monkeypatch):
+    """Verify the database is never restarted under a running test."""
+    started = []
+    monkeypatch.setattr(jobs.Jobs, "_run", lambda self, job: started.append(job.args))
+    monkeypatch.setattr(ui.environment.runner, "state", "running")
+
+    response = ui.client.post(
+        "/loadtest/api/postgres-statistics", json={"state": "off"}
+    )
+
+    assert response.status_code == 409
+    assert started == []

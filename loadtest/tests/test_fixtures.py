@@ -34,7 +34,10 @@ def api(
             "layer-extent/?layer=trench&project=9": {"extent": None},
             "trench/?project=1&page_size=100": {
                 "type": "FeatureCollection",
-                "features": [{"id": "t1"}, {"properties": {"uuid": "t2"}}],
+                "features": [
+                    {"id": "t1", "properties": {"id_trench": "A1"}},
+                    {"properties": {"uuid": "t2"}},
+                ],
             },
             "node/?project=1&page_size=100": {"results": [{"uuid": "n1"}]},
             "address/?project=1&page_size=100": [],
@@ -75,6 +78,7 @@ def test_discovers_projects_samples_and_wms_layers():
     kassel, seeded = fixture.projects
     assert (kassel.id, kassel.extent, kassel.seeded) == (1, (0, 0, 10, 10), False)
     assert kassel.features["trench"] == ["t1", "t2"]
+    assert kassel.trench_ids == ["A1"]
     assert kassel.features["node"] == ["n1"]
     assert [
         (layer.source, layer.name, layer.min_zoom) for layer in kassel.wms_layers

@@ -166,13 +166,14 @@ class MapVisit:
         gets = []
         for layer in VECTOR_LAYERS:
             for z, x, y in self.caches[layer].missing(tiles):
-                bust = (
-                    f"&_lt={random.getrandbits(48):x}"
-                    if self.options.cache == "bypass"
-                    else ""
-                )
-                url = f"{api}ol_{layer}_tiles/{z}/{x}/{y}.mvt?project={self.project.id}{bust}"
-                gets += [Get(url, f"tile:{layer}")] * self.options.tile_factor
+                url = f"{api}ol_{layer}_tiles/{z}/{x}/{y}.mvt?project={self.project.id}"
+                for _ in range(self.options.tile_factor):
+                    bust = (
+                        f"&_lt={random.getrandbits(48):x}"
+                        if self.options.cache == "bypass"
+                        else ""
+                    )
+                    gets.append(Get(f"{url}{bust}", f"tile:{layer}"))
 
         visible_wms = [
             layer

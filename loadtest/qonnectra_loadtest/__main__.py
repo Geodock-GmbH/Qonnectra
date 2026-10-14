@@ -1,4 +1,4 @@
-"""Command line for the Django-side jobs: seed data and load-test users.
+"""Command line for the database jobs: seed data, load-test users, statistics.
 
 The web UI runs these as subprocesses, so the database work never blocks the
 load generator. They also work by hand inside the container::
@@ -7,6 +7,7 @@ load generator. They also work by hand inside the container::
     python -m qonnectra_loadtest purge
     python -m qonnectra_loadtest users --count 60 --hours 12
     python -m qonnectra_loadtest status
+    python -m qonnectra_loadtest postgres-statistics on
 """
 
 import argparse
@@ -50,13 +51,33 @@ def main(argv: list[str] | None = None) -> int:
 
     commands.add_parser("status", help="Print seeded projects and user count")
 
+    statistics = commands.add_parser(
+        "postgres-statistics",
+        help="Switch pg_stat_statements and the slow-query log on or off "
+        "(restarts the db container)",
+    )
+    statistics.add_argument("state", choices=["on", "off"])
+
     args = parser.parse_args(argv)
-    setup_django()
-    from qonnectra_loadtest import accounts, seeding
 
     def log(line: str):
         """Print a progress line right away, so the dashboard log streams."""
         print(line, flush=True)
+
+    if args.command == "postgres-statistics":
+        from qonnectra_loadtest import docker
+        from qonnectra_loadtest.postgres import Postgres, switch_statistics
+
+        switched = switch_statistics(
+            args.state == "on",
+            Postgres(),
+            restart=lambda: docker.restart_service("db"),
+            log=log,
+        )
+        return 0 if switched else 1
+
+    setup_django()
+    from qonnectra_loadtest import accounts, seeding
 
     if args.command == "seed":
         if args.preset not in seeding.PRESET_KM:

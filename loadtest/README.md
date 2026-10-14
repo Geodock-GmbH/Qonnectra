@@ -23,14 +23,14 @@ docker compose up -d --build
 
 This builds the `loadtest` image on top of the backend image and starts it. Caddy already routes `/loadtest` on the app domain to it. Open `https://<APP_DOMAIN>/loadtest/` and check that the **Checks** card is green:
 
-| check                   | when it is not green                                                                                                                        |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Postgres statistics     | The db container was started before `pg_stat_statements` was in `docker-compose.yml`: `docker compose up -d db` (a short DB restart).       |
-| Per-endpoint DB numbers | The backend image predates the Server-Timing middleware: rebuild it.                                                                        |
-| Container stats         | `/var/run/docker.sock` is not mounted. Runs work, but the report has no container numbers.                                                  |
-| App / Tile server       | The URLs come from `APP_DOMAIN` and `PUBLIC_TILE_SERVER_URL`, or the runner's Host and tiles URL fields. Without a tile server, no basemap. |
+| check                   | when it is not green                                                                                                                                              |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Postgres statistics     | Off by default. **Switch on** turns on `pg_stat_statements` and the slow-query log with `ALTER SYSTEM` and restarts the db container (a few seconds of downtime). |
+| Per-endpoint DB numbers | The backend image predates the Server-Timing middleware: rebuild it.                                                                                              |
+| Container stats         | `/var/run/docker.sock` is not mounted. Runs work, but the report has no container numbers.                                                                        |
+| App / Tile server       | The URLs come from `APP_DOMAIN` and `PUBLIC_TILE_SERVER_URL`, or the runner's Host and tiles URL fields. Without a tile server, no basemap.                       |
 
-To switch it off again, remove the line from `.env` and run `docker compose rm -sf loadtest`. Purge the test data first if you seeded any (see below).
+To switch it off again, first purge the test data if you seeded any (see below) and press **Switch off** on the Postgres statistics check, then remove the line from `.env` and run `docker compose rm -sf loadtest`. Postgres settings, test data and load-test users all come from the add-on, so nothing of it stays behind. What stays in Qonnectra itself does nothing without the add-on: the Server-Timing middleware only answers the load-test key, and Caddy's `/loadtest` route answers 502.
 
 ## A run
 
@@ -73,17 +73,17 @@ How close this is to a browser:
 
 Under **Custom parameters**:
 
-| option      | default                  | effect                                                                  |
-| ----------- | ------------------------ | ----------------------------------------------------------------------- |
-| projects    | `all`                    | `all`, `loadtest` (seeded only), or ids like `1,4`                      |
-| cache       | `on`                     | `bypass` gives every tile its own URL, so nginx's tile cache never hits |
-| wms         | on                       | request WMS tiles of enabled layers                                     |
-| basemap     | on                       | request basemap tiles                                                   |
-| tile factor | `2`                      | requests per new feature tile and layer                                 |
-| think       | `1`                      | multiplier on all pauses; `0.5` = users act twice as fast               |
-| viewport    | `1600x900`               | browser window                                                          |
-| api url     | from `API_DOMAIN`        | Django API base                                                         |
-| tiles url   | `PUBLIC_TILE_SERVER_URL` | tile server; empty skips the basemap                                    |
+| option      | default                  | effect                                                                                                    |
+| ----------- | ------------------------ | --------------------------------------------------------------------------------------------------------- |
+| projects    | `all`                    | `all`, `loadtest` (seeded only), or ids like `1,4`                                                        |
+| cache       | `on`                     | `bypass` gives every feature tile request its own URL, so nginx's tile cache never hits; WMS stays cached |
+| wms         | on                       | request WMS tiles of enabled layers                                                                       |
+| basemap     | on                       | request basemap tiles                                                                                     |
+| tile factor | `2`                      | requests per new feature tile and layer                                                                   |
+| think       | `1`                      | multiplier on all pauses; `0.5` = users act twice as fast                                                 |
+| viewport    | `1600x900`               | browser window                                                                                            |
+| api url     | from `API_DOMAIN`        | Django API base                                                                                           |
+| tiles url   | `PUBLIC_TILE_SERVER_URL` | tile server; empty skips the basemap                                                                      |
 
 The **Host** field is the app URL (`https://<APP_DOMAIN>`).
 

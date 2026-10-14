@@ -106,7 +106,7 @@ class TestServerTimingMiddleware:
         assert float(parts["db"]) >= 0
         assert float(parts["app"]) >= float(parts["db"])
 
-    @pytest.mark.parametrize("sent", [None, "", "wrong-key"])
+    @pytest.mark.parametrize("sent", [None, "", "wrong-key", "schlüssel"])
     def test_other_requests_get_no_header(self, request_factory, sent):
         """Verify requests without the right key are not measured."""
         from apps.api.middleware import SERVER_TIMING_HEADER, ServerTimingMiddleware

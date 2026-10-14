@@ -31,11 +31,10 @@ def edit_session(browser: Browser, fixture: Fixture):
         return
     project = random.choice(seeded)
 
-    trenches = project.features.get("trench") or []
-    if trenches:
+    if project.trench_ids:
         browser.api_write(
             "PATCH",
-            f"trench/{random.choice(trenches)}/",
+            f"trench/{random.choice(project.trench_ids)}/?project={project.id}",
             "write:trench-patch",
             {"comment": f"loadtest {datetime.now(UTC).isoformat()}"},
         )

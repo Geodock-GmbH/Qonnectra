@@ -137,7 +137,8 @@ def check_rows(run: Run) -> list[dict]:
             timing key.
 
     Returns:
-        list[dict]: ``name``, ``state`` (ok, warn, fail) and ``detail``.
+        list[dict]: ``name``, ``state`` (ok, warn, fail), ``detail`` and, where
+            the dashboard can fix it, an ``action``.
     """
     app_url = (run.environment.host or "").rstrip("/")
     tiles_url = str(
@@ -146,13 +147,29 @@ def check_rows(run: Run) -> list[dict]:
     api = internal_api_url()
 
     def postgres():
-        """Check that pg_stat_statements is preloaded."""
-        ready = gevent.get_hub().threadpool.apply(run.postgres.statements_ready)
-        if ready:
-            return "ok", "pg_stat_statements records every statement."
+        """Check that pg_stat_statements is preloaded and offer to switch it."""
+        pool = gevent.get_hub().threadpool
+        libraries, changeable = pool.apply(run.postgres.preload)
+        if "pg_stat_statements" in libraries:
+            pool.apply(run.postgres.statements_ready)
+            if not changeable:
+                return "ok", "Preloaded on the db container's command line."
+            return (
+                "ok",
+                "Top SQL and the slow-query log are on. Switch them off before "
+                "removing the add-on.",
+                {"state": "off", "label": "Switch off"},
+            )
+        if not changeable:
+            return (
+                "warn",
+                "shared_preload_libraries is set on the db container's command "
+                "line: add pg_stat_statements,auto_explain there.",
+            )
         return (
             "warn",
-            "Not preloaded: recreate the db container (docker compose up -d db).",
+            "Off, so the report has no top SQL and no slow-query log.",
+            {"state": "on", "label": "Switch on"},
         )
 
     def server_timing():
@@ -210,10 +227,13 @@ def check_rows(run: Run) -> list[dict]:
     def run_check(name, check):
         """Run one check and turn any error into a failed row."""
         try:
-            state, detail = check()
+            state, detail, *action = check()
         except Exception as error:
-            state, detail = "fail", str(error)[:200]
-        return {"name": name, "state": state, "detail": detail}
+            state, detail, action = "fail", str(error)[:200], []
+        row = {"name": name, "state": state, "detail": detail}
+        if action:
+            row["action"] = action[0]
+        return row
 
     greenlets = [gevent.spawn(run_check, name, check) for name, check in checks]
     gevent.joinall(greenlets, timeout=20)
@@ -307,7 +327,13 @@ def install(environment, run: Run):
     jobs = Jobs()
     checks = Cached(lambda: check_rows(run), CHECKS_SECONDS)
     data = Cached(data_overview, DATA_SECONDS)
-    jobs.on_finish = data.drop
+
+    def job_finished():
+        """Recompute what a job may have changed."""
+        data.drop()
+        checks.drop()
+
+    jobs.on_finish = job_finished
 
     @app.before_request
     def require_superuser():
@@ -451,6 +477,14 @@ def install(environment, run: Run):
     def purge():
         """Delete load-test projects and users."""
         return start_job("Purge", ["purge"])
+
+    @pages.route("/api/postgres-statistics", methods=["POST"])
+    def postgres_statistics():
+        """Switch top SQL and the slow-query log on or off; restarts the database."""
+        state = (request.get_json(silent=True) or {}).get("state")
+        if state not in ("on", "off"):
+            return jsonify({"error": "state must be on or off."}), 400
+        return start_job(f"Postgres statistics {state}", ["postgres-statistics", state])
 
     @pages.route("/api/runs")
     def runs():

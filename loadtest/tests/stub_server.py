@@ -115,7 +115,12 @@ class StubQonnectra:
         projects = [{"id": 1, "project": "Kassel"}]
         if self.seeded:
             projects.append({"id": 7, "project": "loadtest-01"})
-        sample = {"features": [{"id": f"uuid-{n}"} for n in range(5)]}
+        sample = {
+            "features": [
+                {"id": f"uuid-{n}", "properties": {"id_trench": f"T{n}"}}
+                for n in range(5)
+            ]
+        }
         if method == "GET":
             if path == "auth/user/":
                 return reply("200 OK", {"username": "admin", "is_superuser": True})
@@ -152,7 +157,11 @@ class StubQonnectra:
                 return reply("200 OK", b"\x1a\x00", f"tile:{tile[1]}", timing)
             if path.startswith("wms-proxy/3/") and query.get("token") == ["wms-token"]:
                 return reply("200 OK", b"\x89PNG", "tile:wms", timing)
-        if method == "PATCH" and re.fullmatch(r"trench/uuid-\d/", path):
+        if (
+            method == "PATCH"
+            and re.fullmatch(r"trench/T\d/", path)
+            and query.get("project") == ["7"]
+        ):
             return reply("200 OK", {}, "write:trench-patch", timing)
         if method == "POST" and path == "conduit/":
             return reply(

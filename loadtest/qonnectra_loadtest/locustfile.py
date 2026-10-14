@@ -52,7 +52,7 @@ def add_options(parser):
         default="on",
         choices=["on", "bypass"],
         include_in_web_ui=True,
-        help="bypass gives every tile a unique URL, so nginx's tile cache never hits",
+        help="bypass gives every feature tile request a unique URL, so nginx's tile cache never hits (WMS stays cached)",
     )
     parser.add_argument(
         "--wms",

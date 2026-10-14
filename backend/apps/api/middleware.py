@@ -99,7 +99,11 @@ class ServerTimingMiddleware:
                 request sent the load-test key.
         """
         sent = request.headers.get(SERVER_TIMING_HEADER)
-        if not self.key or not sent or not hmac.compare_digest(sent, self.key):
+        if (
+            not self.key
+            or not sent
+            or not hmac.compare_digest(sent.encode(), self.key.encode())
+        ):
             return self.get_response(request)
 
         stats = {"queries": 0, "db_ms": 0.0}

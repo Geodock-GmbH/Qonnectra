@@ -260,6 +260,11 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.check-action {
+  grid-column: 2;
+  justify-self: start;
+}
+
 .button {
   appearance: none;
   border: 1px solid var(--line);

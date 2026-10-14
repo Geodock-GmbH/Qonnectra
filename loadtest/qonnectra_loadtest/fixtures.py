@@ -37,6 +37,8 @@ class Project:
     name: str
     extent: tuple[float, float, float, float]
     features: dict[str, list[str]]
+    trench_ids: list[str] = field(default_factory=list)
+    """``id_trench`` values, the key of ``trench/<id>/``; unique per project only."""
     wms_layers: list[WmsLayer] = field(default_factory=list)
 
     @property
@@ -88,6 +90,23 @@ def uuids(body) -> list[str]:
             or row.get("uuid")
             or (row.get("properties") or {}).get("uuid")
         )
+        if isinstance(value, str):
+            found.append(value)
+    return found
+
+
+def trench_ids(body) -> list[str]:
+    """Extract ``id_trench`` values from a trench feature collection.
+
+    Args:
+        body: Parsed JSON of ``trench/``, or None.
+
+    Returns:
+        list[str]: Trench ids in response order.
+    """
+    found = []
+    for row in rows(body):
+        value = (row.get("properties") or {}).get("id_trench")
         if isinstance(value, str):
             found.append(value)
     return found
@@ -148,10 +167,8 @@ def discover(options: RunOptions, token: str, http=requests) -> Fixture:
         )
         if not extent:
             continue
-        features = {
-            kind: uuids(
-                get(f"{kind}/?project={row['id']}&page_size={SAMPLE_PAGE_SIZE}")
-            )
+        samples = {
+            kind: get(f"{kind}/?project={row['id']}&page_size={SAMPLE_PAGE_SIZE}")
             for kind in ("trench", "node", "address", "cable")
         }
         wms_layers = []
@@ -174,7 +191,8 @@ def discover(options: RunOptions, token: str, http=requests) -> Fixture:
                 id=row["id"],
                 name=row["project"],
                 extent=tuple(extent),
-                features=features,
+                features={kind: uuids(body) for kind, body in samples.items()},
+                trench_ids=trench_ids(samples["trench"]),
                 wms_layers=wms_layers,
             )
         )

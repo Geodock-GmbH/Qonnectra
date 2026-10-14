@@ -176,7 +176,8 @@ class Run:
                 self._pg(self.postgres.reset_statements)
             else:
                 self.notes.append(
-                    "pg_stat_statements is not preloaded; restart the db container."
+                    "Postgres statistics are off, so there is no top SQL. "
+                    "Switch them on under Checks on the dashboard."
                 )
             self.counters_before = self._pg(self.postgres.counters)
         except Exception as error:
