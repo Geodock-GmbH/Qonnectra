@@ -52,8 +52,6 @@ Test data is recognised by its name only: a project named `loadtest-…` or a no
 3. Remove `COMPOSE_PROFILES=loadtest` from `deployment/.env`.
 4. `docker compose rm -sf loadtest`
 
-If the server restores its database every night, the first two happen by themselves, as long as the restore replaces the data directory. A restore that only reloads data keeps the Postgres settings, so press **Switch off** anyway.
-
 What stays behind:
 
 - Error log entries. Django writes server errors (500s) to the `LogEntry` table, so a run that overloads the server leaves entries there. The purge keeps them because they are real diagnostics.
@@ -64,7 +62,7 @@ What stays behind:
 
 ## A run
 
-1. Optionally, seed `loadtest-NN` projects on the dashboard. The presets set the total street trench length: tiny 2 km, small 50 km, medium 500 km (about 25k addresses), large 2000 km. Each project gets trenches, house connections, conduits, microducts, cables, fibers, nodes, addresses and areas. If the server restores its database every night, the test data is gone the next morning and you have to seed again.
+1. Optionally, seed `loadtest-NN` projects on the dashboard. The presets set the total street trench length: tiny 2 km, small 50 km, medium 500 km (about 25k addresses), large 2000 km. Each project gets trenches, house connections, conduits, microducts, cables, fibers, nodes, addresses and areas.
 2. Open the runner, pick the **Check** profile and start. One user per persona runs one session, and the run stops by itself. Every request should be green.
 3. To measure, pick **Ramp**, set the number of users to the peak you want and start. Ramp adds 5 users every 2 minutes, which shows you where latency tips over. Watch the Server, Django, Top SQL and Connections tabs.
 4. When the run ends, its report appears under **Runs** on the dashboard. Tick two runs and press **Compare** to see the effect of a change.
