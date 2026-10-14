@@ -7,13 +7,12 @@ so every request walks the real permission path. Needs Django set up.
 
 from datetime import timedelta
 
+from apps.api.models import ModelPermission, RoutePermission
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.db import transaction
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import AccessToken
-
-from apps.api.models import ModelPermission, RoutePermission
 
 LOADTEST_GROUP = "loadtest"
 USER_PREFIX = "loadtest"

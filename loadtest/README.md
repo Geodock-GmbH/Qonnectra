@@ -1,10 +1,11 @@
 # Load testing
 
-An optional add-on that simulates a team using Qonnectra at once and records what the server does meanwhile, so load can be traced to endpoints, SQL statements and containers. It ships with Qonnectra but only runs when you switch it on.
+This optional add-on simulates a team using Qonnectra at the same time and records what the server does meanwhile, so you can trace load to endpoints, SQL statements and containers. It ships with Qonnectra but only runs when you switch it on.
 
-- **Web UI** at `https://<APP_DOMAIN>/loadtest/`, for Qonnectra superusers only (it uses your app session).
-- **Runner**: [Locust](https://locust.io)'s own UI for starting, watching and stopping a run, with extra live tabs for container CPU, Django query counts, top SQL and Postgres connections.
-- **Dashboard**: setup checks, synthetic test data (seed and purge with one click), and a report per finished run, with before/after comparison.
+The web UI is at `https://<APP_DOMAIN>/loadtest/`. Only Qonnectra superusers can open it, because it uses your app session. It has two parts:
+
+- The runner is [Locust](https://locust.io)'s own UI for starting, watching and stopping a run, with extra live tabs for container CPU, Django query counts, top SQL and Postgres connections.
+- The dashboard has setup checks, synthetic test data (seed and purge with one click) and a report for each finished run, which you can compare with an earlier one.
 
 ## Switching it on
 
@@ -28,16 +29,45 @@ This builds the `loadtest` image on top of the backend image and starts it. Cadd
 | Postgres statistics     | Off by default. **Switch on** turns on `pg_stat_statements` and the slow-query log with `ALTER SYSTEM` and restarts the db container (a few seconds of downtime). |
 | Per-endpoint DB numbers | The backend image predates the Server-Timing middleware: rebuild it.                                                                                              |
 | Container stats         | `/var/run/docker.sock` is not mounted. Runs work, but the report has no container numbers.                                                                        |
-| App / Tile server       | The URLs come from `APP_DOMAIN` and `PUBLIC_TILE_SERVER_URL`, or the runner's Host and tiles URL fields. Without a tile server, no basemap.                       |
+| App / Tile server       | The URLs come from `APP_DOMAIN` and `PUBLIC_TILE_SERVER_URL`, or the runner's Host and tiles URL fields. Without a tile server, the run skips the basemap.        |
 
-To switch it off again, first purge the test data if you seeded any (see below) and press **Switch off** on the Postgres statistics check, then remove the line from `.env` and run `docker compose rm -sf loadtest`. Postgres settings, test data and load-test users all come from the add-on, so nothing of it stays behind. What stays in Qonnectra itself does nothing without the add-on: the Server-Timing middleware only answers the load-test key, and Caddy's `/loadtest` route answers 502.
+## What it changes in your installation
+
+There is no separate test database. The add-on works in Qonnectra's own database (the `DB_*` values in `deployment/.env`), next to your data, and never changes existing rows.
+
+| what                         | where                                                                                                                                                            | real data                           |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Test data (**Seed**)         | New `loadtest-NN` projects with their features. Lookup tables such as surfaces, conduit types and flags are only read.                                           | untouched                           |
+| Load-test users              | `loadtest_NNN` users and a `loadtest` role with full access, created at the start of every run. They have no password, so nobody can log in with them.           | untouched                           |
+| Editor persona               | Patches trench comments and creates and deletes conduits, which leaves history rows. It only writes to `loadtest-*` projects and only reads when there are none. | untouched                           |
+| Map, search, schema personas | Read only. With `projects=all` (the default) they read your real projects, which is the point of the test.                                                       | read                                |
+| Postgres statistics          | Server settings via `ALTER SYSTEM`, the `pg_stat_statements` extension, and a reset of those statistics at the start of every run.                               | no data; **Switch** restarts the db |
+
+Test data is recognised by its name only: a project named `loadtest-…` or a non-superuser named `loadtest_…` counts as test data, gets written to by the editor and is deleted by **Purge**. Don't give real projects or users such names.
+
+## Switching it off
+
+1. **Purge** on the dashboard: deletes the `loadtest-*` projects with their features and history, the load-test users and the role.
+2. **Switch off** on the Postgres statistics check: resets the settings, drops the extension and restarts the db container.
+3. Remove `COMPOSE_PROFILES=loadtest` from `deployment/.env`.
+4. `docker compose rm -sf loadtest`
+
+If the server restores its database every night, the first two happen by themselves, as long as the restore replaces the data directory. A restore that only reloads data keeps the Postgres settings, so press **Switch off** anyway.
+
+What stays behind:
+
+- Error log entries. Django writes server errors (500s) to the `LogEntry` table, so a run that overloads the server leaves entries there. The purge keeps them because they are real diagnostics.
+- The nginx tile cache holds tiles of the test projects, and with `cache=bypass` one entry per request. It is capped at 2 GB and drops entries unused for 7 days.
+- On the host, the run folders in `loadtest/runs/` (owned by root: `sudo rm -r loadtest/runs/*`) and the image (`docker image rm qonnectra/loadtest`).
+- A few parts of Qonnectra itself, which do nothing without the add-on: the Server-Timing middleware only answers the load-test key, Caddy's `/loadtest` route answers 502, and the nginx log lines carry two extra timing fields (`rt`, `urt`).
+- Used-up ID numbers of the database sequences, and backups taken while test data existed. Neither needs cleaning up.
 
 ## A run
 
-1. **Test data** (optional). Seed `loadtest-NN` projects on the dashboard. The presets set the total street trench length: tiny 2 km, small 50 km, medium 500 km (about 25k addresses), large 2000 km. Each project gets trenches, house connections, conduits, microducts, cables, fibers, nodes, addresses and areas. Real projects are never touched. If the server restores its database every night, the test data is gone the next morning; seed again.
-2. **Check.** Open the runner, pick the **Check** profile and start. One user per persona runs one session, and the run stops by itself. Every request should be green.
-3. **Measure.** Pick **Ramp**, set the number of users to the peak you want and start. Ramp adds 5 users every 2 minutes, which is how you find the point where latency tips over. Watch the Server, Django, Top SQL and Connections tabs.
-4. **Read the report.** When the run ends, it appears under **Runs** on the dashboard. Tick two runs and press **Compare** to see the effect of a change.
+1. Optionally, seed `loadtest-NN` projects on the dashboard. The presets set the total street trench length: tiny 2 km, small 50 km, medium 500 km (about 25k addresses), large 2000 km. Each project gets trenches, house connections, conduits, microducts, cables, fibers, nodes, addresses and areas. If the server restores its database every night, the test data is gone the next morning and you have to seed again.
+2. Open the runner, pick the **Check** profile and start. One user per persona runs one session, and the run stops by itself. Every request should be green.
+3. To measure, pick **Ramp**, set the number of users to the peak you want and start. Ramp adds 5 users every 2 minutes, which shows you where latency tips over. Watch the Server, Django, Top SQL and Connections tabs.
+4. When the run ends, its report appears under **Runs** on the dashboard. Tick two runs and press **Compare** to see the effect of a change.
 
 Load-test users (`loadtest_NNN`, regular non-superusers with full access through their own role) are created automatically at the start of each run, one per virtual user. Their tokens are minted directly, because the login API is throttled.
 
@@ -133,6 +163,7 @@ Tests:
 ```bash
 cd loadtest && uv run pytest     # Locust side, including full runs against a local stub of Qonnectra
 cd backend && pytest             # also runs loadtest/tests_backend (seeding, users, timing key)
+pytest -c pytest.ini loadtest/tests_backend/test_data.py   # one backend file, from the repo root
 ```
 
 To run the UI locally against a dev setup, use the backend's environment plus Locust, and point it at your dev servers:

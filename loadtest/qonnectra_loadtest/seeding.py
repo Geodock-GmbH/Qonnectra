@@ -15,14 +15,8 @@ run. Needs Django set up.
 
 import math
 import random
-from dataclasses import dataclass, field
-
 from collections.abc import Callable
-
-from django.contrib.gis.geos import LineString, Point, Polygon
-from django.db import transaction
-from django.db.models import Count
-from django.test.utils import override_settings
+from dataclasses import dataclass, field
 
 from apps.api.models import (
     Address,
@@ -45,6 +39,10 @@ from apps.api.models import (
     fiber_layout,
     microduct_layout,
 )
+from django.contrib.gis.geos import LineString, Point, Polygon
+from django.db import transaction
+from django.db.models import Count, Q
+from django.test.utils import override_settings
 
 PROJECT_PREFIX = "loadtest-"
 
@@ -493,10 +491,12 @@ def seed(
 
 
 def purge(log: Callable[[str], None] = print) -> list[str]:
-    """Delete every load-test project and all features that belong to it.
+    """Delete every load-test project, its features and their history.
 
     Runs through the ORM so every cascade is honoured, with history
     disabled so the purge does not write a history row per deleted row.
+    The history the editor persona and the seeder wrote goes as well, so
+    no rows of the projects outlive them.
 
     Args:
         log: Receives one line per deleted feature kind.
@@ -509,10 +509,30 @@ def purge(log: Callable[[str], None] = print) -> list[str]:
     if not names:
         log("No load-test projects found.")
         return []
+    project_ids = list(projects.values_list("pk", flat=True))
 
     with override_settings(SIMPLE_HISTORY_ENABLED=False), transaction.atomic():
+        # Microduct history only knows its conduit, which may already be gone,
+        # so it goes first, matched against live and historical conduits.
+        history = Microduct.history.filter(
+            Q(
+                uuid_conduit_id__in=Conduit.objects.filter(
+                    project__in=project_ids
+                ).values("uuid")
+            )
+            | Q(
+                uuid_conduit_id__in=Conduit.history.filter(
+                    project_id__in=project_ids
+                ).values("uuid")
+            )
+        ).delete()[0]
         for model in (Fiber, Cable, Conduit, Trench, Node, Address, Area):
-            deleted, _ = model.objects.filter(project__in=projects).delete()
+            history += model.history.filter(project_id__in=project_ids).delete()[0]
+        history += Projects.history.filter(id__in=project_ids).delete()[0]
+        log(f"History: {history} rows")
+
+        for model in (Fiber, Cable, Conduit, Trench, Node, Address, Area):
+            deleted, _ = model.objects.filter(project__in=project_ids).delete()
             log(f"{model.__name__}: {deleted} rows")
         projects.delete()
     log(f"Purged {', '.join(names)}")

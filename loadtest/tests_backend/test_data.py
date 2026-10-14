@@ -5,18 +5,9 @@ that breaks the seeder fails in the same change.
 """
 
 import random
+import uuid
 
 import pytest
-from django.conf import settings
-from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
-from django.contrib.gis.geos import LineString, Point
-from django.core.management import call_command
-from django.urls import reverse
-from django.utils import timezone
-from rest_framework.test import APIClient
-from rest_framework_simplejwt.tokens import AccessToken
-
 from apps.api.management.commands.warm_wms_cache import lat_lon_to_tile
 from apps.api.middleware import server_timing_key
 from apps.api.models import (
@@ -29,8 +20,17 @@ from apps.api.models import (
     Trench,
     TrenchConduitConnection,
 )
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from django.contrib.gis.geos import LineString, Point
+from django.core.management import call_command
+from django.urls import reverse
+from django.utils import timezone
 from qonnectra_loadtest import accounts, seeding
 from qonnectra_loadtest.config import timing_key
+from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import AccessToken
 
 User = get_user_model()
 
@@ -194,6 +194,37 @@ class TestSeeding:
         assert not Node.objects.filter(project_id=seeded.pk).exists()
         assert Projects.objects.filter(project="Default").exists()
         assert Trench.history.count() == history_before
+
+    def test_purge_removes_the_history_of_loadtest_projects(self, seeded):
+        """Verify history rows from edits and seeding go, those of real projects stay.
+
+        The edit persona writes through the API, so its trench and conduit
+        changes leave history rows that would outlive the projects.
+        """
+        default = Projects.objects.get(project="Default")
+        default.save()
+        trench = Trench.objects.filter(project=seeded).first()
+        trench.comment = "loadtest edit"
+        trench.save()
+        conduit = Conduit.objects.filter(project=seeded).first()
+        edited = conduit.uuid = uuid.uuid4()
+        conduit.name = "loadtest-edit"
+        conduit._state.adding = True
+        conduit.save()
+        conduit.delete()
+        assert Trench.history.filter(project_id=seeded.pk).exists()
+        assert Conduit.history.filter(project_id=seeded.pk).count() == 2
+        assert Microduct.history.filter(uuid_conduit_id=edited).exists()
+        assert Projects.history.filter(id=seeded.pk).exists()
+        default_history = Projects.history.filter(id=default.pk).count()
+
+        seeding.purge(log=lambda _line: None)
+
+        assert not Trench.history.filter(project_id=seeded.pk).exists()
+        assert not Conduit.history.filter(project_id=seeded.pk).exists()
+        assert not Microduct.history.filter(uuid_conduit_id=edited).exists()
+        assert not Projects.history.filter(id=seeded.pk).exists()
+        assert Projects.history.filter(id=default.pk).count() == default_history
 
 
 def test_timing_key_matches_the_middleware():
