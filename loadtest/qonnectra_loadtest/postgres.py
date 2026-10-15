@@ -10,6 +10,7 @@ runner calls them from gevent's thread pool.
 """
 
 import os
+import re
 import time
 from collections.abc import Callable
 
@@ -33,6 +34,14 @@ PRELOAD_SQL = """
     SELECT setting, source FROM pg_settings
     WHERE name = 'shared_preload_libraries'
 """
+
+WRITTEN_PRELOAD_SQL = """
+    SELECT setting FROM pg_file_settings
+    WHERE name = 'shared_preload_libraries'
+    ORDER BY seqno DESC
+    LIMIT 1
+"""
+"""The preload list the next start reads; the last file that sets it wins."""
 
 ACTIVITY_SQL = """
     SELECT coalesce(usename, '') AS role, coalesce(state, '') AS state,
@@ -133,8 +142,25 @@ class Postgres:
                 cannot override.
         """
         row = self._query(PRELOAD_SQL)[0]
-        libraries = [name.strip() for name in row["setting"].split(",") if name.strip()]
-        return libraries, row["source"] != "command line"
+        return split_library_list(row["setting"]), row["source"] != "command line"
+
+    def unloadable_libraries(self) -> list[str]:
+        """Return the libraries of the written preload list Postgres cannot load.
+
+        Postgres stops at start when one is missing, so this runs before any
+        restart. ``LOAD`` of an already preloaded library does nothing.
+
+        Returns:
+            list[str]: Library names as the next start reads them.
+        """
+        rows = self._query(WRITTEN_PRELOAD_SQL)
+        missing = []
+        for name in split_library_list(rows[0]["setting"]) if rows else []:
+            try:
+                self._query(sql.SQL("LOAD {}").format(sql.Literal(name)))
+            except psycopg.Error:
+                missing.append(name)
+        return missing
 
     def write_statistics_settings(self, on: bool):
         """Write or remove the statistics settings; they apply after a restart.
@@ -156,25 +182,27 @@ class Postgres:
             )
         others = [name for name in libraries if name not in LIBRARIES]
         wanted = [*others, *LIBRARIES] if on else others
-        if wanted:
-            self._alter("shared_preload_libraries", ",".join(wanted))
-        else:
-            self._alter("shared_preload_libraries", None)
+        self._alter("shared_preload_libraries", wanted or None)
         for name, value in SETTINGS.items():
             self._alter(name, value if on else None)
         if not on:
             self._query("DROP EXTENSION IF EXISTS pg_stat_statements")
 
-    def _alter(self, name: str, value: str | None):
-        """Set one server setting with ``ALTER SYSTEM``, or reset it for None."""
+    def _alter(self, name: str, value: str | list[str] | None):
+        """Set one server setting with ``ALTER SYSTEM``, or reset it for None.
+
+        A list setting takes one literal per entry: Postgres stores a single
+        literal ``'a,b'`` as one quoted name, ``"a,b"``.
+        """
         if value is None:
             self._query(sql.SQL("ALTER SYSTEM RESET {}").format(sql.SQL(name)))
-        else:
-            self._query(
-                sql.SQL("ALTER SYSTEM SET {} = {}").format(
-                    sql.SQL(name), sql.Literal(value)
-                )
+            return
+        values = [value] if isinstance(value, str) else value
+        self._query(
+            sql.SQL("ALTER SYSTEM SET {} = {}").format(
+                sql.SQL(name), sql.SQL(", ").join(map(sql.Literal, values))
             )
+        )
 
     def reset_statements(self):
         """Clear pg_stat_statements so the top SQL covers this run only."""
@@ -205,6 +233,24 @@ class Postgres:
         if self.connection is not None:
             self.connection.close()
             self.connection = None
+
+
+def split_library_list(value: str) -> list[str]:
+    """Split a preload list the way Postgres reads it.
+
+    Names are separated by commas. A double-quoted name keeps its commas, so
+    ``"a,b"`` is one library called ``a,b``.
+
+    Args:
+        value: The setting, e.g. ``pg_stat_statements, auto_explain``.
+
+    Returns:
+        list[str]: Library names.
+    """
+    return [
+        quoted.replace('""', '"') if quoted else bare
+        for quoted, bare in re.findall(r'"((?:[^"]|"")*)"|([^,\s"]+)', value)
+    ]
 
 
 def counter_delta(before: dict, after: dict) -> dict:
@@ -243,8 +289,17 @@ def switch_statistics(
     """
     try:
         postgres.write_statistics_settings(on)
+        missing = postgres.unloadable_libraries()
+        if missing and on:
+            postgres.write_statistics_settings(False)
     except (RuntimeError, psycopg.Error) as error:
         log(str(error))
+        return False
+    if missing:
+        log(
+            f"Postgres cannot load {', '.join(missing)} and would not start. "
+            "Nothing was restarted" + (", the settings are reset." if on else ".")
+        )
         return False
     postgres.close()
     log("Settings written. Restarting the database container…")
@@ -262,7 +317,11 @@ def switch_statistics(
             break
         except psycopg.OperationalError:
             if time.monotonic() >= deadline:
-                log("Postgres did not come back in time. Check the db container.")
+                log(
+                    "Postgres did not come back in time. The db container's "
+                    "log says why; the settings are in postgresql.auto.conf "
+                    "in its data volume."
+                )
                 return False
             time.sleep(2)
 

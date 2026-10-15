@@ -24,12 +24,12 @@ docker compose up -d --build
 
 This builds the `loadtest` image on top of the backend image and starts it. Caddy already routes `/loadtest` on the app domain to it. Open `https://<APP_DOMAIN>/loadtest/` and check that the **Checks** card is green:
 
-| check                   | when it is not green                                                                                                                                              |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Postgres statistics     | Off by default. **Switch on** turns on `pg_stat_statements` and the slow-query log with `ALTER SYSTEM` and restarts the db container (a few seconds of downtime). |
-| Per-endpoint DB numbers | The backend image predates the Server-Timing middleware: rebuild it.                                                                                              |
-| Container stats         | `/var/run/docker.sock` is not mounted. Runs work, but the report has no container numbers.                                                                        |
-| App / Tile server       | The URLs come from `APP_DOMAIN` and `PUBLIC_TILE_SERVER_URL`, or the runner's Host and tiles URL fields. Without a tile server, the run skips the basemap.        |
+| check                   | when it is not green                                                                                                                                                                                                                                                   |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Postgres statistics     | Off by default. **Switch on** turns on `pg_stat_statements` and the slow-query log with `ALTER SYSTEM` and restarts the db container (a few seconds of downtime). If Postgres could not load a library at the next start, it resets the settings and does not restart. |
+| Per-endpoint DB numbers | The backend image predates the Server-Timing middleware: rebuild it.                                                                                                                                                                                                   |
+| Container stats         | `/var/run/docker.sock` is not mounted. Runs work, but the report has no container numbers.                                                                                                                                                                             |
+| App / Tile server       | The URLs come from `APP_DOMAIN` and `PUBLIC_TILE_SERVER_URL`, or the runner's Host and tiles URL fields. Without a tile server, the run skips the basemap.                                                                                                             |
 
 ## What it changes in your installation
 

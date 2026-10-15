@@ -7,28 +7,44 @@ from psycopg import sql
 
 from qonnectra_loadtest import __main__ as cli
 from qonnectra_loadtest import docker, postgres
-from qonnectra_loadtest.postgres import SETTINGS, Postgres, switch_statistics
+from qonnectra_loadtest.postgres import (
+    SETTINGS,
+    Postgres,
+    split_library_list,
+    switch_statistics,
+)
+
+INSTALLED = ("timescaledb", "pg_stat_statements", "auto_explain")
 
 
 class RecordingPostgres(Postgres):
     """A server stand-in: records statements, applies the preload list on restart.
 
     Like Postgres, ``ALTER SYSTEM`` only changes the running value after
-    :meth:`restart`.
+    :meth:`restart`, and stores each literal of a list setting as one entry,
+    double-quoted when it holds more than a plain name.
     """
 
-    def __init__(self, setting: str = "", source: str = "default", down_for: int = 0):
+    def __init__(
+        self,
+        setting: str = "",
+        source: str = "default",
+        down_for: int = 0,
+        installed: tuple[str, ...] = INSTALLED,
+    ):
         """Create the stand-in.
 
         Args:
             setting: Running ``shared_preload_libraries``.
             source: Where it comes from, as in ``pg_settings.source``.
             down_for: Queries that fail after a restart, while Postgres starts.
+            installed: Libraries ``LOAD`` finds.
         """
         super().__init__(env={})
         self.setting = self.pending = setting
         self.source = source
         self.down_for = down_for
+        self.installed = installed
         self.down = 0
         self.statements: list[str] = []
 
@@ -55,13 +71,21 @@ class RecordingPostgres(Postgres):
             raise psycopg.OperationalError("the database system is starting up")
         self.statements.append(text)
         written = re.fullmatch(
-            r"ALTER SYSTEM (?:SET shared_preload_libraries = '(.*)'|RESET shared_preload_libraries)",
+            r"ALTER SYSTEM (?:SET shared_preload_libraries = (.*)|RESET shared_preload_libraries)",
             text,
         )
         if written:
-            self.pending = written[1] or ""
+            self.pending = ", ".join(
+                name if re.fullmatch(r"[a-z_][a-z0-9_]*", name) else f'"{name}"'
+                for name in re.findall(r"'([^']*)'", written[1] or "")
+            )
+        loaded = re.fullmatch(r"LOAD '(.*)'", text)
+        if loaded and loaded[1] not in self.installed:
+            raise psycopg.errors.UndefinedFile(f'could not access file "{loaded[1]}"')
         if "FROM pg_settings" in text:
             return [{"setting": self.setting, "source": self.source}]
+        if "FROM pg_file_settings" in text:
+            return [{"setting": self.pending}] if self.pending else []
         if text == "SHOW shared_preload_libraries":
             return [{"shared_preload_libraries": self.setting}]
         return []
@@ -91,8 +115,10 @@ def test_switching_on_keeps_other_libraries_and_restarts_once(monkeypatch):
     before = server.statements[:restart]
     assert (
         "ALTER SYSTEM SET shared_preload_libraries = "
-        "'timescaledb,pg_stat_statements,auto_explain'"
+        "'timescaledb', 'pg_stat_statements', 'auto_explain'"
     ) in before
+    assert "LOAD 'auto_explain'" in before
+    assert server.setting == "timescaledb, pg_stat_statements, auto_explain"
     for name, value in SETTINGS.items():
         assert f"ALTER SYSTEM SET {name} = '{value}'" in before
     assert server.statements.count("-- restart") == 1
@@ -143,6 +169,33 @@ def test_a_command_line_preload_list_is_left_alone():
     assert not any(s.startswith(("ALTER", "DROP")) for s in server.statements)
     assert "-- restart" not in server.statements
     assert "command line" in lines[0]
+
+
+def test_a_library_postgres_cannot_load_stops_the_switch_before_the_restart():
+    """Verify a preload list that would stop Postgres is reset and never restarted."""
+    server = RecordingPostgres(installed=("pg_stat_statements",))
+
+    switched, lines = switch(server, on=True)
+
+    assert not switched
+    assert "-- restart" not in server.statements
+    assert server.pending == ""
+    for name in SETTINGS:
+        assert f"ALTER SYSTEM RESET {name}" in server.statements
+    assert "auto_explain" in lines[-1]
+    assert "Nothing was restarted" in lines[-1]
+
+
+def test_splits_a_preload_list_like_postgres():
+    """Verify a double-quoted entry stays one name, commas included."""
+    assert split_library_list("pg_stat_statements, auto_explain") == [
+        "pg_stat_statements",
+        "auto_explain",
+    ]
+    assert split_library_list('"pg_stat_statements,auto_explain"') == [
+        "pg_stat_statements,auto_explain"
+    ]
+    assert split_library_list("") == []
 
 
 def test_a_failed_restart_says_how_to_apply_the_settings():
