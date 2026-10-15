@@ -197,6 +197,8 @@ def test_start_form_has_the_run_options(ui):
         "viewport",
         "api_url",
         "tiles_url",
+        "limit_tile_ms",
+        "limit_err_pct",
     }
     assert extra["cache"]["choices"] == ["on", "bypass"]
     assert extra["wms"]["default_value"] is True

@@ -83,6 +83,8 @@ def start_run(stub: StubQonnectra, shape, users: int = 1, run_time=None, **optio
             "viewport": "1600x900",
             "api_url": f"{stub.base}/api/v1/",
             "tiles_url": f"{stub.base}/tiles",
+            "limit_tile_ms": 1000,
+            "limit_err_pct": 1.0,
             **options,
         }
     )
@@ -183,9 +185,11 @@ def test_run_writes_report_with_django_numbers(stub, offline_server_side):
     assert summary["meta"]["projects"] == ["Kassel", "loadtest-01"]
     assert summary["containers"][0]["name"] == "db"
     assert summary["postgres"]["max_connections"] == 2
+    assert summary["meta"]["options"]["limit_tile_ms"] == 1000
     for name in ("report.md", "report.html", "locust.html", "nginx.log", "pg.log"):
         assert (folder / name).exists(), name
-    assert "## Endpoints" in (folder / "report.md").read_text()
+    text = (folder / "report.md").read_text()
+    assert "## Endpoints" in text and "## Capacity" in text
     assert run.current.last_run == folder.name
 
 

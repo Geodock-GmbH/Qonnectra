@@ -3,6 +3,7 @@
 import copy
 
 from qonnectra_loadtest.report import (
+    capacity,
     change,
     compare_sections,
     sections,
@@ -133,6 +134,7 @@ def test_markdown_has_every_section_with_its_numbers():
     for heading in [
         "## Run",
         "## Totals",
+        "## Capacity",
         "## Timeline",
         "## Endpoints",
         "## Containers",
@@ -150,6 +152,93 @@ def test_markdown_has_every_section_with_its_numbers():
     assert "| vector tiles | 900 | 600 | 290 | 10 | 300 | 280 |" in text
 
 
+def minute(index: int, users: int, tile_p95, err_pct: float, cpu: dict) -> dict:
+    """Return one timeline row."""
+    return {
+        "minute": index,
+        "users": users,
+        "rps": 1.0,
+        "tile_p95": tile_p95,
+        "err_pct": err_pct,
+        "cpu": cpu,
+        "pg_conns": None,
+    }
+
+
+def test_capacity_names_the_first_minute_over_a_limit():
+    """Verify the report names the users at the limit and the busiest container."""
+    summary = {
+        "meta": {},
+        "totals": {},
+        "timeline": [
+            minute(0, 5, 200.0, 0.0, {"db": 100.0}),
+            minute(1, 10, 400.0, 0.2, {"db": 300.0, "backend": 200.0}),
+            minute(2, 15, 1400.0, 0.4, {"db": 760.0, "backend": 400.0}),
+            minute(3, 20, 3000.0, 5.0, {"db": 800.0}),
+        ],
+    }
+
+    section = capacity(summary)
+
+    assert section.rows == [["10", "15", "2", "1,400", "0.4", "db 760 %"]]
+    assert "tile p95 > 1,000 ms or errors > 1.0 %" in section.note
+
+
+def test_capacity_counts_errors_without_tiles():
+    """Verify a run without feature tiles still finds the limit from errors."""
+    summary = {
+        "meta": {},
+        "totals": {},
+        "timeline": [
+            minute(0, 5, None, 0.0, {}),
+            minute(1, 10, None, 2.5, {}),
+        ],
+    }
+
+    assert capacity(summary).rows == [["5", "10", "1", "–", "2.5", "–"]]
+
+
+def test_capacity_uses_the_limits_of_the_run():
+    """Verify limits set in the start form replace the defaults."""
+    summary = {
+        "meta": {"options": {"limit_tile_ms": 300, "limit_err_pct": 5.0}},
+        "totals": {},
+        "timeline": [
+            minute(0, 5, 200.0, 2.0, {}),
+            minute(1, 10, 400.0, 0.0, {}),
+        ],
+    }
+
+    section = capacity(summary)
+
+    assert section.rows[0][:3] == ["5", "10", "1"]
+    assert "tile p95 > 300 ms or errors > 5.0 %" in section.note
+
+
+def test_capacity_says_when_no_limit_was_reached():
+    """Verify a run that stayed within the limits reports its peak instead."""
+    summary = {
+        "meta": {},
+        "totals": {},
+        "timeline": [minute(0, 5, 200.0, 0.0, {}), minute(1, 60, 900.0, 0.9, {})],
+    }
+
+    section = capacity(summary)
+
+    assert section.rows == [["≥ 60", "not reached", "–", "–", "–", "–"]]
+
+
+def test_capacity_at_the_first_minute_has_no_users_within_limits():
+    """Verify a run that starts over the limit carries no users."""
+    summary = {
+        "meta": {},
+        "totals": {},
+        "timeline": [minute(0, 5, 2000.0, 0.0, {"backend": 590.0})],
+    }
+
+    assert capacity(summary).rows == [["–", "5", "0", "2,000", "0.0", "backend 590 %"]]
+
+
 def test_missing_sections_are_left_out():
     """Verify a summary without server data still renders."""
     bare = {"meta": {}, "totals": {}}
@@ -157,6 +246,7 @@ def test_missing_sections_are_left_out():
     text = to_markdown("x", sections(bare))
 
     assert "## Totals" in text
+    assert "## Capacity" not in text
     assert "## Containers" not in text and "## nginx" not in text
 
 

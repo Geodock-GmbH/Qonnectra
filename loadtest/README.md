@@ -101,27 +101,30 @@ How close this is to a browser:
 
 Under **Custom parameters**:
 
-| option      | default                  | effect                                                                                                    |
-| ----------- | ------------------------ | --------------------------------------------------------------------------------------------------------- |
-| projects    | `all`                    | `all`, `loadtest` (seeded only), or ids like `1,4`                                                        |
-| cache       | `on`                     | `bypass` gives every feature tile request its own URL, so nginx's tile cache never hits; WMS stays cached |
-| wms         | on                       | request WMS tiles of enabled layers                                                                       |
-| basemap     | on                       | request basemap tiles                                                                                     |
-| tile factor | `2`                      | requests per new feature tile and layer                                                                   |
-| think       | `1`                      | multiplier on all pauses; `0.5` = users act twice as fast                                                 |
-| viewport    | `1600x900`               | browser window                                                                                            |
-| api url     | from `API_DOMAIN`        | Django API base                                                                                           |
-| tiles url   | `PUBLIC_TILE_SERVER_URL` | tile server; empty skips the basemap                                                                      |
+| option        | default                  | effect                                                                                                    |
+| ------------- | ------------------------ | --------------------------------------------------------------------------------------------------------- |
+| projects      | `all`                    | `all`, `loadtest` (seeded only), or ids like `1,4`                                                        |
+| cache         | `on`                     | `bypass` gives every feature tile request its own URL, so nginx's tile cache never hits; WMS stays cached |
+| wms           | on                       | request WMS tiles of enabled layers                                                                       |
+| basemap       | on                       | request basemap tiles                                                                                     |
+| tile factor   | `2`                      | requests per new feature tile and layer                                                                   |
+| think         | `1`                      | multiplier on all pauses; `0.5` = users act twice as fast                                                 |
+| viewport      | `1600x900`               | browser window                                                                                            |
+| api url       | from `API_DOMAIN`        | Django API base                                                                                           |
+| tiles url     | `PUBLIC_TILE_SERVER_URL` | tile server; empty skips the basemap                                                                      |
+| limit tile ms | `1000`                   | report: a minute with a feature-tile p95 above this is over the limit                                     |
+| limit err pct | `1`                      | report: a minute with more failed requests than this share is over the limit                              |
 
 The **Host** field is the app URL (`https://<APP_DOMAIN>`).
 
 ## Reading a report
 
-1. **Timeline.** Find the first minute where `tile p95` passes 1 s or `err %` passes 1 %. The `users` in that row is how many concurrent users this host carries. The CPU columns of the same row show which container was saturated: `db` near 700–800 % means Postgres, `backend` near 600 % means all 6 gunicorn workers are busy.
-2. **Endpoints.** Sorted by total waiting time, which is where users lose time. `queries` per request exposes N+1 serializers. If `app ms` is much higher than `db ms`, the cost is in Python, not SQL. These numbers come from a `Server-Timing` header that Django only adds for requests carrying a key derived from `DJANGO_SECRET_KEY`, so normal users never get it.
-3. **Top SQL.** Each statement's share of all DB time. Tile queries contain `ST_AsMVT`. QGIS Server shows up under its own role.
-4. **Postgres.** Many short-lived connections point to no pooling (`CONN_MAX_AGE`). `LWLock`/`Lock` waits mean contention, `IO` waits mean the data doesn't fit in `shared_buffers`.
-5. **nginx.** Tile cache hit ratio. Compare `urt p95` with `rt p95` to see whether time is spent in Django or in front of it.
+1. **Capacity.** The first minute where `tile p95` passed the tile limit (1 s) or `err %` passed the error limit (1 %), both set in the start form. _users within limits_ is the minute before: how many concurrent users this host carries. _busiest container_ is the one with the most CPU in that minute: `db` near 700–800 % means Postgres, `backend` near 600 % means all 6 gunicorn workers are busy. _not reached_ means the host carried the run's peak, so ramp higher. Runs without a timeline have no capacity section; older runs use the default limits.
+2. **Timeline.** The same per minute, to see how latency, errors and CPU got there.
+3. **Endpoints.** Sorted by total waiting time, which is where users lose time. `queries` per request exposes N+1 serializers. If `app ms` is much higher than `db ms`, the cost is in Python, not SQL. These numbers come from a `Server-Timing` header that Django only adds for requests carrying a key derived from `DJANGO_SECRET_KEY`, so normal users never get it.
+4. **Top SQL.** Each statement's share of all DB time. Tile queries contain `ST_AsMVT`. QGIS Server shows up under its own role.
+5. **Postgres.** Many short-lived connections point to no pooling (`CONN_MAX_AGE`). `LWLock`/`Lock` waits mean contention, `IO` waits mean the data doesn't fit in `shared_buffers`.
+6. **nginx.** Tile cache hit ratio. Compare `urt p95` with `rt p95` to see whether time is spent in Django or in front of it.
 
 Every run is a folder in `loadtest/runs/` on the server (`summary.json`, `report.md`, `report.html`, Locust's `locust.html`, and the nginx and Postgres logs of the run). Add a line to [RESULTS.md](RESULTS.md) for every run worth remembering.
 

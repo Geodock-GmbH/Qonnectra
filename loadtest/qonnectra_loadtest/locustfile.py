@@ -14,7 +14,11 @@ from dotenv import load_dotenv
 from locust import events
 
 from qonnectra_loadtest import run, web
-from qonnectra_loadtest.config import default_urls
+from qonnectra_loadtest.config import (
+    DEFAULT_LIMIT_ERR_PCT,
+    DEFAULT_LIMIT_TILE_MS,
+    default_urls,
+)
 from qonnectra_loadtest.personas import EditUser, MapUser, SchemaUser, SearchUser
 from qonnectra_loadtest.shapes import Check, Ramp, Spike, Steady
 
@@ -99,6 +103,20 @@ def add_options(parser):
         default=urls["tiles"],
         include_in_web_ui=True,
         help="tile server, empty to skip the basemap",
+    )
+    parser.add_argument(
+        "--limit-tile-ms",
+        type=int,
+        default=DEFAULT_LIMIT_TILE_MS,
+        include_in_web_ui=True,
+        help="report: a minute with a feature-tile p95 above this is over the limit",
+    )
+    parser.add_argument(
+        "--limit-err-pct",
+        type=float,
+        default=DEFAULT_LIMIT_ERR_PCT,
+        include_in_web_ui=True,
+        help="report: a minute with more failed requests than this % is over the limit",
     )
 
 

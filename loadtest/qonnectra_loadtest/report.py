@@ -8,6 +8,8 @@ tip over. Both formats come from the same list of :class:`Section` objects.
 import html
 from dataclasses import dataclass, field
 
+from qonnectra_loadtest.config import DEFAULT_LIMIT_ERR_PCT, DEFAULT_LIMIT_TILE_MS
+
 TIMELINE_CONTAINERS = [
     ("db", "db %"),
     ("backend", "backend %"),
@@ -63,6 +65,65 @@ def _options_text(options: dict) -> str:
     return ", ".join(f"{key}={value}" for key, value in options.items())
 
 
+def capacity(summary: dict) -> Section | None:
+    """Find the first minute of the timeline that crossed a latency or error limit.
+
+    The limits come from the run's start form, or the defaults for runs that
+    predate them. The users of the minute before are what the host carries.
+
+    Args:
+        summary: Content of ``summary.json``.
+
+    Returns:
+        Section | None: One row, or None without a timeline.
+    """
+    timeline = summary.get("timeline", [])
+    if not timeline:
+        return None
+    options = summary.get("meta", {}).get("options", {})
+    tile_limit = options.get("limit_tile_ms", DEFAULT_LIMIT_TILE_MS)
+    err_limit = options.get("limit_err_pct", DEFAULT_LIMIT_ERR_PCT)
+    headers = [
+        "users within limits",
+        "limit crossed at users",
+        "min",
+        "tile p95 ms",
+        "err %",
+        "busiest container",
+    ]
+    note = (
+        f"Limits: tile p95 > {tile_limit:,} ms or errors > {err_limit:.1f} % "
+        "in a minute. CPU is docker's %, where 100 % is one core."
+    )
+    for index, row in enumerate(timeline):
+        tile_p95 = row["tile_p95"]
+        if (tile_p95 is None or tile_p95 <= tile_limit) and row["err_pct"] <= err_limit:
+            continue
+        busiest = max(row["cpu"].items(), key=lambda item: item[1], default=None)
+        return Section(
+            "Capacity",
+            headers,
+            [
+                [
+                    str(timeline[index - 1]["users"]) if index else "–",
+                    str(row["users"]),
+                    str(row["minute"]),
+                    fmt(tile_p95),
+                    f"{row['err_pct']:.1f}",
+                    f"{busiest[0]} {busiest[1]:.0f} %" if busiest else "–",
+                ]
+            ],
+            note=note,
+        )
+    peak = max(row["users"] for row in timeline)
+    return Section(
+        "Capacity",
+        headers,
+        [[f"≥ {peak}", "not reached", "–", "–", "–", "–"]],
+        note=note,
+    )
+
+
 def sections(summary: dict) -> list[Section]:
     """Build the report sections of one run.
 
@@ -106,6 +167,10 @@ def sections(summary: dict) -> list[Section]:
             ],
         ),
     ]
+
+    limit = capacity(summary)
+    if limit:
+        out.append(limit)
 
     timeline = summary.get("timeline", [])
     if timeline:

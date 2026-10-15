@@ -19,6 +19,8 @@ def parsed(**overrides):
         "viewport": "1600x900",
         "api_url": "https://api.example.com/api/v1",
         "tiles_url": "https://tiles.example.com/",
+        "limit_tile_ms": 1000,
+        "limit_err_pct": 1.0,
     }
     return SimpleNamespace(**{**values, **overrides})
 
@@ -53,7 +55,14 @@ def test_internal_api_prefers_the_frontend_setting():
 def test_options_are_normalised():
     """Verify slashes, numbers and the viewport are cleaned up."""
     options = RunOptions.from_parsed(
-        parsed(tile_factor="0", think="0.5", viewport="1280X720", projects=" "),
+        parsed(
+            tile_factor="0",
+            think="0.5",
+            viewport="1280X720",
+            projects=" ",
+            limit_tile_ms="1500",
+            limit_err_pct="-1",
+        ),
         "https://app.example.com/",
     )
 
@@ -66,6 +75,7 @@ def test_options_are_normalised():
         (1280, 720),
     )
     assert options.projects == "all"
+    assert (options.limit_tile_ms, options.limit_err_pct) == (1500, 0.0)
 
 
 def test_missing_urls_are_refused():

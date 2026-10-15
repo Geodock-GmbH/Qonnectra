@@ -10,6 +10,12 @@ import hmac
 import os
 from dataclasses import dataclass
 
+DEFAULT_LIMIT_TILE_MS = 1000
+"""Feature-tile p95 per minute above which the report says the host is at its limit."""
+
+DEFAULT_LIMIT_ERR_PCT = 1.0
+"""Failed-request share per minute above which the report says the host is at its limit."""
+
 
 def _with_slash(url: str) -> str:
     """Return ``url`` with exactly one trailing slash, or empty."""
@@ -83,6 +89,8 @@ class RunOptions:
     tile_factor: int = 2
     think: float = 1.0
     viewport: tuple[int, int] = (1600, 900)
+    limit_tile_ms: int = DEFAULT_LIMIT_TILE_MS
+    limit_err_pct: float = DEFAULT_LIMIT_ERR_PCT
 
     @classmethod
     def from_parsed(cls, options, host: str) -> "RunOptions":
@@ -117,4 +125,6 @@ class RunOptions:
             tile_factor=max(1, int(options.tile_factor)),
             think=max(0.0, float(options.think)),
             viewport=(int(width), int(height)),
+            limit_tile_ms=max(1, int(options.limit_tile_ms)),
+            limit_err_pct=max(0.0, float(options.limit_err_pct)),
         )
