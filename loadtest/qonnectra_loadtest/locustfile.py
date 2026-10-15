@@ -87,6 +87,20 @@ def add_options(parser):
         help="multiplier on pauses; 0.5 = users act twice as fast",
     )
     parser.add_argument(
+        "--global-share",
+        type=float,
+        default=10.0,
+        include_in_web_ui=True,
+        help="% of map and search sessions in the global view, whose tiles cover all projects",
+    )
+    parser.add_argument(
+        "--switch-share",
+        type=float,
+        default=10.0,
+        include_in_web_ui=True,
+        help="% of map sessions that switch to another project on the way",
+    )
+    parser.add_argument(
         "--viewport",
         default="1600x900",
         include_in_web_ui=True,

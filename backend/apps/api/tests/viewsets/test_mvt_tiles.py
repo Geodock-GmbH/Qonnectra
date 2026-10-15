@@ -14,7 +14,9 @@ from rest_framework.test import APIClient
 from ..factories import (
     AddressFactory,
     AreaFactory,
+    ConduitFactory,
     NodeFactory,
+    TrenchConduitConnectionFactory,
     TrenchFactory,
 )
 
@@ -152,3 +154,32 @@ def test_node_tile_carries_funding_status(authenticated_client, project, flag):
     assert response.status_code == status.HTTP_200_OK
     # MVT stores attribute keys as plain strings in the layer's key table.
     assert b"funding_status" in response.content
+
+
+@pytest.mark.django_db
+def test_trench_tile_carries_only_its_own_conduit_names(
+    authenticated_client, project, flag
+):
+    """A trench's conduits appear sorted and joined; other trenches' do not."""
+    trench = TrenchFactory(
+        project=project,
+        flag=flag,
+        geom=LineString((UTM_X, UTM_Y), (UTM_X + 100, UTM_Y), srid=25832),
+    )
+    other = TrenchFactory(project=project, flag=flag)
+    for name in ("Conduit-Zulu", "Conduit-Alpha"):
+        TrenchConduitConnectionFactory(
+            uuid_trench=trench, uuid_conduit=ConduitFactory(project=project, name=name)
+        )
+    TrenchConduitConnectionFactory(
+        uuid_trench=other,
+        uuid_conduit=ConduitFactory(project=project, name="Conduit-Elsewhere"),
+    )
+
+    response = authenticated_client.get(
+        f"/api/v1/ol_trench_tiles/{TILE_Z}/{TILE_X}/{TILE_Y}.mvt?project={project.id}"
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert b"Conduit-Alpha, Conduit-Zulu" in response.content
+    assert b"Conduit-Elsewhere" not in response.content

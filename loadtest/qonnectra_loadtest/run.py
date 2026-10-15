@@ -1,6 +1,6 @@
 """Lifecycle of one load-test run inside the Locust process.
 
-At test start it mints tokens for the load-test users, discovers the projects
+At test start it signs in the load-test users, discovers the projects
 to work on, resets ``pg_stat_statements`` and starts sampling containers and
 Postgres. At test stop it collects top SQL and logs and writes
 ``runs/<name>/`` with ``summary.json``, ``report.md``, ``report.html`` and
@@ -21,9 +21,11 @@ from pathlib import Path
 
 import gevent
 from locust.html import get_html_report
+from locust.stats import RequestStats, StatsError
 
 from qonnectra_loadtest import docker, report
 from qonnectra_loadtest.analysis import slow_statements, summarise_nginx
+from qonnectra_loadtest.client import ACCESS_COOKIE, Session
 from qonnectra_loadtest.config import RunOptions, timing_key
 from qonnectra_loadtest.fixtures import Fixture, discover
 from qonnectra_loadtest.postgres import Postgres, counter_delta
@@ -32,13 +34,34 @@ from qonnectra_loadtest.recorder import Recorder
 logger = logging.getLogger(__name__)
 
 MAX_ACCOUNTS = 500
-TOKEN_HOURS = 12
 CONTAINER_SAMPLE_SECONDS = 5
 POSTGRES_SAMPLE_SECONDS = 2
 TOP_SQL_SECONDS = 15
 
 current: "Run | None" = None
 """The run of this process, set by the locustfile on Locust's ``init`` event."""
+
+
+def failure_rows(stats: RequestStats) -> list[dict]:
+    """Return every distinct failure of a run, most frequent first.
+
+    Args:
+        stats: Locust's request statistics.
+
+    Returns:
+        list[dict]: ``name``, ``method``, ``error`` and ``count`` per
+            endpoint and message.
+    """
+    rows = [
+        {
+            "name": entry.name,
+            "method": entry.method,
+            "error": StatsError.parse_error(entry.error),
+            "count": entry.occurrences,
+        }
+        for entry in stats.errors.values()
+    ]
+    return sorted(rows, key=lambda row: -row["count"])
 
 
 def runs_dir() -> Path:
@@ -108,7 +131,7 @@ class Run:
         self.timing_key = timing_key(os.environ.get("DJANGO_SECRET_KEY", ""))
         self.options: RunOptions | None = None
         self.fixture: Fixture | None = None
-        self.tokens: list[str] = []
+        self.sessions: list[Session] = []
         self.error: str | None = None
         self.notes: list[str] = []
         self.ready = False
@@ -116,7 +139,7 @@ class Run:
         self.last_run: str | None = None
         self.samplers: list[gevent.Greenlet] = []
         self.counters_before: dict = {}
-        self._token_index = itertools.count()
+        self._session_index = itertools.count()
 
     @property
     def once(self) -> bool:
@@ -127,13 +150,15 @@ class Run:
         """
         return bool(getattr(self.environment.shape_class, "once", False))
 
-    def next_token(self) -> str:
-        """Hand out the load-test tokens round-robin, one per new user.
+    def next_session(self) -> Session:
+        """Hand out the load-test accounts round-robin, one per new user.
+
+        Users beyond the number of accounts share a session, like tabs.
 
         Returns:
-            str: An access token.
+            Session: The account's session.
         """
-        return self.tokens[next(self._token_index) % len(self.tokens)]
+        return self.sessions[next(self._session_index) % len(self.sessions)]
 
     def planned_users(self) -> int:
         """Return how many users the run will reach at most."""
@@ -152,17 +177,19 @@ class Run:
         self.notes = []
         self.started_at = datetime.now(UTC)
         self.recorder.reset(time.time())
-        self._token_index = itertools.count()
+        self._session_index = itertools.count()
         try:
             self.options = RunOptions.from_parsed(
                 self.environment.parsed_options, self.environment.host
             )
             accounts = min(MAX_ACCOUNTS, max(1, self.planned_users()))
-            payload = json.loads(
-                run_cli("users", "--count", str(accounts), "--hours", str(TOKEN_HOURS))
+            payload = json.loads(run_cli("users", "--count", str(accounts)))
+            self.sessions = [
+                Session(user["access"], user["refresh"]) for user in payload["users"]
+            ]
+            self.fixture = discover(
+                self.options, self.sessions[0].cookies[ACCESS_COOKIE]
             )
-            self.tokens = [user["token"] for user in payload["users"]]
-            self.fixture = discover(self.options, self.tokens[0])
         except Exception as error:
             self.error = str(error)
             logger.error("Run cannot start: %s", error)
@@ -190,7 +217,7 @@ class Run:
         logger.info(
             "Run ready: %d projects, %d accounts",
             len(self.fixture.projects),
-            len(self.tokens),
+            len(self.sessions),
         )
 
     def _pg(self, call, *args):
@@ -308,6 +335,7 @@ class Run:
         end_text = ended.strftime("%Y-%m-%dT%H:%M:%SZ")
         extra, nginx_lines, pg_lines = self._collect_server(start_text, end_text)
         endpoints, totals = self.endpoint_stats()
+        extra["failures"] = failure_rows(self.environment.runner.stats)
         options = dataclasses.asdict(self.options) if self.options else {}
         options.pop("viewport", None)
         meta = {

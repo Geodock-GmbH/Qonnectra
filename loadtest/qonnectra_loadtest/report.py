@@ -240,6 +240,22 @@ def sections(summary: dict) -> list[Section]:
             )
         )
 
+    failures = summary.get("failures", [])
+    if failures:
+        out.append(
+            Section(
+                "Failures",
+                ["endpoint", "count", "error"],
+                [
+                    [row["name"], fmt(row["count"]), row["error"][:240]]
+                    for row in failures[:20]
+                ],
+                note="Every distinct failure message, most frequent first. Remote "
+                "calls show SvelteKit's error answer, the rest the HTTP status.",
+                code_columns={0, 2},
+            )
+        )
+
     containers = summary.get("containers", [])
     if containers:
         cores = meta.get("host_cpus") or 0

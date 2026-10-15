@@ -79,6 +79,14 @@ SUMMARY = {
             "app_ms": None,
         },
     ],
+    "failures": [
+        {
+            "name": "remote:searchFeatures",
+            "method": "GET",
+            "error": "CatchResponseError('HTTP 502')",
+            "count": 142,
+        }
+    ],
     "containers": [
         {
             "name": "db",
@@ -137,6 +145,7 @@ def test_markdown_has_every_section_with_its_numbers():
         "## Capacity",
         "## Timeline",
         "## Endpoints",
+        "## Failures",
         "## Containers",
         "## Postgres",
         "### Wait events",
@@ -150,6 +159,9 @@ def test_markdown_has_every_section_with_its_numbers():
     assert "`SELECT ST_AsMVT(q) FROM x \\| y`" in text
     assert "| 99.00 % |" in text
     assert "| vector tiles | 900 | 600 | 290 | 10 | 300 | 280 |" in text
+    assert (
+        "| `remote:searchFeatures` | 142 | `CatchResponseError('HTTP 502')` |" in text
+    )
 
 
 def minute(index: int, users: int, tile_p95, err_pct: float, cpu: dict) -> dict:
@@ -248,6 +260,7 @@ def test_missing_sections_are_left_out():
     assert "## Totals" in text
     assert "## Capacity" not in text
     assert "## Containers" not in text and "## nginx" not in text
+    assert "## Failures" not in text
 
 
 def test_html_escapes_content():

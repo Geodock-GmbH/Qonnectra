@@ -50,6 +50,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
+from .basic_auth import authenticate_basic
 from .models import (
     Address,
     Area,
@@ -1048,21 +1049,29 @@ class WebDAVAuthView(APIView):
     permission_classes = [AllowAny]  # We handle auth manually
 
     def _authenticate_request(self, request):
-        """
-        Common authentication logic for all HTTP methods.
-        Returns tuple: (success: bool, response_data: dict, status_code: int)
+        """Authenticate a forwarded request by JWT cookie or HTTP Basic credentials.
+
+        Basic credentials go through :func:`apps.api.basic_auth.authenticate_basic`,
+        which remembers a successful check so repeated client requests skip
+        the password hash.
+
+        Args:
+            request: The request Caddy forwards, carrying the client's
+                cookies and Authorization header.
+
+        Returns:
+            tuple[bool, dict[str, str], int]: Whether access is granted, the
+                response body and the HTTP status.
         """
         logger.info(
             f"WebDAV auth request: method={request.method}, "
             f"path={request.path}, user={request.user}"
         )
 
-        # Check if the user is authenticated via session/JWT cookie
         if request.user and request.user.is_authenticated:
             logger.info(f"User authenticated via JWT cookie: {request.user.username}")
             return True, {"status": "authenticated"}, status.HTTP_200_OK
 
-        # If not authenticated via session, check Authorization header for Basic auth
         auth_header = request.META.get("HTTP_AUTHORIZATION", "")
 
         if not auth_header:
@@ -1073,17 +1082,7 @@ class WebDAVAuthView(APIView):
 
         if auth_header.startswith("Basic "):
             try:
-                import base64
-
-                # Decode Basic auth credentials
-                credentials = base64.b64decode(auth_header[6:]).decode("utf-8")
-                username, password = credentials.split(":", 1)
-
-                logger.debug(f"Attempting Basic auth for user: {username}")
-
-                from django.contrib.auth import authenticate
-
-                user = authenticate(username=username, password=password)
+                username, user = authenticate_basic(auth_header)
 
                 if user is not None:
                     if user.is_active:
@@ -1197,9 +1196,19 @@ class QGISAuthView(APIView):
     permission_classes = [AllowAny]  # We handle auth manually
 
     def _authenticate_request(self, request):
-        """
-        Common authentication logic for all HTTP methods.
-        Returns tuple: (success: bool, response_data: dict, status_code: int)
+        """Authenticate a forwarded request by JWT cookie or HTTP Basic credentials.
+
+        Basic credentials go through :func:`apps.api.basic_auth.authenticate_basic`,
+        which remembers a successful check so repeated client requests skip
+        the password hash.
+
+        Args:
+            request: The request Caddy forwards, carrying the client's
+                cookies and Authorization header.
+
+        Returns:
+            tuple[bool, dict[str, str], int]: Whether access is granted, the
+                response body and the HTTP status.
         """
         logger.info(
             f"QGIS auth request: method={request.method}, "
@@ -1220,16 +1229,7 @@ class QGISAuthView(APIView):
 
         if auth_header.startswith("Basic "):
             try:
-                import base64
-
-                credentials = base64.b64decode(auth_header[6:]).decode("utf-8")
-                username, password = credentials.split(":", 1)
-
-                logger.debug(f"Attempting Basic auth for QGIS access: {username}")
-
-                from django.contrib.auth import authenticate
-
-                user = authenticate(username=username, password=password)
+                username, user = authenticate_basic(auth_header)
 
                 if user is not None:
                     if user.is_active:
@@ -1523,14 +1523,6 @@ class OlTrenchTileViewSet(APIView):
                     ST_TileEnvelope(%(z)s, %(x)s, %(y)s) AS tile_bounds,
                     ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096)) AS tile_bounds_margin
             ),
-            trench_conduits AS (
-                SELECT
-                    tcc.uuid_trench,
-                    STRING_AGG(co.name, ', ' ORDER BY co.name) AS conduit_names
-                FROM public.trench_conduit_connect tcc
-                JOIN public.conduit co ON tcc.uuid_conduit = co.uuid
-                GROUP BY tcc.uuid_trench
-            ),
             mvtgeom AS (
                 SELECT
                     ST_AsMVTGeom(
@@ -1567,7 +1559,14 @@ class OlTrenchTileViewSet(APIView):
                 LEFT JOIN public.attributes_status st ON t.status = st.id
                 LEFT JOIN public.attributes_company c1 ON t.constructor = c1.id
                 LEFT JOIN public.attributes_company c2 ON t.owner = c2.id
-                LEFT JOIN trench_conduits tc ON t.uuid = tc.uuid_trench
+                -- LATERAL aggregates only the trenches in this tile; a grouped
+                -- CTE would aggregate every trench's conduits on each request.
+                LEFT JOIN LATERAL (
+                    SELECT STRING_AGG(co.name, ', ' ORDER BY co.name) AS conduit_names
+                    FROM public.trench_conduit_connect tcc
+                    JOIN public.conduit co ON tcc.uuid_conduit = co.uuid
+                    WHERE tcc.uuid_trench = t.uuid
+                ) tc ON TRUE
                 WHERE
                     t.geom_3857 && b.tile_bounds_margin
                     AND (%(project)s IS NULL OR t.project = %(project)s)
@@ -2525,7 +2524,9 @@ class NodeViewSet(viewsets.ModelViewSet):
         """
         queryset = Node.objects.select_related(
             "node_type",
-            "uuid_address",
+            "uuid_address__project",
+            "uuid_address__flag",
+            "uuid_address__status_development",
             "parent_node",
             "status",
             "network_level",
@@ -2847,7 +2848,10 @@ class NodeViewSet(viewsets.ModelViewSet):
         else:
             queryset = Node.objects.select_related(
                 "node_type",
-                "uuid_address",
+                "uuid_address__project",
+                "uuid_address__flag",
+                "uuid_address__status_development",
+                "parent_node",
                 "status",
                 "network_level",
                 "owner",

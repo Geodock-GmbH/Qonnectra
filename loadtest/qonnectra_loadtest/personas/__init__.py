@@ -25,12 +25,18 @@ class Persona(FastHttpUser):
     connection_timeout = 15.0
 
     def on_start(self):
-        """Take a token, or stop when the run could not be prepared."""
+        """Sign in, or stop when the run could not be prepared.
+
+        A session older than the keep-alive interval is extended first, as
+        the app does on the first page load. A Check run always extends it
+        once, so the refresh is part of every check.
+        """
         current = run.current
         if current is None or not current.ready:
             raise StopUser()
         self.run = current
-        self.browser = Browser(self, current.next_token(), current)
+        self.browser = Browser(self, current.next_session(), current)
+        self.browser.keep_alive(force=current.once)
 
     def session(self):
         """Run one session of this persona."""
@@ -51,7 +57,7 @@ class MapUser(Persona):
 
     def session(self):
         """Run one map session."""
-        map_session(self.browser, self.run.fixture.projects)
+        map_session(self.browser, self.run.fixture.projects, cover_all=self.run.once)
 
 
 class SearchUser(Persona):
@@ -81,4 +87,4 @@ class EditUser(Persona):
 
     def session(self):
         """Run one editing session."""
-        edit_session(self.browser, self.run.fixture)
+        edit_session(self.browser, self.run.fixture, cover_all=self.run.once)

@@ -5,7 +5,7 @@ load generator. They also work by hand inside the container::
 
     python -m qonnectra_loadtest seed --preset medium
     python -m qonnectra_loadtest purge
-    python -m qonnectra_loadtest users --count 60 --hours 12
+    python -m qonnectra_loadtest users --count 60
     python -m qonnectra_loadtest status
     python -m qonnectra_loadtest postgres-statistics on
 """
@@ -47,7 +47,6 @@ def main(argv: list[str] | None = None) -> int:
 
     users = commands.add_parser("users", help="Print tokens of load-test users")
     users.add_argument("--count", type=int, default=20)
-    users.add_argument("--hours", type=float, default=12)
 
     commands.add_parser("status", help="Print seeded projects and user count")
 
@@ -98,7 +97,7 @@ def main(argv: list[str] | None = None) -> int:
         seeding.purge(log=log)
         log(f"Deleted {accounts.purge_users()} load-test users")
     elif args.command == "users":
-        print(json.dumps(accounts.create_users(args.count, args.hours)))
+        print(json.dumps(accounts.create_users(args.count)))
     elif args.command == "status":
         print(
             json.dumps(

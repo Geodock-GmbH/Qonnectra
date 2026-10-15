@@ -30,7 +30,11 @@ from django.utils import timezone
 from qonnectra_loadtest import accounts, seeding
 from qonnectra_loadtest.config import timing_key
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.settings import api_settings as jwt_settings
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from rest_framework_simplejwt.tokens import AccessToken
+
+REFRESH_URL = "/api/v1/auth/token/refresh/"
 
 User = get_user_model()
 
@@ -41,7 +45,7 @@ class TestAccounts:
 
     def test_creates_regular_users_in_loadtest_role(self):
         """Verify users are non-superusers and members of the load-test role."""
-        payload = accounts.create_users(3, hours=3)
+        payload = accounts.create_users(3)
 
         usernames = [entry["username"] for entry in payload["users"]]
         assert usernames == ["loadtest_001", "loadtest_002", "loadtest_003"]
@@ -50,19 +54,37 @@ class TestAccounts:
             assert not user.has_usable_password()
             assert user.groups.filter(name="loadtest").exists()
 
-    def test_token_outlives_default_lifetime(self):
-        """Verify the minted token expires after the requested hours."""
-        payload = accounts.create_users(1, hours=3)
+    def test_access_token_has_the_login_lifetime(self):
+        """Verify the access token expires like a real login's, so sessions must refresh."""
+        payload = accounts.create_users(1)
 
-        token = AccessToken(payload["users"][0]["token"])
+        token = AccessToken(payload["users"][0]["access"])
         remaining = token["exp"] - timezone.now().timestamp()
-        assert 2.9 * 3600 < remaining <= 3 * 3600
+        lifetime = jwt_settings.ACCESS_TOKEN_LIFETIME.total_seconds()
+        assert lifetime - 60 < remaining <= lifetime
+
+    def test_refresh_token_rotates_like_a_login(self):
+        """Verify Django's refresh view, behind refreshSession, rotates the minted token once."""
+        payload = accounts.create_users(1)
+        refresh = payload["users"][0]["refresh"]
+        client = APIClient()
+        client.cookies["api-refresh-token"] = refresh
+
+        first = client.post(REFRESH_URL)
+        rotated = first.cookies["api-refresh-token"].value
+        client.cookies["api-refresh-token"] = refresh
+        reused = client.post(REFRESH_URL)
+
+        assert first.status_code == 200
+        assert first.cookies["api-access-token"].value
+        assert rotated not in ("", refresh)
+        assert reused.status_code == 401
 
     def test_token_passes_role_based_permission(self):
         """Verify the token authenticates via cookie on a role-checked endpoint."""
-        payload = accounts.create_users(1, hours=1)
+        payload = accounts.create_users(1)
         client = APIClient()
-        client.cookies["api-access-token"] = payload["users"][0]["token"]
+        client.cookies["api-access-token"] = payload["users"][0]["access"]
 
         response = client.get(reverse("v1:trench-list"))
 
@@ -70,22 +92,36 @@ class TestAccounts:
 
     def test_rerun_reuses_users(self):
         """Verify running twice does not duplicate users."""
-        accounts.create_users(2, hours=1)
-        accounts.create_users(2, hours=1)
+        accounts.create_users(2)
+        accounts.create_users(2)
 
         assert accounts.count_users() == 2
+
+    def test_rerun_keeps_only_the_current_sessions(self):
+        """Verify the refresh tokens of an earlier run are dropped."""
+        accounts.create_users(2)
+        accounts.create_users(2)
+
+        loadtest_tokens = OutstandingToken.objects.filter(
+            user__username__startswith="loadtest_"
+        )
+        assert loadtest_tokens.count() == 2
 
     def test_purge_removes_users_and_role_only(self):
         """Verify purge deletes load-test users and role but nobody else."""
         other = User.objects.create_user("planner", password="x")
         admin = User.objects.create_superuser("loadtest_999", password="x")
-        accounts.create_users(2, hours=1)
+        accounts.sign_in(other)
+        accounts.create_users(2)
 
         assert accounts.purge_users() == 2
 
         assert accounts.count_users() == 0
         assert not Group.objects.filter(name="loadtest").exists()
         assert User.objects.filter(pk__in=[other.pk, admin.pk]).count() == 2
+        assert list(OutstandingToken.objects.values_list("user", flat=True)) == [
+            other.pk
+        ]
 
 
 class TestStreetGrid:
@@ -157,9 +193,9 @@ class TestSeeding:
         center = Trench.objects.filter(project=seeded).first().geom.centroid
         wgs84 = Point(center.x, center.y, srid=25832).transform(4326, clone=True)
         x, y = lat_lon_to_tile(wgs84.y, wgs84.x, 16)
-        payload = accounts.create_users(1, hours=1)
+        payload = accounts.create_users(1)
         client = APIClient()
-        client.cookies["api-access-token"] = payload["users"][0]["token"]
+        client.cookies["api-access-token"] = payload["users"][0]["access"]
 
         response = client.get(
             reverse("v1:ol_trench_tiles", kwargs={"z": 16, "x": x, "y": y}),

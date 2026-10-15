@@ -3,20 +3,22 @@ import path from 'node:path';
 import { expect, test } from '@playwright/test';
 
 import { loginOrSkip } from '../e2e/helpers/auth.js';
-import { gotoProjectRoute } from '../e2e/helpers/routes.js';
+import { gotoProjectRoute, projectIdFromUrl } from '../e2e/helpers/routes.js';
 
 const OUTPUT = path.resolve(import.meta.dirname, '../../../loadtest/calibration.json');
 
 /**
  * Maps a request URL to the endpoint name the load-test personas use, so
- * browser and load test counts line up. Static assets return null.
+ * browser and load test counts line up. Feature tiles without a project
+ * filter are the global view's (`tile:global:<layer>`); `page-data` is a
+ * client navigation that had to rerun a server load.
  * @param {string} url - Request URL.
  * @returns {string | null} Endpoint name such as `tile:trench`, or null for static assets.
  */
 function endpointName(url) {
-	const { pathname } = new URL(url);
+	const { pathname, searchParams } = new URL(url);
 	const tile = pathname.match(/\/ol_(\w+)_tiles\//);
-	if (tile) return `tile:${tile[1]}`;
+	if (tile) return searchParams.has('project') ? `tile:${tile[1]}` : `tile:global:${tile[1]}`;
 	if (pathname.includes('/wms-proxy/')) return 'tile:wms';
 	if (/\/data\/[^/]+\/\d+\/\d+\/\d+\.pbf$/.test(pathname)) return 'tile:basemap';
 	if (pathname.endsWith('/health') && !pathname.includes('/api/')) return 'basemap:health';
@@ -24,6 +26,7 @@ function endpointName(url) {
 	if (/\/data\/[^/]+\.json$/.test(pathname)) return 'basemap:tilejson';
 	const remote = pathname.match(/\/_app\/remote\/[^/]+\/(\w+)/);
 	if (remote) return `remote:${remote[1]}`;
+	if (pathname.endsWith('/__data.json')) return 'page-data';
 	const api = pathname.match(/\/api\/v1\/(.+)$/);
 	if (api) {
 		return `api:${api[1].replace(/[0-9a-f]{8}-[0-9a-f-]{27}/g, ':uuid').replace(/\/\d+(?=\/|$)/g, '/:id')}`;
@@ -50,11 +53,47 @@ async function pan(page, box, dx, dy) {
 
 /**
  * Waits until the map has finished loading what the last gesture asked for.
- * @param {import('@playwright/test').Page} page
+ * @param {import('@playwright/test').Page} page - Page showing the map.
  */
 async function settle(page) {
 	await page.waitForLoadState('networkidle');
 	await page.waitForTimeout(500);
+}
+
+/**
+ * Clicks the app bar's global view toggle.
+ * @param {import('@playwright/test').Page} page - Page showing the map.
+ * @param {boolean} on - Whether the click switches the global view on.
+ */
+async function toggleGlobalView(page, on) {
+	const name = on
+		? /view all projects|alle projekte anzeigen/i
+		: /view current project only|nur aktuelles projekt anzeigen/i;
+	await page.getByRole('button', { name }).click();
+	await settle(page);
+}
+
+/**
+ * Picks a project in the app bar's project switcher, a client-side navigation
+ * to the same page of that project.
+ * @param {import('@playwright/test').Page} page - Page showing the map.
+ * @param {string | null} id - Project to switch to, or null for any other one.
+ * @returns {Promise<boolean>} Whether the switch happened; false when there is no other project to pick.
+ */
+async function switchProject(page, id) {
+	const before = page.url();
+	await page.getByRole('combobox').first().click();
+	const option = id
+		? page.locator(`[role="option"][data-value="${id}"]`)
+		: page.getByRole('option', { selected: false }).first();
+	if ((await option.count()) === 0) {
+		await page.keyboard.press('Escape');
+		return false;
+	}
+	await option.click();
+	await page.waitForURL((url) => url.href !== before);
+	await settle(page);
+	return true;
 }
 
 test('record a realistic map session for load-test calibration', async ({ page }) => {
@@ -69,7 +108,7 @@ test('record a realistic map session for load-test calibration', async ({ page }
 	page.on('request', (request) => {
 		const url = request.url();
 		const name = endpointName(url);
-		if (!name) return;
+		if (!name || phase === 'restore') return;
 		counts[phase] ??= {};
 		counts[phase][name] = (counts[phase][name] ?? 0) + 1;
 
@@ -118,6 +157,21 @@ test('record a realistic map session for load-test calibration', async ({ page }
 		.pressSequentially('Lastweg', { delay: 120 });
 	await page.waitForTimeout(1500);
 	await settle(page);
+
+	// The global view is a saved setting, so it is switched off again; the
+	// restore phase is not part of any session.
+	phase = 'global';
+	await toggleGlobalView(page, true);
+	await pan(page, box, 400, 0);
+	await settle(page);
+	phase = 'restore';
+	await toggleGlobalView(page, false);
+
+	phase = 'switch';
+	const startProject = projectIdFromUrl(page.url());
+	const switched = await switchProject(page, null);
+	phase = 'restore';
+	if (switched) await switchProject(page, startProject);
 
 	phase = 'network-schema';
 	await gotoProjectRoute(page, 'network-schema');

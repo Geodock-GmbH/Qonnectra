@@ -11,8 +11,12 @@ from collections import Counter, defaultdict
 
 from qonnectra_loadtest.analysis import mean, percentile, sparkline
 
-FEATURE_TILES = {"tile:trench", "tile:address", "tile:node", "tile:area"}
-"""Requests behind the timeline's ``tile p95``: the app's own vector tiles."""
+FEATURE_TILES = {
+    f"tile:{scope}{layer}"
+    for scope in ("", "global:")
+    for layer in ("trench", "address", "node", "area")
+}
+"""Requests behind the timeline's ``tile p95``: the app's own vector tiles, per project and global."""
 
 
 def _new_minute() -> dict:

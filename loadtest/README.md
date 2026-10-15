@@ -35,19 +35,19 @@ This builds the `loadtest` image on top of the backend image and starts it. Cadd
 
 There is no separate test database. The add-on works in Qonnectra's own database (the `DB_*` values in `deployment/.env`), next to your data, and never changes existing rows.
 
-| what                         | where                                                                                                                                                            | real data                           |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| Test data (**Seed**)         | New `loadtest-NN` projects with their features. Lookup tables such as surfaces, conduit types and flags are only read.                                           | untouched                           |
-| Load-test users              | `loadtest_NNN` users and a `loadtest` role with full access, created at the start of every run. They have no password, so nobody can log in with them.           | untouched                           |
-| Editor persona               | Patches trench comments and creates and deletes conduits, which leaves history rows. It only writes to `loadtest-*` projects and only reads when there are none. | untouched                           |
-| Map, search, schema personas | Read only. With `projects=all` (the default) they read your real projects, which is the point of the test.                                                       | read                                |
-| Postgres statistics          | Server settings via `ALTER SYSTEM`, the `pg_stat_statements` extension, and a reset of those statistics at the start of every run.                               | no data; **Switch** restarts the db |
+| what                         | where                                                                                                                                                                                                                                | real data                           |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
+| Test data (**Seed**)         | New `loadtest-NN` projects with their features. Lookup tables such as surfaces, conduit types and flags are only read.                                                                                                               | untouched                           |
+| Load-test users              | `loadtest_NNN` users and a `loadtest` role with full access, created at the start of every run. They have no password, so nobody can log in with them. Their refresh tokens sit in the token tables until the next run or **Purge**. | untouched                           |
+| Editor persona               | Patches trench comments, saves addresses, moves nodes in the network schema and creates, renames and deletes conduits, which leaves history rows. It only writes to `loadtest-*` projects and only reads when there are none.        | untouched                           |
+| Map, search, schema personas | Read only. With `projects=all` (the default) they read your real projects, which is the point of the test. The global view reads all projects, whatever `projects` says.                                                             | read                                |
+| Postgres statistics          | Server settings via `ALTER SYSTEM`, the `pg_stat_statements` extension, and a reset of those statistics at the start of every run.                                                                                                   | no data; **Switch** restarts the db |
 
 Test data is recognised by its name only: a project named `loadtest-…` or a non-superuser named `loadtest_…` counts as test data, gets written to by the editor and is deleted by **Purge**. Don't give real projects or users such names.
 
 ## Switching it off
 
-1. **Purge** on the dashboard: deletes the `loadtest-*` projects with their features and history, the load-test users and the role.
+1. **Purge** on the dashboard: deletes the `loadtest-*` projects with their features and history, the load-test users with their refresh tokens, and the role.
 2. **Switch off** on the Postgres statistics check: resets the settings, drops the extension and restarts the db container.
 3. Remove `COMPOSE_PROFILES=loadtest` from `deployment/.env`.
 4. `docker compose rm -sf loadtest`
@@ -67,28 +67,38 @@ What stays behind:
 3. To measure, pick **Ramp**, set the number of users to the peak you want and start. Ramp adds 5 users every 2 minutes, which shows you where latency tips over. Watch the Server, Django, Top SQL and Connections tabs.
 4. When the run ends, its report appears under **Runs** on the dashboard. Tick two runs and press **Compare** to see the effect of a change.
 
-Load-test users (`loadtest_NNN`, regular non-superusers with full access through their own role) are created automatically at the start of each run, one per virtual user. Their tokens are minted directly, because the login API is throttled.
+Load-test users (`loadtest_NNN`, regular non-superusers with full access through their own role) are created automatically at the start of each run, one per virtual user, up to 500; more virtual users share accounts like browser tabs. Their tokens are minted directly, because the login API is throttled, but with the lifetimes of a real login. So every virtual user extends its session like the app does: a `refreshSession` call every 7 minutes, which rotates both tokens and blacklists the old refresh token. A refresh the server turns down counts as a failure and is retried 7 minutes later, where the app would sign the user out.
 
 ### Profiles
 
-| profile | what it does                                                                       |
-| ------- | ---------------------------------------------------------------------------------- |
-| Check   | one user per selected persona, one session each, then stop                         |
-| Steady  | ramp up to _users_ at the spawn rate, then hold for the run time (10 min if empty) |
-| Ramp    | +5 users every 2 minutes up to _users_, then stop                                  |
-| Spike   | up to _users_ within 2 minutes, hold 5 minutes, stop                               |
-| Default | Locust's own: _users_ at the spawn rate until you press Stop                       |
+| profile | what it does                                                                                                                                                                                                                                 |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Check   | one user per selected persona, one session each, then stop. It covers every kind of request: each user refreshes its session once, the map session switches project and turns on the global view, and the editor does each of its tasks once |
+| Steady  | ramp up to _users_ at the spawn rate, then hold for the run time (10 min if empty)                                                                                                                                                           |
+| Ramp    | +5 users every 2 minutes up to _users_, then stop                                                                                                                                                                                            |
+| Spike   | up to _users_ within 2 minutes, hold 5 minutes, stop                                                                                                                                                                                         |
+| Default | Locust's own: _users_ at the spawn rate until you press Stop                                                                                                                                                                                 |
 
 ### Personas
 
 Untick a persona in the runner to leave it out. The weights are shares of the running users.
 
-| persona    | weight | one session                                                                                                                                                                                                                                                                                                                                 |
-| ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| MapUser    | 60     | SSR load of `/project/{id}/map`, layer styles, WMS token and sources, basemap style and TileJSON. Fits the project extent, then 10–30 gestures 1–4 s apart: pans, zooms and clicks. Every view change loads the app's 4 vector tile layers, WMS tiles of enabled layers in zoom range, and basemap tiles. A click opens the feature drawer. |
-| SearchUser | 15     | 1–3 debounced `searchFeatures` calls (each fans out to 5 Django searches), then opens a result.                                                                                                                                                                                                                                             |
-| SchemaUser | 15     | SSR load of the network schema (10 parallel Django calls), then node, cable and fiber details and conduit table pages.                                                                                                                                                                                                                      |
-| EditUser   | 10     | Patches a trench, creates and deletes a conduit. Only ever in seeded `loadtest-*` projects; without any in the run it does a map session instead.                                                                                                                                                                                           |
+| persona    | weight | one session                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MapUser    | 60     | SSR load of `/project/{id}/map`, layer styles, WMS token and sources, basemap style and TileJSON. Fits the project extent, then 10–30 gestures 1–4 s apart: pans, zooms and clicks. Every view change loads the app's 4 vector tile layers, WMS tiles of enabled layers in zoom range, and basemap tiles. A click opens the feature drawer. A share of the sessions runs in the global view, and a share switches project on the way (see below). |
+| SearchUser | 15     | 1–3 debounced `searchFeatures` calls (each fans out to 5 Django searches), then opens a result. In the global view across all projects.                                                                                                                                                                                                                                                                                                           |
+| SchemaUser | 15     | SSR load of the network schema (10 parallel Django calls), then node, cable and fiber details and conduit table pages.                                                                                                                                                                                                                                                                                                                            |
+| EditUser   | 10     | 2–4 tasks: create, rename and delete a conduit in the conduit table; open an address and save its form; drag nodes in the network schema; patch a trench comment. Only ever in seeded `loadtest-*` projects; without any in the run it does a map session instead.                                                                                                                                                                                |
+
+The global view and the project switch, as the app does them:
+
+- **Global view** (`global share`, default 10 %): the setting is saved per user, so it is on from the start of the session. Feature tiles have no project filter and cover every project (`tile:global:<layer>` in the statistics), the user roams the extent of all projects of the run, and search and the feature drawer look across projects. The report's `tile p95` includes these tiles.
+- **Project switch** (`switch share`, default 10 %): a client-side navigation, so no page load. The app builds new feature tile sources, reloads the WMS sources and leaves the view where it was, so the new project's tiles load there first. Then the user zooms to the project (`getLayerExtent`).
+
+How the editor writes:
+
+- Conduits, addresses and node positions go through the app's remote commands (`command:<name>` in the statistics), so SvelteKit's share of a write is part of the load. A conduit write also refreshes the conduit table page the user looks at in the same request, like `.updates(getConduitList)`.
+- Trench comments go straight to Django (`write:trench-patch`), like an edit from QGIS: the app has no trench edit form.
 
 How close this is to a browser:
 
@@ -109,6 +119,8 @@ Under **Custom parameters**:
 | basemap       | on                       | request basemap tiles                                                                                     |
 | tile factor   | `2`                      | requests per new feature tile and layer                                                                   |
 | think         | `1`                      | multiplier on all pauses; `0.5` = users act twice as fast                                                 |
+| global share  | `10`                     | % of map and search sessions in the global view, whose tiles cover all projects                           |
+| switch share  | `10`                     | % of map sessions that switch to another project on the way                                               |
 | viewport      | `1600x900`               | browser window                                                                                            |
 | api url       | from `API_DOMAIN`        | Django API base                                                                                           |
 | tiles url     | `PUBLIC_TILE_SERVER_URL` | tile server; empty skips the basemap                                                                      |
@@ -134,7 +146,7 @@ The load generator runs on the same host as Qonnectra. Its container is capped a
 
 ## Calibration (once, and after map changes)
 
-This drives a real Chromium through the app (open the map, pan ×5, zoom, click, search, network schema) and writes `loadtest/calibration.json` with the requests per endpoint and phase and the measured tile duplication per layer. Run it from a machine with a browser:
+This drives a real Chromium through the app (open the map, pan ×5, zoom, click, search, global view, project switch, network schema) and writes `loadtest/calibration.json` with the requests per endpoint and phase and the measured tile duplication per layer. It switches the global view off and returns to the first project afterwards, because both are saved per user. The switch needs a second project. Run it from a machine with a browser:
 
 ```bash
 cd frontend
@@ -143,7 +155,7 @@ E2E_TEST_USERNAME=… E2E_TEST_PASSWORD=… \
 npx playwright test --config tests/calibrate/playwright.config.js
 ```
 
-Set the tile factor to the `factor` it prints for the vector layers. Compare its per-phase counts with a Check run's request counts. If they are more than about 20 % apart, adjust the personas.
+Set the tile factor to the `factor` it prints for the vector layers. Compare its per-phase counts with a Check run's request counts. If they are more than about 20 % apart, adjust the personas. The `switch` phase ends before the zoom to the new project, which the persona does as well.
 
 ## Development
 
@@ -181,8 +193,6 @@ Then sign in to the app at `localhost:5173` as a superuser and open `http://loca
 
 ## Not covered yet
 
-- The global view (tiles without a project filter) and switching projects.
-- Session refresh traffic (`refreshSession` every 7 minutes, one request per user). The load-test tokens are long-lived instead.
-- Writes go straight to Django, not through SvelteKit remote commands.
-- File uploads and WebDAV.
+- File uploads and WebDAV. WebDAV and QGIS clients authenticate with Basic auth on every request; Django remembers a successful check for 5 minutes, so only the first request of a client pays for the password hash.
 - WMS tiles only for projects that have WMS sources configured; seeded projects have none.
+- Conduit, address and node edits only; other forms (cables, splices, pipe branches) are not exercised.

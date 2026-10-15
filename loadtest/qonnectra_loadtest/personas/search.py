@@ -1,13 +1,15 @@
 """Search persona: types into the map's search panel, then opens a result.
 
 The panel is debounced, so there is one call per typing pause, and each call
-fans out to five Django searches on the server.
+fans out to five Django searches on the server. In the global view the
+search and the result lookup run across all projects.
 """
 
 import random
 
 from qonnectra_loadtest.client import Browser
 from qonnectra_loadtest.fixtures import Project
+from qonnectra_loadtest.personas.map import chance
 
 TERMS = [
     "Lastweg 1",
@@ -32,7 +34,7 @@ def search_session(browser: Browser, projects: list[Project]):
     """
     project = random.choice(projects)
     page_path = f"/project/{project.id}/map"
-    project_id = str(project.id)
+    project_id = "" if chance(browser.options.global_share) else str(project.id)
     term = random.choice(TERMS)
 
     pauses = random.randint(1, 3)
