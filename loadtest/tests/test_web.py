@@ -202,6 +202,20 @@ def test_start_form_has_the_run_options(ui):
     assert extra["wms"]["default_value"] is True
 
 
+def test_start_form_keeps_users_and_spawn_rate_for_every_shape(ui):
+    """Verify picking a shape in the form does not disable users and spawn rate.
+
+    Locust decides this once per page from the shape active at load time, not
+    per shape, so without the override Ramp, Steady and Spike start with 0.
+    """
+    ui.client.get("/loadtest/runner/")
+
+    template_args = ui.environment.web_ui.template_args
+
+    assert template_args["shape_use_common_options"] is True
+    assert not template_args["hide_common_options"]
+
+
 def test_runner_page_offers_the_live_tabs(ui):
     """Verify Locust's page gets the extra tabs and its stats carry their rows."""
     ui.run.recorder.container_sample(0, [("db", 10.0, 100.0)])

@@ -387,6 +387,21 @@ def install(environment, run: Run):
                 return Response("Cross-site request refused.", status=403)
         return None
 
+    locust_template_args = web_ui.update_template_args
+
+    def template_args_with_common_options():
+        """Keep users and spawn rate editable whichever shape the form picks.
+
+        Locust disables both fields for every shape when the shape active at
+        page load lacks ``use_common_options``. Steady, Ramp and Spike read
+        them; Check ignores them.
+        """
+        locust_template_args()
+        web_ui.template_args["shape_use_common_options"] = True
+        web_ui.template_args["hide_common_options"] = False
+
+    web_ui.update_template_args = template_args_with_common_options
+
     web_ui.template_args["extended_tabs"] = [
         {"key": key, "title": title} for key, title, _ in LIVE_TABS
     ]
