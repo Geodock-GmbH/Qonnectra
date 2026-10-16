@@ -65,13 +65,16 @@ services:
     image: qonnectra/backend:latest
     container_name: qonnectra_backend_prod
     restart: always
+    # --keep-alive must outlast the frontend's undici pool (4s idle): with
+    # gunicorn's 2s default it closes sockets undici is about to reuse, and
+    # the frontend's fetch fails with "other side closed" / ECONNRESET
     command: >
       sh -c "python manage.py compilemessages &&
             python manage.py collectstatic --noinput &&
             python manage.py migrate &&
             python manage.py shell -c \"from django.contrib.auth import get_user_model; import os; User = get_user_model(); username = os.environ.get('DJANGO_SUPERUSER_USERNAME'); User.objects.filter(username=username).exists() or User.objects.create_superuser(username, os.environ.get('DJANGO_SUPERUSER_EMAIL'), os.environ.get('DJANGO_SUPERUSER_PASSWORD'))\" &&
             python manage.py load_initial_data &&
-            gunicorn --bind 0.0.0.0:8000 --worker-class gthread --workers ${GUNICORN_WORKERS:-6} --threads ${GUNICORN_THREADS:-4} --timeout 60 core.wsgi:application"
+            gunicorn --bind 0.0.0.0:8000 --worker-class gthread --workers ${GUNICORN_WORKERS:-6} --threads ${GUNICORN_THREADS:-4} --keep-alive 10 --timeout 60 core.wsgi:application"
     expose:
       - "8000"
     volumes:
