@@ -718,7 +718,7 @@
 		color: var(--color-surface-500);
 	}
 
-	@media (min-width: 640px) {
+	@media (min-width: 1024px) {
 		.results-header {
 			padding: 8px 12px;
 		}

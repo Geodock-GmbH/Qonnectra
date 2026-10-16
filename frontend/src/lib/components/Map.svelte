@@ -604,7 +604,7 @@
 		<!-- Map: Opacity slider - fullscreen variant (desktop only, mobile is in layer sheet) -->
 		{#if showOpacitySlider && map}
 			<div
-				class="hidden sm:block absolute sm:top-auto sm:right-auto sm:left-4 sm:bottom-5 z-10 sm:max-w-70"
+				class="hidden desktop:block absolute desktop:top-auto desktop:right-auto desktop:left-4 desktop:bottom-5 z-10 desktop:max-w-70"
 			>
 				<OpacitySlider
 					minOpacity={opacitySliderConfig.minOpacity}
@@ -618,7 +618,9 @@
 
 		<!-- Map: Search panel - fullscreen variant (desktop) -->
 		{#if showSearchPanel && map}
-			<div class="hidden sm:block absolute sm:top-4 sm:left-4 sm:right-auto z-10 sm:w-md">
+			<div
+				class="hidden desktop:block absolute desktop:top-4 desktop:left-4 desktop:right-auto z-10 desktop:w-md"
+			>
 				<SearchPanel
 					olMapInstance={map}
 					{projectId}
@@ -632,7 +634,7 @@
 
 		<!-- Map: Search panel - fullscreen variant (mobile) -->
 		{#if showSearchPanel && map}
-			<div class="sm:hidden">
+			<div class="desktop:hidden">
 				{#if isMobileSearchOpen}
 					<div class="absolute inset-x-3 top-3 z-20">
 						<div class="relative">
@@ -670,7 +672,7 @@
 
 		<!-- Map: Layer visibility tree - fullscreen variant -->
 		{#if showLayerVisibilityTree && map}
-			<div class="sm:absolute sm:top-4 sm:right-4 z-10">
+			<div class="desktop:absolute desktop:top-4 desktop:right-4 z-10">
 				<LayerVisibilityTree
 					{layers}
 					{osmLayer}

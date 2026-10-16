@@ -7,6 +7,15 @@
 
 @custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
 
+/* App shell switch: below it (phones, portrait tablets) the phone layout applies.
+   In px so it matches the JS checks regardless of the browser font size. Mirrored in
+   $lib/config/layout.ts and the @media rules of SearchPanel.svelte and SearchInput.svelte.
+   Tailwind emits px breakpoints before the rem ones (sm/md/lg/xl), so never set the same
+   property with desktop: and one of those on one element: the rem rule would win. */
+@theme {
+	--breakpoint-desktop: 1024px;
+}
+
 html,
 body {
 	overflow: hidden;

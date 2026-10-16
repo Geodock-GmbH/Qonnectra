@@ -664,7 +664,7 @@
 </script>
 
 <!-- LayerVisibilityTree: Mobile bottom sheet variant -->
-<div class="sm:hidden">
+<div class="desktop:hidden">
 	<button
 		onclick={toggleMobileSheet}
 		class="fixed bottom-20 right-4 z-20 w-14 h-14 rounded-full bg-primary-500 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
@@ -1081,7 +1081,7 @@
 
 <!-- LayerVisibilityTree: Desktop sidebar variant -->
 <div
-	class="hidden sm:flex sm:flex-col w-72 p-3 border border-surface-200-800 bg-surface-50-950 rounded-lg shadow-md"
+	class="hidden desktop:flex desktop:flex-col w-72 p-3 border border-surface-200-800 bg-surface-50-950 rounded-lg shadow-md"
 	class:max-h-[calc(100vh-12rem)]={$layerTreeExpanded}
 >
 	<!-- Header -->

@@ -13,10 +13,10 @@
 {#if visible}
 	<div
 		class="absolute bottom-4.5 left-1/2 -translate-x-1/2 z-10 pointer-events-none
-			flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg max-w-[calc(100%-2rem)]
+			flex items-center gap-1.5 desktop:gap-2 px-3 py-1.5 desktop:px-4 desktop:py-2 rounded-lg max-w-[calc(100%-2rem)]
 			bg-surface-50-950
 			border border-surface-200-800
-			text-surface-700 dark:text-surface-200 text-xs sm:text-sm shadow-md
+			text-surface-700 dark:text-surface-200 text-xs desktop:text-sm shadow-md
 			{className}"
 		transition:fade={{ duration: 200 }}
 	>

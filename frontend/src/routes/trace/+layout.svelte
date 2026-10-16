@@ -51,8 +51,8 @@
 			{@render children()}
 		</div>
 	{:else if mapRequest}
-		<div class="flex h-[calc(100vh-4rem)] flex-col md:h-screen xl:flex-row">
-			<div class="order-2 min-w-0 flex-1 overflow-y-auto pb-16 md:pb-0 xl:order-1 xl:w-1/2">
+		<div class="flex h-[calc(100vh-4rem)] flex-col desktop:h-screen xl:flex-row">
+			<div class="order-2 min-w-0 flex-1 overflow-y-auto pb-16 desktop:pb-0 xl:order-1 xl:w-1/2">
 				<div class="mx-auto max-w-4xl px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
 					{@render resultHeader()}
 					{@render children()}

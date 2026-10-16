@@ -38,7 +38,7 @@
 	}
 </script>
 
-<div class="hidden md:block border-r-2 border-surface-200-800">
+<div class="hidden desktop:block border-r-2 border-surface-200-800">
 	<Navigation
 		layout={$sidebarExpanded ? 'sidebar' : 'rail'}
 		class="grid gap-4 {$sidebarExpanded

@@ -165,7 +165,7 @@
 		transform: scale(0.95);
 	}
 
-	@media (min-width: 640px) {
+	@media (min-width: 1024px) {
 		.search-input {
 			min-height: 42px;
 			font-size: 14px;
