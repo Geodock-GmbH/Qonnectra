@@ -46,6 +46,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -6928,6 +6929,42 @@ class WMSTokenAuthentication(BaseAuthentication):
             raise AuthenticationFailed(f"Invalid token: {e}")
         except User.DoesNotExist:
             raise AuthenticationFailed("User not found")
+
+
+class TileAuthView(APIView):
+    """Login check nginx runs before it serves a cached tile.
+
+    nginx answers vector tile and WMS tile requests from its cache without
+    asking Django, so it calls this endpoint through ``auth_request`` first
+    and caches the answer per token. It accepts the same logins as the tile
+    views: the WMS-scoped ``token`` query parameter, the access-token cookie
+    and a bearer header. Every logged-in user may see every tile, so roles
+    are not checked.
+    """
+
+    authentication_classes = [
+        WMSTokenAuthentication,
+        JWTCookieAuthentication,
+        JWTAuthentication,
+    ]
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        responses={204: None},
+        description="Return 204 if the request carries a valid login, 403 if not.",
+    )
+    def get(self, request):
+        """Confirm that the request carries a valid login.
+
+        Args:
+            request: nginx's auth_request subrequest, carrying the original
+                request's cookies and headers plus the WMS ``token``.
+
+        Returns:
+            Response: Empty 204; DRF answers 403 before this when no
+                authenticator accepts the request.
+        """
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 _wms_upstream_semaphore = threading.Semaphore(8)
