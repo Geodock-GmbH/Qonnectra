@@ -202,6 +202,7 @@ def test_start_form_has_the_run_options(ui):
     }
     assert extra["cache"]["choices"] == ["on", "bypass"]
     assert extra["wms"]["default_value"] is True
+    assert extra["tile_factor"]["default_value"] == 1
 
 
 def test_start_form_keeps_users_and_spawn_rate_for_every_shape(ui):

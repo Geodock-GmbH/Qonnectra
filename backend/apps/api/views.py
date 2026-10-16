@@ -112,7 +112,11 @@ from .models import (
 from .pageination import CustomPagination
 from .permissions import RoleBasedPermission, get_user_permissions
 from .routing import find_shortest_path
-from .search import trigram_address_search, trigram_name_search
+from .search import (
+    SEARCH_RESULT_LIMIT,
+    trigram_address_search,
+    trigram_name_search,
+)
 from .serializers import (
     AddressListSerializer,
     AddressSerializer,
@@ -640,12 +644,19 @@ class TrenchViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="all")
     def all_trenches(self, request):
-        """
-        Returns all trenches with project, flag, and search filters.
-        No pagination is used.
+        """Return all trenches with project, flag, and search filters.
 
-        The optional ``exclude_projects`` param takes a comma-separated list
-        of project ids (e.g. ``?exclude_projects=3,7``) to drop from results.
+        No pagination is used; a ``search`` on ``id_trench`` returns at most
+        ``SEARCH_RESULT_LIMIT`` trenches.
+
+        Args:
+            request: DRF request with query params ``project``, ``flag``,
+                ``search`` and ``exclude_projects`` (comma-separated ids to
+                drop, e.g. ``3,7``).
+
+        Returns:
+            Response: GeoJSON FeatureCollection of :model:`api.Trench`
+                features, ordered by ``id_trench``.
         """
         queryset = Trench.objects.select_related(
             "surface",
@@ -682,7 +693,9 @@ class TrenchViewSet(viewsets.ModelViewSet):
                 queryset = queryset.none()
 
         if search_term:
-            queryset = queryset.filter(Q(id_trench__icontains=search_term))
+            queryset = queryset.filter(id_trench__icontains=search_term)[
+                :SEARCH_RESULT_LIMIT
+            ]
 
         serializer = TrenchSerializer(queryset, many=True)
         return Response(serializer.data)
@@ -2818,7 +2831,9 @@ class NodeViewSet(viewsets.ModelViewSet):
             flag: Filter by flag ID.
             group: Filter by node type group.
             exclude_group: Exclude nodes by node type group.
-            search: Trigram fuzzy search on name, with icontains on node_type.
+            search: Trigram fuzzy search on name, with icontains on
+                node_type. Returns at most ``SEARCH_RESULT_LIMIT`` best
+                matches.
             use_pipe_branch_settings: If ``'true'``, apply project's
                 pipe-branch allowed types.
             include_excluded: If ``'true'``, bypass NetworkSchemaSettings
@@ -2930,7 +2945,7 @@ class NodeViewSet(viewsets.ModelViewSet):
         if search_term:
             queryset = trigram_name_search(
                 queryset, search_term, or_icontains="node_type__node_type"
-            ).order_by("-similarity")
+            )[:SEARCH_RESULT_LIMIT]
 
         if minimal:
             serializer = ParentNodeSerializer(queryset, many=True)
@@ -4814,7 +4829,8 @@ class AreaViewSet(viewsets.ModelViewSet):
         """Return all areas with project, flag, and fuzzy search filters.
 
         Search uses trigram similarity on the name field combined with
-        an icontains fallback on the area_type name.
+        an icontains fallback on the area_type name, and returns at most
+        ``SEARCH_RESULT_LIMIT`` best matches.
 
         Args:
             request: DRF request with query params ``project``,
@@ -4840,7 +4856,7 @@ class AreaViewSet(viewsets.ModelViewSet):
         if search_term:
             queryset = trigram_name_search(
                 queryset, search_term, or_icontains="area_type__area_type"
-            ).order_by("-similarity")
+            )[:SEARCH_RESULT_LIMIT]
         serializer = AreaSerializer(queryset, many=True)
         return Response(serializer.data)
 

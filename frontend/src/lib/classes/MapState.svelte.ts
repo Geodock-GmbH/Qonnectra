@@ -172,9 +172,8 @@ export class MapState {
 					this.isGlobalView
 				);
 				this.vectorTileLayer = createTrenchLayer(
-					this.selectedProject,
+					this.tileSource,
 					m.nav_trench(),
-					this.handleTileError,
 					this.labelConfig.trench
 				);
 			}
@@ -186,9 +185,8 @@ export class MapState {
 					this.isGlobalView
 				);
 				this.addressLayer = createAddressLayer(
-					this.selectedProject,
+					this.addressTileSource,
 					m.form_address({ count: 1 }),
-					this.handleTileError,
 					this.labelConfig.address
 				);
 			}
@@ -199,12 +197,7 @@ export class MapState {
 					this.handleTileError,
 					this.isGlobalView
 				);
-				this.nodeLayer = createNodeLayer(
-					this.selectedProject,
-					m.form_node(),
-					this.handleTileError,
-					this.labelConfig.node
-				);
+				this.nodeLayer = createNodeLayer(this.nodeTileSource, m.form_node(), this.labelConfig.node);
 			}
 
 			if (this.layerConfig.area) {
@@ -213,12 +206,7 @@ export class MapState {
 					this.handleTileError,
 					this.isGlobalView
 				);
-				this.areaLayer = createAreaLayer(
-					this.selectedProject,
-					m.form_area(),
-					this.handleTileError,
-					this.labelConfig.area
-				);
+				this.areaLayer = createAreaLayer(this.areaTileSource, m.form_area(), this.labelConfig.area);
 			}
 
 			return true;

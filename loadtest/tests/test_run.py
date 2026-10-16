@@ -172,32 +172,34 @@ def test_check_runs_every_persona_once_without_failures(stub, offline_server_sid
     assert all(user_class.fixed_count == 0 for user_class in PERSONAS)
 
 
-def assert_fetched_once_per_source(tiles: Counter):
-    """Assert each tile came twice (tile_factor) for every source that needed it.
+def assert_fetched_per_source(tiles: Counter, factor: int):
+    """Assert each tile came ``factor`` times for every source that needed it.
 
     The Check run's map session is the only one that loads feature tiles. Each
-    project gets one source, so its tiles come exactly twice. The global source
-    is built again when the project switches after the global view went on,
-    so a global tile comes twice or, if both sources needed it, four times.
+    project gets one source, so its tiles come exactly ``factor`` times. The
+    global source is built again when the project switches after the global
+    view went on, so a global tile comes ``factor`` or, if both sources needed
+    it, twice ``factor`` times.
 
     Args:
         tiles: Count per tile URL, without any cache-bypass marker.
+        factor: The run's tile factor.
     """
     project_tiles = {url: n for url, n in tiles.items() if "project=" in url}
     global_tiles = {url: n for url, n in tiles.items() if "project=" not in url}
     assert project_tiles and global_tiles, tiles
-    assert set(project_tiles.values()) == {2}, project_tiles
-    assert set(global_tiles.values()) <= {2, 4}, global_tiles
+    assert set(project_tiles.values()) == {factor}, project_tiles
+    assert set(global_tiles.values()) <= {factor, 2 * factor}, global_tiles
 
 
 def test_feature_tiles_are_requested_tile_factor_times(stub, offline_server_side):
-    """Verify each new feature tile URL is fetched twice, like the app's two sources."""
-    _, runner = start_run(stub, Check())
+    """Verify each new feature tile URL is fetched tile_factor times per source."""
+    environment, runner = start_run(stub, Check())
     wait_until_stopped(runner)
 
     trench_tiles = Counter(p for p in stub.paths if "ol_trench_tiles" in p)
     assert not any("_lt=" in p for p in trench_tiles)
-    assert_fetched_once_per_source(trench_tiles)
+    assert_fetched_per_source(trench_tiles, environment.parsed_options.tile_factor)
 
 
 def test_run_writes_report_with_django_numbers(stub, offline_server_side):
@@ -248,13 +250,16 @@ def test_bypass_gives_every_tile_request_its_own_url(stub, offline_server_side):
 
     nginx locks the cache per key, so a repeated URL would be a cache hit.
     """
-    _, runner = start_run(stub, Check(), cache="bypass")
+    environment, runner = start_run(stub, Check(), cache="bypass")
     wait_until_stopped(runner)
 
     trench_tiles = [p for p in stub.paths if "ol_trench_tiles" in p]
     assert trench_tiles and all("_lt=" in p for p in trench_tiles)
     assert len(set(trench_tiles)) == len(trench_tiles)
-    assert_fetched_once_per_source(Counter(p.split("_lt=")[0] for p in trench_tiles))
+    assert_fetched_per_source(
+        Counter(p.split("_lt=")[0] for p in trench_tiles),
+        environment.parsed_options.tile_factor,
+    )
 
 
 def test_writes_go_through_commands_that_refresh_the_open_list(

@@ -2,7 +2,11 @@
 
 import pytest
 from apps.api.models import Address, Area, Node
-from apps.api.search import trigram_address_search, trigram_name_search
+from apps.api.search import (
+    SEARCH_RESULT_LIMIT,
+    trigram_address_search,
+    trigram_name_search,
+)
 from apps.api.tests.factories import (
     AddressFactory,
     AreaFactory,
@@ -10,6 +14,7 @@ from apps.api.tests.factories import (
     NodeFactory,
     NodeTypeFactory,
     ProjectFactory,
+    TrenchFactory,
 )
 from django.contrib.auth import get_user_model
 from django.db import connection
@@ -469,6 +474,21 @@ class TestNodeAllTrigram:
         assert response.status_code == 200
         assert _feature_names(response.data) == ["Verteiler Süd"]
 
+    def test_short_term_orders_by_name(
+        self, authenticated_client, search_project, search_flag
+    ):
+        """Short-term matches all score 0, so the cap keeps the first by name."""
+        node_type = NodeTypeFactory()
+        for name in ("Zx Zeta", "Zx Alpha", "Zx Mitte"):
+            NodeFactory(
+                name=name, node_type=node_type, project=search_project, flag=search_flag
+            )
+        response = authenticated_client.get(
+            "/api/v1/node/all/", {"search": "Zx", "project": search_project.pk}
+        )
+        assert response.status_code == 200
+        assert _feature_names(response.data) == ["Zx Alpha", "Zx Mitte", "Zx Zeta"]
+
     def test_trigram_term_matches_node_type(
         self, authenticated_client, node_data, search_project
     ):
@@ -536,3 +556,74 @@ class TestAreaAllTrigram:
         )
         assert response.status_code == 200
         assert _feature_names(response.data) == ["Baugebiet Süd"]
+
+
+# ---------------------------------------------------------------------------
+# Result limit of the map search endpoints
+# ---------------------------------------------------------------------------
+
+
+class TestSearchResultLimit:
+    """A search returns at most ``SEARCH_RESULT_LIMIT`` rows; a plain list stays whole."""
+
+    @pytest.fixture
+    def many_nodes(self, search_project, search_flag):
+        """Create one more matching node than a search may return."""
+        node_type = NodeTypeFactory(node_type="Hausanschluss")
+        return [
+            NodeFactory(
+                name=f"Knoten {i:03d}",
+                node_type=node_type,
+                project=search_project,
+                flag=search_flag,
+            )
+            for i in range(SEARCH_RESULT_LIMIT + 1)
+        ]
+
+    @pytest.mark.parametrize("term", ["Knoten", "Kn", "Hausan"])
+    def test_node_search_is_capped(
+        self, authenticated_client, many_nodes, search_project, term
+    ):
+        """Name, short-term and node-type matches are all capped."""
+        response = authenticated_client.get(
+            "/api/v1/node/all/", {"search": term, "project": search_project.pk}
+        )
+        assert response.status_code == 200
+        assert len(response.data["features"]) == SEARCH_RESULT_LIMIT
+
+    def test_node_list_without_search_is_not_capped(
+        self, authenticated_client, many_nodes, search_project
+    ):
+        """The network schema loads every node through the same endpoint."""
+        response = authenticated_client.get(
+            "/api/v1/node/all/", {"project": search_project.pk}
+        )
+        assert response.status_code == 200
+        assert len(response.data["features"]) == len(many_nodes)
+
+    def test_area_search_is_capped(
+        self, authenticated_client, search_project, search_flag
+    ):
+        """Area matches are capped."""
+        for i in range(SEARCH_RESULT_LIMIT + 1):
+            AreaFactory(
+                name=f"Baugebiet {i:03d}", project=search_project, flag=search_flag
+            )
+        response = authenticated_client.get(
+            "/api/v1/area/all/", {"search": "Baugebiet", "project": search_project.pk}
+        )
+        assert response.status_code == 200
+        assert len(response.data["features"]) == SEARCH_RESULT_LIMIT
+
+    def test_trench_search_is_capped(
+        self, authenticated_client, search_project, search_flag
+    ):
+        """Typing the common ``TR`` prefix of every trench id is capped."""
+        TrenchFactory.create_batch(
+            SEARCH_RESULT_LIMIT + 1, project=search_project, flag=search_flag
+        )
+        response = authenticated_client.get(
+            "/api/v1/trench/all/", {"search": "TR", "project": search_project.pk}
+        )
+        assert response.status_code == 200
+        assert len(response.data["features"]) == SEARCH_RESULT_LIMIT

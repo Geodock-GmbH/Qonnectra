@@ -6,6 +6,9 @@ from django.db.models.functions import Coalesce, Greatest
 
 SIMILARITY_THRESHOLD = 0.3
 
+SEARCH_RESULT_LIMIT = 50
+"""Most rows a map search endpoint returns; nobody reads past the first few."""
+
 _ADDRESS_ICONTAINS_FIELDS = (
     "street",
     "housenumber",
@@ -95,11 +98,11 @@ def trigram_name_search(
 ) -> QuerySet:
     """Filter and rank a queryset by trigram similarity on a single text field.
 
-    Every returned queryset carries a ``similarity`` annotation, so callers
-    can always order by it. A blank term filters nothing and scores 0. Terms
-    shorter than 3 characters fall back to icontains, score 0 and keep the
-    queryset's ordering. Longer terms are ordered by descending
-    ``similarity``.
+    Every returned queryset carries a ``similarity`` annotation. A blank
+    term filters nothing, scores 0 and keeps the queryset's ordering. Terms
+    shorter than 3 characters fall back to icontains and score 0. Matches
+    are ordered by descending ``similarity``, ties by ``field``, so a sliced
+    result keeps the best matches and, for short terms, the first by name.
 
     ``or_icontains`` adds a second match in the same query instead of an OR
     of two querysets, which would need a ``DISTINCT`` over every column,
@@ -114,7 +117,8 @@ def trigram_name_search(
             term, e.g. ``"node_type__node_type"``.
 
     Returns:
-        QuerySet: Filtered queryset with a ``similarity`` annotation.
+        QuerySet: Filtered, ordered queryset with a ``similarity``
+            annotation.
     """
     search_term = (search_term or "").strip()
 
@@ -131,7 +135,8 @@ def trigram_name_search(
     if or_icontains:
         match |= Q(**{f"{or_icontains}__icontains": search_term})
 
-    queryset = queryset.annotate(similarity=similarity).filter(match)
-    if len(search_term) < 3:
-        return queryset
-    return queryset.order_by("-similarity")
+    return (
+        queryset.annotate(similarity=similarity)
+        .filter(match)
+        .order_by("-similarity", field)
+    )

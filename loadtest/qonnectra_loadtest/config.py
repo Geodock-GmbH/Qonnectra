@@ -86,7 +86,7 @@ class RunOptions:
     cache: str = "on"
     wms: bool = True
     basemap: bool = True
-    tile_factor: int = 2
+    tile_factor: int = 1
     think: float = 1.0
     viewport: tuple[int, int] = (1600, 900)
     global_share: float = 10.0

@@ -33,14 +33,6 @@ import {
 	getNodeTypeDefault
 } from './styles';
 import { tileLoadingManager } from './tileLoadingManager';
-import {
-	createAddressTileSource,
-	createAreaTileSource,
-	createNodeTileSource,
-	createTrenchTileSource
-} from './tileSources';
-
-export type LayerErrorCallback = (title: string, message: string) => void;
 
 export interface WMSLayerOptions {
 	proxyUrl: string;
@@ -54,15 +46,19 @@ export interface WMSLayerOptions {
 	opacity?: number;
 }
 
-/** Creates a vector tile layer for trench features with optional labeling. */
+/**
+ * Creates a vector tile layer for trench features with optional labeling.
+ * @param tileSource - Tile source to render; pass the same instance the selection overlay uses,
+ *   so every tile loads once and a refresh reaches the visible layer.
+ * @param layerName - Display name shown in the layer tree.
+ * @param labelOptions - Label settings; labels are off when omitted.
+ * @returns The trench layer, tagged with layer id `trench-layer`.
+ */
 export function createTrenchLayer(
-	selectedProject: string,
+	tileSource: VectorTileSource,
 	layerName: string,
-	onError: LayerErrorCallback | undefined,
 	labelOptions: LabelOptions = {}
 ): VectorTileLayer {
-	const tileSource = createTrenchTileSource(selectedProject, onError);
-
 	const style = labelOptions.enabled
 		? createTrenchStyleWithLabels(DEFAULT_TRENCH_COLOR, labelOptions)
 		: createTrenchStyle(DEFAULT_TRENCH_COLOR);
@@ -79,15 +75,19 @@ export function createTrenchLayer(
 	});
 }
 
-/** Creates a vector tile layer for address features with optional labeling. */
+/**
+ * Creates a vector tile layer for address features with optional labeling.
+ * @param tileSource - Tile source to render; pass the same instance the selection overlay uses,
+ *   so every tile loads once and a refresh reaches the visible layer.
+ * @param layerName - Display name shown in the layer tree.
+ * @param labelOptions - Label settings; labels are off when omitted.
+ * @returns The address layer, tagged with layer id `address-layer`.
+ */
 export function createAddressLayer(
-	selectedProject: string,
+	tileSource: VectorTileSource,
 	layerName: string,
-	onError: LayerErrorCallback | undefined,
 	labelOptions: LabelOptions = {}
 ): VectorTileLayer {
-	const tileSource = createAddressTileSource(selectedProject, onError);
-
 	const style = createAddressStyleWithLabels(
 		DEFAULT_ADDRESS_COLOR,
 		DEFAULT_ADDRESS_SIZE,
@@ -106,16 +106,21 @@ export function createAddressLayer(
 	});
 }
 
-/** Creates a vector tile layer for node features with optional per-type styling and labels. */
+/**
+ * Creates a vector tile layer for node features with optional per-type styling and labels.
+ * @param tileSource - Tile source to render; pass the same instance the selection overlay uses,
+ *   so every tile loads once and a refresh reaches the visible layer.
+ * @param layerName - Display name shown in the layer tree.
+ * @param labelOptions - Label settings; labels are off when omitted.
+ * @param nodeTypeStyles - Per-type style overrides, or null for the default node style.
+ * @returns The node layer, tagged with layer id `node-layer`.
+ */
 export function createNodeLayer(
-	selectedProject: string,
+	tileSource: VectorTileSource,
 	layerName: string,
-	onError: LayerErrorCallback | undefined,
 	labelOptions: LabelOptions = {},
 	nodeTypeStyles: NodeTypeStyles | null = null
 ): VectorTileLayer {
-	const tileSource = createNodeTileSource(selectedProject, onError);
-
 	let style;
 	if (nodeTypeStyles !== null) {
 		style = createNodeStyleByType(nodeTypeStyles, labelOptions);
@@ -137,16 +142,21 @@ export function createNodeLayer(
 	});
 }
 
-/** Creates a vector tile layer for area (polygon) features with optional per-type styling and labels. */
+/**
+ * Creates a vector tile layer for area (polygon) features with optional per-type styling and labels.
+ * @param tileSource - Tile source to render; pass the same instance the selection overlay uses,
+ *   so every tile loads once and a refresh reaches the visible layer.
+ * @param layerName - Display name shown in the layer tree.
+ * @param labelOptions - Label settings; labels are off when omitted.
+ * @param areaTypeStyles - Per-type style overrides, or null for the default area style.
+ * @returns The area layer, tagged with layer id `area-layer`.
+ */
 export function createAreaLayer(
-	selectedProject: string,
+	tileSource: VectorTileSource,
 	layerName: string,
-	onError: LayerErrorCallback | undefined,
 	labelOptions: LabelOptions = {},
 	areaTypeStyles: AreaTypeStyles | null = null
 ): VectorTileLayer {
-	const tileSource = createAreaTileSource(selectedProject, onError);
-
 	let style;
 	if (areaTypeStyles !== null) {
 		style = createAreaStyleByType(areaTypeStyles, labelOptions);

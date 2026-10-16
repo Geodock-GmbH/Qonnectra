@@ -104,7 +104,7 @@ How close this is to a browser:
 
 - Tiles follow OpenLayers: 512 px XYZ grid, 1600×900 viewport, a per-source tile cache (so a pan only requests what came into view), and at most 16 tile requests in flight per user, like OpenLayers' tile queue.
 - The basemap follows ol-mapbox-style: health check, style, TileJSON, then tiles up to the TileJSON's `maxzoom` and overzoomed beyond it. Labels use web fonts from a CDN, not the tile server, so there are no glyph requests.
-- **Tile factor** (default 2) requests every new feature tile twice, because the app creates two tile sources per layer. Confirm it with the calibration below.
+- **Tile factor** (default 1) is how often every new feature tile is requested. The app shares one tile source between a layer and its selection overlay, so each tile loads once. Confirm it with the calibration below.
 - Remote functions are called over SvelteKit's wire format. `tests/test_remote.py` checks it against SvelteKit's own code in `frontend/node_modules`.
 
 ### Options in the start form
@@ -117,7 +117,7 @@ Under **Custom parameters**:
 | cache         | `on`                     | `bypass` gives every feature tile request its own URL, so nginx's tile cache never hits; WMS stays cached |
 | wms           | on                       | request WMS tiles of enabled layers                                                                       |
 | basemap       | on                       | request basemap tiles                                                                                     |
-| tile factor   | `2`                      | requests per new feature tile and layer                                                                   |
+| tile factor   | `1`                      | requests per new feature tile and layer                                                                   |
 | think         | `1`                      | multiplier on all pauses; `0.5` = users act twice as fast                                                 |
 | global share  | `10`                     | % of map and search sessions in the global view, whose tiles cover all projects                           |
 | switch share  | `10`                     | % of map sessions that switch to another project on the way                                               |

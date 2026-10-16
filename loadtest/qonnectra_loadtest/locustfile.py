@@ -75,7 +75,7 @@ def add_options(parser):
     parser.add_argument(
         "--tile-factor",
         type=int,
-        default=2,
+        default=1,
         include_in_web_ui=True,
         help="requests per new feature tile and layer; set it from the calibration",
     )
