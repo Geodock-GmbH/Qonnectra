@@ -101,6 +101,13 @@ def add_options(parser):
         help="% of map sessions that switch to another project on the way",
     )
     parser.add_argument(
+        "--unconfigured-share",
+        type=float,
+        default=0.0,
+        include_in_web_ui=True,
+        help="% of schema sessions in a project whose main schema shows every node",
+    )
+    parser.add_argument(
         "--viewport",
         default="1600x900",
         include_in_web_ui=True,

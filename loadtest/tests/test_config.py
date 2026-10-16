@@ -23,6 +23,7 @@ def parsed(**overrides):
         "limit_err_pct": 1.0,
         "global_share": 10.0,
         "switch_share": 10.0,
+        "unconfigured_share": 0.0,
     }
     return SimpleNamespace(**{**values, **overrides})
 
@@ -66,6 +67,7 @@ def test_options_are_normalised():
             limit_err_pct="-1",
             global_share="150",
             switch_share="-5",
+            unconfigured_share="250",
         ),
         "https://app.example.com/",
     )
@@ -81,6 +83,7 @@ def test_options_are_normalised():
     assert options.projects == "all"
     assert (options.limit_tile_ms, options.limit_err_pct) == (1500, 0.0)
     assert (options.global_share, options.switch_share) == (100.0, 0.0)
+    assert options.unconfigured_share == 100.0
 
 
 def test_missing_urls_are_refused():

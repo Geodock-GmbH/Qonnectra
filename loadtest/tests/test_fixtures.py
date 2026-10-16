@@ -40,6 +40,16 @@ def api(
                 ],
             },
             "node/?project=1&page_size=100": {"results": [{"uuid": "n1"}]},
+            "node/all/?project=1&minimal=true": {
+                "nodes": [{"uuid": "n1", "name": "K1"}],
+                "metadata": {
+                    "excluded_node_type_ids": [4],
+                    "child_view_enabled_node_type_ids": [5],
+                },
+            },
+            "node/?project=1&node_type=5&page_size=100": {
+                "results": [{"uuid": "nvt1"}]
+            },
             "address/?project=1&page_size=100": [],
             "cable/?project=1&page_size=100": {"results": []},
             "wms-sources/?project=1": [
@@ -85,6 +95,16 @@ def test_discovers_projects_samples_and_wms_layers():
     ] == [("3", "Flurstücke", 12)]
     assert seeded.seeded
     assert (fixture.conduit_type_id, fixture.flag_id) == (11, 2)
+
+
+def test_discovers_how_each_network_schema_is_set_up():
+    """Verify excluded node types mark a configured schema, with its child-view parents."""
+    options, http = api()
+
+    kassel, seeded = discover(options, "token", http=http).projects
+
+    assert (kassel.schema_configured, kassel.schema_parents) == (True, ["nvt1"])
+    assert (seeded.schema_configured, seeded.schema_parents) == (False, [])
     assert all(call[2]["Authorization"] == "Bearer token" for call in http.calls)
 
 

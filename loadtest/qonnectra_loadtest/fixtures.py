@@ -1,7 +1,8 @@
 """Discovers what the personas work on, once per run.
 
 The target projects with their map extent, sample feature UUIDs to click,
-configured WMS layers and the lookups the editor needs. Runs as the first
+configured WMS layers, how their network schema is set up, and the lookups
+the editor needs. Runs as the first
 load-test user, so it sees exactly what the virtual users see.
 """
 
@@ -40,6 +41,10 @@ class Project:
     trench_ids: list[str] = field(default_factory=list)
     """``id_trench`` values, the key of ``trench/<id>/``; unique per project only."""
     wms_layers: list[WmsLayer] = field(default_factory=list)
+    schema_configured: bool = False
+    """Whether node types are kept off the main schema, e.g. house connections."""
+    schema_parents: list[str] = field(default_factory=list)
+    """UUIDs of nodes whose sub schema opens, e.g. NVt cabinets."""
 
     @property
     def seeded(self) -> bool:
@@ -171,6 +176,19 @@ def discover(options: RunOptions, token: str, http=requests) -> Fixture:
             kind: get(f"{kind}/?project={row['id']}&page_size={SAMPLE_PAGE_SIZE}")
             for kind in ("trench", "node", "address", "cable")
         }
+        schema = (get(f"node/all/?project={row['id']}&minimal=true") or {}).get(
+            "metadata"
+        ) or {}
+        schema_parents = [
+            uuid
+            for type_id in schema.get("child_view_enabled_node_type_ids") or []
+            for uuid in uuids(
+                get(
+                    f"node/?project={row['id']}&node_type={type_id}"
+                    f"&page_size={SAMPLE_PAGE_SIZE}"
+                )
+            )
+        ]
         wms_layers = []
         if options.wms:
             for source in rows(get(f"wms-sources/?project={row['id']}")):
@@ -194,6 +212,8 @@ def discover(options: RunOptions, token: str, http=requests) -> Fixture:
                 features={kind: uuids(body) for kind, body in samples.items()},
                 trench_ids=trench_ids(samples["trench"]),
                 wms_layers=wms_layers,
+                schema_configured=bool(schema.get("excluded_node_type_ids")),
+                schema_parents=schema_parents,
             )
         )
     if not projects:

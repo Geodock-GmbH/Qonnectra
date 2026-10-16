@@ -7,6 +7,12 @@ with house-connection trench, conduit and node, one multi-duct conduit and
 one cable per street line, and area polygons. Microducts and fibers come
 from the same color mappings the post_save signals use.
 
+Each house connection node hangs under its nearest NVt cabinet. The network
+schema is set up like the public test server's Testprojekt: house
+connections and pipe branches leave the main schema and open in the NVt's
+sub schema. The last of several projects keeps the settings of a project
+nobody set up, so its main schema shows every node.
+
 Everything lives in projects named ``loadtest-NN``, so :func:`purge` removes
 it without touching real data. Inserts use ``bulk_create``, so no history
 rows are written; DB triggers (trench id, length, canvas placement) still
@@ -32,6 +38,7 @@ from apps.api.models import (
     Fiber,
     Flags,
     Microduct,
+    NetworkSchemaSettings,
     Node,
     Projects,
     Trench,
@@ -55,6 +62,11 @@ JITTER_FRACTION = 0.15
 HOUSE_OFFSET_M = 14.0
 NVT_EVERY = 6
 BATCH_SIZE = 2000
+
+SCHEMA_EXCLUDED_NODE_TYPES = ("Hausanschluss", "Rohrabzweig")
+"""Node types kept off the main schema, as on the public test server."""
+SCHEMA_CHILD_VIEW_NODE_TYPES = ("NVt 48",)
+"""Node types whose sub schema shows the house connections below them."""
 
 STREET_CONDUIT_TYPE = "12x10/6"
 HOUSE_CONDUIT_TYPE = "10/6"
@@ -222,6 +234,14 @@ def load_references() -> dict:
         "cabinet": lookup(AttributesNodeType, "node_type", "NVt 48"),
         "pop": lookup(AttributesNodeType, "node_type", "POP"),
         "house_node": lookup(AttributesNodeType, "node_type", "Hausanschluss"),
+        "schema_excluded": [
+            lookup(AttributesNodeType, "node_type", name)
+            for name in SCHEMA_EXCLUDED_NODE_TYPES
+        ],
+        "schema_child_view": [
+            lookup(AttributesNodeType, "node_type", name)
+            for name in SCHEMA_CHILD_VIEW_NODE_TYPES
+        ],
         "project_area": lookup(AttributesAreaType, "area_type", "Projektgebiet"),
         "cabinet_area": lookup(AttributesAreaType, "area_type", "NVt-Gebiet"),
         "street_conduit": street_conduit,
@@ -233,13 +253,17 @@ def load_references() -> dict:
     }
 
 
-def seed_project(project: Projects, grid: StreetGrid, refs: dict) -> dict[str, int]:
+def seed_project(
+    project: Projects, grid: StreetGrid, refs: dict, configure_schema: bool = True
+) -> dict[str, int]:
     """Insert all features of one planned grid into ``project``.
 
     Args:
         project: The freshly created load-test project.
         grid: Geometry plan from :func:`build_street_grid`.
         refs: Lookup rows from :func:`load_references`.
+        configure_schema: Set up the network schema like the test server;
+            False keeps the settings of a project nobody configured.
 
     Returns:
         dict[str, int]: Inserted row count per feature kind.
@@ -270,6 +294,16 @@ def seed_project(project: Projects, grid: StreetGrid, refs: dict) -> dict[str, i
         )
         for key, xy in grid.intersections.items()
     }
+    cabinets = [key for key, node in nodes.items() if node.node_type == refs["cabinet"]]
+
+    def nearest_cabinet(key):
+        """Return the NVt node closest to grid index ``key``, or None without any."""
+        if not cabinets:
+            return None
+        nearest = min(
+            cabinets, key=lambda c: (c[0] - key[0]) ** 2 + (c[1] - key[1]) ** 2
+        )
+        return nodes[nearest]
 
     trenches, addresses, house_nodes, conduits, links = [], [], [], [], []
     line_conduits: dict[str, Conduit] = {}
@@ -291,6 +325,7 @@ def seed_project(project: Projects, grid: StreetGrid, refs: dict) -> dict[str, i
         links.append(TrenchConduitConnection(uuid_trench=trench, uuid_conduit=conduit))
         line_ends.setdefault(street.line_key, []).extend([street.start, street.end])
 
+        cabinet = nearest_cabinet(street.start)
         for house in street.houses:
             address = Address(
                 zip_code="34117",
@@ -307,6 +342,7 @@ def seed_project(project: Projects, grid: StreetGrid, refs: dict) -> dict[str, i
                     node_type=refs["house_node"],
                     geom=Point(*house.address_point, srid=25832),
                     uuid_address=address,
+                    parent_node=cabinet,
                     **common,
                 )
             )
@@ -394,6 +430,14 @@ def seed_project(project: Projects, grid: StreetGrid, refs: dict) -> dict[str, i
     Fiber.objects.bulk_create(fibers, batch_size=BATCH_SIZE)
     Area.objects.bulk_create(areas, batch_size=BATCH_SIZE)
 
+    if configure_schema:
+        # The canvas placement trigger created the row with the first node.
+        schema, _ = NetworkSchemaSettings.objects.get_or_create(project=project)
+        schema.excluded_node_types.set(refs["schema_excluded"])
+        schema.child_view_enabled_node_types.set(refs["schema_child_view"])
+        schema.configured = True
+        schema.save(update_fields=["configured"])
+
     return {
         "trenches": len(trenches),
         "nodes": len(nodes) + len(house_nodes),
@@ -447,7 +491,8 @@ def seed(
     Args:
         preset: Key of :data:`PRESET_KM`, the total street trench length.
         km: Total street trench km, overrides ``preset``.
-        projects: Number of projects the length is split across.
+        projects: Number of projects the length is split across. With more
+            than one, the last keeps an unconfigured network schema.
         houses_per_street: Houses per block edge, both sides together.
         random_seed: Seed of the geometry, so a run is reproducible.
         center: Center of the first project in EPSG:25832.
@@ -476,16 +521,18 @@ def seed(
             center[1] - extent / 2,
         )
         grid = build_street_grid(rng, origin, size, houses_per_street)
+        configure_schema = project_count == 1 or index < project_count - 1
         with transaction.atomic():
             project = Projects.objects.create(
                 project=f"{PROJECT_PREFIX}{index + 1:02d}",
                 description="Synthetic data for load tests (qonnectra_loadtest)",
             )
-            counts = seed_project(project, grid, refs)
+            counts = seed_project(project, grid, refs, configure_schema)
         names.append(project.project)
         log(
             f"{project.project}: "
             + ", ".join(f"{count} {name}" for name, count in counts.items())
+            + ("" if configure_schema else ", network schema unconfigured")
         )
     return names
 

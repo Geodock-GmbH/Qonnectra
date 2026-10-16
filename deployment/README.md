@@ -532,7 +532,7 @@ The production compose file is sized for the minimum supported host of 8 CPU cor
 | Service               | Memory Limit | Memory Reservation | Concurrency                                 |
 | --------------------- | ------------ | ------------------ | ------------------------------------------- |
 | Database (PostgreSQL) | 6GB          | 2GB                | shared_buffers 1.5GB, 4 parallel workers    |
-| Backend (Django API)  | 2GB          | 1GB                | 6 gunicorn workers                          |
+| Backend (Django API)  | 2GB          | 1GB                | 6 gunicorn workers × 4 threads (gthread)    |
 | Backend WMS           | 1.5GB        | 512MB              | 4 gunicorn workers                          |
 | QGIS Server           | 3GB          | 1GB                | 3 FCGI render processes (`spawn-fcgi -F 3`) |
 | TileServer-GL         | 1GB          | 512MB              |                                             |
@@ -571,6 +571,8 @@ The production compose file is sized for the minimum supported host of 8 CPU cor
 | `DJANGO_ALLOWED_HOSTS`         | Yes      | Comma-separated allowed hosts                            | `api.localhost`         |
 | `CSRF_TRUSTED_ORIGINS`         | Yes      | Comma-separated trusted origins                          | `https://app.localhost` |
 | `DB_EXTERNAL_PORT`             | No       | Published database port (dev compose only)               | `5440`                  |
+| `GUNICORN_WORKERS`             | No       | Backend gunicorn processes (default 6)                   | `6`                     |
+| `GUNICORN_THREADS`             | No       | Threads per backend process (default 4)                  | `4`                     |
 
 ### Deployment variables (`deployment/.env`, Docker only)
 

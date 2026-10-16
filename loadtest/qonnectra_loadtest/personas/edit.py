@@ -8,7 +8,8 @@ goes straight to Django, like an edit from QGIS. The writes fire the
 triggers, history rows and the microduct generation signal.
 
 It only ever writes to seeded ``loadtest-*`` projects and deletes the
-conduits it creates. Without a seeded project in the run, an editor only
+conduits it creates. It picks the project like a planner does, so the
+unconfigured project only gets ``unconfigured share`` of the sessions. Without a seeded project in the run, an editor only
 reads: it does a map session instead.
 """
 
@@ -20,6 +21,7 @@ from datetime import UTC, datetime
 from qonnectra_loadtest.client import Browser
 from qonnectra_loadtest.fixtures import Fixture, Project
 from qonnectra_loadtest.personas.map import map_session, weighted
+from qonnectra_loadtest.personas.schema import open_schema, pick_project
 from qonnectra_loadtest.remote import remote_key
 
 TASKS = {"conduit": 3, "node": 3, "address": 2, "trench": 2}
@@ -128,8 +130,7 @@ def edit_node(browser: Browser, project: Project, fixture: Fixture):
     nodes = project.features.get("node") or []
     if not nodes:
         return
-    path = f"/project/{project.id}/network-schema"
-    browser.page(path, "page:network-schema")
+    path = open_schema(browser, project)
     for _ in range(random.randint(1, 3)):
         browser.think(2, 6)
         uuid = random.choice(nodes)
@@ -219,7 +220,7 @@ def edit_session(browser: Browser, fixture: Fixture, cover_all: bool = False):
     if not seeded:
         map_session(browser, fixture.projects)
         return
-    project = random.choice(seeded)
+    project = pick_project(seeded, browser.options.unconfigured_share)
     tasks = (
         list(TASK_STEPS)
         if cover_all

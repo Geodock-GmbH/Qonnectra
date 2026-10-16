@@ -62,7 +62,7 @@ What stays behind:
 
 ## A run
 
-1. Optionally, seed `loadtest-NN` projects on the dashboard. The presets set the total street trench length: tiny 2 km, small 50 km, medium 500 km (about 25k addresses), large 2000 km. Each project gets trenches, house connections, conduits, microducts, cables, fibers, nodes, addresses and areas.
+1. Optionally, seed `loadtest-NN` projects on the dashboard. The presets set the total street trench length: tiny 2 km, small 50 km, medium 500 km (about 25k addresses), large 2000 km. Each project gets trenches, house connections, conduits, microducts, cables, fibers, nodes, addresses and areas. House connection nodes hang under their nearest NVt. The network schema is set up like Testprojekt on the public test server: `Hausanschluss` and `Rohrabzweig` stay off the main schema, `NVt 48` opens a sub schema. With more than one project, the last keeps the settings of a project nobody set up, so its main schema shows every node (see `unconfigured share`). Reseed after updating the load test to get these settings.
 2. Open the runner, pick the **Check** profile and start. One user per persona runs one session, and the run stops by itself. Every request should be green.
 3. To measure, pick **Ramp**, set the number of users to the peak you want and start. Ramp adds 5 users every 2 minutes, which shows you where latency tips over. Watch the Server, Django, Top SQL and Connections tabs.
 4. When the run ends, its report appears under **Runs** on the dashboard. Tick two runs and press **Compare** to see the effect of a change.
@@ -87,12 +87,13 @@ Untick a persona in the runner to leave it out. The weights are shares of the ru
 | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | MapUser    | 60     | SSR load of `/project/{id}/map`, layer styles, WMS token and sources, basemap style and TileJSON. Fits the project extent, then 10–30 gestures 1–4 s apart: pans, zooms and clicks. Every view change loads the app's 4 vector tile layers, WMS tiles of enabled layers in zoom range, and basemap tiles. A click opens the feature drawer. A share of the sessions runs in the global view, and a share switches project on the way (see below). |
 | SearchUser | 15     | 1–3 debounced `searchFeatures` calls (each fans out to 5 Django searches), then opens a result. In the global view across all projects.                                                                                                                                                                                                                                                                                                           |
-| SchemaUser | 15     | SSR load of the network schema (10 parallel Django calls), then node, cable and fiber details and conduit table pages.                                                                                                                                                                                                                                                                                                                            |
+| SchemaUser | 15     | SSR load of the network schema (10 parallel Django calls), in a quarter of the sessions also an NVt's sub schema (`page:network-schema:node`), then node, cable and fiber details and conduit table pages.                                                                                                                                                                                                                                        |
 | EditUser   | 10     | 2–4 tasks: create, rename and delete a conduit in the conduit table; open an address and save its form; drag nodes in the network schema; patch a trench comment. Only ever in seeded `loadtest-*` projects; without any in the run it does a map session instead.                                                                                                                                                                                |
 
 The global view and the project switch, as the app does them:
 
 - **Global view** (`global share`, default 10 %): the setting is saved per user, so it is on from the start of the session. Feature tiles have no project filter and cover every project (`tile:global:<layer>` in the statistics), the user roams the extent of all projects of the run, and search and the feature drawer look across projects. The report's `tile p95` includes these tiles.
+- **Unconfigured schema** (`unconfigured share`, default 0 %): the share of schema sessions in a project whose main schema shows every node, house connections included. These loads are named `page:network-schema:unconfigured`, so the configured `page:network-schema` numbers stay clean. The capacity still includes their cost, because they hold backend workers the tiles wait for: keep it at 0 for runs you compare, raise it to see what an unconfigured customer costs.
 - **Project switch** (`switch share`, default 10 %): a client-side navigation, so no page load. The app builds new feature tile sources, reloads the WMS sources and leaves the view where it was, so the new project's tiles load there first. Then the user zooms to the project (`getLayerExtent`).
 
 How the editor writes:
@@ -111,21 +112,22 @@ How close this is to a browser:
 
 Under **Custom parameters**:
 
-| option        | default                  | effect                                                                                                    |
-| ------------- | ------------------------ | --------------------------------------------------------------------------------------------------------- |
-| projects      | `all`                    | `all`, `loadtest` (seeded only), or ids like `1,4`                                                        |
-| cache         | `on`                     | `bypass` gives every feature tile request its own URL, so nginx's tile cache never hits; WMS stays cached |
-| wms           | on                       | request WMS tiles of enabled layers                                                                       |
-| basemap       | on                       | request basemap tiles                                                                                     |
-| tile factor   | `1`                      | requests per new feature tile and layer                                                                   |
-| think         | `1`                      | multiplier on all pauses; `0.5` = users act twice as fast                                                 |
-| global share  | `10`                     | % of map and search sessions in the global view, whose tiles cover all projects                           |
-| switch share  | `10`                     | % of map sessions that switch to another project on the way                                               |
-| viewport      | `1600x900`               | browser window                                                                                            |
-| api url       | from `API_DOMAIN`        | Django API base                                                                                           |
-| tiles url     | `PUBLIC_TILE_SERVER_URL` | tile server; empty skips the basemap                                                                      |
-| limit tile ms | `1000`                   | report: a minute with a feature-tile p95 above this is over the limit                                     |
-| limit err pct | `1`                      | report: a minute with more failed requests than this share is over the limit                              |
+| option             | default                  | effect                                                                                                    |
+| ------------------ | ------------------------ | --------------------------------------------------------------------------------------------------------- |
+| projects           | `all`                    | `all`, `loadtest` (seeded only), or ids like `1,4`                                                        |
+| cache              | `on`                     | `bypass` gives every feature tile request its own URL, so nginx's tile cache never hits; WMS stays cached |
+| wms                | on                       | request WMS tiles of enabled layers                                                                       |
+| basemap            | on                       | request basemap tiles                                                                                     |
+| tile factor        | `1`                      | requests per new feature tile and layer                                                                   |
+| think              | `1`                      | multiplier on all pauses; `0.5` = users act twice as fast                                                 |
+| global share       | `10`                     | % of map and search sessions in the global view, whose tiles cover all projects                           |
+| switch share       | `10`                     | % of map sessions that switch to another project on the way                                               |
+| unconfigured share | `0`                      | % of schema sessions in a project whose main schema shows every node                                      |
+| viewport           | `1600x900`               | browser window                                                                                            |
+| api url            | from `API_DOMAIN`        | Django API base                                                                                           |
+| tiles url          | `PUBLIC_TILE_SERVER_URL` | tile server; empty skips the basemap                                                                      |
+| limit tile ms      | `1000`                   | report: a minute with a feature-tile p95 above this is over the limit                                     |
+| limit err pct      | `1`                      | report: a minute with more failed requests than this share is over the limit                              |
 
 The **Host** field is the app URL (`https://<APP_DOMAIN>`).
 

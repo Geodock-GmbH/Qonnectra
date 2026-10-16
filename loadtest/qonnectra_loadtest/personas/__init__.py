@@ -77,7 +77,7 @@ class SchemaUser(Persona):
 
     def session(self):
         """Run one planning session."""
-        schema_session(self.browser, self.run.fixture.projects)
+        schema_session(self.browser, self.run.fixture.projects, cover_all=self.run.once)
 
 
 class EditUser(Persona):

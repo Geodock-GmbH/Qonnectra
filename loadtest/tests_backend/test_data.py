@@ -15,6 +15,7 @@ from apps.api.models import (
     Conduit,
     Fiber,
     Microduct,
+    NetworkSchemaSettings,
     Node,
     Projects,
     Trench,
@@ -261,6 +262,92 @@ class TestSeeding:
         assert not Microduct.history.filter(uuid_conduit_id=edited).exists()
         assert not Projects.history.filter(id=seeded.pk).exists()
         assert Projects.history.filter(id=default.pk).count() == default_history
+
+
+@pytest.fixture
+def seeded_pair(db):
+    """Seed two tiny projects: the first with a configured schema, the last without."""
+    from io import StringIO
+
+    call_command("load_initial_data", stdout=StringIO())
+    seeding.seed(preset="tiny", projects=2, random_seed=5, log=lambda _line: None)
+    return (
+        Projects.objects.get(project="loadtest-01"),
+        Projects.objects.get(project="loadtest-02"),
+    )
+
+
+def node_names(project, **params) -> list[str]:
+    """Return the node names of a project's network schema as the app loads them."""
+    payload = accounts.create_users(1)
+    client = APIClient()
+    client.cookies["api-access-token"] = payload["users"][0]["access"]
+    response = client.get(
+        reverse("v1:node-all-nodes"), {"project": project.pk, **params}
+    )
+    assert response.status_code == 200
+    return [feature["properties"]["name"] for feature in response.data["features"]]
+
+
+@pytest.mark.django_db
+class TestNetworkSchemaSetup:
+    """The seeded schema settings mirror the public test server's Testprojekt."""
+
+    def test_configures_the_schema_like_the_test_server(self, seeded_pair):
+        """Verify house connections and pipe branches leave the main schema."""
+        configured = NetworkSchemaSettings.objects.get(project=seeded_pair[0])
+
+        assert configured.configured
+        assert set(
+            configured.excluded_node_types.values_list("node_type", flat=True)
+        ) == {"Hausanschluss", "Rohrabzweig"}
+        assert set(
+            configured.child_view_enabled_node_types.values_list("node_type", flat=True)
+        ) == {"NVt 48"}
+
+    def test_last_project_keeps_a_fresh_schema(self, seeded_pair):
+        """Verify the last project shows every node, like a project nobody set up."""
+        fresh = NetworkSchemaSettings.objects.get(project=seeded_pair[1])
+
+        assert not fresh.configured
+        assert not fresh.excluded_node_types.exists()
+        assert not fresh.child_view_enabled_node_types.exists()
+
+    def test_a_single_project_is_configured(self, seeded):
+        """Verify a one-project seed has no unconfigured project to spare."""
+        assert NetworkSchemaSettings.objects.get(project=seeded).configured
+
+    def test_house_nodes_hang_under_an_nvt(self, seeded_pair):
+        """Verify every house connection names an NVt cabinet as its parent."""
+        houses = Node.objects.filter(
+            project__in=seeded_pair, node_type__node_type="Hausanschluss"
+        )
+
+        assert houses.exists()
+        assert not houses.exclude(parent_node__node_type__node_type="NVt 48").exists()
+
+    def test_main_schema_shows_house_nodes_only_when_unconfigured(self, seeded_pair):
+        """Verify the configured main schema holds the street nodes alone."""
+        configured, fresh = seeded_pair
+
+        configured_names = node_names(configured)
+        fresh_names = node_names(fresh)
+
+        assert configured_names
+        assert not any(name.startswith("HA ") for name in configured_names)
+        assert any(name.startswith("HA ") for name in fresh_names)
+
+    def test_sub_schema_of_an_nvt_lists_its_house_nodes(self, seeded_pair):
+        """Verify the child view of a cabinet opens with its house connections."""
+        configured = seeded_pair[0]
+        cabinet = Node.objects.filter(
+            project=configured, node_type__node_type="NVt 48"
+        ).first()
+
+        names = node_names(configured, child_view_for=str(cabinet.uuid))
+
+        assert cabinet.name in names
+        assert any(name.startswith("HA ") for name in names)
 
 
 def test_timing_key_matches_the_middleware():

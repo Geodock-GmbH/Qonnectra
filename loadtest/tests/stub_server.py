@@ -146,7 +146,9 @@ class StubQonnectra:
             if environ.get("HTTP_X_LOADTEST_TIMING") == self.timing_key:
                 timing = [("Server-Timing", "app;dur=12.0, db;dur=4.0, q;dur=3")]
             return self.api(method, path[len("/api/v1/") :], query, reply, timing)
-        if re.fullmatch(r"/project/\d+/(map|network-schema|conduit|address)", path):
+        if re.fullmatch(
+            r"/project/\d+/(map|network-schema(/node/[\w-]+)?|conduit|address)", path
+        ):
             headers[0] = ("Content-Type", "text/html")
             return reply("200 OK", b"<html></html>", f"page:{path.rsplit('/', 1)[1]}")
         return reply("404 Not Found", b"{}", "not-found")
@@ -280,6 +282,13 @@ class StubQonnectra:
                 return reply("200 OK", {"results": projects}, "api:projects")
             if path == "layer-extent/":
                 return reply("200 OK", {"extent": [1055000, 6671000, 1057000, 6673000]})
+            if path == "node/all/" and query.get("minimal") == ["true"]:
+                configured = query.get("project") == ["7"]
+                metadata = {
+                    "excluded_node_type_ids": [4] if configured else [],
+                    "child_view_enabled_node_type_ids": [5] if configured else [],
+                }
+                return reply("200 OK", {"nodes": [], "metadata": metadata})
             if path in ("trench/", "node/", "address/", "cable/"):
                 return reply("200 OK", sample)
             if path == "wms-sources/":

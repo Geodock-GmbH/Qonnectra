@@ -93,6 +93,8 @@ class RunOptions:
     """Percent of map and search sessions in the global view (all projects)."""
     switch_share: float = 10.0
     """Percent of map sessions that switch to another project on the way."""
+    unconfigured_share: float = 0.0
+    """Percent of schema sessions in a project whose main schema shows every node."""
     limit_tile_ms: int = DEFAULT_LIMIT_TILE_MS
     limit_err_pct: float = DEFAULT_LIMIT_ERR_PCT
 
@@ -131,6 +133,7 @@ class RunOptions:
             viewport=(int(width), int(height)),
             global_share=min(100.0, max(0.0, float(options.global_share))),
             switch_share=min(100.0, max(0.0, float(options.switch_share))),
+            unconfigured_share=min(100.0, max(0.0, float(options.unconfigured_share))),
             limit_tile_ms=max(1, int(options.limit_tile_ms)),
             limit_err_pct=max(0.0, float(options.limit_err_pct)),
         )
