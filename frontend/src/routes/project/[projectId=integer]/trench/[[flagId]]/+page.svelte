@@ -99,7 +99,7 @@
 	</div>
 
 	<div
-		class="order-2 min-w-0 flex-1 overflow-auto border-2 rounded-lg border-surface-200-800 pb-16 md:pb-0"
+		class="order-2 min-w-0 flex-1 overflow-auto border-2 rounded-lg border-surface-200-800 pb-16 desktop:pb-0"
 	>
 		<TrenchAssignmentPanel />
 	</div>

@@ -1,0 +1,24 @@
+# Development environment of the load test's Locust side: `uv run pytest`.
+# The Docker image installs the same Locust version on top of the backend
+# image (see Dockerfile); tests/test_packaging.py keeps the two pins equal.
+[project]
+name = "qonnectra-loadtest"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "locust==2.46.7",
+    "psycopg[binary]>=3.2.4",
+    "python-dotenv>=1.0.1",
+    "requests>=2.32.3",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.3.5"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q --tb=short"

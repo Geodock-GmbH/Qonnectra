@@ -46,7 +46,7 @@
 <div>
 	<AppBar class="bg-transparent border-b-2 border-surface-200-800">
 		<AppBar.Toolbar
-			class="grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[auto_1fr_auto] gap-2 sm:gap-4 px-2 sm:px-4"
+			class="grid-cols-[minmax(0,1fr)_auto] desktop:grid-cols-[auto_1fr_auto] gap-2 desktop:gap-4 px-2 desktop:px-4"
 		>
 			<AppBar.Lead class="min-w-0 flex items-center gap-2">
 				{#if isAuthenticated}
@@ -72,25 +72,25 @@
 					{/if}
 				{/if}
 			</AppBar.Lead>
-			<AppBar.Headline class="hidden sm:block">
+			<AppBar.Headline class="hidden desktop:block">
 				<!-- Optional headline content can go here -->
 			</AppBar.Headline>
 			<AppBar.Trail>
-				<div class="flex items-center gap-1 sm:gap-4 shrink-0">
+				<div class="flex items-center gap-1 desktop:gap-4 shrink-0">
 					<!-- Version badge - hidden on mobile -->
 					<p
-						class="rounded-full px-2 py-1 bg-surface-200-800/50 text-xs sm:text-sm hidden sm:block transition-all duration-200 hover:scale-105"
+						class="rounded-full px-2 py-1 bg-surface-200-800/50 text-xs desktop:text-sm hidden desktop:block transition-all duration-200 hover:scale-105"
 						aria-label="Version"
 					>
 						v{data.appVersion}
 					</p>
-					<span class="border-r h-6 sm:h-8 border-surface-200-800 hidden md:block"></span>
+					<span class="border-r h-6 desktop:h-8 border-surface-200-800 hidden desktop:block"></span>
 
 					<!-- Locale Switcher - hidden on mobile -->
-					<div class="hidden sm:block">
+					<div class="hidden desktop:block">
 						<LocaleSwitcher />
 					</div>
-					<span class="border-r h-6 sm:h-8 border-surface-200-800 hidden sm:block"></span>
+					<span class="border-r h-6 desktop:h-8 border-surface-200-800 hidden desktop:block"></span>
 
 					<!-- Documentation link - hidden on mobile -->
 					{#if env.PUBLIC_DOCUMENTATION_URL}
@@ -98,7 +98,7 @@
 						<a
 							href={env.PUBLIC_DOCUMENTATION_URL}
 							aria-label={m.tooltip_documentation()}
-							class="btn-icon hover:preset-tonal hidden sm:flex"
+							class="btn-icon hover:preset-tonal hidden desktop:flex"
 							target="_blank"
 							rel="noopener noreferrer"
 							{@attach tooltip(m.tooltip_documentation(), { position: 'bottom' })}
@@ -112,7 +112,7 @@
 					<a
 						href="https://github.com/Geodock-GmbH/Qonnectra"
 						aria-label={m.tooltip_github()}
-						class="btn-icon hover:preset-tonal hidden sm:flex"
+						class="btn-icon hover:preset-tonal hidden desktop:flex"
 						target="_blank"
 						{@attach tooltip(m.tooltip_github(), { position: 'bottom' })}
 					>
@@ -132,7 +132,7 @@
 
 					<!-- Light Switch -->
 					<LightSwitch />
-					<span class="border-r h-6 sm:h-8 border-surface-200-800"></span>
+					<span class="border-r h-6 desktop:h-8 border-surface-200-800"></span>
 
 					<!-- Login/Logout -->
 					{#if isAuthenticated}

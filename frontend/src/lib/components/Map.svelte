@@ -16,6 +16,8 @@
 	import { IconSearch, IconX } from '@tabler/icons-svelte';
 	import { env } from '$env/dynamic/public';
 
+	import { m } from '$lib/paraglide/messages';
+
 	import { MapMeasureManager } from '$lib/classes/MapMeasureManager.svelte.js';
 	import { zoomToExtent } from '$lib/map/searchUtils';
 	import { resolveInitialView, writeStoredView } from '$lib/map/storedView';
@@ -602,7 +604,7 @@
 		<!-- Map: Opacity slider - fullscreen variant (desktop only, mobile is in layer sheet) -->
 		{#if showOpacitySlider && map}
 			<div
-				class="hidden sm:block absolute sm:top-auto sm:right-auto sm:left-4 sm:bottom-5 z-10 sm:max-w-70"
+				class="hidden desktop:block absolute desktop:top-auto desktop:right-auto desktop:left-4 desktop:bottom-5 z-10 desktop:max-w-70"
 			>
 				<OpacitySlider
 					minOpacity={opacitySliderConfig.minOpacity}
@@ -616,7 +618,9 @@
 
 		<!-- Map: Search panel - fullscreen variant (desktop) -->
 		{#if showSearchPanel && map}
-			<div class="hidden sm:block absolute sm:top-4 sm:left-4 sm:right-auto z-10 sm:max-w-md">
+			<div
+				class="hidden desktop:block absolute desktop:top-4 desktop:left-4 desktop:right-auto z-10 desktop:w-md"
+			>
 				<SearchPanel
 					olMapInstance={map}
 					{projectId}
@@ -630,7 +634,7 @@
 
 		<!-- Map: Search panel - fullscreen variant (mobile) -->
 		{#if showSearchPanel && map}
-			<div class="sm:hidden">
+			<div class="desktop:hidden">
 				{#if isMobileSearchOpen}
 					<div class="absolute inset-x-3 top-3 z-20">
 						<div class="relative">
@@ -647,6 +651,7 @@
 							/>
 							<button
 								class="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-surface-200-800 flex items-center justify-center shadow-md z-30"
+								aria-label={m.common_close()}
 								onclick={() => (isMobileSearchOpen = false)}
 							>
 								<IconX size={16} />
@@ -656,6 +661,7 @@
 				{:else}
 					<button
 						class="absolute top-3 left-3 z-10 w-12 h-12 rounded-full bg-surface-50-950 border border-surface-200-800 shadow-md flex items-center justify-center active:scale-95 transition-transform"
+						aria-label={m.common_search()}
 						onclick={() => (isMobileSearchOpen = true)}
 					>
 						<IconSearch size={20} class="text-surface-600-400" />
@@ -666,7 +672,7 @@
 
 		<!-- Map: Layer visibility tree - fullscreen variant -->
 		{#if showLayerVisibilityTree && map}
-			<div class="sm:absolute sm:top-4 sm:right-4 z-10">
+			<div class="desktop:absolute desktop:top-4 desktop:right-4 z-10">
 				<LayerVisibilityTree
 					{layers}
 					{osmLayer}

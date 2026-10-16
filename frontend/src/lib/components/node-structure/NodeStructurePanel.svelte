@@ -12,6 +12,7 @@
 	} from '$lib/classes/NodeStructureContext.svelte.js';
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
+	import { isPhoneLayout } from '$lib/config/layout';
 
 	import CableFiberSidebar from './CableFiberSidebar.svelte';
 	import ComponentTypeSidebar from './ComponentTypeSidebar.svelte';
@@ -32,7 +33,7 @@
 	} = $props();
 
 	let innerWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1024);
-	const isMobile = $derived(innerWidth < 768);
+	const isMobile = $derived(isPhoneLayout(innerWidth));
 
 	/** The mobile bottom sheet that is open, if any. */
 	let activeSheet = $state<'components' | 'cables' | 'ports' | null>(null);

@@ -65,13 +65,16 @@ services:
     image: qonnectra/backend:latest
     container_name: qonnectra_backend_prod
     restart: always
+    # --keep-alive must outlast the frontend's undici pool (4s idle): with
+    # gunicorn's 2s default it closes sockets undici is about to reuse, and
+    # the frontend's fetch fails with "other side closed" / ECONNRESET
     command: >
       sh -c "python manage.py compilemessages &&
             python manage.py collectstatic --noinput &&
             python manage.py migrate &&
             python manage.py shell -c \"from django.contrib.auth import get_user_model; import os; User = get_user_model(); username = os.environ.get('DJANGO_SUPERUSER_USERNAME'); User.objects.filter(username=username).exists() or User.objects.create_superuser(username, os.environ.get('DJANGO_SUPERUSER_EMAIL'), os.environ.get('DJANGO_SUPERUSER_PASSWORD'))\" &&
             python manage.py load_initial_data &&
-            gunicorn --bind 0.0.0.0:8000 --workers 6 --timeout 60 core.wsgi:application"
+            gunicorn --bind 0.0.0.0:8000 --worker-class gthread --workers ${GUNICORN_WORKERS:-6} --threads ${GUNICORN_THREADS:-4} --keep-alive 10 --timeout 60 core.wsgi:application"
     expose:
       - "8000"
     volumes:
@@ -394,6 +397,41 @@ services:
         max-size: "10m"
         max-file: "3"
         labels: "service=wireguard"
+
+  # Opt-in load test (see loadtest/README.md): COMPOSE_PROFILES=loadtest in .env,
+  # then the UI is at https://<APP_DOMAIN>/loadtest/ for superusers.
+  loadtest:
+    profiles: ["loadtest"]
+    build:
+      context: ../loadtest
+      additional_contexts:
+        backend: service:backend
+    image: qonnectra/loadtest:latest
+    container_name: qonnectra_loadtest_prod
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ../loadtest/runs:/loadtest/runs
+      # Container CPU/RAM and the nginx and Postgres logs of a run
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    expose:
+      - "8089"
+    depends_on:
+      - backend
+    networks:
+      - qonnectra_network
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=loadtest"
 
   caddy:
     build:

@@ -58,35 +58,47 @@ describe('feature layers', () => {
 		['address', createAddressLayer, 'address-layer'],
 		['node', createNodeLayer, 'node-layer'],
 		['area', createAreaLayer, 'area-layer']
-	] as const)('should tag the %s layer with its layer id and name', (_type, factory, layerId) => {
-		const layer = factory('7', 'Display Name', undefined);
+	] as const)('should tag the %s layer and render its given source', (_type, factory, layerId) => {
+		const source = new VectorTileSource({});
+		const layer = factory(source, 'Display Name');
 
+		expect(layer.getSource()).toBe(source);
 		expect(layer.get('layerId')).toBe(layerId);
 		expect(layer.get('layerName')).toBe('Display Name');
 		expect(layer.getDeclutter()).toBeFalsy();
 	});
 
 	test('should enable decluttering when labels are on', () => {
-		const layer = createTrenchLayer('7', 'Trenches', undefined, { enabled: true });
+		const layer = createTrenchLayer(new VectorTileSource({}), 'Trenches', { enabled: true });
 
 		expect(layer.getDeclutter()).toBeTruthy();
 		expect(typeof layer.getStyle()).toBe('function');
 	});
 
 	test('should use a plain style for unlabeled trench layers', () => {
-		const layer = createTrenchLayer('7', 'Trenches', undefined);
+		const layer = createTrenchLayer(new VectorTileSource({}), 'Trenches');
 
 		expect(layer.getStyle()).toBeInstanceOf(Style);
 	});
 
 	test('should use a per-type style function when node type styles are given', () => {
-		const layer = createNodeLayer('7', 'Nodes', undefined, {}, { POP: { visible: true } });
+		const layer = createNodeLayer(
+			new VectorTileSource({}),
+			'Nodes',
+			{},
+			{ POP: { visible: true } }
+		);
 
 		expect(typeof layer.getStyle()).toBe('function');
 	});
 
 	test('should use a per-type style function when area type styles are given', () => {
-		const layer = createAreaLayer('7', 'Areas', undefined, {}, { forest: { visible: true } });
+		const layer = createAreaLayer(
+			new VectorTileSource({}),
+			'Areas',
+			{},
+			{ forest: { visible: true } }
+		);
 
 		expect(typeof layer.getStyle()).toBe('function');
 	});

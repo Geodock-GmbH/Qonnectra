@@ -86,7 +86,7 @@
 </script>
 
 <div
-	class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface-50-900 border-t-2 border-surface-200-800"
+	class="desktop:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface-50-900 border-t-2 border-surface-200-800"
 >
 	<Navigation layout="bar">
 		<Navigation.Menu class="grid gap-2" style="grid-template-columns: repeat({totalTiles}, 1fr);">
@@ -124,7 +124,7 @@
 
 {#if showMoreMenu}
 	<div
-		class="fixed inset-0 bg-black/50 z-40 md:hidden"
+		class="fixed inset-0 bg-black/50 z-40 desktop:hidden"
 		role="button"
 		tabindex="0"
 		onclick={closeMoreMenu}
@@ -136,7 +136,7 @@
 	></div>
 
 	<div
-		class="fixed bottom-20 left-4 right-4 z-50 bg-surface-200-800 rounded-t-lg border-2 border-surface-200-800 shadow-lg md:hidden max-h-[70vh] overflow-y-auto overscroll-contain"
+		class="fixed bottom-20 left-4 right-4 z-50 bg-surface-200-800 rounded-t-lg border-2 border-surface-200-800 shadow-lg desktop:hidden max-h-[70vh] overflow-y-auto overscroll-contain"
 		in:slide={{ duration: 200, easing: quintOut }}
 	>
 		<div class="p-4 space-y-4">

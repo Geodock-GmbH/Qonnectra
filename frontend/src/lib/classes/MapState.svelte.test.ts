@@ -129,6 +129,32 @@ describe('initializeLayers', () => {
 		expect(mapState.tileSource).not.toBeNull();
 	});
 
+	test('should render each layer from the tile source it exposes', () => {
+		const mapState = new MapState('7');
+		mapState.initializeLayers();
+
+		expect(mapState.vectorTileLayer!.getSource()).toBe(mapState.tileSource);
+		expect(mapState.addressLayer!.getSource()).toBe(mapState.addressTileSource);
+		expect(mapState.nodeLayer!.getSource()).toBe(mapState.nodeTileSource);
+		expect(mapState.areaLayer!.getSource()).toBe(mapState.areaTileSource);
+	});
+
+	test('should load unfiltered tiles into the visible layers in global view', () => {
+		const mapState = new MapState('7', undefined, null, null, true);
+		mapState.initializeLayers();
+
+		const layers = [
+			mapState.vectorTileLayer,
+			mapState.addressLayer,
+			mapState.nodeLayer,
+			mapState.areaLayer
+		];
+		for (const layer of layers) {
+			const url = layer!.getSource()!.getTileUrlFunction()([15, 17270, 10408], 1, undefined!);
+			expect(url).not.toContain('project=');
+		}
+	});
+
 	test('should skip layers disabled in the layer config', () => {
 		const mapState = new MapState('7', undefined, {
 			trench: true,
@@ -143,6 +169,24 @@ describe('initializeLayers', () => {
 		expect(mapState.addressLayer).toBeNull();
 		expect(mapState.nodeLayer).toBeNull();
 		expect(mapState.areaLayer).toBeNull();
+	});
+});
+
+describe('refreshTileSources', () => {
+	test('should reload the tiles the visible layers render', () => {
+		const mapState = new MapState('7');
+		mapState.initializeLayers();
+		const layers = [
+			mapState.vectorTileLayer!,
+			mapState.addressLayer!,
+			mapState.nodeLayer!,
+			mapState.areaLayer!
+		];
+		const spies = layers.map((layer) => vi.spyOn(layer.getSource()!, 'refresh'));
+
+		mapState.refreshTileSources();
+
+		for (const spy of spies) expect(spy).toHaveBeenCalled();
 	});
 });
 

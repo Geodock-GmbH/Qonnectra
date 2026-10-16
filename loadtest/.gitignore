@@ -1,0 +1,6 @@
+# One folder per run; summarise notable runs in RESULTS.md instead
+runs/
+# Browser recording, specific to the instance it was made against
+calibration.json
+# Local development environment (uv sync)
+.venv/

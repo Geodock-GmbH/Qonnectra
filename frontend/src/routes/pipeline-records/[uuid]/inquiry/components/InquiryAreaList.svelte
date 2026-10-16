@@ -67,7 +67,7 @@
 
 {#if areas.length > 0}
 	<div
-		class="order-2 min-w-0 flex-1 border-2 rounded-lg border-surface-200-800 overflow-y-auto flex flex-col pb-16 md:pb-0 lg:w-72 lg:flex-none lg:shrink-0"
+		class="order-2 min-w-0 flex-1 border-2 rounded-lg border-surface-200-800 overflow-y-auto flex flex-col pb-16 desktop:pb-0 lg:w-72 lg:flex-none lg:shrink-0"
 	>
 		<div class="p-3 border-b border-surface-200-800">
 			<h3 class="text-sm font-semibold text-surface-600 dark:text-surface-400">

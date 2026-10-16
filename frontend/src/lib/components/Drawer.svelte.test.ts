@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { drawerWidth } from '$lib/stores/store';
 
@@ -19,8 +19,22 @@ vi.mock('$lib/paraglide/messages', () => ({
 	)
 }));
 
+const defaultInnerWidth = window.innerWidth;
+
+/**
+ * Sets the viewport width the drawer reads to pick bottom sheet or side panel.
+ * @param width - Viewport width in px.
+ */
+function setViewportWidth(width: number) {
+	Object.defineProperty(window, 'innerWidth', { value: width, configurable: true, writable: true });
+}
+
 beforeEach(() => {
 	drawerWidth.set(400);
+});
+
+afterEach(() => {
+	setViewportWidth(defaultInnerWidth);
 });
 
 describe('Drawer', () => {
@@ -73,10 +87,22 @@ describe('Drawer', () => {
 	});
 
 	test('should apply the persisted width to the desktop drawer', () => {
+		setViewportWidth(1280);
 		drawerWidth.set(555);
 		render(Drawer, { open: true, title: 'Breit', onclose: vi.fn() });
 
 		const drawer = document.querySelector('[data-drawer]') as HTMLElement;
 		expect(drawer.getAttribute('style')).toContain('width: 555px');
+	});
+
+	test('should open as a bottom sheet on a portrait tablet', () => {
+		setViewportWidth(800);
+		drawerWidth.set(555);
+		render(Drawer, { open: true, title: 'Tablet', onclose: vi.fn() });
+
+		expect(screen.getByRole('slider', { name: 'tooltip_drag_to_close' })).toBeInTheDocument();
+		expect(screen.queryByLabelText('tooltip_resize_drawer')).not.toBeInTheDocument();
+		const drawer = document.querySelector('[data-drawer]') as HTMLElement;
+		expect(drawer.getAttribute('style')).not.toContain('width: 555px');
 	});
 });

@@ -46,7 +46,7 @@
 		</div>
 
 		<div
-			class="order-2 min-w-0 flex-1 border-2 rounded-lg border-surface-200-800 overflow-y-auto flex flex-col pb-16 md:pb-0 lg:w-160 lg:flex-none lg:shrink-0"
+			class="order-2 min-w-0 flex-1 border-2 rounded-lg border-surface-200-800 overflow-y-auto flex flex-col pb-16 desktop:pb-0 lg:w-160 lg:flex-none lg:shrink-0"
 		>
 			<ValuationPanel />
 		</div>

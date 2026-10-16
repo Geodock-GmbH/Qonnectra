@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalMapView } from '$lib/stores/store';
 import { globalToaster } from '$lib/stores/toaster';
-import { searchFeatures } from '$lib/remote/map/feature-search.remote';
+import { getFeatureDetails, searchFeatures } from '$lib/remote/map/feature-search.remote';
 
 import SearchPanel from './SearchPanel.svelte';
 
@@ -32,6 +32,10 @@ vi.mock('$lib/remote/map/feature-search.remote', () => ({
 	getConduitTrenches: vi.fn()
 }));
 
+vi.mock('$lib/utils/logToBackendClient', () => ({
+	logToBackendClient: vi.fn(() => Promise.resolve())
+}));
+
 vi.mock('$lib/stores/toaster', () => ({
 	globalToaster: {
 		success: vi.fn(),
@@ -54,9 +58,20 @@ Element.prototype.animate = function () {
 	return animation as unknown as Animation;
 };
 
-function searchResult(label: string, type: SearchResult['type'], value: string): SearchResult {
-	return { label, type, value, uuid: value };
+function searchResult(
+	label: string,
+	type: SearchResult['type'],
+	value: string,
+	context: Partial<Pick<SearchResult, 'detail' | 'project'>> = {}
+): SearchResult {
+	return { label, type, value, uuid: value, detail: '', project: '', ...context };
 }
+
+/** Just enough of an OpenLayers map for a result selection to start. */
+const olMapInstance = {
+	getView: () => ({ getProjection: () => ({ getCode: () => 'EPSG:3857' }) }),
+	addLayer: vi.fn()
+} as never;
 
 function mockSearchResults(results: SearchResult[]) {
 	vi.mocked(searchFeatures).mockResolvedValue(results as never);
@@ -75,14 +90,15 @@ beforeEach(() => {
 afterEach(() => {
 	vi.restoreAllMocks();
 	vi.mocked(searchFeatures).mockReset();
+	vi.mocked(getFeatureDetails).mockReset();
 	vi.mocked(globalToaster.error).mockClear();
 });
 
 describe('SearchPanel', () => {
 	test('should search features and render results with type badges', async () => {
 		mockSearchResults([
-			searchResult('Hauptstraße 5 (Adresse)', 'address', 'addr-1'),
-			searchResult('T-42 (Graben)', 'trench', 'trench-1')
+			searchResult('Hauptstraße 5', 'address', 'addr-1'),
+			searchResult('T-42', 'trench', 'trench-1')
 		]);
 		render(SearchPanel, { projectId: '7' });
 
@@ -131,9 +147,9 @@ describe('SearchPanel', () => {
 
 	test('should show a filter input for large result sets and filter with it', async () => {
 		mockSearchResults([
-			searchResult('Zebrastreifen (Knoten)', 'node', 'node-zebra'),
+			searchResult('Zebrastreifen', 'node', 'node-zebra'),
 			...Array.from({ length: 11 }, (_, index) =>
-				searchResult(`Knoten-${index} (Knoten)`, 'node', `node-${index}`)
+				searchResult(`Knoten-${index}`, 'node', `node-${index}`)
 			)
 		]);
 		const user = userEvent.setup();
@@ -150,7 +166,7 @@ describe('SearchPanel', () => {
 	});
 
 	test('should clear results via the exported clearSearch method', async () => {
-		mockSearchResults([searchResult('PoP-1 (Knoten)', 'node', 'node-1')]);
+		mockSearchResults([searchResult('PoP-1', 'node', 'node-1')]);
 		const { component } = render(SearchPanel, { projectId: '7' });
 		await performSearch('pop');
 		await screen.findByText('PoP-1');
@@ -158,5 +174,96 @@ describe('SearchPanel', () => {
 		component.clearSearch();
 
 		await vi.waitFor(() => expect(screen.queryByText('PoP-1')).not.toBeInTheDocument());
+	});
+
+	test('should describe each result below its name', async () => {
+		mockSearchResults([
+			searchResult('HA - Sterup,Westerstraße 12', 'node', 'node-12', {
+				detail: 'Hausanschluss',
+				project: 'Projekt A'
+			})
+		]);
+		render(SearchPanel, { projectId: '7' });
+
+		await performSearch('wester');
+
+		const option = await screen.findByRole('option');
+		expect(option).toHaveTextContent('HA - Sterup,Westerstraße 12');
+		expect(option).toHaveTextContent('form_node');
+		expect(option).toHaveTextContent('Hausanschluss');
+		expect(option).not.toHaveTextContent('Projekt A');
+	});
+
+	test('should name the project of each result in global map view', async () => {
+		globalMapView.set(true);
+		mockSearchResults([
+			searchResult('PoP-1', 'node', 'node-1', { detail: 'PoP', project: 'Projekt A' }),
+			searchResult('PoP-1', 'node', 'node-2', { detail: 'PoP', project: 'Projekt B' })
+		]);
+		render(SearchPanel, { projectId: '7' });
+
+		await performSearch('pop');
+
+		const options = await screen.findAllByRole('option');
+		expect(options[0]).toHaveTextContent('PoP · Projekt A');
+		expect(options[1]).toHaveTextContent('PoP · Projekt B');
+	});
+
+	test('should filter results by their context', async () => {
+		mockSearchResults([
+			searchResult('Verteiler', 'node', 'node-nvt', { detail: 'Netzverteiler' }),
+			...Array.from({ length: 11 }, (_, index) =>
+				searchResult(`Knoten-${index}`, 'node', `node-${index}`, { detail: 'Hausanschluss' })
+			)
+		]);
+		const user = userEvent.setup();
+		render(SearchPanel, { projectId: '7' });
+
+		await performSearch('knoten');
+		await screen.findByText('Knoten-0');
+		await user.type(screen.getByPlaceholderText('common_filter'), 'Netzverteiler');
+
+		expect(screen.getByText('Verteiler')).toBeInTheDocument();
+		expect(screen.queryByText('Knoten-0')).not.toBeInTheDocument();
+	});
+
+	test('should select the result chosen with the arrow keys on Enter', async () => {
+		vi.mocked(getFeatureDetails).mockRejectedValue(new Error('stop after lookup') as never);
+		mockSearchResults([
+			searchResult('Westerstraße 10', 'address', 'addr-10'),
+			searchResult('Westerstraße 12', 'address', 'addr-12')
+		]);
+		const user = userEvent.setup();
+		render(SearchPanel, { projectId: '7', olMapInstance });
+
+		await performSearch('wester');
+		await screen.findAllByRole('option');
+		await user.keyboard('{ArrowDown}{ArrowDown}');
+
+		const input = screen.getByRole('combobox');
+		const active = screen.getByRole('option', { selected: true });
+		expect(active).toHaveTextContent('Westerstraße 12');
+		expect(input).toHaveAttribute('aria-activedescendant', active.id);
+
+		await user.keyboard('{Enter}');
+
+		expect(getFeatureDetails).toHaveBeenCalledWith({
+			featureType: 'address',
+			featureUuid: 'addr-12',
+			projectId: '7'
+		});
+		expect(searchFeatures).toHaveBeenCalledTimes(1);
+	});
+
+	test('should close the results on Escape', async () => {
+		mockSearchResults([searchResult('PoP-1', 'node', 'node-1')]);
+		const user = userEvent.setup();
+		render(SearchPanel, { projectId: '7' });
+
+		await performSearch('pop');
+		await screen.findByRole('option');
+		await user.keyboard('{Escape}');
+
+		await vi.waitFor(() => expect(screen.queryByRole('option')).not.toBeInTheDocument());
 	});
 });

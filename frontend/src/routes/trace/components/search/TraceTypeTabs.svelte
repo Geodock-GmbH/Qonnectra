@@ -7,8 +7,10 @@
 	const search = getTraceSearchState();
 </script>
 
-<div class="mb-6 rounded-xl border border-surface-200-800 p-1.5 sm:p-2">
-	<div class="flex gap-1 sm:gap-2">
+<!-- Labels follow the bar's own width, not the viewport: five labels need ~650px, which a
+     portrait tablet or a desktop with expanded sidebar does not leave. -->
+<div class="@container mb-6 rounded-xl border border-surface-200-800 p-1.5 @2xl:p-2">
+	<div class="flex gap-1 @2xl:gap-2">
 		{#each TRACE_ENTRY_TYPES as type (type)}
 			{@const display = TRACE_TYPE_DISPLAY[type]}
 			{@const active = search.activeType === type}
@@ -16,13 +18,13 @@
 				type="button"
 				onclick={() => search.setActiveType(type)}
 				class={[
-					'flex flex-1 items-center justify-center gap-2 rounded-lg px-2 py-2.5 transition-colors sm:px-4 sm:py-3',
+					'flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg px-2 py-2.5 transition-colors @2xl:px-4 @2xl:py-3',
 					active ? 'bg-primary-500 text-white' : 'hover:bg-surface-100-900'
 				]}
 				title={display.label()}
 			>
-				<display.icon size={20} class={active ? 'text-white' : display.color} />
-				<span class="hidden text-sm font-medium sm:inline">{display.label()}</span>
+				<display.icon size={20} class="shrink-0 {active ? 'text-white' : display.color}" />
+				<span class="hidden truncate text-sm font-medium @2xl:inline">{display.label()}</span>
 			</button>
 		{/each}
 	</div>

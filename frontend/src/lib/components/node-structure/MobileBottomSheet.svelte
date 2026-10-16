@@ -78,7 +78,7 @@
 {#if open}
 	<!-- Backdrop -->
 	<div
-		class="fixed inset-0 bg-black/40 z-40 md:hidden"
+		class="fixed inset-0 bg-black/40 z-40 desktop:hidden"
 		transition:fade={{ duration: 200 }}
 		onclick={handleBackdropClick}
 		onkeydown={(e) => e.key === 'Escape' && handleClose()}
@@ -89,7 +89,7 @@
 	<!-- Sheet -->
 	<div
 		bind:this={sheetElement}
-		class="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-surface-100-900 rounded-t-2xl shadow-2xl flex flex-col"
+		class="fixed bottom-0 left-0 right-0 z-50 desktop:hidden bg-surface-100-900 rounded-t-2xl shadow-2xl flex flex-col"
 		style="height: {sheetHeight}vh; max-height: 90vh;"
 		transition:fly={{ y: 300, duration: 300, easing: quintOut }}
 		role="dialog"

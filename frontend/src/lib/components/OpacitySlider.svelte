@@ -37,7 +37,7 @@
 	aria-label={m.tooltip_opacity_slider()}
 	class={compact
 		? 'w-full'
-		: 'preset-filled-surface-50-950 rounded-lg border border-surface-200-800 shadow-md p-4 sm:p-3 w-full sm:min-w-[256px] sm:max-w-70'}
+		: 'preset-filled-surface-50-950 rounded-lg border border-surface-200-800 shadow-md p-4 desktop:p-3 w-full desktop:min-w-[256px] desktop:max-w-70'}
 	{@attach tooltip(m.tooltip_opacity_slider(), { position: 'top', delay: 1000 })}
 >
 	<Slider
@@ -48,7 +48,7 @@
 		onValueChange={handleSkeletonSliderChange}
 		class="cursor-pointer touch-manipulation"
 	>
-		<div class="flex items-center justify-between mb-3 sm:mb-2">
+		<div class="flex items-center justify-between mb-3 desktop:mb-2">
 			<Slider.Label class="text-sm font-medium text-surface-contrast-100-900">
 				{m.common_opacity()}
 			</Slider.Label>
@@ -59,12 +59,12 @@
 			</span>
 		</div>
 		<Slider.Control>
-			<Slider.Track class="h-2.5 sm:h-2 rounded-full bg-surface-200-800">
+			<Slider.Track class="h-2.5 desktop:h-2 rounded-full bg-surface-200-800">
 				<Slider.Range class="bg-primary-500 rounded-full" />
 			</Slider.Track>
 			<Slider.Thumb
 				index={0}
-				class="size-6 sm:size-4 ring-2 ring-primary-500 bg-white shadow-md touch-manipulation active:scale-110 transition-transform"
+				class="size-6 desktop:size-4 ring-2 ring-primary-500 bg-white shadow-md touch-manipulation active:scale-110 transition-transform"
 			>
 				<Slider.HiddenInput name="opacity" />
 			</Slider.Thumb>

@@ -1,9 +1,8 @@
 import { error } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
-import { m } from '$lib/paraglide/messages';
-
 import { failFromResponse } from '$lib/remote/shared/backend-error';
+import { discardBodies } from '$lib/remote/shared/json';
 
 /** Feature kinds the map search can find. */
 export type SearchableFeatureType = 'address' | 'node' | 'trench' | 'conduit' | 'area';
@@ -11,19 +10,20 @@ export type SearchableFeatureType = 'address' | 'node' | 'trench' | 'conduit' | 
 /** Feature kinds that carry their own geometry. */
 export type GeometryFeatureType = Exclude<SearchableFeatureType, 'conduit'>;
 
+/** One map search hit, shaped as a combobox option. */
 export interface SearchResult {
 	/** The feature UUID as a string */
 	value: string;
-	/** Display label for the search result */
+	/** The feature's own name: street address, node/conduit/area name or trench id */
 	label: string;
 	/** Type of the feature */
 	type: SearchableFeatureType;
 	/** The feature UUID */
 	uuid: string;
-	/** Optional name (for nodes, conduits, areas) */
-	name?: string;
-	/** Optional trench ID number (for trenches) */
-	id_trench?: string;
+	/** Context that tells same-named hits apart, joined with ` · `; empty when there is none */
+	detail: string;
+	/** Name of the feature's project; empty when the backend sent none */
+	project: string;
 }
 
 /** A GeoJSON feature as served by the backend's feature endpoints. */
@@ -40,10 +40,17 @@ export interface ConduitTrenches {
 	trenchUuids: string[];
 }
 
+/** A project as nested by the GeoJSON serializers, or flattened to its name by the list ones. */
+type ProjectField = { project?: string } | string | null;
+
 interface AddressProperties {
 	street?: string;
-	housenumber?: string;
+	housenumber?: number | string | null;
 	house_number_suffix?: string;
+	zip_code?: string;
+	city?: string;
+	district?: string;
+	project?: ProjectField;
 }
 
 interface AddressSearchRow extends AddressProperties {
@@ -57,13 +64,24 @@ interface AddressSearchRow extends AddressProperties {
 
 interface NamedSearchFeature {
 	id?: string;
-	properties?: { name?: string; id_trench?: string };
+	properties?: {
+		name?: string;
+		id_trench?: string;
+		project?: ProjectField;
+		node_type?: { node_type?: string } | null;
+		uuid_address?: { properties?: AddressProperties } | null;
+		construction_type?: { construction_type?: string } | null;
+		surface?: { surface?: string } | null;
+		area_type?: { area_type?: string } | null;
+	};
 }
 
 interface ConduitSearchRow {
 	uuid?: string;
 	name?: string;
 	conduit_type?: string;
+	network_level?: string;
+	project?: ProjectField;
 }
 
 /** Raw payloads of the five search endpoints, in request order. */
@@ -91,8 +109,64 @@ function rowsOf<T>(payload: unknown): T[] {
 }
 
 /**
- * Flattens the five search payloads into one result list with translated
- * type suffixes. Rows without an id or a display name are skipped.
+ * Formats street and house number as `Hauptstraße 5a`.
+ * @param address - Address fields; any of them may be missing.
+ * @returns The street address, or an empty string when it carries neither part.
+ */
+function formatStreetAddress(address: AddressProperties): string {
+	const hasNumber = address.housenumber != null && address.housenumber !== '';
+	const number = hasNumber ? `${address.housenumber}${address.house_number_suffix ?? ''}` : '';
+	return [address.street, number].filter(Boolean).join(' ');
+}
+
+/**
+ * Joins the non-empty context parts of a search hit.
+ * @param parts - Context values in display order.
+ * @returns The parts separated by ` · `.
+ */
+function joinDetail(...parts: (string | null | undefined)[]): string {
+	return parts.filter(Boolean).join(' · ');
+}
+
+/**
+ * Reads a project name from either serializer shape.
+ * @param project - The nested project object or the flattened name.
+ * @returns The project name, or an empty string when there is none.
+ */
+function projectName(project: ProjectField | undefined): string {
+	if (typeof project === 'string') return project;
+	return project?.project ?? '';
+}
+
+/**
+ * Describes an address by its locality, adding the district when it differs
+ * from the city.
+ * @param address - Address fields.
+ * @returns The context line.
+ */
+function addressDetail(address: AddressProperties): string {
+	const locality = [address.zip_code, address.city].filter(Boolean).join(' ');
+	const district = address.district !== address.city ? address.district : '';
+	return joinDetail(locality, district);
+}
+
+/**
+ * Describes a node by its type and linked address, leaving out the address
+ * when the node name already spells it out.
+ * @param name - The node name.
+ * @param props - The node's GeoJSON properties.
+ * @returns The context line.
+ */
+function nodeDetail(name: string, props: NonNullable<NamedSearchFeature['properties']>): string {
+	const linkedAddress = formatStreetAddress(props.uuid_address?.properties ?? {});
+	const isRedundant = name.toLowerCase().includes(linkedAddress.toLowerCase());
+	return joinDetail(props.node_type?.node_type, isRedundant ? '' : linkedAddress);
+}
+
+/**
+ * Flattens the five search payloads into one result list. Each hit carries
+ * its own name plus a context line and project that tell same-named hits
+ * apart. Rows without an id or a display name are skipped.
  * @param payloads - Parsed bodies of the search endpoints.
  * @returns Search results in address, node, trench, conduit, area order.
  */
@@ -103,64 +177,64 @@ export function mapSearchResults(payloads: SearchPayloads): SearchResult[] {
 		const props = address.properties ?? address;
 		const addressId = address.properties ? address.id : address.uuid;
 		if (!addressId) continue;
-		const addressName = [props.street, props.housenumber, props.house_number_suffix]
-			.filter(Boolean)
-			.join(' ');
 		results.push({
 			value: addressId,
-			label: `${addressName} (${m.form_address({ count: 1 })})`,
+			label: formatStreetAddress(props),
 			type: 'address',
-			uuid: addressId
+			uuid: addressId,
+			detail: addressDetail(props),
+			project: projectName(props.project)
 		});
 	}
 
 	for (const node of rowsOf<NamedSearchFeature>(payloads.nodes)) {
-		const name = node.properties?.name;
-		if (!node.id || !name) continue;
+		const props = node.properties ?? {};
+		if (!node.id || !props.name) continue;
 		results.push({
 			value: node.id,
-			label: `${name} (${m.form_node()})`,
+			label: props.name,
 			type: 'node',
 			uuid: node.id,
-			name
+			detail: nodeDetail(props.name, props),
+			project: projectName(props.project)
 		});
 	}
 
 	for (const trench of rowsOf<NamedSearchFeature>(payloads.trenches)) {
-		const idTrench = trench.properties?.id_trench;
-		if (!trench.id || !idTrench) continue;
+		const props = trench.properties ?? {};
+		if (!trench.id || !props.id_trench) continue;
 		results.push({
 			value: trench.id,
-			label: `${idTrench} (${m.nav_trench()})`,
+			label: props.id_trench,
 			type: 'trench',
 			uuid: trench.id,
-			id_trench: idTrench
+			detail: joinDetail(props.construction_type?.construction_type, props.surface?.surface),
+			project: projectName(props.project)
 		});
 	}
 
 	for (const conduit of rowsOf<ConduitSearchRow>(payloads.conduits)) {
 		if (!conduit.uuid || !conduit.name) continue;
-		const labelParts = [conduit.name];
-		if (conduit.conduit_type) labelParts.push(`- ${conduit.conduit_type}`);
-		labelParts.push(`(${m.form_conduit({ count: 1 })})`);
 		results.push({
 			value: conduit.uuid,
-			label: labelParts.join(' '),
+			label: conduit.name,
 			type: 'conduit',
 			uuid: conduit.uuid,
-			name: conduit.name
+			detail: joinDetail(conduit.conduit_type, conduit.network_level),
+			project: projectName(conduit.project)
 		});
 	}
 
 	for (const area of rowsOf<NamedSearchFeature>(payloads.areas)) {
-		const name = area.properties?.name;
-		if (!area.id || !name) continue;
+		const props = area.properties ?? {};
+		if (!area.id || !props.name) continue;
 		results.push({
 			value: area.id,
-			label: `${name} (${m.form_area()})`,
+			label: props.name,
 			type: 'area',
 			uuid: area.id,
-			name
+			detail: joinDetail(props.area_type?.area_type),
+			project: projectName(props.project)
 		});
 	}
 
@@ -207,7 +281,10 @@ export async function searchFeaturesInProject(
 	);
 
 	const failed = responses.find((response) => !response.ok);
-	if (failed) await failFromResponse(failed, 'Failed to fetch search results');
+	if (failed) {
+		await discardBodies(responses.filter((response) => response !== failed));
+		await failFromResponse(failed, 'Failed to fetch search results');
+	}
 
 	const [addresses, nodes, trenches, conduits, areas] = await Promise.all(
 		responses.map((response) => response.json() as Promise<unknown>)

@@ -11,6 +11,7 @@
 	import { PanelResizeManager } from '$lib/classes/PanelResizeManager.svelte.js';
 	import { drawerSnap, drawerWidth } from '$lib/stores/store';
 	import { tooltip } from '$lib/utils/tooltip';
+	import { isPhoneLayout } from '$lib/config/layout';
 
 	interface Props {
 		/** Whether the drawer is shown. The URL decides; the drawer only reports a close. */
@@ -38,7 +39,8 @@
 		onResize: (width) => setWidth(width)
 	});
 
-	let isMobile = $derived((innerWidth.current ?? 0) < 768);
+	/** Phone layout (phones and portrait tablets): render as a bottom sheet instead of a side panel. */
+	let isMobile = $derived(isPhoneLayout(innerWidth.current));
 
 	/**
 	 * Persists the drawer width, clamped to the viewport, and keeps the

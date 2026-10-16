@@ -2,16 +2,24 @@
 
 import pytest
 from apps.api.models import Address, Area, Node
-from apps.api.search import trigram_address_search, trigram_name_search
+from apps.api.search import (
+    SEARCH_RESULT_LIMIT,
+    trigram_address_search,
+    trigram_name_search,
+)
 from apps.api.tests.factories import (
     AddressFactory,
     AreaFactory,
+    ConduitFactory,
     FlagFactory,
     NodeFactory,
     NodeTypeFactory,
     ProjectFactory,
+    TrenchFactory,
 )
 from django.contrib.auth import get_user_model
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
 
 User = get_user_model()
@@ -279,6 +287,26 @@ class TestTrigramNameSearch:
         names = list(result.values_list("name", flat=True))
         assert "Baugebiet Süd" in names
 
+    def test_short_term_is_annotated(self, node_data):
+        """A term below trigram length still carries the ``similarity`` callers order by."""
+        qs = Node.objects.all()
+        result = trigram_name_search(qs, "Ha").order_by("-similarity")
+        names = list(result.values_list("name", flat=True))
+        assert names == ["Hauptverteiler Nord"]
+
+    def test_blank_term_is_annotated(self, node_data):
+        """A whitespace-only term filters nothing but still carries ``similarity``."""
+        qs = Node.objects.all()
+        result = trigram_name_search(qs, "   ").order_by("-similarity")
+        assert result.count() == qs.count()
+
+    def test_or_icontains_matches_second_field(self, node_data):
+        """A trigram-length term also finds rows whose second field contains it."""
+        qs = Node.objects.all()
+        result = trigram_name_search(qs, "Unterv", or_icontains="node_type__node_type")
+        names = list(result.values_list("name", flat=True))
+        assert names == ["Verteiler Süd"]
+
 
 # ---------------------------------------------------------------------------
 # Integration tests for TraceSearchView
@@ -427,6 +455,83 @@ class TestNodeAllTrigram:
             ]
         assert "Hauptverteiler Nord" in names
 
+    def test_short_term_search(self, authenticated_client, node_data, search_project):
+        """A two-character term must not break the similarity ordering."""
+        response = authenticated_client.get(
+            "/api/v1/node/all/",
+            {"search": "Ha", "project": search_project.pk},
+        )
+        assert response.status_code == 200
+        assert _feature_names(response.data) == ["Hauptverteiler Nord"]
+
+    def test_short_term_matches_node_type(
+        self, authenticated_client, node_data, search_project
+    ):
+        """A two-character term finds nodes whose type matches but whose name does not."""
+        response = authenticated_client.get(
+            "/api/v1/node/all/",
+            {"search": "rv", "project": search_project.pk},
+        )
+        assert response.status_code == 200
+        assert _feature_names(response.data) == ["Verteiler Süd"]
+
+    def test_short_term_orders_by_name(
+        self, authenticated_client, search_project, search_flag
+    ):
+        """Short-term matches all score 0, so the cap keeps the first by name."""
+        node_type = NodeTypeFactory()
+        for name in ("Zx Zeta", "Zx Alpha", "Zx Mitte"):
+            NodeFactory(
+                name=name, node_type=node_type, project=search_project, flag=search_flag
+            )
+        response = authenticated_client.get(
+            "/api/v1/node/all/", {"search": "Zx", "project": search_project.pk}
+        )
+        assert response.status_code == 200
+        assert _feature_names(response.data) == ["Zx Alpha", "Zx Mitte", "Zx Zeta"]
+
+    def test_trigram_term_matches_node_type(
+        self, authenticated_client, node_data, search_project
+    ):
+        """A trigram-length term finds nodes whose type matches but whose name does not."""
+        response = authenticated_client.get(
+            "/api/v1/node/all/",
+            {"search": "Unterv", "project": search_project.pk},
+        )
+        assert response.status_code == 200
+        assert _feature_names(response.data) == ["Verteiler Süd"]
+
+    def test_blank_search_returns_all(
+        self, authenticated_client, node_data, search_project
+    ):
+        """A whitespace-only term must not break the similarity ordering."""
+        response = authenticated_client.get(
+            "/api/v1/node/all/",
+            {"search": "   ", "project": search_project.pk},
+        )
+        assert response.status_code == 200
+        assert len(response.data["features"]) == len(node_data)
+
+    @pytest.mark.parametrize("term", ["Ha", "Hauptvert"])
+    def test_search_without_distinct(
+        self, authenticated_client, node_data, search_project, term
+    ):
+        """The search must not ``DISTINCT`` over every node column, geometries included."""
+        with CaptureQueriesContext(connection) as queries:
+            response = authenticated_client.get(
+                "/api/v1/node/all/",
+                {"search": term, "project": search_project.pk},
+            )
+        assert response.status_code == 200
+        node_queries = [q["sql"] for q in queries if 'FROM "node"' in q["sql"]]
+        assert node_queries
+        assert not any("DISTINCT" in sql for sql in node_queries)
+
+
+def _feature_names(data):
+    """Return the ``name`` property of every feature in a GeoJSON collection."""
+    return [feature["properties"]["name"] for feature in data["features"]]
+
 
 # ---------------------------------------------------------------------------
 # Integration tests for AreaViewSet.all_areas
@@ -443,3 +548,121 @@ class TestAreaAllTrigram:
             {"search": "Baugebit", "project": search_project.pk},
         )
         assert response.status_code == 200
+
+    def test_short_term_search(self, authenticated_client, area_data, search_project):
+        """A two-character term must not break the similarity ordering."""
+        response = authenticated_client.get(
+            "/api/v1/area/all/",
+            {"search": "Ba", "project": search_project.pk},
+        )
+        assert response.status_code == 200
+        assert _feature_names(response.data) == ["Baugebiet Süd"]
+
+
+# ---------------------------------------------------------------------------
+# Result limit of the map search endpoints
+# ---------------------------------------------------------------------------
+
+
+class TestSearchResultLimit:
+    """A search returns at most ``SEARCH_RESULT_LIMIT`` rows; a plain list stays whole."""
+
+    @pytest.fixture
+    def many_nodes(self, search_project, search_flag):
+        """Create one more matching node than a search may return."""
+        node_type = NodeTypeFactory(node_type="Hausanschluss")
+        return [
+            NodeFactory(
+                name=f"Knoten {i:03d}",
+                node_type=node_type,
+                project=search_project,
+                flag=search_flag,
+            )
+            for i in range(SEARCH_RESULT_LIMIT + 1)
+        ]
+
+    @pytest.mark.parametrize("term", ["Knoten", "Kn", "Hausan"])
+    def test_node_search_is_capped(
+        self, authenticated_client, many_nodes, search_project, term
+    ):
+        """Name, short-term and node-type matches are all capped."""
+        response = authenticated_client.get(
+            "/api/v1/node/all/", {"search": term, "project": search_project.pk}
+        )
+        assert response.status_code == 200
+        assert len(response.data["features"]) == SEARCH_RESULT_LIMIT
+
+    def test_node_list_without_search_is_not_capped(
+        self, authenticated_client, many_nodes, search_project
+    ):
+        """The network schema loads every node through the same endpoint."""
+        response = authenticated_client.get(
+            "/api/v1/node/all/", {"project": search_project.pk}
+        )
+        assert response.status_code == 200
+        assert len(response.data["features"]) == len(many_nodes)
+
+    def test_area_search_is_capped(
+        self, authenticated_client, search_project, search_flag
+    ):
+        """Area matches are capped."""
+        for i in range(SEARCH_RESULT_LIMIT + 1):
+            AreaFactory(
+                name=f"Baugebiet {i:03d}", project=search_project, flag=search_flag
+            )
+        response = authenticated_client.get(
+            "/api/v1/area/all/", {"search": "Baugebiet", "project": search_project.pk}
+        )
+        assert response.status_code == 200
+        assert len(response.data["features"]) == SEARCH_RESULT_LIMIT
+
+    def test_trench_search_is_capped(
+        self, authenticated_client, search_project, search_flag
+    ):
+        """Typing the common ``TR`` prefix of every trench id is capped."""
+        TrenchFactory.create_batch(
+            SEARCH_RESULT_LIMIT + 1, project=search_project, flag=search_flag
+        )
+        response = authenticated_client.get(
+            "/api/v1/trench/all/", {"search": "TR", "project": search_project.pk}
+        )
+        assert response.status_code == 200
+        assert len(response.data["features"]) == SEARCH_RESULT_LIMIT
+
+
+# ---------------------------------------------------------------------------
+# Project names in the lightweight list rows of the map search
+# ---------------------------------------------------------------------------
+
+
+class TestSearchListProjectName:
+    """``address/all/`` and ``conduit/all/`` rows name their project.
+
+    The global map search spans all projects, so the result list shows the
+    project to tell same-named hits apart.
+    """
+
+    @pytest.mark.parametrize(
+        ("url", "factory_cls", "search"),
+        [
+            ("/api/v1/address/all/", AddressFactory, "Teststraße"),
+            ("/api/v1/conduit/all/", ConduitFactory, "Conduit"),
+        ],
+    )
+    def test_rows_carry_project_name_without_extra_queries(
+        self, authenticated_client, url, factory_cls, search
+    ):
+        """Every row has its project name, fetched without one query per row."""
+        factory_cls(project=ProjectFactory(project="Nord"))
+        with CaptureQueriesContext(connection) as single:
+            authenticated_client.get(url, {"search": search})
+
+        factory_cls(project=ProjectFactory(project="Süd"))
+        factory_cls(project=ProjectFactory(project="Ost"))
+        with CaptureQueriesContext(connection) as many:
+            response = authenticated_client.get(url, {"search": search})
+
+        assert response.status_code == 200
+        projects = {row["project"] for row in response.data["results"]}
+        assert projects == {"Nord", "Süd", "Ost"}
+        assert len(many.captured_queries) == len(single.captured_queries)

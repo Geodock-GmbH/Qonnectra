@@ -87,6 +87,7 @@ from .views import (
     TraceSearchView,
     TrenchConduitCanvasViewSet,
     TrenchConduitConnectionViewSet,
+    TileAuthView,
     TrenchesNearNodeView,
     TrenchViewSet,
     TypeOfWorkViewSet,
@@ -367,6 +368,11 @@ urlpatterns = [
         "auth/qgis-auth/",
         QGISAuthView.as_view(),
         name="qgis-auth",
+    ),
+    path(
+        "auth/tile-auth/",
+        TileAuthView.as_view(),
+        name="tile-auth",
     ),
     path(
         "layer-extent/",

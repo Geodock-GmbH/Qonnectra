@@ -81,7 +81,7 @@ frontend/
 │   ├── lib/
 │   │   ├── classes/          # Class-based state managers (*.svelte.ts)
 │   │   ├── components/       # Reusable Svelte components
-│   │   ├── config/           # Navigation links and route-id registry
+│   │   ├── config/           # Navigation links, route-id registry, desktop layout breakpoint
 │   │   ├── context/          # Typed contexts: current project, remembered project, network schema
 │   │   ├── map/              # OpenLayers layers, styles, tile loading, MVT worker, map-view hash
 │   │   ├── remote/           # Remote functions, one folder per domain

@@ -3,6 +3,8 @@
 	import { innerWidth } from 'svelte/reactivity/window';
 	import { Tabs as SkeletonTabs } from '@skeletonlabs/skeleton-svelte';
 
+	import { isPhoneLayout } from '$lib/config/layout';
+
 	interface TabItem {
 		/** Unique identifier for the tab */
 		value: string;
@@ -30,7 +32,8 @@
 		orientation = 'vertical'
 	}: Props = $props();
 
-	let isMobile = $derived((innerWidth.current ?? 0) < 768);
+	/** Phone layout (phones and portrait tablets): tabs go horizontal. */
+	let isMobile = $derived(isPhoneLayout(innerWidth.current));
 	let effectiveOrientation = $derived(isMobile ? 'horizontal' : orientation);
 
 	// A value the current list does not offer (a stale URL, a list that

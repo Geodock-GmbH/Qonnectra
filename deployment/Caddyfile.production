@@ -65,6 +65,16 @@
 {$APP_DOMAIN} {
     import /etc/caddy/extra/app/*.caddy
 
+    # Load-test UI, only with the "loadtest" compose profile (502 otherwise).
+    # It checks the app session itself and admits superusers only.
+    handle /loadtest* {
+        reverse_proxy loadtest:8089 {
+            header_up Host {host}
+            header_up X-Forwarded-Proto https
+            header_up X-Real-IP {remote_host}
+        }
+    }
+
     reverse_proxy frontend:3000 {
         header_up Host {host}
         header_up X-Forwarded-Proto https

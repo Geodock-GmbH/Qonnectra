@@ -64,6 +64,7 @@
 		"perfect-freehand": "^1.2.2",
 		"proj4": "^2.20.2",
 		"set-cookie-parser": "^2.7.1",
+		"undici": "^8.11.2",
 		"valibot": "^1.4.2"
 	}
 }

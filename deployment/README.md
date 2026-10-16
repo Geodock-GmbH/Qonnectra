@@ -532,7 +532,7 @@ The production compose file is sized for the minimum supported host of 8 CPU cor
 | Service               | Memory Limit | Memory Reservation | Concurrency                                 |
 | --------------------- | ------------ | ------------------ | ------------------------------------------- |
 | Database (PostgreSQL) | 6GB          | 2GB                | shared_buffers 1.5GB, 4 parallel workers    |
-| Backend (Django API)  | 2GB          | 1GB                | 6 gunicorn workers                          |
+| Backend (Django API)  | 2GB          | 1GB                | 6 gunicorn workers × 4 threads (gthread)    |
 | Backend WMS           | 1.5GB        | 512MB              | 4 gunicorn workers                          |
 | QGIS Server           | 3GB          | 1GB                | 3 FCGI render processes (`spawn-fcgi -F 3`) |
 | TileServer-GL         | 1GB          | 512MB              |                                             |
@@ -571,14 +571,16 @@ The production compose file is sized for the minimum supported host of 8 CPU cor
 | `DJANGO_ALLOWED_HOSTS`         | Yes      | Comma-separated allowed hosts                            | `api.localhost`         |
 | `CSRF_TRUSTED_ORIGINS`         | Yes      | Comma-separated trusted origins                          | `https://app.localhost` |
 | `DB_EXTERNAL_PORT`             | No       | Published database port (dev compose only)               | `5440`                  |
+| `GUNICORN_WORKERS`             | No       | Backend gunicorn processes (default 6)                   | `6`                     |
+| `GUNICORN_THREADS`             | No       | Threads per backend process (default 4)                  | `4`                     |
 
 ### Deployment variables (`deployment/.env`, Docker only)
 
-| Variable                                                                                                       | Description                                                   |
-| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `DOMAIN_NAME`, `API_DOMAIN`, `APP_DOMAIN`, `ADMIN_DOMAIN`, `FILES_DOMAIN`, `QGIS_DOMAIN`, `TILE_SERVER_DOMAIN` | Domains served by Caddy (production)                          |
-| `API_URL`, `PUBLIC_API_URL`, `PUBLIC_TILE_SERVER_URL`, `PUBLIC_DOCUMENTATION_URL`                              | Frontend variables, passed to the frontend container          |
-| `WIREGUARD_SERVERURL`, `WIREGUARD_PORT`, `WIREGUARD_PEERS`                                                     | WireGuard VPN (see [WireGuard README](wireguard/README.md))   |
+| Variable                                                                                                       | Description                                                 |
+| -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `DOMAIN_NAME`, `API_DOMAIN`, `APP_DOMAIN`, `ADMIN_DOMAIN`, `FILES_DOMAIN`, `QGIS_DOMAIN`, `TILE_SERVER_DOMAIN` | Domains served by Caddy (production)                        |
+| `API_URL`, `PUBLIC_API_URL`, `PUBLIC_TILE_SERVER_URL`, `PUBLIC_DOCUMENTATION_URL`                              | Frontend variables, passed to the frontend container        |
+| `WIREGUARD_SERVERURL`, `WIREGUARD_PORT`, `WIREGUARD_PEERS`                                                     | WireGuard VPN (see [WireGuard README](wireguard/README.md)) |
 
 ### Frontend variables (`frontend/.env`)
 
@@ -758,6 +760,7 @@ Docker volumes hold the persistent data:
    - Apply security updates regularly
    - Configure firewall rules
 6. Scaling: for scaling beyond one host, consider Docker Swarm or Kubernetes
+7. Load testing: `COMPOSE_PROFILES=loadtest` in `.env` adds a load-test UI at `https://<APP_DOMAIN>/loadtest/` for superusers, with synthetic test data and reports. See [loadtest/README.md](../loadtest/README.md)
 
 ## Additional resources
 

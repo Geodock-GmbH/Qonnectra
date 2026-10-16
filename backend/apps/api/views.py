@@ -25,7 +25,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.db import connection, transaction
-from django.db.models import Avg, Count, F, Q, Sum, Value
+from django.db.models import Avg, Count, F, Q, Sum
 from django.db.models.functions import TruncMonth
 from django.http import FileResponse, HttpResponse, StreamingHttpResponse
 from django.utils.encoding import iri_to_uri
@@ -46,10 +46,12 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
+from .basic_auth import authenticate_basic
 from .models import (
     Address,
     Area,
@@ -111,7 +113,11 @@ from .models import (
 from .pageination import CustomPagination
 from .permissions import RoleBasedPermission, get_user_permissions
 from .routing import find_shortest_path
-from .search import trigram_address_search, trigram_name_search
+from .search import (
+    SEARCH_RESULT_LIMIT,
+    trigram_address_search,
+    trigram_name_search,
+)
 from .serializers import (
     AddressListSerializer,
     AddressSerializer,
@@ -639,12 +645,19 @@ class TrenchViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="all")
     def all_trenches(self, request):
-        """
-        Returns all trenches with project, flag, and search filters.
-        No pagination is used.
+        """Return all trenches with project, flag, and search filters.
 
-        The optional ``exclude_projects`` param takes a comma-separated list
-        of project ids (e.g. ``?exclude_projects=3,7``) to drop from results.
+        No pagination is used; a ``search`` on ``id_trench`` returns at most
+        ``SEARCH_RESULT_LIMIT`` trenches.
+
+        Args:
+            request: DRF request with query params ``project``, ``flag``,
+                ``search`` and ``exclude_projects`` (comma-separated ids to
+                drop, e.g. ``3,7``).
+
+        Returns:
+            Response: GeoJSON FeatureCollection of :model:`api.Trench`
+                features, ordered by ``id_trench``.
         """
         queryset = Trench.objects.select_related(
             "surface",
@@ -681,7 +694,9 @@ class TrenchViewSet(viewsets.ModelViewSet):
                 queryset = queryset.none()
 
         if search_term:
-            queryset = queryset.filter(Q(id_trench__icontains=search_term))
+            queryset = queryset.filter(id_trench__icontains=search_term)[
+                :SEARCH_RESULT_LIMIT
+            ]
 
         serializer = TrenchSerializer(queryset, many=True)
         return Response(serializer.data)
@@ -1048,21 +1063,29 @@ class WebDAVAuthView(APIView):
     permission_classes = [AllowAny]  # We handle auth manually
 
     def _authenticate_request(self, request):
-        """
-        Common authentication logic for all HTTP methods.
-        Returns tuple: (success: bool, response_data: dict, status_code: int)
+        """Authenticate a forwarded request by JWT cookie or HTTP Basic credentials.
+
+        Basic credentials go through :func:`apps.api.basic_auth.authenticate_basic`,
+        which remembers a successful check so repeated client requests skip
+        the password hash.
+
+        Args:
+            request: The request Caddy forwards, carrying the client's
+                cookies and Authorization header.
+
+        Returns:
+            tuple[bool, dict[str, str], int]: Whether access is granted, the
+                response body and the HTTP status.
         """
         logger.info(
             f"WebDAV auth request: method={request.method}, "
             f"path={request.path}, user={request.user}"
         )
 
-        # Check if the user is authenticated via session/JWT cookie
         if request.user and request.user.is_authenticated:
             logger.info(f"User authenticated via JWT cookie: {request.user.username}")
             return True, {"status": "authenticated"}, status.HTTP_200_OK
 
-        # If not authenticated via session, check Authorization header for Basic auth
         auth_header = request.META.get("HTTP_AUTHORIZATION", "")
 
         if not auth_header:
@@ -1073,17 +1096,7 @@ class WebDAVAuthView(APIView):
 
         if auth_header.startswith("Basic "):
             try:
-                import base64
-
-                # Decode Basic auth credentials
-                credentials = base64.b64decode(auth_header[6:]).decode("utf-8")
-                username, password = credentials.split(":", 1)
-
-                logger.debug(f"Attempting Basic auth for user: {username}")
-
-                from django.contrib.auth import authenticate
-
-                user = authenticate(username=username, password=password)
+                username, user = authenticate_basic(auth_header)
 
                 if user is not None:
                     if user.is_active:
@@ -1197,9 +1210,19 @@ class QGISAuthView(APIView):
     permission_classes = [AllowAny]  # We handle auth manually
 
     def _authenticate_request(self, request):
-        """
-        Common authentication logic for all HTTP methods.
-        Returns tuple: (success: bool, response_data: dict, status_code: int)
+        """Authenticate a forwarded request by JWT cookie or HTTP Basic credentials.
+
+        Basic credentials go through :func:`apps.api.basic_auth.authenticate_basic`,
+        which remembers a successful check so repeated client requests skip
+        the password hash.
+
+        Args:
+            request: The request Caddy forwards, carrying the client's
+                cookies and Authorization header.
+
+        Returns:
+            tuple[bool, dict[str, str], int]: Whether access is granted, the
+                response body and the HTTP status.
         """
         logger.info(
             f"QGIS auth request: method={request.method}, "
@@ -1220,16 +1243,7 @@ class QGISAuthView(APIView):
 
         if auth_header.startswith("Basic "):
             try:
-                import base64
-
-                credentials = base64.b64decode(auth_header[6:]).decode("utf-8")
-                username, password = credentials.split(":", 1)
-
-                logger.debug(f"Attempting Basic auth for QGIS access: {username}")
-
-                from django.contrib.auth import authenticate
-
-                user = authenticate(username=username, password=password)
+                username, user = authenticate_basic(auth_header)
 
                 if user is not None:
                     if user.is_active:
@@ -1523,14 +1537,6 @@ class OlTrenchTileViewSet(APIView):
                     ST_TileEnvelope(%(z)s, %(x)s, %(y)s) AS tile_bounds,
                     ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096)) AS tile_bounds_margin
             ),
-            trench_conduits AS (
-                SELECT
-                    tcc.uuid_trench,
-                    STRING_AGG(co.name, ', ' ORDER BY co.name) AS conduit_names
-                FROM public.trench_conduit_connect tcc
-                JOIN public.conduit co ON tcc.uuid_conduit = co.uuid
-                GROUP BY tcc.uuid_trench
-            ),
             mvtgeom AS (
                 SELECT
                     ST_AsMVTGeom(
@@ -1567,7 +1573,14 @@ class OlTrenchTileViewSet(APIView):
                 LEFT JOIN public.attributes_status st ON t.status = st.id
                 LEFT JOIN public.attributes_company c1 ON t.constructor = c1.id
                 LEFT JOIN public.attributes_company c2 ON t.owner = c2.id
-                LEFT JOIN trench_conduits tc ON t.uuid = tc.uuid_trench
+                -- LATERAL aggregates only the trenches in this tile; a grouped
+                -- CTE would aggregate every trench's conduits on each request.
+                LEFT JOIN LATERAL (
+                    SELECT STRING_AGG(co.name, ', ' ORDER BY co.name) AS conduit_names
+                    FROM public.trench_conduit_connect tcc
+                    JOIN public.conduit co ON tcc.uuid_conduit = co.uuid
+                    WHERE tcc.uuid_trench = t.uuid
+                ) tc ON TRUE
                 WHERE
                     t.geom_3857 && b.tile_bounds_margin
                     AND (%(project)s IS NULL OR t.project = %(project)s)
@@ -1667,6 +1680,7 @@ class ConduitViewSet(viewsets.ModelViewSet):
             "constructor",
             "manufacturer",
             "flag",
+            "project",
         ).order_by("name")
 
         project_id = request.query_params.get("project")
@@ -2049,6 +2063,7 @@ class AddressViewSet(viewsets.ModelViewSet):
         queryset = Address.objects.select_related(
             "status_development",
             "flag",
+            "project",
         ).order_by("street", "housenumber", "house_number_suffix")
 
         project_id = request.query_params.get("project")
@@ -2525,7 +2540,9 @@ class NodeViewSet(viewsets.ModelViewSet):
         """
         queryset = Node.objects.select_related(
             "node_type",
-            "uuid_address",
+            "uuid_address__project",
+            "uuid_address__flag",
+            "uuid_address__status_development",
             "parent_node",
             "status",
             "network_level",
@@ -2817,7 +2834,9 @@ class NodeViewSet(viewsets.ModelViewSet):
             flag: Filter by flag ID.
             group: Filter by node type group.
             exclude_group: Exclude nodes by node type group.
-            search: Trigram fuzzy search on name, with icontains on node_type.
+            search: Trigram fuzzy search on name, with icontains on
+                node_type. Returns at most ``SEARCH_RESULT_LIMIT`` best
+                matches.
             use_pipe_branch_settings: If ``'true'``, apply project's
                 pipe-branch allowed types.
             include_excluded: If ``'true'``, bypass NetworkSchemaSettings
@@ -2847,7 +2866,10 @@ class NodeViewSet(viewsets.ModelViewSet):
         else:
             queryset = Node.objects.select_related(
                 "node_type",
-                "uuid_address",
+                "uuid_address__project",
+                "uuid_address__flag",
+                "uuid_address__status_development",
+                "parent_node",
                 "status",
                 "network_level",
                 "owner",
@@ -2924,11 +2946,9 @@ class NodeViewSet(viewsets.ModelViewSet):
         if exclude_group:
             queryset = queryset.exclude(node_type__group=exclude_group)
         if search_term:
-            trigram_qs = trigram_name_search(queryset, search_term, field="name")
-            type_qs = queryset.filter(
-                node_type__node_type__icontains=search_term
-            ).annotate(similarity=Value(0.0))
-            queryset = (trigram_qs | type_qs).distinct().order_by("-similarity")
+            queryset = trigram_name_search(
+                queryset, search_term, or_icontains="node_type__node_type"
+            )[:SEARCH_RESULT_LIMIT]
 
         if minimal:
             serializer = ParentNodeSerializer(queryset, many=True)
@@ -4812,7 +4832,8 @@ class AreaViewSet(viewsets.ModelViewSet):
         """Return all areas with project, flag, and fuzzy search filters.
 
         Search uses trigram similarity on the name field combined with
-        an icontains fallback on the area_type name.
+        an icontains fallback on the area_type name, and returns at most
+        ``SEARCH_RESULT_LIMIT`` best matches.
 
         Args:
             request: DRF request with query params ``project``,
@@ -4836,11 +4857,9 @@ class AreaViewSet(viewsets.ModelViewSet):
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
         if search_term:
-            trigram_qs = trigram_name_search(queryset, search_term, field="name")
-            type_qs = queryset.filter(
-                area_type__area_type__icontains=search_term
-            ).annotate(similarity=Value(0.0))
-            queryset = (trigram_qs | type_qs).distinct().order_by("-similarity")
+            queryset = trigram_name_search(
+                queryset, search_term, or_icontains="area_type__area_type"
+            )[:SEARCH_RESULT_LIMIT]
         serializer = AreaSerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -6912,6 +6931,42 @@ class WMSTokenAuthentication(BaseAuthentication):
             raise AuthenticationFailed(f"Invalid token: {e}")
         except User.DoesNotExist:
             raise AuthenticationFailed("User not found")
+
+
+class TileAuthView(APIView):
+    """Login check nginx runs before it serves a cached tile.
+
+    nginx answers vector tile and WMS tile requests from its cache without
+    asking Django, so it calls this endpoint through ``auth_request`` first
+    and caches the answer per token. It accepts the same logins as the tile
+    views: the WMS-scoped ``token`` query parameter, the access-token cookie
+    and a bearer header. Every logged-in user may see every tile, so roles
+    are not checked.
+    """
+
+    authentication_classes = [
+        WMSTokenAuthentication,
+        JWTCookieAuthentication,
+        JWTAuthentication,
+    ]
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        responses={204: None},
+        description="Return 204 if the request carries a valid login, 403 if not.",
+    )
+    def get(self, request):
+        """Confirm that the request carries a valid login.
+
+        Args:
+            request: nginx's auth_request subrequest, carrying the original
+                request's cookies and headers plus the WMS ``token``.
+
+        Returns:
+            Response: Empty 204; DRF answers 403 before this when no
+                authenticator accepts the request.
+        """
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 _wms_upstream_semaphore = threading.Semaphore(8)
