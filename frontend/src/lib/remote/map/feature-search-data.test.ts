@@ -181,6 +181,22 @@ describe('searchFeaturesInProject', () => {
 			body: { message: 'Search is down' }
 		});
 	});
+
+	test('should discard the bodies of the other endpoints when one fails', async () => {
+		const cancel = vi.fn();
+		fetchMock.mockImplementation((url: string) =>
+			Promise.resolve(
+				url.includes('node/all/')
+					? failedResponse(500)
+					: { ...okResponse({ features: [] }), body: { cancel } }
+			)
+		);
+
+		await expect(searchFeaturesInProject(headers, 'ha', '7')).rejects.toMatchObject({
+			status: 500
+		});
+		expect(cancel).toHaveBeenCalledTimes(4);
+	});
 });
 
 describe('getFeatureDetailsByType', () => {

@@ -41,11 +41,9 @@ describe('+page.server.js', () => {
 	});
 
 	/**
-	 * Helper function to create all the mock responses needed by the load function.
-	 *
-	 * The load function fetches attribute data (cable_type, node_type, status,
-	 * network_level, company, flags) and project data (node, cable, cable_label,
-	 * cable_micropipe) in parallel, so responses are matched by URL.
+	 * Mocks a successful response for every request of the load function.
+	 * The requests run in parallel, so responses are matched by URL.
+	 * @param bodies - The body per endpoint; omitted ones are empty.
 	 */
 	function setupLoadMocks({
 		nodes = [],
@@ -143,8 +141,6 @@ describe('+page.server.js', () => {
 				return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
 			});
 
-			// The implementation throws error(500, 'Failed to fetch nodes') which gets caught
-			// and re-thrown, so we expect it to reject
 			await expect(
 				load({
 					fetch: mockFetch,
@@ -155,6 +151,77 @@ describe('+page.server.js', () => {
 			).rejects.toThrow();
 		});
 
+		test('should discard the other bodies when the node fetch fails', async () => {
+			const cancel = vi.fn();
+			mockFetch.mockImplementation((url: string) => {
+				if (url.includes('node/all')) {
+					return Promise.resolve({ ok: false, status: 500 });
+				}
+				return Promise.resolve({ ok: true, json: () => Promise.resolve([]), body: { cancel } });
+			});
+
+			await expect(
+				load({
+					fetch: mockFetch,
+					cookies: mockCookies,
+					url: new URL('http://localhost'),
+					params: { projectId: '1' }
+				} as unknown as Parameters<typeof load>[0])
+			).rejects.toThrow('Failed to fetch nodes');
+			expect(cancel).toHaveBeenCalledTimes(9);
+		});
+
+		test('should discard the body of a failed optional fetch and load the rest', async () => {
+			setupLoadMocks({ nodes: [{ id: 1, name: 'Node 1' }] });
+			const cancel = vi.fn();
+			const loadMocks = mockFetch.getMockImplementation() as (url: string) => Promise<unknown>;
+			mockFetch.mockImplementation((url: string) =>
+				url.includes('cable/all')
+					? Promise.resolve({ ok: false, status: 500, body: { cancel } })
+					: loadMocks(url)
+			);
+
+			const result = (await load({
+				fetch: mockFetch,
+				cookies: mockCookies,
+				url: new URL('http://localhost'),
+				params: { projectId: '1' }
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
+
+			expect(cancel).toHaveBeenCalledOnce();
+			expect(result.nodes).toHaveLength(1);
+			expect(result.cables).toEqual([]);
+		});
+
+		test('should read all bodies at once', { timeout: 1000 }, async () => {
+			setupLoadMocks({ nodes: [{ id: 1, name: 'Node 1' }] });
+			const loadMocks = mockFetch.getMockImplementation() as (
+				url: string
+			) => Promise<{ ok: boolean; json: () => Promise<unknown> }>;
+			const { promise: allReading, resolve } = Promise.withResolvers<void>();
+			let reading = 0;
+			mockFetch.mockImplementation(async (url: string) => {
+				const response = await loadMocks(url);
+				return {
+					...response,
+					json: async () => {
+						if (++reading === 10) resolve();
+						await allReading;
+						return response.json();
+					}
+				};
+			});
+
+			const result = (await load({
+				fetch: mockFetch,
+				cookies: mockCookies,
+				url: new URL('http://localhost'),
+				params: { projectId: '1' }
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
+
+			expect(result.nodes).toHaveLength(1);
+		});
+
 		test('should handle complete failure gracefully', async () => {
 			mockFetch.mockImplementation((url: string) => {
 				if (url.includes('node/all')) {
@@ -163,7 +230,6 @@ describe('+page.server.js', () => {
 				return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
 			});
 
-			// The load function catches errors and returns empty data
 			const result = (await load({
 				fetch: mockFetch,
 				cookies: mockCookies,
@@ -250,7 +316,6 @@ describe('+page.server.js', () => {
 				mockCookies as unknown as Parameters<typeof getAuthHeaders>[0]
 			);
 
-			// When no token, getAuthHeaders returns an empty object
 			expect(headers.Cookie).toBeUndefined();
 		});
 	});

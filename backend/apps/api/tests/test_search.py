@@ -12,6 +12,8 @@ from apps.api.tests.factories import (
     ProjectFactory,
 )
 from django.contrib.auth import get_user_model
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
 
 User = get_user_model()
@@ -279,6 +281,26 @@ class TestTrigramNameSearch:
         names = list(result.values_list("name", flat=True))
         assert "Baugebiet Süd" in names
 
+    def test_short_term_is_annotated(self, node_data):
+        """A term below trigram length still carries the ``similarity`` callers order by."""
+        qs = Node.objects.all()
+        result = trigram_name_search(qs, "Ha").order_by("-similarity")
+        names = list(result.values_list("name", flat=True))
+        assert names == ["Hauptverteiler Nord"]
+
+    def test_blank_term_is_annotated(self, node_data):
+        """A whitespace-only term filters nothing but still carries ``similarity``."""
+        qs = Node.objects.all()
+        result = trigram_name_search(qs, "   ").order_by("-similarity")
+        assert result.count() == qs.count()
+
+    def test_or_icontains_matches_second_field(self, node_data):
+        """A trigram-length term also finds rows whose second field contains it."""
+        qs = Node.objects.all()
+        result = trigram_name_search(qs, "Unterv", or_icontains="node_type__node_type")
+        names = list(result.values_list("name", flat=True))
+        assert names == ["Verteiler Süd"]
+
 
 # ---------------------------------------------------------------------------
 # Integration tests for TraceSearchView
@@ -427,6 +449,68 @@ class TestNodeAllTrigram:
             ]
         assert "Hauptverteiler Nord" in names
 
+    def test_short_term_search(self, authenticated_client, node_data, search_project):
+        """A two-character term must not break the similarity ordering."""
+        response = authenticated_client.get(
+            "/api/v1/node/all/",
+            {"search": "Ha", "project": search_project.pk},
+        )
+        assert response.status_code == 200
+        assert _feature_names(response.data) == ["Hauptverteiler Nord"]
+
+    def test_short_term_matches_node_type(
+        self, authenticated_client, node_data, search_project
+    ):
+        """A two-character term finds nodes whose type matches but whose name does not."""
+        response = authenticated_client.get(
+            "/api/v1/node/all/",
+            {"search": "rv", "project": search_project.pk},
+        )
+        assert response.status_code == 200
+        assert _feature_names(response.data) == ["Verteiler Süd"]
+
+    def test_trigram_term_matches_node_type(
+        self, authenticated_client, node_data, search_project
+    ):
+        """A trigram-length term finds nodes whose type matches but whose name does not."""
+        response = authenticated_client.get(
+            "/api/v1/node/all/",
+            {"search": "Unterv", "project": search_project.pk},
+        )
+        assert response.status_code == 200
+        assert _feature_names(response.data) == ["Verteiler Süd"]
+
+    def test_blank_search_returns_all(
+        self, authenticated_client, node_data, search_project
+    ):
+        """A whitespace-only term must not break the similarity ordering."""
+        response = authenticated_client.get(
+            "/api/v1/node/all/",
+            {"search": "   ", "project": search_project.pk},
+        )
+        assert response.status_code == 200
+        assert len(response.data["features"]) == len(node_data)
+
+    @pytest.mark.parametrize("term", ["Ha", "Hauptvert"])
+    def test_search_without_distinct(
+        self, authenticated_client, node_data, search_project, term
+    ):
+        """The search must not ``DISTINCT`` over every node column, geometries included."""
+        with CaptureQueriesContext(connection) as queries:
+            response = authenticated_client.get(
+                "/api/v1/node/all/",
+                {"search": term, "project": search_project.pk},
+            )
+        assert response.status_code == 200
+        node_queries = [q["sql"] for q in queries if 'FROM "node"' in q["sql"]]
+        assert node_queries
+        assert not any("DISTINCT" in sql for sql in node_queries)
+
+
+def _feature_names(data):
+    """Return the ``name`` property of every feature in a GeoJSON collection."""
+    return [feature["properties"]["name"] for feature in data["features"]]
+
 
 # ---------------------------------------------------------------------------
 # Integration tests for AreaViewSet.all_areas
@@ -443,3 +527,12 @@ class TestAreaAllTrigram:
             {"search": "Baugebit", "project": search_project.pk},
         )
         assert response.status_code == 200
+
+    def test_short_term_search(self, authenticated_client, area_data, search_project):
+        """A two-character term must not break the similarity ordering."""
+        response = authenticated_client.get(
+            "/api/v1/area/all/",
+            {"search": "Ba", "project": search_project.pk},
+        )
+        assert response.status_code == 200
+        assert _feature_names(response.data) == ["Baugebiet Süd"]

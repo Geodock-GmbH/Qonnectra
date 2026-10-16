@@ -25,7 +25,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.db import connection, transaction
-from django.db.models import Avg, Count, F, Q, Sum, Value
+from django.db.models import Avg, Count, F, Q, Sum
 from django.db.models.functions import TruncMonth
 from django.http import FileResponse, HttpResponse, StreamingHttpResponse
 from django.utils.encoding import iri_to_uri
@@ -2928,11 +2928,9 @@ class NodeViewSet(viewsets.ModelViewSet):
         if exclude_group:
             queryset = queryset.exclude(node_type__group=exclude_group)
         if search_term:
-            trigram_qs = trigram_name_search(queryset, search_term, field="name")
-            type_qs = queryset.filter(
-                node_type__node_type__icontains=search_term
-            ).annotate(similarity=Value(0.0))
-            queryset = (trigram_qs | type_qs).distinct().order_by("-similarity")
+            queryset = trigram_name_search(
+                queryset, search_term, or_icontains="node_type__node_type"
+            ).order_by("-similarity")
 
         if minimal:
             serializer = ParentNodeSerializer(queryset, many=True)
@@ -4840,11 +4838,9 @@ class AreaViewSet(viewsets.ModelViewSet):
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
         if search_term:
-            trigram_qs = trigram_name_search(queryset, search_term, field="name")
-            type_qs = queryset.filter(
-                area_type__area_type__icontains=search_term
-            ).annotate(similarity=Value(0.0))
-            queryset = (trigram_qs | type_qs).distinct().order_by("-similarity")
+            queryset = trigram_name_search(
+                queryset, search_term, or_icontains="area_type__area_type"
+            ).order_by("-similarity")
         serializer = AreaSerializer(queryset, many=True)
         return Response(serializer.data)
 

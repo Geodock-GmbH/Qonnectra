@@ -91,31 +91,47 @@ def trigram_name_search(
     queryset: QuerySet,
     search_term: str,
     field: str = "name",
+    or_icontains: str | None = None,
 ) -> QuerySet:
     """Filter and rank a queryset by trigram similarity on a single text field.
 
-    Terms shorter than 3 characters fall back to icontains. Results are
-    annotated with a ``similarity`` score and ordered descending.
+    Every returned queryset carries a ``similarity`` annotation, so callers
+    can always order by it. A blank term filters nothing and scores 0. Terms
+    shorter than 3 characters fall back to icontains, score 0 and keep the
+    queryset's ordering. Longer terms are ordered by descending
+    ``similarity``.
+
+    ``or_icontains`` adds a second match in the same query instead of an OR
+    of two querysets, which would need a ``DISTINCT`` over every column,
+    geometries included. A row found only through it keeps the similarity
+    of its ``field``.
 
     Args:
         queryset: Base queryset to filter.
         search_term: Raw search input.
         field: Model field name to match against. Defaults to ``"name"``.
+        or_icontains: Lookup path that also matches when it contains the
+            term, e.g. ``"node_type__node_type"``.
 
     Returns:
-        QuerySet: Filtered and similarity-ordered queryset with a
-            ``similarity`` annotation.
+        QuerySet: Filtered queryset with a ``similarity`` annotation.
     """
-    if not search_term or not search_term.strip():
-        return queryset
+    search_term = (search_term or "").strip()
 
-    search_term = search_term.strip()
+    if not search_term:
+        return queryset.annotate(similarity=Value(0.0))
 
     if len(search_term) < 3:
-        return queryset.filter(**{f"{field}__icontains": search_term})
+        similarity = Value(0.0)
+        match = Q(**{f"{field}__icontains": search_term})
+    else:
+        similarity = TrigramWordSimilarity(search_term, field)
+        match = Q(similarity__gte=SIMILARITY_THRESHOLD)
 
-    return (
-        queryset.annotate(similarity=TrigramWordSimilarity(search_term, field))
-        .filter(similarity__gte=SIMILARITY_THRESHOLD)
-        .order_by("-similarity")
-    )
+    if or_icontains:
+        match |= Q(**{f"{or_icontains}__icontains": search_term})
+
+    queryset = queryset.annotate(similarity=similarity).filter(match)
+    if len(search_term) < 3:
+        return queryset
+    return queryset.order_by("-similarity")

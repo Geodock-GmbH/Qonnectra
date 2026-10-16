@@ -4,6 +4,7 @@ import { API_URL } from '$env/static/private';
 import { m } from '$lib/paraglide/messages';
 
 import { failFromResponse } from '$lib/remote/shared/backend-error';
+import { discardBodies } from '$lib/remote/shared/json';
 
 /** Feature kinds the map search can find. */
 export type SearchableFeatureType = 'address' | 'node' | 'trench' | 'conduit' | 'area';
@@ -11,6 +12,7 @@ export type SearchableFeatureType = 'address' | 'node' | 'trench' | 'conduit' | 
 /** Feature kinds that carry their own geometry. */
 export type GeometryFeatureType = Exclude<SearchableFeatureType, 'conduit'>;
 
+/** One map search hit, shaped as a combobox option. */
 export interface SearchResult {
 	/** The feature UUID as a string */
 	value: string;
@@ -207,7 +209,10 @@ export async function searchFeaturesInProject(
 	);
 
 	const failed = responses.find((response) => !response.ok);
-	if (failed) await failFromResponse(failed, 'Failed to fetch search results');
+	if (failed) {
+		await discardBodies(responses.filter((response) => response !== failed));
+		await failFromResponse(failed, 'Failed to fetch search results');
+	}
 
 	const [addresses, nodes, trenches, conduits, areas] = await Promise.all(
 		responses.map((response) => response.json() as Promise<unknown>)
