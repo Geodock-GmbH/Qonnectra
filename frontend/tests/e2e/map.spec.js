@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 /** @typedef {import('./helpers/api.js').ListedFeature} ListedFeature */
 
 import { firstFeature } from './helpers/api.js';
-import { loginOrSkip } from './helpers/auth.js';
+import { API_URL, loginOrSkip } from './helpers/auth.js';
 import { reloadPage } from './helpers/history.js';
 import { gotoProjectRoute, projectIdFromUrl, projectPath } from './helpers/routes.js';
 
@@ -246,5 +246,141 @@ test.describe('Map page', () => {
 		await expect(page.getByText(/click a layer|klicken sie auf einen layer/i).first()).toBeVisible({
 			timeout: 15000
 		});
+	});
+});
+
+/**
+ * Picks a node name of the current project that is distinctive enough to
+ * search for: short names like "1" also match house numbers, burying the node
+ * among address hits.
+ * @param {import('@playwright/test').Page} page - A logged-in page on the map.
+ * @param {(condition: boolean, reason: string) => void} skip - `test.skip`.
+ * @returns {Promise<string>} The node name to search for.
+ */
+async function nodeNameToSearch(page, skip) {
+	const id = projectIdFromUrl(page.url());
+	const response = await page.request.get(`${API_URL}node/?project=${id}`);
+	const payload = response.ok() ? await response.json() : null;
+	/** @type {{ properties?: { name?: string } }[]} */
+	const nodes = payload?.results?.features ?? payload?.features ?? [];
+	const name = nodes.map((node) => node.properties?.name ?? '').find((n) => n.length >= 5);
+	skip(!name, 'Needs a node with a name of at least five characters in the project');
+	return /** @type {string} */ (name);
+}
+
+/**
+ * The result option of the node with exactly this name.
+ * @param {import('@playwright/test').Page} page - The map page.
+ * @param {string} name - The node name.
+ * @returns {import('@playwright/test').Locator} The option.
+ */
+function nodeOption(page, name) {
+	return page
+		.getByRole('option')
+		.filter({ has: page.getByText(name, { exact: true }) })
+		.filter({ hasText: /netzknoten|node/i })
+		.first();
+}
+
+/**
+ * Reads whether a result name wraps and whether any of it is cut off.
+ * @param {import('@playwright/test').Locator} nameElement - The name inside a result option.
+ * @returns {Promise<{ whiteSpace: string, clipped: boolean }>} The layout facts.
+ */
+function nameLayout(nameElement) {
+	return nameElement.evaluate((el) => ({
+		whiteSpace: getComputedStyle(el).whiteSpace,
+		clipped: el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight
+	}));
+}
+
+test.describe('Map search results', () => {
+	test.beforeEach(async ({ page }) => {
+		await loginOrSkip(page, test.skip);
+		await gotoProjectRoute(page, 'map');
+		await page.waitForLoadState('networkidle');
+	});
+
+	test('show the full name of each hit together with its type', async ({ page }) => {
+		const name = await nodeNameToSearch(page, test.skip);
+		const search = page.getByPlaceholder(/suchen|search/i).first();
+
+		await search.fill(name);
+		await search.press('Enter');
+
+		const option = nodeOption(page, name);
+		await expect(option).toBeVisible({ timeout: 15000 });
+		// Near-identical names differ at the end, so the name wraps instead of
+		// being cut off with an ellipsis or a line clamp.
+		const layout = await nameLayout(option.getByText(name, { exact: true }));
+		expect(layout).toEqual({ whiteSpace: 'normal', clipped: false });
+	});
+
+	test('select the hit chosen with the arrow keys on Enter', async ({ page }) => {
+		const name = await nodeNameToSearch(page, test.skip);
+		const search = page.getByPlaceholder(/suchen|search/i).first();
+
+		await search.fill(name);
+		await search.press('Enter');
+		const firstOption = page.getByRole('option').first();
+		await expect(firstOption).toBeVisible({ timeout: 15000 });
+
+		await search.press('ArrowDown');
+		await expect(firstOption).toHaveAttribute('aria-selected', 'true');
+		await search.press('Enter');
+
+		await expect(page.getByText(/feature gefunden|feature found/i).first()).toBeVisible({
+			timeout: 15000
+		});
+		await expect(page.getByRole('option')).toHaveCount(0);
+	});
+
+	test('close the results on Escape', async ({ page }) => {
+		const name = await nodeNameToSearch(page, test.skip);
+		const search = page.getByPlaceholder(/suchen|search/i).first();
+
+		await search.fill(name);
+		await search.press('Enter');
+		await expect(page.getByRole('option').first()).toBeVisible({ timeout: 15000 });
+
+		await search.press('Escape');
+
+		await expect(page.getByRole('option')).toHaveCount(0);
+	});
+});
+
+test.describe('Map search on a phone', () => {
+	test.skip(({ browserName }) => browserName !== 'chromium', 'Mobile emulation is Chromium-only');
+	test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+
+	test.beforeEach(async ({ page }) => {
+		await loginOrSkip(page, test.skip);
+		await gotoProjectRoute(page, 'map');
+		await page.waitForLoadState('networkidle');
+	});
+
+	test('closes the keyboard after searching and shows the full names', async ({ page }) => {
+		const name = await nodeNameToSearch(page, test.skip);
+
+		await page.getByRole('button', { name: /^(suchen|search)$/i }).tap();
+		// Both panel instances are in the DOM; only the phone one is shown.
+		const search = page.getByPlaceholder(/suchen|search/i).filter({ visible: true });
+		await expect(search).toBeVisible();
+		await search.fill(name);
+		await search.press('Enter');
+
+		const option = nodeOption(page, name);
+		await expect(option).toBeInViewport({ timeout: 15000 });
+		// A focused input keeps the on-screen keyboard over the results.
+		await expect(search).not.toBeFocused();
+		const layout = await nameLayout(option.getByText(name, { exact: true }));
+		expect(layout).toEqual({ whiteSpace: 'normal', clipped: false });
+
+		await option.tap();
+
+		await expect(page.getByText(/feature gefunden|feature found/i).first()).toBeVisible({
+			timeout: 15000
+		});
+		await expect(search).toBeHidden();
 	});
 });

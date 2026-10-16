@@ -16,6 +16,8 @@
 	import { IconSearch, IconX } from '@tabler/icons-svelte';
 	import { env } from '$env/dynamic/public';
 
+	import { m } from '$lib/paraglide/messages';
+
 	import { MapMeasureManager } from '$lib/classes/MapMeasureManager.svelte.js';
 	import { zoomToExtent } from '$lib/map/searchUtils';
 	import { resolveInitialView, writeStoredView } from '$lib/map/storedView';
@@ -616,7 +618,7 @@
 
 		<!-- Map: Search panel - fullscreen variant (desktop) -->
 		{#if showSearchPanel && map}
-			<div class="hidden sm:block absolute sm:top-4 sm:left-4 sm:right-auto z-10 sm:max-w-md">
+			<div class="hidden sm:block absolute sm:top-4 sm:left-4 sm:right-auto z-10 sm:w-md">
 				<SearchPanel
 					olMapInstance={map}
 					{projectId}
@@ -647,6 +649,7 @@
 							/>
 							<button
 								class="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-surface-200-800 flex items-center justify-center shadow-md z-30"
+								aria-label={m.common_close()}
 								onclick={() => (isMobileSearchOpen = false)}
 							>
 								<IconX size={16} />
@@ -656,6 +659,7 @@
 				{:else}
 					<button
 						class="absolute top-3 left-3 z-10 w-12 h-12 rounded-full bg-surface-50-950 border border-surface-200-800 shadow-md flex items-center justify-center active:scale-95 transition-transform"
+						aria-label={m.common_search()}
 						onclick={() => (isMobileSearchOpen = true)}
 					>
 						<IconSearch size={20} class="text-surface-600-400" />

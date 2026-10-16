@@ -10,6 +10,7 @@ from apps.api.search import (
 from apps.api.tests.factories import (
     AddressFactory,
     AreaFactory,
+    ConduitFactory,
     FlagFactory,
     NodeFactory,
     NodeTypeFactory,
@@ -627,3 +628,41 @@ class TestSearchResultLimit:
         )
         assert response.status_code == 200
         assert len(response.data["features"]) == SEARCH_RESULT_LIMIT
+
+
+# ---------------------------------------------------------------------------
+# Project names in the lightweight list rows of the map search
+# ---------------------------------------------------------------------------
+
+
+class TestSearchListProjectName:
+    """``address/all/`` and ``conduit/all/`` rows name their project.
+
+    The global map search spans all projects, so the result list shows the
+    project to tell same-named hits apart.
+    """
+
+    @pytest.mark.parametrize(
+        ("url", "factory_cls", "search"),
+        [
+            ("/api/v1/address/all/", AddressFactory, "Teststraße"),
+            ("/api/v1/conduit/all/", ConduitFactory, "Conduit"),
+        ],
+    )
+    def test_rows_carry_project_name_without_extra_queries(
+        self, authenticated_client, url, factory_cls, search
+    ):
+        """Every row has its project name, fetched without one query per row."""
+        factory_cls(project=ProjectFactory(project="Nord"))
+        with CaptureQueriesContext(connection) as single:
+            authenticated_client.get(url, {"search": search})
+
+        factory_cls(project=ProjectFactory(project="Süd"))
+        factory_cls(project=ProjectFactory(project="Ost"))
+        with CaptureQueriesContext(connection) as many:
+            response = authenticated_client.get(url, {"search": search})
+
+        assert response.status_code == 200
+        projects = {row["project"] for row in response.data["results"]}
+        assert projects == {"Nord", "Süd", "Ost"}
+        assert len(many.captured_queries) == len(single.captured_queries)

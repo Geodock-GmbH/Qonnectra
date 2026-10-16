@@ -1,19 +1,42 @@
 <script lang="ts">
+	import type { HTMLInputAttributes } from 'svelte/elements';
 	import { IconSearch } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
-	interface Props {
+	interface Props extends Omit<HTMLInputAttributes, 'value' | 'onkeydown'> {
 		value?: string;
+		/** Called on Enter and on the search button. */
 		onSearch?: () => void;
+		/** Runs before the built-in Enter handling; `preventDefault()` suppresses the search. */
+		onkeydown?: (event: KeyboardEvent) => void;
 	}
 
-	let { value = $bindable(''), onSearch = () => {} }: Props = $props();
+	let {
+		value = $bindable(''),
+		onSearch = () => {},
+		onkeydown,
+		...inputAttributes
+	}: Props = $props();
 
+	let inputElement = $state<HTMLInputElement>();
+
+	/**
+	 * Runs the search. On touch devices the input loses focus so the on-screen
+	 * keyboard closes and the results below become visible.
+	 */
+	function submit() {
+		if (window.matchMedia?.('(pointer: coarse)').matches) inputElement?.blur();
+		onSearch();
+	}
+
+	/**
+	 * Searches on Enter, unless the parent's keydown handler already claimed the key.
+	 * @param event - Keydown on the input.
+	 */
 	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Enter') {
-			onSearch();
-		}
+		onkeydown?.(event);
+		if (event.key === 'Enter' && !event.defaultPrevented) submit();
 	}
 </script>
 
@@ -22,10 +45,13 @@
 		<IconSearch size={18} stroke={2.5} />
 	</div>
 	<input
+		{...inputAttributes}
+		bind:this={inputElement}
 		id="search-input"
 		name="search"
 		class="search-input"
 		type="search"
+		enterkeyhint="search"
 		placeholder={m.common_search()}
 		bind:value
 		onkeydown={handleKeydown}
@@ -34,7 +60,7 @@
 		spellcheck="false"
 		data-testid="search-input"
 	/>
-	<button class="search-button" onclick={() => onSearch()} aria-label={m.common_search()}>
+	<button class="search-button" onclick={submit} aria-label={m.common_search()}>
 		<IconSearch size={20} stroke={2} />
 	</button>
 </div>

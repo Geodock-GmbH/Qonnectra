@@ -652,6 +652,11 @@ class ConduitListSerializer(serializers.ModelSerializer):
         read_only=True,
         default="",
     )
+    project = serializers.CharField(
+        source="project.project",
+        read_only=True,
+        default="",
+    )
 
     class Meta:
         model = Conduit
@@ -668,6 +673,7 @@ class ConduitListSerializer(serializers.ModelSerializer):
             "date",
             "flag",
             "funding_status",
+            "project",
         ]
 
 
@@ -821,6 +827,9 @@ class AddressListSerializer(serializers.ModelSerializer):
         default="",
     )
     flag = serializers.CharField(source="flag.flag", read_only=True, default="")
+    project = serializers.CharField(
+        source="project.project", read_only=True, default=""
+    )
 
     class Meta:
         model = Address
@@ -836,6 +845,7 @@ class AddressListSerializer(serializers.ModelSerializer):
             "district",
             "status_development",
             "flag",
+            "project",
         ]
 
 

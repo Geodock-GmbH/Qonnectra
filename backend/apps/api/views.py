@@ -1680,6 +1680,7 @@ class ConduitViewSet(viewsets.ModelViewSet):
             "constructor",
             "manufacturer",
             "flag",
+            "project",
         ).order_by("name")
 
         project_id = request.query_params.get("project")
@@ -2062,6 +2063,7 @@ class AddressViewSet(viewsets.ModelViewSet):
         queryset = Address.objects.select_related(
             "status_development",
             "flag",
+            "project",
         ).order_by("street", "housenumber", "house_number_suffix")
 
         project_id = request.query_params.get("project")

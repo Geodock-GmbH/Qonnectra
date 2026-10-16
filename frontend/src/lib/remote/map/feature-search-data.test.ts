@@ -12,16 +12,6 @@ vi.mock('$env/static/private', () => ({
 	API_URL: 'http://localhost:8000/'
 }));
 
-vi.mock('$lib/paraglide/messages', () => ({
-	m: {
-		form_address: () => 'Adresse',
-		form_node: () => 'Knoten',
-		nav_trench: () => 'Graben',
-		form_conduit: () => 'Rohr',
-		form_area: () => 'Fläche'
-	}
-}));
-
 const headers = { Cookie: 'api-access-token=mock-token' };
 const fetchMock = vi.fn();
 
@@ -44,43 +34,115 @@ afterEach(() => {
 
 const geoJsonAddress = {
 	id: 'addr-1',
-	properties: { street: 'Hauptstraße', housenumber: '5', house_number_suffix: 'a' }
+	properties: {
+		street: 'Hauptstraße',
+		housenumber: 5,
+		house_number_suffix: 'a',
+		zip_code: '24972',
+		city: 'Sterup',
+		district: 'Gintoft',
+		project: 'Projekt A'
+	}
 };
 
 describe('mapSearchResults', () => {
-	test('should label every feature kind with its translated type', () => {
+	test('should name every feature kind and describe it with its context', () => {
 		const results = mapSearchResults({
 			addresses: { features: [geoJsonAddress] },
-			nodes: { features: [{ id: 'node-1', properties: { name: 'PoP-1' } }] },
-			trenches: { features: [{ id: 'trench-1', properties: { id_trench: 'T-42' } }] },
-			conduits: { results: [{ uuid: 'conduit-1', name: 'C-1', conduit_type: 'DA 50' }] },
-			areas: { features: [{ id: 'area-1', properties: { name: 'Süd' } }] }
+			nodes: {
+				features: [
+					{
+						id: 'node-1',
+						properties: {
+							name: 'PoP-1',
+							node_type: { node_type: 'PoP' },
+							uuid_address: { properties: { street: 'Dorfweg', housenumber: 3 } },
+							project: { project: 'Projekt A' }
+						}
+					}
+				]
+			},
+			trenches: {
+				features: [
+					{
+						id: 'trench-1',
+						properties: {
+							id_trench: 'T-42',
+							construction_type: { construction_type: 'Offener Graben' },
+							surface: { surface: 'Asphalt' },
+							project: { project: 'Projekt B' }
+						}
+					}
+				]
+			},
+			conduits: {
+				results: [
+					{
+						uuid: 'conduit-1',
+						name: 'C-1',
+						conduit_type: 'DA 50',
+						network_level: 'Verteilnetz',
+						project: 'Projekt C'
+					}
+				]
+			},
+			areas: {
+				features: [
+					{
+						id: 'area-1',
+						properties: { name: 'Süd', area_type: { area_type: 'Cluster' }, project: null }
+					}
+				]
+			}
 		});
 
 		expect(results).toEqual([
-			{ value: 'addr-1', label: 'Hauptstraße 5 a (Adresse)', type: 'address', uuid: 'addr-1' },
-			{ value: 'node-1', label: 'PoP-1 (Knoten)', type: 'node', uuid: 'node-1', name: 'PoP-1' },
+			{
+				value: 'addr-1',
+				label: 'Hauptstraße 5a',
+				type: 'address',
+				uuid: 'addr-1',
+				detail: '24972 Sterup · Gintoft',
+				project: 'Projekt A'
+			},
+			{
+				value: 'node-1',
+				label: 'PoP-1',
+				type: 'node',
+				uuid: 'node-1',
+				detail: 'PoP · Dorfweg 3',
+				project: 'Projekt A'
+			},
 			{
 				value: 'trench-1',
-				label: 'T-42 (Graben)',
+				label: 'T-42',
 				type: 'trench',
 				uuid: 'trench-1',
-				id_trench: 'T-42'
+				detail: 'Offener Graben · Asphalt',
+				project: 'Projekt B'
 			},
 			{
 				value: 'conduit-1',
-				label: 'C-1 - DA 50 (Rohr)',
+				label: 'C-1',
 				type: 'conduit',
 				uuid: 'conduit-1',
-				name: 'C-1'
+				detail: 'DA 50 · Verteilnetz',
+				project: 'Projekt C'
 			},
-			{ value: 'area-1', label: 'Süd (Fläche)', type: 'area', uuid: 'area-1', name: 'Süd' }
+			{
+				value: 'area-1',
+				label: 'Süd',
+				type: 'area',
+				uuid: 'area-1',
+				detail: 'Cluster',
+				project: ''
+			}
 		]);
 	});
 
 	test('should support non-GeoJSON address rows and skip incomplete features', () => {
 		const results = mapSearchResults({
-			addresses: { results: [{ uuid: 'addr-2', street: 'Dorfweg', housenumber: '3' }] },
+			addresses: { results: [{ uuid: 'addr-2', street: 'Dorfweg', housenumber: 3 }] },
 			nodes: { features: [{ id: 'node-1', properties: {} }] },
 			trenches: [],
 			conduits: { results: [{ uuid: 'conduit-1' }] },
@@ -88,20 +150,68 @@ describe('mapSearchResults', () => {
 		});
 
 		expect(results).toEqual([
-			{ value: 'addr-2', label: 'Dorfweg 3 (Adresse)', type: 'address', uuid: 'addr-2' }
+			{
+				value: 'addr-2',
+				label: 'Dorfweg 3',
+				type: 'address',
+				uuid: 'addr-2',
+				detail: '',
+				project: ''
+			}
 		]);
 	});
 
-	test('should omit the conduit type when the conduit has none', () => {
+	test('should leave out an address district that repeats the city', () => {
+		const [result] = mapSearchResults({
+			addresses: [
+				{ uuid: 'addr-1', street: 'Dorfweg', zip_code: '24972', city: 'Sterup', district: 'Sterup' }
+			],
+			nodes: [],
+			trenches: [],
+			conduits: [],
+			areas: []
+		});
+
+		expect(result.detail).toBe('24972 Sterup');
+	});
+
+	test('should leave out the linked address when the node name already contains it', () => {
+		const [result] = mapSearchResults({
+			addresses: [],
+			nodes: [
+				{
+					id: 'node-1',
+					properties: {
+						name: 'HA - Sterup,Westerstraße 12a',
+						node_type: { node_type: 'Hausanschluss' },
+						uuid_address: {
+							properties: { street: 'Westerstraße', housenumber: 12, house_number_suffix: 'a' }
+						}
+					}
+				}
+			],
+			trenches: [],
+			conduits: [],
+			areas: []
+		});
+
+		expect(result.label).toBe('HA - Sterup,Westerstraße 12a');
+		expect(result.detail).toBe('Hausanschluss');
+	});
+
+	test('should describe a conduit without a type by its network level only', () => {
 		const [result] = mapSearchResults({
 			addresses: [],
 			nodes: [],
 			trenches: [],
-			conduits: [{ uuid: 'conduit-1', name: 'C-1' }],
+			conduits: [
+				{ uuid: 'conduit-1', name: 'C-1', conduit_type: '', network_level: 'Verteilnetz' }
+			],
 			areas: []
 		});
 
-		expect(result.label).toBe('C-1 (Rohr)');
+		expect(result.label).toBe('C-1');
+		expect(result.detail).toBe('Verteilnetz');
 	});
 });
 
@@ -163,7 +273,7 @@ describe('searchFeaturesInProject', () => {
 		const results = await searchFeaturesInProject(headers, 'pop', '7');
 
 		expect(results).toEqual([
-			{ value: 'node-1', label: 'PoP-1 (Knoten)', type: 'node', uuid: 'node-1', name: 'PoP-1' }
+			{ value: 'node-1', label: 'PoP-1', type: 'node', uuid: 'node-1', detail: '', project: '' }
 		]);
 	});
 

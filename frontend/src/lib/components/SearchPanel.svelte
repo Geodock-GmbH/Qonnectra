@@ -4,6 +4,7 @@
 	import type VectorLayer from 'ol/layer/Vector';
 	import type OlMap from 'ol/Map';
 	import type VectorSource from 'ol/source/Vector';
+	import { tick } from 'svelte';
 	import { cubicOut } from 'svelte/easing';
 	import { fade, fly } from 'svelte/transition';
 	import { page } from '$app/state';
@@ -55,20 +56,34 @@
 	let isSearching = $state(false);
 	let showSearchResults = $state(false);
 	let highlightLayer = $state<VectorLayer<VectorSource> | undefined>();
+	/** Result highlighted by the arrow keys or the pointer; -1 when none. */
+	let activeIndex = $state(-1);
 
 	const FILTER_THRESHOLD = 10;
+	const listboxId = $props.id();
 
+	/** Fuzzy matcher over the current hits; the name counts double over context and project. */
 	const fuse = $derived(
 		new Fuse(searchResults, {
-			keys: ['label'],
+			keys: [{ name: 'label', weight: 2 }, 'detail', 'project'],
 			threshold: 0.3
 		})
 	);
 
+	/** Hits narrowed by the filter input; all hits when the filter is empty or matches nothing. */
 	let filteredResults = $derived.by(() => {
 		if (!filterQuery.trim()) return searchResults;
 		const results = fuse.search(filterQuery);
 		return results.length > 0 ? results.map((r) => r.item) : searchResults;
+	});
+
+	/** Whether the result list is shown; drives the combobox's `aria-expanded`. */
+	const isListOpen = $derived(showSearchResults && searchResults.length > 0 && !isSearching);
+
+	/** Combobox wiring shared by the search and the filter input. */
+	const comboboxAttributes = $derived({
+		'aria-controls': listboxId,
+		'aria-activedescendant': activeIndex >= 0 ? optionId(activeIndex) : undefined
 	});
 
 	const TYPE_CONFIG: Record<
@@ -113,14 +128,51 @@
 	};
 
 	/**
-	 * Get display name from label by removing the type suffix
-	 * @param label - Full label with type suffix
-	 * @returns Clean display name
+	 * Builds the DOM id of a result option, unique per panel instance.
+	 * @param index - Position in the filtered results.
+	 * @returns The option id.
 	 */
-	function getDisplayName(label: string): string {
-		return label.replace(/\s*\([^)]*\)\s*$/, '').trim();
+	function optionId(index: number): string {
+		return `${listboxId}-option-${index}`;
 	}
 
+	/**
+	 * Context line below a result name; the project is only added in the
+	 * global view, where hits from several projects mix.
+	 * @param result - The search hit.
+	 * @returns Detail and project joined with ` · `.
+	 */
+	function resultContext(result: SearchResult): string {
+		return [result.detail, $globalMapView ? result.project : ''].filter(Boolean).join(' · ');
+	}
+
+	/**
+	 * Arrow keys move the highlight through the results, Enter selects the
+	 * highlighted one and Escape closes the list. Without a highlight, Enter
+	 * falls through to the input's own handling.
+	 * @param event - Keydown on the search or filter input.
+	 */
+	async function handleListKeydown(event: KeyboardEvent) {
+		if (!isListOpen) return;
+		const lastIndex = filteredResults.length - 1;
+
+		if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+			event.preventDefault();
+			const step = event.key === 'ArrowDown' ? 1 : -1;
+			activeIndex = Math.min(Math.max(activeIndex + step, 0), lastIndex);
+			await tick();
+			document.getElementById(optionId(activeIndex))?.scrollIntoView?.({ block: 'nearest' });
+		} else if (event.key === 'Enter' && activeIndex >= 0) {
+			event.preventDefault();
+			void handleResultClick(filteredResults[activeIndex]);
+		} else if (event.key === 'Escape') {
+			event.preventDefault();
+			showSearchResults = false;
+			activeIndex = -1;
+		}
+	}
+
+	/** Searches all feature kinds for the query; an empty query just closes the list. */
 	const debouncedSearch = debounce(async (query: string) => {
 		if (!query.trim()) {
 			searchResults = [];
@@ -135,6 +187,7 @@
 				projectId: $globalMapView ? '' : projectId
 			});
 			filterQuery = '';
+			activeIndex = -1;
 			showSearchResults = true;
 		} catch (error) {
 			console.error('Search error:', error);
@@ -157,6 +210,7 @@
 		}
 	}, 300);
 
+	/** Searches for what is typed in the input. */
 	function handleSearch() {
 		debouncedSearch(searchQuery);
 	}
@@ -312,6 +366,7 @@
 		}
 	}
 
+	/** Empties the search, closes the list and removes the map highlight. */
 	export function clearSearch() {
 		searchQuery = '';
 		searchResults = [];
@@ -321,16 +376,27 @@
 		}
 	}
 
+	/**
+	 * Gives the layer the found feature blinks on.
+	 * @returns The highlight layer, or undefined before the first selection created it.
+	 */
 	export function getHighlightLayer() {
 		return highlightLayer;
 	}
 </script>
 
 <div class="search-panel">
-	<SearchInput bind:value={searchQuery} onSearch={handleSearch} />
+	<SearchInput
+		bind:value={searchQuery}
+		onSearch={handleSearch}
+		onkeydown={handleListKeydown}
+		role="combobox"
+		aria-autocomplete="list"
+		aria-expanded={isListOpen}
+		{...comboboxAttributes}
+	/>
 
-	<!-- Search Results -->
-	{#if showSearchResults && searchResults.length > 0 && !isSearching}
+	{#if isListOpen}
 		<div class="results-container" transition:fly={{ y: -8, duration: 200, easing: cubicOut }}>
 			<div class="results-header">
 				<span class="results-count">{filteredResults.length}</span>
@@ -345,22 +411,49 @@
 						class="filter-input"
 						placeholder={m.common_filter()}
 						bind:value={filterQuery}
+						oninput={() => (activeIndex = -1)}
+						onkeydown={handleListKeydown}
+						{...comboboxAttributes}
 					/>
 				{/if}
 			</div>
-			<ul class="results-list">
+			<ul
+				class="results-list"
+				id={listboxId}
+				role="listbox"
+				aria-label={m.common_results({ count: filteredResults.length })}
+			>
 				{#each filteredResults as result, index (result.value)}
 					{@const config = TYPE_CONFIG[result.type] || TYPE_CONFIG.node}
+					{@const context = resultContext(result)}
 					<li
 						class="result-item"
+						role="none"
 						style="animation-delay: {index * 30}ms"
 						transition:fade={{ duration: 150 }}
 					>
-						<button type="button" class="result-button" onclick={() => handleResultClick(result)}>
-							<span class="type-badge {config.bg} {config.text} {config.darkBg} {config.darkText}">
-								{config.getLabel()}
+						<button
+							type="button"
+							role="option"
+							id={optionId(index)}
+							aria-selected={index === activeIndex}
+							tabindex="-1"
+							class="result-button"
+							class:active={index === activeIndex}
+							onclick={() => handleResultClick(result)}
+							onmouseenter={() => (activeIndex = index)}
+						>
+							<span class="result-name">{result.label}</span>
+							<span class="result-meta">
+								<span
+									class="type-badge {config.bg} {config.text} {config.darkBg} {config.darkText}"
+								>
+									{config.getLabel()}
+								</span>
+								{#if context}
+									<span class="result-detail">{context}</span>
+								{/if}
 							</span>
-							<span class="result-name">{getDisplayName(result.label)}</span>
 						</button>
 					</li>
 				{/each}
@@ -373,7 +466,6 @@
 		</div>
 	{/if}
 
-	<!-- Loading Indicator -->
 	{#if isSearching}
 		<div class="loading-container" transition:fade={{ duration: 150 }}>
 			<div class="loading-dots">
@@ -482,7 +574,7 @@
 		list-style: none;
 		margin: 0;
 		padding: 6px;
-		max-height: 50vh;
+		max-height: 60dvh;
 		overflow-y: auto;
 	}
 
@@ -504,55 +596,71 @@
 
 	.result-button {
 		display: flex;
-		align-items: center;
-		gap: 10px;
+		flex-direction: column;
+		gap: 4px;
 		width: 100%;
+		min-height: 44px;
 		padding: 10px 12px;
 		background: transparent;
 		border: none;
 		border-radius: 8px;
 		cursor: pointer;
 		text-align: left;
-		transition:
-			background-color 0.15s ease,
-			transform 0.15s ease;
+		transition: background-color 0.15s ease;
 	}
 
-	.result-button:hover {
+	.result-button:hover,
+	.result-button.active {
 		background: var(--color-surface-100);
-		transform: translateY(-1px);
 	}
 
-	:global([data-mode='dark']) .result-button:hover {
+	:global([data-mode='dark']) .result-button:hover,
+	:global([data-mode='dark']) .result-button.active {
 		background: var(--color-surface-800);
 	}
 
-	.result-button:active {
-		transform: translateY(0);
+	/* The full name is the only thing telling near-identical hits apart, so it
+	   wraps instead of truncating; `anywhere` also breaks "Sterup,Westerstraße". */
+	.result-name {
+		font-size: 14px;
+		font-weight: 500;
+		line-height: 1.35;
+		color: var(--color-surface-900);
+		overflow-wrap: anywhere;
+	}
+
+	:global([data-mode='dark']) .result-name {
+		color: var(--color-surface-100);
+	}
+
+	.result-meta {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		min-width: 0;
 	}
 
 	.type-badge {
 		flex-shrink: 0;
-		padding: 4px 8px;
+		padding: 2px 6px;
 		border-radius: 4px;
-		font-size: 10px;
+		font-size: 9px;
 		font-weight: 700;
 		letter-spacing: 0.05em;
 		text-transform: uppercase;
 	}
 
-	.result-name {
-		flex: 1;
-		font-size: 14px;
-		font-weight: 500;
-		color: var(--color-surface-900);
+	.result-detail {
+		min-width: 0;
+		font-size: 12px;
+		color: var(--color-surface-600);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
 
-	:global([data-mode='dark']) .result-name {
-		color: var(--color-surface-100);
+	:global([data-mode='dark']) .result-detail {
+		color: var(--color-surface-400);
 	}
 
 	.loading-container {
@@ -616,7 +724,7 @@
 		}
 
 		.results-list {
-			max-height: 240px;
+			max-height: 320px;
 			padding: 4px;
 		}
 

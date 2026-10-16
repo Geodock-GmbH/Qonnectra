@@ -41,7 +41,9 @@
 <div class="hidden md:block border-r-2 border-surface-200-800">
 	<Navigation
 		layout={$sidebarExpanded ? 'sidebar' : 'rail'}
-		class="grid grid-rows-[auto_1fr_auto] gap-4"
+		class="grid gap-4 {$sidebarExpanded
+			? 'grid-rows-[auto_1fr_auto]'
+			: 'grid-rows-[auto_minmax(0,1fr)_auto]'}"
 	>
 		<Navigation.Header>
 			<div class="flex items-center gap-2 {$sidebarExpanded ? 'p-2' : 'p-4 justify-center'}">
@@ -93,9 +95,13 @@
 					{/if}
 				{/each}
 			{:else}
-				<!-- Collapsed: single flat list of icons -->
+				<!-- Collapsed: single flat list of icons. Skeleton's rail clips overflow and
+				     centres the menu, so only this list scrolls, and `safe` centring keeps the
+				     first icons reachable once the list is taller than the rail. -->
 				<Navigation.Group>
-					<Navigation.Menu>
+					<Navigation.Menu
+						class="min-h-0 overflow-y-auto justify-center-safe [scrollbar-width:thin]"
+					>
 						{#each railLinks as link (link.id)}
 							{#if !nav.isHidden(link.id)}
 								<SideBarLink {link} {projectId} anchorClass={getAnchorClass} iconOnly />
