@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.9.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.8.0...v1.9.0) (2026-10-16)
+
+
+### Features
+
+* Added trench_depth_summary next to trench_funding_summary for ExportFeaturesView ([579407e](https://github.com/Geodock-GmbH/Qonnectra/commit/579407ec43a33dc2c3b8b9ecf744ae60a0b7c153))
+* Adds an opt-in load test and fixes ([#104](https://github.com/Geodock-GmbH/Qonnectra/issues/104)) ([24e7ede](https://github.com/Geodock-GmbH/Qonnectra/commit/24e7ede89d5a8f27313adb3eccab45445ba5a9fc))
+
+
+### Bug Fixes
+
+* clearAuthCookies now deletes the token cookies on the same domain the backend sets them with. It reads that from USE_COOKIE_DOMAIN_MIDDLEWARE and COOKIE_DOMAIN ([add50e1](https://github.com/Geodock-GmbH/Qonnectra/commit/add50e1496ec838de663e10041e8d86bbd290998))
+
+
+### Miscellaneous
+
+* Update to postgres trixie from bullseye ([f3f021b](https://github.com/Geodock-GmbH/Qonnectra/commit/f3f021b551a084d445de31bf8b6a4cff7ad7034f))
+* Updated wireguard docs ([1e75dfc](https://github.com/Geodock-GmbH/Qonnectra/commit/1e75dfc4729f29593bb8056af92c8d9d995ebdf2))
+
 ## [1.8.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.7.0...v1.8.0) (2026-09-29)
 
 
