@@ -344,6 +344,30 @@ docker-compose logs [service_name]
 - Users:
   - Main user (`DB_USER`): full privileges, used by the Django backend
   - QGIS user (`QGIS_DB_USER`): read-write access to the GIS data tables, none to the auth and permission tables; table grants are applied by the backend after every `migrate`
+- Image: `postgres:17-trixie` with PostGIS 3.6 and pgRouting 4.0 from the PostgreSQL apt repository
+
+##### Upgrading from the bullseye image (PostGIS 3.5, pgRouting 3.8)
+
+Installations created before the switch to trixie keep their data volume, but the extensions and the text indexes need one manual pass. Take a backup first and run this in a maintenance window, since `REINDEX` locks the tables while it runs.
+
+```bash
+docker compose build db && docker compose up -d db
+
+# Update the extension SQL to the new libraries
+docker compose exec db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+  -c "SELECT postgis_extensions_upgrade();" \
+  -c "ALTER EXTENSION pgrouting UPDATE;"'
+
+# glibc changed between bullseye and trixie: rebuild collation-dependent indexes and record the new version
+docker compose exec db sh -c 'for db in $(psql -U "$POSTGRES_USER" -d postgres -Atc "SELECT datname FROM pg_database WHERE datallowconn"); do
+  psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$db" <<EOF
+REINDEX DATABASE;
+ALTER DATABASE "$db" REFRESH COLLATION VERSION;
+EOF
+done'
+
+docker compose up -d
+```
 
 #### Backend (Django 5.2)
 

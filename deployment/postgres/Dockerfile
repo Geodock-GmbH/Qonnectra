@@ -1,6 +1,8 @@
-FROM postgis/postgis:17-3.5
+FROM postgres:17-trixie
 
-# Update package lists and install pgRouting for PostgreSQL 17
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends postgresql-17-pgrouting && \
+    apt-get install -y --no-install-recommends \
+        postgresql-$PG_MAJOR-postgis-3 \
+        postgresql-$PG_MAJOR-postgis-3-scripts \
+        postgresql-$PG_MAJOR-pgrouting && \
     rm -rf /var/lib/apt/lists/*
