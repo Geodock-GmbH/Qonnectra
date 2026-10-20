@@ -525,7 +525,8 @@ paths:
         Return all areas with project, flag, and fuzzy search filters.
 
         Search uses trigram similarity on the name field combined with
-        an icontains fallback on the area_type name.
+        an icontains fallback on the area_type name, and returns at most
+        ``SEARCH_RESULT_LIMIT`` best matches.
 
         Args:
             request: DRF request with query params ``project``,
@@ -1656,6 +1657,19 @@ paths:
           description: ''
         '401':
           description: Not authenticated or lacks QGIS access.
+  /api/v1/auth/tile-auth/:
+    get:
+      operationId: auth_tile_auth_retrieve
+      description: Return 204 if the request carries a valid login, 403 if not.
+      tags:
+      - auth
+      security:
+      - jwtHeaderAuth: []
+      - jwtCookieAuth: []
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/auth/token/refresh/:
     post:
       operationId: auth_token_refresh_create
@@ -6721,7 +6735,9 @@ paths:
             flag: Filter by flag ID.
             group: Filter by node type group.
             exclude_group: Exclude nodes by node type group.
-            search: Trigram fuzzy search on name, with icontains on node_type.
+            search: Trigram fuzzy search on name, with icontains on
+                node_type. Returns at most ``SEARCH_RESULT_LIMIT`` best
+                matches.
             use_pipe_branch_settings: If ``'true'``, apply project's
                 pipe-branch allowed types.
             include_excluded: If ``'true'``, bypass NetworkSchemaSettings
@@ -8435,11 +8451,19 @@ paths:
     get:
       operationId: trench_all_retrieve
       description: |-
-        Returns all trenches with project, flag, and search filters.
-        No pagination is used.
+        Return all trenches with project, flag, and search filters.
 
-        The optional ``exclude_projects`` param takes a comma-separated list
-        of project ids (e.g. ``?exclude_projects=3,7``) to drop from results.
+        No pagination is used; a ``search`` on ``id_trench`` returns at most
+        ``SEARCH_RESULT_LIMIT`` trenches.
+
+        Args:
+            request: DRF request with query params ``project``, ``flag``,
+                ``search`` and ``exclude_projects`` (comma-separated ids to
+                drop, e.g. ``3,7``).
+
+        Returns:
+            Response: GeoJSON FeatureCollection of :model:`api.Trench`
+                features, ordered by ``id_trench``.
       tags:
       - trench
       security:

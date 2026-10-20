@@ -242,7 +242,8 @@ export interface paths {
          * @description Return all areas with project, flag, and fuzzy search filters.
          *
          *     Search uses trigram similarity on the name field combined with
-         *     an icontains fallback on the area_type name.
+         *     an icontains fallback on the area_type name, and returns at most
+         *     ``SEARCH_RESULT_LIMIT`` best matches.
          *
          *     Args:
          *         request: DRF request with query params ``project``,
@@ -1091,6 +1092,23 @@ export interface paths {
         put?: never;
         /** @description Handle POST requests. */
         post: operations["auth_qgis_auth_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/tile-auth/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Return 204 if the request carries a valid login, 403 if not. */
+        get: operations["auth_tile_auth_retrieve"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3483,7 +3501,9 @@ export interface paths {
          *         flag: Filter by flag ID.
          *         group: Filter by node type group.
          *         exclude_group: Exclude nodes by node type group.
-         *         search: Trigram fuzzy search on name, with icontains on node_type.
+         *         search: Trigram fuzzy search on name, with icontains on
+         *             node_type. Returns at most ``SEARCH_RESULT_LIMIT`` best
+         *             matches.
          *         use_pipe_branch_settings: If ``'true'``, apply project's
          *             pipe-branch allowed types.
          *         include_excluded: If ``'true'``, bypass NetworkSchemaSettings
@@ -4352,11 +4372,19 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Returns all trenches with project, flag, and search filters.
-         *     No pagination is used.
+         * @description Return all trenches with project, flag, and search filters.
          *
-         *     The optional ``exclude_projects`` param takes a comma-separated list
-         *     of project ids (e.g. ``?exclude_projects=3,7``) to drop from results.
+         *     No pagination is used; a ``search`` on ``id_trench`` returns at most
+         *     ``SEARCH_RESULT_LIMIT`` trenches.
+         *
+         *     Args:
+         *         request: DRF request with query params ``project``, ``flag``,
+         *             ``search`` and ``exclude_projects`` (comma-separated ids to
+         *             drop, e.g. ``3,7``).
+         *
+         *     Returns:
+         *         Response: GeoJSON FeatureCollection of :model:`api.Trench`
+         *             features, ordered by ``id_trench``.
          */
         get: operations["trench_all_retrieve"];
         put?: never;
@@ -9739,6 +9767,24 @@ export interface operations {
             };
             /** @description Not authenticated or lacks QGIS access. */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auth_tile_auth_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
