@@ -36,18 +36,22 @@
 	setRememberedProject(data.rememberedProject);
 </script>
 
-<div class="flex h-screen">
-	<Sidebar />
+{#if data.user?.isAuthenticated}
+	<div class="flex h-screen">
+		<Sidebar />
 
-	<div class="flex flex-1 flex-col overflow-hidden">
-		<AppBar {data} />
-		<main class="flex-1 overflow-y-auto p-4 pb-20 desktop:pb-4">
-			{@render children()}
-		</main>
+		<div class="flex flex-1 flex-col overflow-hidden">
+			<AppBar {data} />
+			<main class="flex-1 overflow-y-auto p-4 pb-20 desktop:pb-4">
+				{@render children()}
+			</main>
+		</div>
 	</div>
-</div>
 
-<MobileNav />
+	<MobileNav />
+{:else}
+	{@render children()}
+{/if}
 
 <NavigationProgress />
 
