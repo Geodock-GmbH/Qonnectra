@@ -161,7 +161,11 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null 'http://localhost/?SERVICE=WMS&REQUEST=GetCapabilities' || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O /dev/null 'http://localhost/?SERVICE=WMS&REQUEST=GetCapabilities' || exit 1",
+        ]
       interval: 1m
       timeout: 30s
       retries: 3
@@ -329,7 +333,7 @@ services:
           memory: 64M
 
   tileserver:
-    image: maptiler/tileserver-gl:v5.6.0
+    image: maptiler/tileserver-gl:v5.7.0
     container_name: qonnectra_tileserver_prod
     restart: always
     user: "1000:1000"
