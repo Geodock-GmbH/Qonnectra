@@ -6,6 +6,7 @@ import * as v from 'valibot';
 import { landingPathFor } from '$lib/server/landing';
 
 import { forwardSetCookies, loginErrorMessage, safeRedirectTarget } from './auth-session';
+import { loginRequestInit } from './login-request';
 
 const LoginSchema = v.object({
 	username: v.pipe(v.string(), v.nonEmpty()),
@@ -27,12 +28,7 @@ export const login = form(LoginSchema, async ({ username, _password, redirectTo 
 
 	let response: Response;
 	try {
-		response = await fetch(`${API_URL}auth/login/`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ username, password: _password }),
-			credentials: 'omit'
-		});
+		response = await fetch(`${API_URL}auth/login/`, loginRequestInit(username, _password));
 	} catch {
 		error(500, 'An internal error occurred during login.');
 	}
